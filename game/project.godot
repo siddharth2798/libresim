@@ -1,0 +1,13 @@
+; Engine configuration file.
+config_version=5
+
+[application]
+config/name="free-sim"
+config/features=PackedStringArray("4.3", "Mobile")
+
+[physics]
+common/physics_ticks_per_second=120
+
+[rendering]
+renderer/rendering_method="mobile"
+textures/vram_compression/import_etc2_astc=true

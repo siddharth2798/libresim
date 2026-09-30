@@ -1,0 +1,6 @@
+data/raw/
+data/processed/
+game/.godot/
+*.import
+build/
+__pycache__/
