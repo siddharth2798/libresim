@@ -35,7 +35,3 @@ func _draw_needles(c: Vector2, r: float) -> void:
 	draw_circle(c + Vector2(ball * r * 0.4, r * 0.47), r * 0.08, Color.BLACK)
 	if Props.get_b("instruments/tc_flag"):
 		label(c + Vector2(r * 0.4, -r * 0.2), "OFF", 12, Color(1, 0.3, 0.2))
-
-
-func _process(_dt: float) -> void:
-	queue_redraw()

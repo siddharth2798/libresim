@@ -55,6 +55,25 @@ func _qnh() -> String:
 	return "%d" % int(round(Props.get_f("weather/qnh_hpa", 1013.0)))
 
 
+## Is COM1 tuned to this airport's facility? (types: ATIS, CLD/DEL, GND, TWR, APP)
+## Airports without published frequencies (small fields) accept any COM1 frequency.
+func _tuned(types: Array) -> String:
+	var a := _apt()
+	var db: NavDatabase = get_node("../../Avionics/Nav").db
+	var list: Array = db.coms.get(a, [])
+	if list.is_empty():
+		return ""
+	var com := Props.get_f("controls/com1/freq_mhz")
+	var want := ""
+	for f in list:
+		if str(f.type) in types:
+			if f.mhz != null and absf(float(f.mhz) - com) < 0.004:
+				return ""
+			if want == "" and f.mhz != null:
+				want = "%s %.3f" % [f.desc, float(f.mhz)]
+	return want if want != "" else ""
+
+
 func _say(who: String, text: String) -> void:
 	_lines.append("%s: %s" % [who, text])
 	_lines = _lines.slice(maxi(_lines.size() - 6, 0))
@@ -68,12 +87,24 @@ func _calls() -> Array:
 	var on_ground := Props.get_b("fdm/wow")
 	return [
 		["Listen to ATIS", func():
+			var w := _tuned(["ATIS"])
+			if w != "":
+				_say("(radio)", "Nothing heard on COM1 — tune %s" % w)
+				return
 			_say(a + " ATIS", "Information Alpha. Runway %s in use. Wind %s. Visibility %d km. QNH %s. Temperature %d. Acknowledge Alpha on first contact." % [
 				r, _wind(), int(Props.get_f("weather/visibility_m") / 1000.0), _qnh(), int(Props.get_f("weather/temp_c"))])],
 		["Clearance delivery: request VFR departure", func():
+			var w := _tuned(["CLD", "DEL", "GND"])
+			if w != "":
+				_say("(radio)", "No reply on COM1 %.3f — tune %s" % [Props.get_f("controls/com1/freq_mhz"), w])
+				return
 			_say("You", "%s Delivery, %s, Cessna 172 at %s, information Alpha, request VFR departure." % [a, _callsign, Props.get_v("ops/stand", "the apron")])
 			_say(a + " Delivery", "%s, cleared VFR, departure runway %s, climb not above 2000 feet, squawk %s." % [_callsign, r, _squawk])],
 		["Ground: request taxi", func():
+			var w := _tuned(["GND"])
+			if w != "":
+				_say("(radio)", "No reply on COM1 %.3f — tune %s" % [Props.get_f("controls/com1/freq_mhz"), w])
+				return
 			if not on_ground:
 				_say(a + " Ground", "%s, you appear airborne, contact Tower." % _callsign)
 				return
@@ -82,13 +113,25 @@ func _calls() -> Array:
 			_say("You", "%s Ground, %s, ready to taxi." % [a, _callsign])
 			_say(a + " Ground", "%s, %s, QNH %s." % [_callsign, route.replace("Taxi", "taxi") if route != "" else "taxi to holding point runway " + r, _qnh()])],
 		["Tower: ready for departure", func():
+			var w := _tuned(["TWR"])
+			if w != "":
+				_say("(radio)", "No reply on COM1 %.3f — tune %s" % [Props.get_f("controls/com1/freq_mhz"), w])
+				return
 			_say("You", "%s Tower, %s, holding point runway %s, ready for departure." % [a, _callsign, r])
 			_say(a + " Tower", "%s, wind %s, runway %s, cleared for takeoff." % [_callsign, _wind(), r])],
 		["Tower: inbound / request landing", func():
+			var w := _tuned(["TWR", "APP"])
+			if w != "":
+				_say("(radio)", "No reply on COM1 %.3f — tune %s" % [Props.get_f("controls/com1/freq_mhz"), w])
+				return
 			var alt := int(Units.m_to_ft(Props.get_f("fdm/alt_m")) / 100.0) * 100
 			_say("You", "%s Tower, %s, Cessna 172, %d feet, inbound for landing." % [a, _callsign, alt])
 			_say(a + " Tower", "%s, join final runway %s, report final. QNH %s." % [_callsign, r, _qnh()])],
 		["Tower: on final", func():
+			var w := _tuned(["TWR"])
+			if w != "":
+				_say("(radio)", "No reply on COM1 %.3f — tune %s" % [Props.get_f("controls/com1/freq_mhz"), w])
+				return
 			_say("You", "%s, final runway %s." % [_callsign, r])
 			_say(a + " Tower", "%s, wind %s, runway %s, cleared to land." % [_callsign, _wind(), r])],
 	]

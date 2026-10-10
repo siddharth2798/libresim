@@ -35,7 +35,3 @@ func _gui_input(e: InputEvent) -> void:
 		Props.set_v("instruments/hi/sync", true)
 		return
 	super._gui_input(e)
-
-
-func _process(_dt: float) -> void:
-	queue_redraw()

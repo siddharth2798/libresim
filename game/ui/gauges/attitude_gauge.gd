@@ -51,7 +51,3 @@ func _draw_needles(c: Vector2, r: float) -> void:
 	draw_colored_polygon(PackedVector2Array([c + Vector2(0, -r * 0.98), c + Vector2(-8, -r * 0.82), c + Vector2(8, -r * 0.82)]), o)
 	if Props.get_b("instruments/ai/flag"):
 		label(c + Vector2(0, r * 0.55), "GYRO", 12, Color(1, 0.3, 0.2))
-
-
-func _process(_dt: float) -> void:
-	queue_redraw()

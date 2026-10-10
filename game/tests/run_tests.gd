@@ -4,7 +4,7 @@ extends Node
 ## Each test_* method returns "" on success or a failure message.
 ## Test suites: tests/test_core.gd (M2), tests/test_fdm_cards.gd (M3 POH test cards).
 
-const SUITES := ["res://tests/test_core.gd", "res://tests/test_fdm_cards.gd", "res://tests/test_flight.gd", "res://tests/test_instruments.gd", "res://tests/test_systems.gd", "res://tests/test_landing.gd"]
+const SUITES := ["res://tests/test_core.gd", "res://tests/test_fdm_cards.gd", "res://tests/test_flight.gd", "res://tests/test_instruments.gd", "res://tests/test_systems.gd", "res://tests/test_landing.gd", "res://tests/test_nav.gd"]
 
 
 func _ready() -> void:

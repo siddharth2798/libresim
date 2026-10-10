@@ -26,7 +26,3 @@ func _draw_face(c: Vector2, r: float) -> void:
 
 func _draw_needles(c: Vector2, r: float) -> void:
 	needle(c, ang(Props.get_f("instruments/asi_kt")), r * 0.85)
-
-
-func _process(_dt: float) -> void:
-	queue_redraw()

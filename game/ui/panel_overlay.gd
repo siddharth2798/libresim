@@ -15,6 +15,7 @@ const LAYOUTS := ["Full", "Split", "Compact", "Minimal", "Off"]
 var cockpit: Cockpit
 var cam: CameraRig
 var layout := 1
+var _acc := 0.0
 var _pieces: Array = []  # [TextureRect, Rect2 region (panel px)]
 
 
@@ -41,8 +42,8 @@ func _region(names: Array) -> Rect2:
 ## Layout spec: [[region names], anchor ("bl","br","bc","tr","rc"), height as fraction of screen]
 func _spec() -> Array:
 	match LAYOUTS[layout]:
-		"Full": return [[["asi", "ai", "alt", "tc", "hi", "vsi", "tach", "strip", "switches"], "bc", 0.34]]
-		"Split": return [[["asi", "ai", "alt", "tc", "hi", "vsi"], "bl", 0.30], [["tach", "strip"], "rc", 0.42]]
+		"Full": return [[["asi", "ai", "alt", "vor1", "tc", "hi", "vsi", "vor2", "tach", "strip", "adf", "radios", "switches"], "bc", 0.42]]
+		"Split": return [[["asi", "ai", "alt", "tc", "hi", "vsi"], "bl", 0.30], [["vor1", "vor2", "adf"], "br", 0.42], [["radios"], "tr", 0.40]]
 		"Compact": return [[["asi", "ai", "alt", "tc", "hi", "vsi"], "bl", 0.22]]
 		"Minimal": return [[["asi", "ai", "alt"], "tr", 0.12]]
 	return []
@@ -110,5 +111,8 @@ func _process(_dt: float) -> void:
 	if cam == null:
 		return
 	visible = cam.mode != CameraRig.Mode.COCKPIT and not _pieces.is_empty()
-	if visible:
+	_acc += _dt
+	if visible and _acc >= 1.0 / 30.0:
+		_acc = 0.0
+		cockpit.panel_ui.refresh()
 		cockpit.viewport.render_target_update_mode = SubViewport.UPDATE_ONCE

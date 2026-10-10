@@ -89,6 +89,7 @@ $PY tools/10_buildings.py          # -> data/processed/buildings/ 3D building me
 $PY tools/11_landclass.py          # -> data/processed/terrain/lc/ land-class masks: water + tree density (after 02-04) ~30 s
 $PY tools/12_outer.py              # -> terrain levels 3-6 over ~980 x 980 km (real 90 m data + filled beyond) ~3 min
 $PY tools/13_airport_ops.py        # -> data/processed/airport_ops.json: stands, gates, jetbridges, hold points, taxi graph
+$PY tools/14_ils.py                # -> data/processed/ils.json: SIMULATED ILS for runways >= 2000 m (after 09)
 
 # Aircraft 3D models (FlightGear c172p, GPL), already committed as .glb; only needed to regenerate:
 blender -b --factory-startup --python tools/blender/convert_c172p.py            # exterior.glb
@@ -186,7 +187,7 @@ cd game
 - **Taxi guidance:** the route is computed over the real OSM taxiway network, and the instruction names the taxiways ("via A, B").
 
 **Radio and checklists:**
-- **Text ATC** (`): ATIS, clearance with squawk, ground, tower.
+- **Text ATC** (`): ATIS, clearance with squawk, ground, tower. Each call only gets an answer when COM1's active frequency is tuned to that facility (ATIS, DEL/GND, TWR), as in the real aircraft.
 - **Checklists** (F2) that track what you've actually done.
 
 **At the airport:** jetbridges, stand lead-in lines with stand numbers, and windsocks that turn with the wind.
@@ -272,6 +273,34 @@ It shows on the 3D panel in the cockpit view (C) and as a 2D strip at the bottom
 - **Heading indicator:** drifts about 4° per 15 min. Re-sync it to the compass regularly.
 - **Compass:** pendulous card with real northerly turning and acceleration errors, and swing and overshoot.
 - **Turn coordinator:** electric rate gyro canted 30°, with the slip ball.
+
+### Navigation and radios (M7)
+
+The panel now carries the right-hand column and radio stack of a real C172S:
+
+- **VOR1** (KI-208 CDI) on NAV1 and **VOR2/ILS** (KI-209, with glideslope) on NAV2. The OBS knob works by clicking the left or right half, or by mouse wheel: ±1° per step, ±10° with Shift. Each shows TO/FROM and OFF flags.
+- **ADF** (KI-227): the needle shows the NDB's relative bearing. The HDG knob turns the card (5° per step, 10° with Shift).
+- **Radio stack:**
+  - A GPS line.
+  - Two KX-155 COM/NAV radios.
+  - KR-87 ADF.
+  - KT-76A transponder.
+  - KI-266 DME, which follows NAV1.
+
+  Tuning:
+  - **Frequencies:** the mouse wheel over a standby frequency tunes it (COM 25 kHz, NAV 50 kHz, ADF 1 kHz; Shift for 1 MHz / 100 kHz steps), and clicking the ⇄ arrow swaps active and standby.
+  - **Transponder:** the wheel over a digit changes it (0–7), and clicking the mode box cycles OFF/SBY/ON/ALT.
+- **Reception:**
+  - Navaids come from OurAirports.
+  - Range depends on altitude, and terrain line of sight is checked every 0.5 s. Flying low behind the Western Ghats will lose Pune VOR.
+  - The radios need avionics power.
+- **ILS:** OurAirports has no ILS data, so `tools/14_ils.py` **generates simulated** localizers and glideslopes for the long runways. Geometry follows the real runway, and the glideslope is 3°. **The frequencies and idents are not real.** The map labels them "simulated".
+- **GPS direct-to:** in the moving map, click any airport or navaid. The GPS line on the stack then shows bearing, distance and ETE.
+- **Moving map (N):**
+  - A north-up satellite map with airports, runways, VORs and NDBs, ILS feathers, your track and the direct-to line.
+  - The mouse wheel zooms.
+
+Default frequencies are COM1 118.10/121.90, NAV1 116.60/113.90, NAV2 108.10/109.30, ADF 381 and squawk 7000. Panel layouts: the Full, Split and Compact layouts include the VORs, ADF and radio stack.
 
 ### Systems, weather and failures (M6)
 

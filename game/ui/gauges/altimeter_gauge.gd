@@ -27,7 +27,3 @@ func _knob(d: float) -> void:
 	var step := 0.1 if Input.is_key_pressed(KEY_SHIFT) else 0.01
 	var k := Props.get_f("instruments/altimeter/kollsman_inhg", 29.92) + d * step
 	Props.set_v("instruments/altimeter/kollsman_inhg", clampf(snappedf(k, 0.01), 28.1, 31.0))
-
-
-func _process(_dt: float) -> void:
-	queue_redraw()

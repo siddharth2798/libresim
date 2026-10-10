@@ -22,10 +22,6 @@ func _ready() -> void:
 	custom_minimum_size = Vector2(240, 300)
 
 
-func _process(_dt: float) -> void:
-	queue_redraw()
-
-
 func _draw() -> void:
 	var w := size.x
 	var row_h := size.y / (ROWS.size() + 1.5)

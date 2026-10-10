@@ -28,10 +28,6 @@ func _ready() -> void:
 	mouse_filter = MOUSE_FILTER_STOP
 
 
-func _process(_dt: float) -> void:
-	queue_redraw()
-
-
 func _cell(i: int) -> Rect2:
 	var w := size.x / ITEMS.size()
 	return Rect2(Vector2(i * w, 0), Vector2(w, size.y))

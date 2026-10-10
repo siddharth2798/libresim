@@ -17,7 +17,11 @@ const SPOTS := {
 	"hi": [Vector3(-0.365, -0.2216, 0.0289), 0.080],
 	"vsi": [Vector3(-0.3656, -0.1324, 0.0284), 0.080],
 	"tach": [Vector3(-0.3636, -0.3119, -0.0787), 0.076],
-	"strip": [Vector3(-0.362, 0.33, 0.06), 0.15],
+	"vor1": [Vector3(-0.364, -0.0414, 0.1307), 0.080],
+	"vor2": [Vector3(-0.3646, -0.0409, 0.0274), 0.080],
+	"adf": [Vector3(-0.3639, -0.0412, -0.0765), 0.080],
+	"radios": [Vector3(-0.354, 0.1165, 0.047), 0.16],
+	"strip": [Vector3(-0.362, 0.33, 0.06), 0.16],
 	"switches": [Vector3(-0.352, -0.19, -0.168), 0.40],
 }
 ## Pilot eye in the FlightGear model frame (left seat).
@@ -102,6 +106,7 @@ func _process(dt: float) -> void:
 		_acc = 0.0
 		var cam := get_viewport().get_camera_3d()
 		if cam and cam.global_position.distance_to(global_position) < 4.0:
+			panel_ui.refresh()
 			viewport.render_target_update_mode = SubViewport.UPDATE_ONCE
 
 
