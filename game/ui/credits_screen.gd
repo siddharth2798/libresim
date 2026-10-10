@@ -38,9 +38,7 @@ func _ready() -> void:
 
 
 func _load_text() -> String:
-	var path := ProjectSettings.globalize_path("res://").path_join("../CREDITS.md").simplify_path()
-	if not OS.has_feature("editor"):
-		path = OS.get_executable_path().get_base_dir().path_join("CREDITS.md")
+	var path := Paths.docs_dir().path_join("CREDITS.md")
 	var t := "free-sim — Credits & licences   (F12 / Esc to close)\n\n"
 	var f := FileAccess.open(path, FileAccess.READ)
 	t += f.get_as_text() if f else "CREDITS.md not found next to the game.\n"

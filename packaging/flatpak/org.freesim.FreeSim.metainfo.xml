@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>org.freesim.FreeSim</id>
+  <name>free-sim</name>
+  <summary>Cessna 172 flight simulator over Mumbai and Pune</summary>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>GPL-2.0-or-later</project_license>
+  <description>
+    <p>An offline, realistic Cessna 172 flight simulator for the Mumbai–Pune region with satellite
+    terrain, 3D OpenStreetMap buildings, a JSBSim-derived flight model checked against the POH,
+    real recorded sounds, systems, failures, weather and a damage model.</p>
+  </description>
+  <launchable type="desktop-id">org.freesim.FreeSim.desktop</launchable>
+  <content_rating type="oars-1.1"/>
+  <releases>
+    <release version="0.1.0" date="2026-10-10"/>
+  </releases>
+</component>

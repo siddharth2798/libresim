@@ -18,6 +18,7 @@ import common as c
 
 gdal.UseExceptions()
 SRC = c.RAW / "imagery" / "s2.tif"
+OUTER_SRC = c.RAW / "imagery" / "s2_outer.tif"  # 01c_fetch_outer_imagery.sh (optional)
 
 
 def ensure_overviews():
@@ -36,8 +37,10 @@ def make_tile(job):
     if out.exists():
         return
     x0, y0 = tx * size, ty * size
-    ds = gdal.Translate("", str(SRC), format="MEM", projWin=[x0, y0 + size, x0 + size, y0],
-                        width=c.IMG_N, height=c.IMG_N, resampleAlg="average")
+    # outer 80 m mosaic underneath, inner 10 m imagery on top (no black past the inner edge)
+    srcs = [str(p) for p in (OUTER_SRC, SRC) if p.exists()]
+    ds = gdal.Warp("", srcs, format="MEM", outputBounds=(x0, y0, x0 + size, y0 + size),
+                   width=c.IMG_N, height=c.IMG_N, resampleAlg="average")
     img = np.dstack([ds.GetRasterBand(b).ReadAsArray() for b in (1, 2, 3)]).astype(np.uint8)
     bc1.write_dds(out, img)
 

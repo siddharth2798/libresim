@@ -1,0 +1,33 @@
+# Flatpak manifest: wraps the prebuilt Linux release (build/free-sim-<v>-linux-x86_64.tar.gz).
+#   flatpak install flathub org.freedesktop.Platform//24.08 org.freedesktop.Sdk//24.08
+#   flatpak-builder --user --install --force-clean build/flatpak packaging/flatpak/org.freesim.FreeSim.yml
+#   flatpak run org.freesim.FreeSim
+app-id: org.freesim.FreeSim
+runtime: org.freedesktop.Platform
+runtime-version: '24.08'
+sdk: org.freedesktop.Sdk
+command: free-sim
+finish-args:
+  - --share=ipc
+  - --socket=x11
+  - --socket=wayland
+  - --socket=pulseaudio
+  - --device=dri
+  - --device=input      # joysticks / yokes
+  - --env=FREESIM_DATA=/app/lib/free-sim/data
+modules:
+  - name: free-sim
+    buildsystem: simple
+    sources:
+      - type: archive
+        path: ../../build/free-sim-0.1.0-dev-linux-x86_64.tar.gz
+      - type: file
+        path: org.freesim.FreeSim.metainfo.xml
+    build-commands:
+      - mkdir -p /app/lib/free-sim /app/bin
+      - cp -r . /app/lib/free-sim/
+      - ln -s /app/lib/free-sim/free-sim.sh /app/bin/free-sim
+      - install -Dm644 free-sim.desktop /app/share/applications/org.freesim.FreeSim.desktop
+      - sed -i 's/^Icon=.*/Icon=org.freesim.FreeSim/' /app/share/applications/org.freesim.FreeSim.desktop
+      - install -Dm644 free-sim.png /app/share/icons/hicolor/512x512/apps/org.freesim.FreeSim.png
+      - install -Dm644 org.freesim.FreeSim.metainfo.xml /app/share/metainfo/org.freesim.FreeSim.metainfo.xml

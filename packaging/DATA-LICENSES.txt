@@ -1,0 +1,16 @@
+free-sim data pack: licences of the generated map data in this folder
+
+terrain/img/     Satellite imagery tiles derived from Sentinel-2 cloudless (https://s2maps.eu)
+                 by EOX IT Services GmbH (contains modified Copernicus Sentinel data 2024).
+                 Licence: CC BY-NC-SA 4.0 (https://creativecommons.org/licenses/by-nc-sa/4.0/).
+                 These derived tiles are shared under the same licence. NON-COMMERCIAL use only.
+terrain/h/       Heightmap tiles derived from Copernicus GLO-30 and GLO-90 DEM:
+                 © DLR e.V. 2010-2014 and © Airbus Defence and Space GmbH 2014-2018,
+                 provided under COPERNICUS by the European Union and ESA.
+terrain/lc/      Land-class masks derived from the imagery, DEM and OpenStreetMap data.
+buildings/, runways.json
+                 Derived from OpenStreetMap data © OpenStreetMap contributors.
+                 These derived databases are made available under the Open Database Licence (ODbL 1.0):
+                 https://opendatacommons.org/licenses/odbl/1-0/  (https://www.openstreetmap.org/copyright)
+airports.json, navaids.json
+                 Derived from OurAirports (https://ourairports.com), public domain.

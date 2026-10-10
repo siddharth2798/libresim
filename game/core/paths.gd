@@ -3,9 +3,25 @@ class_name Paths
 ## project (free-sim/data/processed); an exported build will ship it beside the binary.
 
 static func data_dir() -> String:
+	var env := OS.get_environment("FREESIM_DATA")  # Flatpak / custom installs
+	if env != "":
+		return env
 	if OS.has_feature("editor"):
 		return ProjectSettings.globalize_path("res://").path_join("../data/processed").simplify_path()
-	return OS.get_executable_path().get_base_dir().path_join("data")
+	var exe_dir := OS.get_executable_path().get_base_dir()
+	if OS.has_feature("macos"):  # free-sim.app/Contents/MacOS/free-sim -> Contents/Resources/data
+		return exe_dir.path_join("../Resources/data").simplify_path()
+	return exe_dir.path_join("data")
+
+
+## Folder holding CREDITS.md / LICENSE in a release (repo root during development).
+static func docs_dir() -> String:
+	if OS.has_feature("editor"):
+		return ProjectSettings.globalize_path("res://").path_join("..").simplify_path()
+	var exe_dir := OS.get_executable_path().get_base_dir()
+	if OS.has_feature("macos"):
+		return exe_dir.path_join("../Resources").simplify_path()
+	return exe_dir
 
 
 static func data(rel: String) -> String:

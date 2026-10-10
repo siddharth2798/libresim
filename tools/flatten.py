@@ -4,7 +4,7 @@ Runways: OSM runway centrelines (fallback: OurAirports runway ends). Height alon
 the runway = least-squares line through DEM samples on the centreline; blended
 into the terrain over FEATHER metres beyond the shoulder.
 Aprons/taxiway areas: flattened to their median DEM height.
-Grid convention: a[j, i] at x = X_MIN + i*DEM_RES, y = Y_MIN + j*DEM_RES.
+Grid convention: a[j, i] at x = X0 + i*DEM_RES, y = Y0 + j*DEM_RES (module globals).
 """
 import json
 
@@ -15,23 +15,24 @@ import common as c
 SHOULDER = 20.0   # extra flat margin each side of the paved width
 FEATHER = 120.0   # blend distance back to natural terrain
 DEFAULT_W = 45.0
+X0, Y0 = c.X_MIN, c.Y_MIN  # grid origin (02_dem_tiles sets these to its grid bounds)
 
 
 def _sample(a, x, y):
-    i = np.clip(np.round((x - c.X_MIN) / c.DEM_RES).astype(int), 0, a.shape[1] - 1)
-    j = np.clip(np.round((y - c.Y_MIN) / c.DEM_RES).astype(int), 0, a.shape[0] - 1)
+    i = np.clip(np.round((x - X0) / c.DEM_RES).astype(int), 0, a.shape[1] - 1)
+    j = np.clip(np.round((y - Y0) / c.DEM_RES).astype(int), 0, a.shape[0] - 1)
     return a[j, i]
 
 
 def _window(a, xmin, ymin, xmax, ymax):
-    i0 = max(int((xmin - c.X_MIN) / c.DEM_RES), 0)
-    i1 = min(int((xmax - c.X_MIN) / c.DEM_RES) + 2, a.shape[1])
-    j0 = max(int((ymin - c.Y_MIN) / c.DEM_RES), 0)
-    j1 = min(int((ymax - c.Y_MIN) / c.DEM_RES) + 2, a.shape[0])
+    i0 = max(int((xmin - X0) / c.DEM_RES), 0)
+    i1 = min(int((xmax - X0) / c.DEM_RES) + 2, a.shape[1])
+    j0 = max(int((ymin - Y0) / c.DEM_RES), 0)
+    j1 = min(int((ymax - Y0) / c.DEM_RES) + 2, a.shape[0])
     if i0 >= i1 or j0 >= j1:
         return None
-    xs = c.X_MIN + np.arange(i0, i1) * c.DEM_RES
-    ys = c.Y_MIN + np.arange(j0, j1) * c.DEM_RES
+    xs = X0 + np.arange(i0, i1) * c.DEM_RES
+    ys = Y0 + np.arange(j0, j1) * c.DEM_RES
     X, Y = np.meshgrid(xs, ys)
     return (slice(j0, j1), slice(i0, i1)), X, Y
 

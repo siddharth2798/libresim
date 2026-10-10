@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=free-sim
+Comment=Cessna 172 flight simulator — Mumbai to Pune
+Exec=free-sim.sh
+Icon=free-sim
+Categories=Game;Simulation;
+Terminal=false

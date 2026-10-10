@@ -54,3 +54,8 @@ def transformer():
 def in_bbox(lon, lat, pad=0.0):
     return (BBOX[0] - pad <= lon <= BBOX[2] + pad and
             BBOX[1] - pad <= lat <= BBOX[3] + pad)
+
+# Outer ring (coarse real data, levels >= OUTER_MIN_LEVEL): 8 x 8 level-3 tiles around the origin.
+OUTER_MIN_LEVEL = 3
+OUTER = (-4 * TILE_SIZE * 8, -4 * TILE_SIZE * 8, 4 * TILE_SIZE * 8, 4 * TILE_SIZE * 8)  # +/-245.76 km
+LEVELS_TOTAL = 7  # levels 0..6; level 6 tiles are 491.52 km

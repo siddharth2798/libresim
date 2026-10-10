@@ -2,6 +2,8 @@ extends Node3D
 ## Main flight scene (M4). Command-line options (after "--"):
 ##   --airport=VAJJ --runway=08   start on a runway (default VAJJ, first runway)
 ##   --air=<alt_ft>               start airborne on the runway's extended centreline, 5 nm out
+##   --stand[=REF]                start parked at a stand/gate (e.g. --stand="Bay 40"); default: a jetbridge gate
+##   --cold                       cold & dark (everything off, parking brake set)
 ##   --shot=<png>                 screenshot after 6 s and quit (testing)
 ##   --time=<s>                   with --shot: fly that many seconds hands-off first
 ##   --view=cockpit|chase|orbit|free|tower|wing|tail|flyby   initial camera (default chase)
@@ -16,11 +18,14 @@ extends Node3D
 @onready var airports: AirportBuilder = $Airports
 
 var _start := {}
+var _apt := ""
 var _air_ft := -1.0
 var _shot := ""
 var _shot_time := 6.0
 var _t := 0.0
 var _view := ""
+var _stand_ref := ""  # "" = runway start, "*" = default stand, else a stand ref
+var _cold := false
 
 
 func _ready() -> void:
@@ -35,6 +40,8 @@ func _ready() -> void:
 			"shot": _shot = kv[1]
 			"time": _shot_time = float(kv[1]) + 6.0
 			"view": _view = kv[1]
+			"stand": _stand_ref = kv[1] if kv.size() > 1 else "*"
+			"cold": _cold = true
 			"tod": Props.set_v("weather/time_h", float(kv[1]))
 			"wind": _wind(kv[1])
 			"vis": Props.set_v("weather/visibility_m", float(kv[1]))
@@ -43,6 +50,9 @@ func _ready() -> void:
 	$Weather.terrain = terrain
 	$Trees.terrain = terrain
 	$UI/Crash.airports = airports
+	$AirportOps.setup(terrain)
+	$GroundOps.setup($AirportOps, airports, fdm_node, terrain, $UI)
+	_apt = apt
 	if airports.data:
 		$RunwayLights.build(airports.data, terrain)
 	_start = airports.runway_start(apt, rwy)
@@ -86,6 +96,17 @@ func _reset() -> void:
 		var back := Vector2(sin(deg_to_rad(hdg)), cos(deg_to_rad(hdg))) * -9260.0
 		var q := p + back
 		fdm_node.place_airborne(q.x, q.y, terrain.height_at(p.x, p.y) + _air_ft * 0.3048, hdg, 90.0)
+	elif _stand_ref != "":
+		var st: Dictionary = $AirportOps.find_stand(_apt, "" if _stand_ref == "*" else _stand_ref)
+		if not st.is_empty():
+			p = Vector2(st.x, st.y)
+			hdg = float(st.heading_deg)
+			FloatingOrigin.set_origin(p)
+			Props.set_v("ops/stand", "%s %s%s" % [_apt, st.ref, " (jetbridge)" if st.jetbridge else ""])
+		fdm_node.place_on_ground(p.x, p.y, hdg)
+		fdm_node.fdm.prop.rpm = 800.0
+		Props.set_v("controls/throttle", 0.0)
+		Props.set_v("controls/pitch_trim", -0.05)
 	else:
 		fdm_node.place_on_ground(p.x, p.y, hdg)
 		fdm_node.fdm.prop.rpm = 800.0
@@ -108,6 +129,31 @@ func _reset() -> void:
 	eng.oil_press_pa = 4.5e5
 	$Instruments/Gyros.start_running()
 	$Instruments/Compass.settle()
+	if _cold and _air_ft <= 0.0:
+		_cold_and_dark()
+
+
+## Everything off, parked: the real pre-flight starting state.
+func _cold_and_dark() -> void:
+	var f := fdm_node.fdm
+	f.prop.rpm = 0.0
+	f.engine.running = false
+	f.engine.oil_temp_k = 300.0
+	f.engine.cht_k = 300.0
+	f.engine.egt_k = 300.0
+	f.engine.oil_press_pa = 0.0
+	for k in ["master_bat", "master_alt", "avionics", "pitot_heat"]:
+		Props.set_v("controls/electrical/" + k, false)
+	for k in ["beacon", "nav", "strobe", "taxi", "landing"]:
+		Props.set_v("controls/lights/" + k, false)
+	Props.set_v("controls/magnetos", 0)
+	Props.set_v("controls/mixture", 0.0)
+	Props.set_v("controls/throttle", 0.0)
+	Props.set_v("controls/parking_brake", true)
+	$Controls.parking_brake = true
+	Props.set_v("instruments/altimeter/kollsman_inhg", 29.92)
+	$Instruments/Gyros._ai_spin = 0.0
+	$Instruments/Gyros._hi_spin = 0.0
 
 
 func _unhandled_key_input(e: InputEvent) -> void:

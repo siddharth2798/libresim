@@ -1,0 +1,4 @@
+#!/bin/sh
+HERE="$(dirname "$(readlink -f "$0")")"
+export FREESIM_DATA="${FREESIM_DATA:-$HERE/data}"
+exec "$HERE/free-sim.x86_64" --main-pack "$HERE/free-sim.pck" "$@"
