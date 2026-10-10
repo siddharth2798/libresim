@@ -21,6 +21,8 @@ stage_data() {  # $1 = destination data dir
 	mkdir -p "$1"
 	cp -r "$DATA/terrain" "$DATA/buildings" "$1/"
 	cp "$DATA/airports.json" "$DATA/navaids.json" "$DATA/runways.json" "$DATA/airport_ops.json" "$DATA/ils.json" "$1/"
+	mkdir -p "$1/terminals"  # landmark terminal models (not the OSM extracts)
+	cp "$DATA"/terminals/*.glb "$DATA"/terminals/*_model.json "$1/terminals/" 2>/dev/null || true
 	cp "$ROOT/packaging/DATA-LICENSES.txt" "$1/"
 }
 stage_docs() {  # $1 = destination folder

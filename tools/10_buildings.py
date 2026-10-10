@@ -10,6 +10,8 @@ Output: data/processed/buildings/<tx>_<ty>.bin  (gzip) =
 Also data/processed/buildings/<tx>_<ty>.col (gzip): b"COL1", u32 count, then per building
         u16 n, f32 base, f32 top, n * (f32 east, f32 north) world metres -- for collisions.
 Two vertex rings per footprint (ground + roof line), shared between walls and roof.
+Footprints listed in terminals/landmarks.json (16_terminal_models.py) are skipped in the
+mesh (but kept in .col): those buildings are drawn as landmark terminal models.
 Heights: OSM height / building:levels when tagged, else a deterministic synthetic
 height from footprint area (Mumbai: small = 1-4 floors, large blocks up to ~40 m).
 """
@@ -115,6 +117,18 @@ def roof_colours(tx, ty):
     return np.dstack([ds.GetRasterBand(b).ReadAsArray() for b in (1, 2, 3)])
 
 
+def landmark_paths():
+    """Footprints replaced by landmark terminal models (16_terminal_models.py)."""
+    f = c.OUT / "terminals" / "landmarks.json"
+    if not f.exists():
+        return []
+    from matplotlib.path import Path
+    return [Path(np.asarray(r)) for rings in json.loads(f.read_text()).values() for r in rings]
+
+
+LANDMARKS = landmark_paths()
+
+
 def build_tile(path):
     tx, ty = map(int, path.stem.split("_"))
     hts = Heights(tx, ty)
@@ -141,6 +155,8 @@ def build_tile(path):
         rgb = img[pj, pi].astype(int)
         style = int((math.sin(cx * 3.1 + cy * 7.7) * 9999.0) % 1.0 * 255)
         colrec.append(struct.pack("<Hff", n, base, base + h) + ring.astype("<f4").tobytes())
+        if any(lp.contains_point((cx, cy)) for lp in LANDMARKS):
+            continue  # drawn by the landmark terminal model instead (still collides)
         lx, lz = ring[:, 0] - x0, -(ring[:, 1] - y0)
         for k in range(n):  # ground ring then roof ring
             pos.append((lx[k], base, lz[k]))

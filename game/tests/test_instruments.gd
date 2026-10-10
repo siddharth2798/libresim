@@ -83,6 +83,7 @@ func test_inst_vacuum_failure_tumbles_ai() -> String:
 	h.f.engine.throttle = 0.7
 	h.target_alt = 1000.0
 	nodes.gyro.start_running()
+	nodes.gyro._rng.seed = 172  # the random wander is otherwise sometimes too small to test
 	_tick(h, s[1], nodes, 10.0)
 	var ok_err := absf(Props.get_f("instruments/ai/roll_rad") - h.f.euler().x)
 	Props.set_v("failures/vacuum_pump", true)

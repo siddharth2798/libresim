@@ -1,4 +1,4 @@
-[gd_scene load_steps=46 format=3]
+[gd_scene load_steps=47 format=3]
 
 [ext_resource type="Script" path="res://world/flight.gd" id="1"]
 [ext_resource type="Script" path="res://world/terrain_quadtree.gd" id="2"]
@@ -40,6 +40,7 @@
 [ext_resource type="Script" path="res://ui/failures_panel.gd" id="38"]
 [ext_resource type="Script" path="res://ui/pause_menu.gd" id="39"]
 [ext_resource type="Script" path="res://ui/session_recorder.gd" id="40"]
+[ext_resource type="Script" path="res://world/terminals.gd" id="41"]
 
 [sub_resource type="ShaderMaterial" id="sky_mat"]
 shader = ExtResource("28")
@@ -83,6 +84,9 @@ script = ExtResource("27")
 
 [node name="Airports" type="Node3D" parent="."]
 script = ExtResource("6")
+
+[node name="Terminals" type="Node3D" parent="."]
+script = ExtResource("41")
 
 [node name="AirportOps" type="Node3D" parent="."]
 script = ExtResource("30")

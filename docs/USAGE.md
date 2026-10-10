@@ -13,7 +13,7 @@ This guide covers how to install, build the map data, and run free-sim, a local 
 | GDAL + Python bindings | `sudo apt install gdal-bin python3-gdal` | already installed on this machine (GDAL 3.8) |
 | QGIS (optional) | `sudo apt install qgis` | only for inspecting data |
 | Godot 4.7.2 (standard build) | already installed at `~/.local/share/godot/`, with a symlink at `~/.local/bin/godot` | see below |
-| Python venv | `python3 -m venv --system-site-packages tools/.venv && tools/.venv/bin/pip install osmium jsbsim mapbox_earcut` | `--system-site-packages` lets it use the apt GDAL bindings |
+| Python venv | `python3 -m venv --system-site-packages tools/.venv && tools/.venv/bin/pip install osmium jsbsim mapbox_earcut shapely` | `--system-site-packages` lets it use the apt GDAL bindings |
 | Blender 4.x + AC3D add-on | `sudo apt install blender`; add-on: download https://github.com/NikolaiVChr/Blender-AC3D (branch `4.0`) into `data/raw/fg/addon/` | only to regenerate the aircraft models |
 | Disk | ~1.5 GB raw data + ~0.4 GB processed | |
 
@@ -90,6 +90,8 @@ $PY tools/11_landclass.py          # -> data/processed/terrain/lc/ land-class ma
 $PY tools/12_outer.py              # -> terrain levels 3-6 over ~980 x 980 km (real 90 m data + filled beyond) ~3 min
 $PY tools/13_airport_ops.py        # -> data/processed/airport_ops.json: stands, gates, jetbridges, hold points, taxi graph
 $PY tools/14_ils.py                # -> data/processed/ils.json: SIMULATED ILS for runways >= 2000 m (after 09)
+$PY tools/15_terminals.py          # -> data/processed/terminals/<ICAO>.json: terminal footprints (VABB, VAPO; VOCI via Overpass, cached) ~70 s
+$PY tools/16_terminal_models.py    # -> terminals/<ICAO>.glb landmark terminal models + landmarks.json; then re-run 10_buildings.py
 
 # Aircraft 3D models (FlightGear c172p, GPL), already committed as .glb; only needed to regenerate:
 blender -b --factory-startup --python tools/blender/convert_c172p.py            # exterior.glb
@@ -248,6 +250,14 @@ cd game
 **Radio and checklists:**
 - **Text ATC** (`): ATIS, clearance with squawk, ground, tower. Each call only gets an answer when COM1's active frequency is tuned to that facility (ATIS, DEL/GND, TWR), as in the real aircraft.
 - **Checklists** (F2) that track what you've actually done.
+
+**Landmark terminals:** Mumbai (T2 and T1), Pune (the new integrated terminal and the old terminal) and Kochi (T3, T1 and T2) are drawn as dedicated models that look like the real buildings, not as generic blocks.
+- **Mumbai T2:** SOM's glazed headhouse under one long roof on mushroom columns, with a 40 m kerb cantilever, a lit coffered soffit and glazed piers.
+- **Pune:** the long "verandah" with a dark-basalt pointed arcade.
+- **Kochi:** Kerala terracotta hip roofs with white gablets, cream walls, and a red fascia with "COCHIN INTERNATIONAL AIRPORT".
+- Glass curtain walls reflect the sky and glow warm at night.
+- Kochi becomes flyable with phase R. Until then, preview it with `godot --path game res://tests/debug_terminal.tscn -- --icao=VOCI --out=/tmp`.
+- Details and sources are in [TERMINALS.md](TERMINALS.md).
 
 **At the airport:** jetbridges, stand lead-in lines with stand numbers, and windsocks that turn with the wind.
 

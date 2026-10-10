@@ -222,7 +222,7 @@ free-sim/
 
 ## 8a. Later additions requested
 - **Session recording**: option on the start screen; records the whole flight (video + sound) to a local folder (default: game folder, user-selectable).
-- **Realistic terminals**: terminal buildings that look like the real ones (CSMIA T1/T2, Pune, Navi Mumbai): glass curtain walls, roof forms, piers.
+- **Realistic terminals** (done for VABB, VAPO, VOCI): terminal buildings that look like the real ones (CSMIA T1/T2, Pune, Navi Mumbai): glass curtain walls, roof forms, piers.
 - **Airbus A320** (final stages): find an open-licence model with accurate cockpit/systems mapping (e.g. FlightGear A320-family, GPL), convert and make it compatible (JSON aircraft data, FDM, panel, sounds), credit it.
 
 ## 8b. Standing requirements (apply to everything built now and later)

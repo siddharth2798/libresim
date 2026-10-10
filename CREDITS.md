@@ -58,6 +58,7 @@ All sounds are real recordings, listed file by file in `game/aircraft/c172/sound
   - Pillow (MIT-CMU), for image checks
 - **Blender 4.0** (GPL) and the **Blender AC3D importer** by Nikolai V. Chr. and contributors (https://github.com/NikolaiVChr/Blender-AC3D, GPL-2.0-or-later): model conversion.
 - **Geofabrik** (https://download.geofabrik.de): OpenStreetMap extracts.
+- **Overpass API** (https://overpass-api.de): one-off fetch of the OpenStreetMap data for Kochi (VOCI), outside the Geofabrik extract.
 - **AWS Open Data** (Copernicus DEM bucket) and the **EOX WMTS** service: data hosting.
 
 ## Inspiration (ideas only; no code or assets taken)
