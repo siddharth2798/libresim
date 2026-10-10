@@ -116,6 +116,12 @@ def config(root):
                    "sense": txt(thr, "sense", 1.0)},
         "propeller": {"diameter_m": txt(prop, "diameter") * IN, "ixx_kgm2": txt(prop, "ixx") * SLUGFT2,
                       "blades": txt(prop, "numblades"), "pitch_deg": txt(prop, "minpitch"),
+                      # Tuning: JSBSim's 75in2f is only ~59 % efficient at Vy (J~0.5); JSBSim's
+                      # over-powered c172p engine (218 hp) hides that. A real C172S prop is ~67 %,
+                      # so thrust is boosted at low advance ratio, fading out before cruise.
+                      "cp_factor": 1.0,
+                      "ct_factor_vs_j": {"row": None, "col": None, "cols": None,
+                                         "rows": [0.0, 0.55, 0.85], "data": [[1.17], [1.17], [1.0]]},
                       **{t.get("name"): table(t) for t in prop.findall("table")}},
         "vspeeds_kias": {"vs0": 40, "vs1": 48, "vr": 55, "vx": 62, "vy": 74, "vg": 68,
                          "vfe10": 110, "vfe_full": 85, "vno": 129, "vne": 163, "va": 105},

@@ -278,6 +278,28 @@
   "ixx_kgm2": 2.2642159765,
   "blades": 2.0,
   "pitch_deg": 22.0,
+  "cp_factor": 1.0,
+  "ct_factor_vs_j": {
+   "row": null,
+   "col": null,
+   "cols": null,
+   "rows": [
+    0.0,
+    0.55,
+    0.85
+   ],
+   "data": [
+    [
+     1.17
+    ],
+    [
+     1.17
+    ],
+    [
+     1.0
+    ]
+   ]
+  },
   "C_THRUST": {
    "row": null,
    "col": null,
