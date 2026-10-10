@@ -93,6 +93,8 @@ $PY tools/13_airport_ops.py        # -> data/processed/airport_ops.json: stands,
 # Aircraft 3D models (FlightGear c172p, GPL), already committed as .glb; only needed to regenerate:
 blender -b --factory-startup --python tools/blender/convert_c172p.py            # exterior.glb
 blender -b --factory-startup --python tools/blender/convert_c172p_interior.py   # interior.glb
+blender -b --factory-startup --python tools/blender/make_ground_vehicles.py       # our own service vehicles
+# fgdata vehicles: blender -b --factory-startup --python tools/blender/convert_ac.py -- <in.ac> <out.glb>
 $PY tools/07_preview.py 1          # -> data/processed/preview_L1.png  (sanity check)
 $PY tools/08_jsbsim_reference.py   # optional: standalone JSBSim climb numbers for comparison
 ```
@@ -189,7 +191,13 @@ cd game
 
 **At the airport:** jetbridges, stand lead-in lines with stand numbers, and windsocks that turn with the wind.
 
-**Not yet:** ground vehicles beyond the tug (fuel truck, GPU, baggage carts), stop bars, AI traffic and voice ATC (M9).
+**Ground vehicles:**
+- **At jetway gates:** a ground power unit at the nose, a baggage tug with carts aft, and a fuel truck on some stands. The jetways are the real FlightGear model, laid along the OSM jetbridge.
+- **Elsewhere:** fuel trucks at some GA and remote stands, apron buses, and a fire truck by the tower.
+- **Pushback:** uses a Goldhofer tug.
+- **Follow-me car:** when you request taxi (T), it drives ahead of you along the route, waits if you fall behind, and turns off at the hold-short point.
+
+**Not yet:** stop bars, moving service vehicles, AI traffic and voice ATC (M9).
 
 ### Beyond the detailed region
 

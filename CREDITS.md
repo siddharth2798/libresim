@@ -16,6 +16,18 @@ free-sim itself is licensed under **GPL-2.0-or-later** (see `LICENSE`). Licence 
 - **Propeller blade model:** Syd Adams and Heiko Schulz (c182s project), GPL-2.0, via the c172p team.
 - **Flight-model data:** JSBSim `c172p` aircraft, `engIO360C` engine and `prop_75in2f` propeller, by the JSBSim Team and contributors (https://github.com/JSBSim-Team/jsbsim), LGPL-2.1. free-sim converted them to JSON and retuned them (`tools/06_jsbsim_to_json.py`).
 
+### Airport vehicles and jetways
+- **From FlightGear fgdata** (https://gitlab.com/flightgear/fgdata, release/2024.1), FlightGear contributors, GPL-2.0. Converted to glTF; originals are in `third_party/fgdata/`:
+  - Goldhofer pushback tug
+  - Oshkosh TI-1500 fire truck
+  - generic jetway
+  - bus (used as an apron bus)
+- **Made for free-sim in Blender** by the free-sim contributors (`tools/blender/make_ground_vehicles.py`), GPL-2.0-or-later:
+  - fuel truck
+  - ground power unit
+  - baggage tug and carts
+  - follow-me car
+
 ### Sounds
 All sounds are real recordings, listed file by file in `game/aircraft/c172/sounds/SOURCES.md`:
 - **C172 engine** (start, crank, idle, run, cut): "small plane cessna engine start idle and takeoff" by **JLWSound** (freesound.org/s/322321), CC0, via the c172p team.

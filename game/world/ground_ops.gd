@@ -22,6 +22,9 @@ var _line: MeshInstance3D
 var _label: Label
 var _push := {}  # active pushback state
 var _tug: Node3D
+var _follow: Node3D  # follow-me car leading along the taxi route
+var _follow_s := 0.0  # its distance along the route (m)
+var _route_len: PackedFloat32Array = []  # cumulative distance at each route point
 var _mat := StandardMaterial3D.new()
 
 
@@ -111,6 +114,13 @@ func request_taxi() -> void:
 		_say("No taxi route found")
 		return
 	_route = r.path
+	_route_len.clear()
+	var acc := 0.0
+	for i in _route.size():
+		if i > 0:
+			acc += (_route[i - 1] as Vector2).distance_to(_route[i])
+		_route_len.append(acc)
+	_spawn_follow_me()
 	_route_txt = "Taxi to runway %s%s — hold short" % [rwy.ident, (" via " + ", ".join(r.via)) if not r.via.is_empty() else ""]
 	Props.set_v("ops/taxi_route", _route_txt)
 	_draw_route()
@@ -118,6 +128,9 @@ func request_taxi() -> void:
 
 func clear_route() -> void:
 	_route.clear()
+	if _follow:
+		_follow.queue_free()
+		_follow = null
 	if _line:
 		_line.queue_free()
 		_line = null
@@ -173,10 +186,49 @@ func _process(_dt: float) -> void:
 				nearest = i
 		for i in range(nearest, _route.size() - 1):
 			rem += (_route[i] as Vector2).distance_to(_route[i + 1])
+		_update_follow_me(_dt, _route_len[nearest])
 		_say("%s   (%.0f m)%s" % [_route_txt, rem, "\nHOLD SHORT — contact tower for takeoff" if rem < 40.0 else ""])
 	elif _push.is_empty():
 		if _label.text.begins_with("Pushback") or _label.text.begins_with("No "):
 			pass
+
+
+func _spawn_follow_me() -> void:
+	if _follow:
+		_follow.queue_free()
+	_follow = (load("res://world/models/vehicles/follow_me.glb") as PackedScene).instantiate()
+	add_child(_follow)
+	_follow_s = 40.0
+
+
+## Point and heading (compass rad) at distance s along the route.
+func _route_at(s: float) -> Array:
+	for i in range(1, _route.size()):
+		if _route_len[i] >= s:
+			var a: Vector2 = _route[i - 1]
+			var b: Vector2 = _route[i]
+			var t := (s - _route_len[i - 1]) / maxf(_route_len[i] - _route_len[i - 1], 0.01)
+			var d := b - a
+			return [a.lerp(b, t), atan2(d.x, d.y)]
+	var e: Vector2 = _route[-1]
+	return [e, 0.0]
+
+
+func _update_follow_me(dt: float, here_s: float) -> void:
+	if _follow == null or _route.size() < 2:
+		return
+	var total: float = _route_len[-1]
+	var gap := _follow_s - here_s
+	var v := clampf((gap - 35.0) * -0.3 + 7.0, 0.0, 9.0) if gap < 60.0 else 0.0  # wait if too far ahead
+	_follow_s = minf(_follow_s + v * dt, total + 30.0)
+	if _follow_s > total + 25.0:  # peel off after the hold point
+		_follow.queue_free()
+		_follow = null
+		return
+	var r := _route_at(minf(_follow_s, total))
+	var p: Vector2 = r[0]
+	_follow.position = FloatingOrigin.to_render(Vector3(p.x, p.y, terrain.height_at(p.x, p.y)))
+	_follow.rotation.y = -r[1]
 
 
 func start_pushback() -> void:
@@ -212,22 +264,12 @@ func _end_push(msg: String) -> void:
 
 
 func _spawn_tug() -> void:
-	_tug = Node3D.new()
-	var body := MeshInstance3D.new()
-	var bm := BoxMesh.new()
-	bm.size = Vector3(1.8, 1.0, 3.0)
-	body.mesh = bm
-	var m := StandardMaterial3D.new()
-	m.albedo_color = Color(0.95, 0.75, 0.1)
-	body.material_override = m
-	body.position = Vector3(0, 0.5, -1.5)
-	_tug.add_child(body)
-	var bar := MeshInstance3D.new()
-	var b2 := BoxMesh.new()
-	b2.size = Vector3(0.12, 0.12, 2.2)
-	bar.mesh = b2
-	bar.position = Vector3(0, 0.35, 0.9)
-	_tug.add_child(bar)
+	# FlightGear Goldhofer towbarless tug (GPL, fgdata); its model faces -X
+	var holder := Node3D.new()
+	var tug: Node3D = (load("res://world/models/vehicles/pushback_tug.glb") as PackedScene).instantiate()
+	tug.rotation.y = -PI / 2
+	holder.add_child(tug)
+	_tug = holder
 	add_child(_tug)
 
 
