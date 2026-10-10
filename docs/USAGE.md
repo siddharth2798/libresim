@@ -364,6 +364,50 @@ The aircraft's behaviour is data, so you can tune it without touching code:
 
 ---
 
+## 4b. Building and installing release packages (phase P)
+
+**Build** (from the repo root, after the data pipeline):
+
+```bash
+tools/package/make_release.sh 0.1.0      # needs Godot export templates (see below); ~4 min
+```
+
+Godot export templates (one time):
+
+```bash
+mkdir -p ~/.local/share/godot/export_templates && cd ~/.local/share/godot
+curl -LO https://github.com/godotengine/godot/releases/download/4.7.2-stable/Godot_v4.7.2-stable_export_templates.tpz
+unzip Godot_v4.7.2-stable_export_templates.tpz -d tpl && mkdir -p export_templates/4.7.2.stable
+mv tpl/templates/* export_templates/4.7.2.stable/ && rm -rf tpl *.tpz
+```
+
+**Outputs in `build/`:**
+
+| File | Size | For |
+|---|---|---|
+| `free-sim-<v>-linux-x86_64.tar.gz` | ~450 MB | Any 64-bit Linux distro: extract and run `free-sim/free-sim.sh` |
+| `free-sim-<v>-x86_64.AppImage` | ~440 MB | Any Linux distro, single file: `chmod +x` and run it |
+| `free-sim-<v>-macos-universal.zip` | ~480 MB | macOS 11+ (Intel and Apple Silicon): unzip, move `free-sim.app` to Applications |
+| `free-sim-<v>-source.tar.gz` | ~65 MB | GPL corresponding source of that build |
+
+**Flatpak** (wraps the Linux tar.gz):
+
+```bash
+flatpak install --user flathub org.freedesktop.Platform//25.08 org.freedesktop.Sdk//25.08 org.flatpak.Builder
+flatpak run org.flatpak.Builder --user --install --force-clean build/flatpak packaging/flatpak/org.freesim.FreeSim.yml
+flatpak run org.freesim.FreeSim
+```
+
+**macOS notes:**
+- The build is ad-hoc signed with `rcodesign`, which runs on Linux, but **not notarised**.
+- On the first launch, right-click the app → Open. Alternatively, run `xattr -dr com.apple.quarantine /Applications/free-sim.app`.
+- For public distribution, sign with an Apple Developer ID and notarise. Both `rcodesign` and Xcode can do this, with a paid Apple Developer account.
+- The macOS build was produced and checked for structure on Linux (universal binary, data in `Contents/Resources`, valid signature). It hasn't been run on a Mac yet.
+
+**Command-line options** work the same in every package: `./free-sim.sh -- --airport=VABB --stand`. The AppImage takes them directly: `free-sim.AppImage -- --stand`.
+
+**Read-only installs** (AppImage, Flatpak): the F10 → Renderer toggle can't write `override.cfg`. Start with `--rendering-method forward_plus` instead.
+
 ## 5. Aircraft models and 3D scenery
 
 **The aircraft** is the FlightGear c172p model and cockpit (GPL-2.0-or-later, c172p team), converted by the Blender scripts in `tools/blender/`. The original sources are vendored in `third_party/c172p/`. The live free-sim gauges are drawn onto the real panel at each instrument's true position. If the `.glb` files are missing, the sim falls back to the box placeholder.

@@ -20,7 +20,7 @@ rm -rf "$B" && mkdir -p "$B/linux/free-sim" "$B/macos"
 stage_data() {  # $1 = destination data dir
 	mkdir -p "$1"
 	cp -r "$DATA/terrain" "$DATA/buildings" "$1/"
-	cp "$DATA/airports.json" "$DATA/navaids.json" "$DATA/runways.json" "$1/"
+	cp "$DATA/airports.json" "$DATA/navaids.json" "$DATA/runways.json" "$DATA/airport_ops.json" "$1/"
 	cp "$ROOT/packaging/DATA-LICENSES.txt" "$1/"
 }
 stage_docs() {  # $1 = destination folder

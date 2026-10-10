@@ -1,10 +1,10 @@
 # Flatpak manifest: wraps the prebuilt Linux release (build/free-sim-<v>-linux-x86_64.tar.gz).
-#   flatpak install flathub org.freedesktop.Platform//24.08 org.freedesktop.Sdk//24.08
-#   flatpak-builder --user --install --force-clean build/flatpak packaging/flatpak/org.freesim.FreeSim.yml
+#   flatpak install --user flathub org.freedesktop.Platform//25.08 org.freedesktop.Sdk//25.08 org.flatpak.Builder
+#   flatpak run org.flatpak.Builder --user --install --force-clean build/flatpak packaging/flatpak/org.freesim.FreeSim.yml
 #   flatpak run org.freesim.FreeSim
 app-id: org.freesim.FreeSim
 runtime: org.freedesktop.Platform
-runtime-version: '24.08'
+runtime-version: '25.08'
 sdk: org.freedesktop.Sdk
 command: free-sim
 finish-args:

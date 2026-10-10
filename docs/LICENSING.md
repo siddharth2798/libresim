@@ -24,6 +24,8 @@ free-sim's code is **GPL-2.0-or-later** (`LICENSE`). The project also contains o
 - [x] No proprietary assets (no MSFS/RFS/Google/Bing content).
 
 ## Before shipping a binary or data pack (packaging phase)
+`tools/package/make_release.sh` already does steps 1–3. Every package contains `LICENSE`, `CREDITS.md`, `README.md`, `docs/`, `third_party/` (c172p source), `licenses/` (Godot's LICENSE and COPYRIGHT) and `data/DATA-LICENSES.txt`. A `-source.tar.gz` of the exact commit is built alongside.
+
 1. Include the free-sim source, or a written offer valid for 3 years (GPL-2.0 §3b). The simplest option is to link the exact git tag *and* attach a source archive to the release.
 2. Include `LICENSE`, `CREDITS.md`, `third_party/c172p/` and Godot's licence texts (`licenses/`).
 3. Data pack: put a `DATA-LICENSES.txt` inside it covering:
