@@ -10,6 +10,7 @@ A free, offline, realistic Cessna 172 flight simulator for the Mumbai–Pune reg
 **Docs:**
 - How to install, build the data, run and fly: [docs/USAGE.md](docs/USAGE.md)
 - Roadmap: [PLAN.md](PLAN.md)
+- How free-sim differs from FlightGear (fact-checked comparison): [docs/FREE-SIM-VS-FLIGHTGEAR.md](docs/FREE-SIM-VS-FLIGHTGEAR.md)
 - Credits: [CREDITS.md](CREDITS.md)
 - Licences: [docs/LICENSING.md](docs/LICENSING.md)
 

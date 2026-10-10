@@ -139,3 +139,28 @@ func _reposition() -> void:
 	for k in _chunks:
 		if _chunks[k] != null:
 			_place(_chunks[k], k)
+
+
+## Top of the tree canopy (m AMSL) at world (east, north) if a tree stands there, else -INF.
+## Mirrors _build's placement (same hashes), using the canopy radius.
+func tree_top_at(east: float, north: float) -> float:
+	if terrain == null:
+		return -INF
+	var gi0 := int(east / PX)
+	var gj0 := int(north / PX)
+	for dj in [-1, 0, 1]:
+		for di in [-1, 0, 1]:
+			var gi: int = gi0 + di
+			var gj: int = gj0 + dj
+			var e := (gi + 0.5) * PX
+			var n := (gj + 0.5) * PX
+			var lc := terrain.cache.landclass_at(e, n)
+			if lc <= 0 or lc == 255 or _hash(gi, gj, 1) > lc / 200.0 * 0.8 * density_scale:
+				continue
+			var px := e + (_hash(gi, gj, 2) - 0.5) * PX * 0.8
+			var py := n + (_hash(gi, gj, 3) - 0.5) * PX * 0.8
+			var height := lerpf(6.0, 15.0, _hash(gi, gj, 4))
+			var radius := height * lerpf(0.55, 0.85, _hash(gi, gj, 5)) * 0.4
+			if Vector2(px, py).distance_to(Vector2(east, north)) < radius:
+				return terrain.cache.height_at(px, py) + height * 0.9
+	return -INF

@@ -42,6 +42,7 @@ func _ready() -> void:
 	airports.build(terrain)
 	$Weather.terrain = terrain
 	$Trees.terrain = terrain
+	$UI/Crash.airports = airports
 	if airports.data:
 		$RunwayLights.build(airports.data, terrain)
 	_start = airports.runway_start(apt, rwy)

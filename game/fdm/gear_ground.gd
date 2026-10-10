@@ -8,6 +8,7 @@ extends RefCounted
 
 const V_SAT_LONG := 0.25  # m/s, friction ramps linearly below this (avoids jitter)
 const V_SAT_LAT := 0.12
+const BRAKE_MU := 0.45  # effective max braking friction, dry asphalt (tyre + anti-skid-free brakes)
 
 var contacts: Array = []  # {name, wheel, pos_struct, k, c, mu_s, mu_d, mu_roll, steer, brake}
 var steer_cmd := 0.0  # -1..1 (right pedal positive)
@@ -15,6 +16,7 @@ var brake_left := 0.0
 var brake_right := 0.0
 var wow := false  # weight on wheels
 var compression := {}  # name -> m
+var info := {}  # name -> {depth, vz (NED, + down), force, n, e} for the damage model
 
 
 func _init(cfg: Dictionary) -> void:
@@ -43,12 +45,14 @@ func compute(mb: MassBalance, r_bn: Basis, pos_ned: Vector3, v_b: Vector3, w_b: 
 		var depth := p.z - gd
 		if depth <= 0.0:
 			compression[c.name] = 0.0
+			info[c.name] = {"depth": 0.0}
 			continue
 		compression[c.name] = depth
 		if c.wheel:
 			wow = true
 		var v_c := r_bn * (v_b + w_b.cross(r_b))  # contact point velocity, NED
 		var n := maxf(c.k * depth + c.c * v_c.z, 0.0)
+		info[c.name] = {"depth": depth, "vz": v_c.z, "force": n, "n": p.x, "e": p.y}
 		# wheel heading in the horizontal plane
 		var fwd := r_bn * Vector3(1, 0, 0)
 		if c.wheel and c.steer > 0.0:
@@ -61,7 +65,7 @@ func compute(mb: MassBalance, r_bn: Basis, pos_ned: Vector3, v_b: Vector3, w_b: 
 		var mu_lat: float = lerpf(c.mu_s, c.mu_d, clampf(absf(v_lat) / 2.0, 0.0, 1.0))
 		if c.wheel:
 			var b := brake_left if c.brake == 1 else (brake_right if c.brake == 2 else 0.0)
-			mu_long = lerpf(c.mu_roll, c.mu_s, b)
+			mu_long = lerpf(c.mu_roll, BRAKE_MU, b)
 		else:
 			mu_long = c.mu_d
 			mu_lat = c.mu_d

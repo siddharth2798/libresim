@@ -1,4 +1,4 @@
-[gd_scene load_steps=34 format=3]
+[gd_scene load_steps=35 format=3]
 
 [ext_resource type="Script" path="res://world/flight.gd" id="1"]
 [ext_resource type="Script" path="res://world/terrain_quadtree.gd" id="2"]
@@ -28,6 +28,7 @@
 [ext_resource type="Script" path="res://world/buildings.gd" id="26"]
 [ext_resource type="Script" path="res://world/trees.gd" id="27"]
 [ext_resource type="Shader" path="res://world/sky_clouds.gdshader" id="28"]
+[ext_resource type="Script" path="res://ui/crash_screen.gd" id="29"]
 
 [sub_resource type="ShaderMaterial" id="sky_mat"]
 shader = ExtResource("28")
@@ -75,6 +76,7 @@ script = ExtResource("6")
 [node name="Fdm" type="Node" parent="."]
 script = ExtResource("3")
 terrain_path = NodePath("../Terrain")
+trees_path = NodePath("../Trees")
 
 [node name="Weather" type="Node" parent="."]
 script = ExtResource("20")
@@ -139,6 +141,9 @@ script = ExtResource("17")
 
 [node name="Settings" type="PanelContainer" parent="UI"]
 script = ExtResource("24")
+
+[node name="Crash" type="Control" parent="UI"]
+script = ExtResource("29")
 
 [node name="Credits" type="Control" parent="UI"]
 script = ExtResource("25")

@@ -158,6 +158,47 @@ cd game
 
 **A first flight from Juhu:** Page Up to full throttle (about 2300 RPM static). Keep straight with Z/X. At 55 kt, hold ↓ gently to rotate. Climb at 74 kt (Vy). Trim with Home/End until hands-off level, then reduce to about 2400 RPM for cruise. The Ghats are 45 km east; Pune (VAPO) is about 120 km east-southeast.
 
+### Landing, takeoff and damage (realism)
+
+Mistakes end the flight the way they would in reality. The thresholds come from the C172S POH and FAR 23.
+
+**Landing gear:**
+- A touchdown sink rate above about 590 fpm at a main wheel is a **hard landing**: the airframe is damaged and needs inspection.
+- Above about 900 fpm (about 510 fpm for the nose wheel) the **gear collapses** and the airframe drops onto it.
+- Gear loads beyond the design limit also collapse the gear.
+
+**Strikes and impacts:**
+- **Prop strike:** the propeller tip touches the ground (for example, landing nose wheel first or porpoising). The engine is destroyed, and if you were moving faster than about 25 kt the aircraft noses over (crash).
+- **Wingtip strike** above 10 kt (ground loop) is a crash. A **tail strike** damages the airframe.
+- **Ditching** (touching water) is a crash, and so is flying **into trees**.
+
+**In-flight limits:**
+- More than 2 s above **Vne 163 KIAS** damages the airframe; at **185 KIAS** the structure fails.
+- **Flaps above VFE** (110 kt at 10°, 85 kt beyond that) for 2 s damages and jams them.
+- **Load factor** beyond +3.8 / −1.52 g overstresses the airframe; 1.5× those values breaks it. This counts flight loads only.
+
+**After every landing** a debrief shows sink rate, g, airspeed, pitch, bank, centreline offset and distance past the threshold, with a grade: BUTTER (under 120 fpm), SMOOTH (under 300), FIRM (under 600), HARD (under 900), or DAMAGED.
+**After a crash**, the cause and event log are shown; press F5 to restart.
+
+**Accuracy checks** (headless test cards):
+
+| Check | Result | Reference |
+|---|---|---|
+| Takeoff ground roll | ~865 ft | POH 960 ft |
+| Landing ground roll (flaps 30, full braking) | ~610 ft | POH 575 ft |
+| Stall speeds, climb, cruise, glide | within 10–15 % | POH |
+| Flared 300 fpm landing | no damage | — |
+| 1200 fpm unflared arrival | gear collapse | — |
+| Pushing onto the nose wheel | nose gear collapse / prop strike | — |
+| Ditching, Vne dive, full-aft pull at 145 kt, flaps 30 at 120 kt | each detected | — |
+
+**Not modelled yet:**
+- collisions with buildings
+- gear side-load failures in crosswind touchdowns
+- runway overruns into obstacles beyond terrain and trees
+- tyre bursts
+- engine damage from over-temperature
+
 ### Instruments and cockpit (M5)
 
 The panel is a C172S steam-gauge layout:
@@ -256,6 +297,7 @@ The runner prints PASS/FAIL per test and exits non-zero on failure. Ignore the "
 | `tests/test_flight.gd` | Takeoff from Juhu on the real terrain and runway (M4) |
 | `tests/test_instruments.gd` | Altimeter and Kollsman, ASI, VSI lag, vacuum-failure gyro drift, compass northerly turning error (M5) |
 | `tests/test_systems.gd` | Alternator failure and battery drain, fuel starvation and restart, wind profile, Ghats ridge lift (M6) |
+| `tests/test_landing.gd` | Normal landing plus POH landing roll; hard landing, nose-first and prop strike, ditching, Vne failure, overstress, flap overspeed |
 
 ### Flight-model test cards (M3)
 

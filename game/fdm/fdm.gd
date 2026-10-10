@@ -18,6 +18,9 @@ var prop: Propeller
 var gear: GearGround
 var fcs: FlightControls
 var ground_height: Callable = func(_n: float, _e: float) -> float: return 0.0
+var surface: Callable = func(_n: float, _e: float) -> int: return 0  # land class (255 = water)
+var obstacle_top: Callable = func(_n: float, _e: float) -> float: return -INF  # trees etc.
+var damage := Damage.new()
 
 # state
 var pos_n := 0.0
@@ -41,7 +44,8 @@ var cas := 0.0
 var qbar := 0.0
 var mach := 0.0
 var agl := 0.0
-var load_factor := 1.0
+var load_factor := 1.0  # total (what the pilot feels, incl. ground contact)
+var flight_load_factor := 1.0  # aerodynamic + thrust only (structural flight limits)
 var accel_b := Vector3.ZERO  # specific force (what an accelerometer feels), body
 var _alpha_prev := 0.0
 var _alphadot := 0.0
@@ -97,15 +101,21 @@ func trim_level(tas: float) -> void:
 	Trim.trim_level(self, tas)
 
 
-## Start at rest on the ground with gear just touching; settles in ~1 s.
+## Start at rest on the ground in the natural sitting attitude (all wheels touching).
 func set_on_ground(n: float, e: float, heading: float) -> void:
-	q = euler_to_quat(0.0, 0.0, heading)
 	pos_n = n; pos_e = e
+	var wheels: Array = gear.contacts.filter(func(c): return c.wheel)
+	var nose: Dictionary = wheels.filter(func(c): return c.steer > 0.0)[0]
+	var main: Dictionary = wheels.filter(func(c): return c.steer == 0.0)[0]
+	var bn := mb.body_of(nose.pos)
+	var bm := mb.body_of(main.pos)
+	var pitch := atan2(bn.z - bm.z, bn.x - bm.x)  # nose-up until both wheel heights match
+	q = euler_to_quat(0.0, pitch, heading)
+	var r_bn := Basis(q)
 	var low := -INF
-	for c in gear.contacts:
-		if c.wheel:
-			low = maxf(low, mb.body_of(c.pos).z)
-	pos_d = -ground_height.call(n, e) - low + 0.02
+	for c in wheels:
+		low = maxf(low, (r_bn * mb.body_of(c.pos)).z)
+	pos_d = -ground_height.call(n, e) - low + 0.005
 	v_b = Vector3.ZERO
 	w_b = Vector3.ZERO
 
@@ -126,6 +136,8 @@ func step(dt: float) -> void:
 	var qc := atmo.pressure * (pow(1.0 + 0.2 * mach * mach, 3.5) - 1.0)
 	cas = AtmosphereISA.cas_from_qc(qc)
 
+	if damage.flaps_jammed:
+		fcs.flaps_powered = false
 	fcs.update(dt)
 	gear.steer_cmd = fcs.yaw
 	engine.update(dt, prop.rpm, atmo.pressure, atmo.temperature, vt)
@@ -154,6 +166,9 @@ func step(dt: float) -> void:
 	# --- ground
 	var gr: Array = gear.compute(mb, r_bn, Vector3(pos_n, pos_e, pos_d), v_b, w_b,
 		func(n: float, e: float) -> float: return ground_height.call(n, e))
+	damage.update(self, dt, gear.info, surface)
+	if agl < 25.0 and not damage.crashed and -pos_d < obstacle_top.call(pos_n, pos_e):
+		damage._crash("flew into trees")
 	var f_ext: Vector3 = f_aero + f_thr + gr[0]
 	var m_tot: Vector3 = m_aero + m_thr + gr[1]
 	var f_grav := r_nb * Vector3(0.0, 0.0, G * mb.mass)
@@ -161,6 +176,7 @@ func step(dt: float) -> void:
 	# --- rigid body integration (semi-implicit Euler)
 	accel_b = f_ext / mb.mass
 	load_factor = -accel_b.z / G
+	flight_load_factor = -(f_aero + f_thr).z / (mb.mass * G)
 	var a_b := (f_ext + f_grav) / mb.mass - w_b.cross(v_b)
 	var h := mb.inertia * w_b + Vector3(prop.angular_momentum(), 0.0, 0.0)
 	var w_dot := mb.inertia_inv * (m_tot - w_b.cross(h))

@@ -7,6 +7,7 @@ extends Node
 const SUBSTEPS := 2
 
 @export var terrain_path: NodePath
+@export var trees_path: NodePath
 
 var fdm: FDM
 var paused := false
@@ -20,6 +21,10 @@ func _ready() -> void:
 	_terrain = get_node_or_null(terrain_path)
 	if _terrain:
 		fdm.ground_height = func(n: float, e: float) -> float: return _terrain.height_at(e, n)
+		fdm.surface = func(n: float, e: float) -> int: return _terrain.cache.landclass_at(e, n)
+	var trees := get_node_or_null(trees_path) as Trees
+	if trees:
+		fdm.obstacle_top = func(n: float, e: float) -> float: return trees.tree_top_at(e, n)
 	_defaults()
 
 
@@ -39,11 +44,17 @@ func position_enu() -> Vector3:
 
 
 func place_on_ground(east: float, north: float, heading_deg: float) -> void:
+	fdm.damage.reset()
+	fdm.gear = GearGround.new(fdm.cfg)  # repaired
+	fdm.engine.failed = false
 	fdm.set_on_ground(north, east, deg_to_rad(heading_deg))
 	_snap()
 
 
 func place_airborne(east: float, north: float, alt: float, heading_deg: float, kias: float) -> void:
+	fdm.damage.reset()
+	fdm.gear = GearGround.new(fdm.cfg)
+	fdm.engine.failed = false
 	fdm.set_airborne(north, east, alt, deg_to_rad(heading_deg), kias * 0.514444)
 	fdm.prop.rpm = 2300.0
 	fdm.trim_level(kias * 0.514444)
@@ -58,7 +69,7 @@ func _snap() -> void:
 
 
 func _physics_process(delta: float) -> void:
-	if paused:
+	if paused or fdm.damage.crashed:
 		return
 	_prev_pos = position_enu()
 	_prev_q = fdm.q
@@ -134,6 +145,12 @@ func _publish() -> void:
 	Props.set_v("engine/power_w", f.engine.power_w)
 	Props.set_v("engine/thrust_n", f.prop.thrust)
 	Props.set_v("fuel/total_kg", f.mb.fuel_kg())
+	var d := f.damage
+	Props.set_v("damage/crashed", d.crashed)
+	Props.set_v("damage/reason", d.crash_reason)
+	Props.set_v("damage/events", d.events)
+	Props.set_v("damage/structure", d.structure_damaged)
+	Props.set_v("damage/last_touchdown", d.last_touchdown)
 	Props.set_v("fuel/left_kg", f.mb.tanks[0].contents_kg)
 	Props.set_v("fuel/right_kg", f.mb.tanks[1].contents_kg)
 	Props.set_v("systems/electrical/flap_motor_running", f.fcs.flap_motor_running)
