@@ -4,3 +4,5 @@ game/.godot/
 *.import
 build/
 __pycache__/
+tools/.venv/
+gdalwmscache/

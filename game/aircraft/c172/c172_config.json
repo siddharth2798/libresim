@@ -1,0 +1,555 @@
+{
+ "name": "Cessna 172S (JSBSim c172p airframe, IO-360 180 hp)",
+ "metrics": {
+  "wing_area_m2": 16.16512896,
+  "wingspan_m": 10.91184,
+  "chord_m": 1.4935200000000002,
+  "htail_area_m2": 2.034576576,
+  "htail_arm_m": 4.78536,
+  "aero_ref_pt_m": [
+   1.09728,
+   0.0,
+   1.5087599999999999
+  ],
+  "eyepoint_m": [
+   0.9398,
+   0.0,
+   1.2191999999999998
+  ],
+  "vrp_m": [
+   1.08204,
+   0.0,
+   0.9779
+  ]
+ },
+ "mass": {
+  "empty_kg": 680.388555,
+  "empty_cg_m": [
+   1.0413999999999999,
+   0.0,
+   0.9270999999999999
+  ],
+  "inertia_kgm2": {
+   "ixx": 1285.3154166,
+   "iyy": 1824.9309607,
+   "izz": 2666.89390765,
+   "ixz": -0.0
+  },
+  "point_masses": [
+   {
+    "name": "Pilot",
+    "kg": 81.6466266,
+    "pos_m": [
+     0.9144,
+     -0.35559999999999997,
+     0.6095999999999999
+    ]
+   },
+   {
+    "name": "Co-Pilot",
+    "kg": 0.0,
+    "pos_m": [
+     0.9144,
+     0.35559999999999997,
+     0.6095999999999999
+    ]
+   },
+   {
+    "name": "Left Passenger",
+    "kg": 0.0,
+    "pos_m": [
+     1.778,
+     -0.35559999999999997,
+     0.6095999999999999
+    ]
+   },
+   {
+    "name": "Right Passenger",
+    "kg": 0.0,
+    "pos_m": [
+     1.778,
+     0.35559999999999997,
+     0.6095999999999999
+    ]
+   },
+   {
+    "name": "Baggage",
+    "kg": 0.0,
+    "pos_m": [
+     2.413,
+     0.0,
+     0.6095999999999999
+    ]
+   }
+  ]
+ },
+ "gear": [
+  {
+   "name": "NOSE",
+   "type": "BOGEY",
+   "pos_m": [
+    -0.17271999999999998,
+    0.0,
+    -0.49529999999999996
+   ],
+   "static_friction": 0.8,
+   "dynamic_friction": 0.5,
+   "rolling_friction": 0.02,
+   "spring_n_per_m": 26269.02522,
+   "damping_n_s_per_m": 8756.34174,
+   "max_steer_deg": 10.0,
+   "brake_group": "NONE"
+  },
+  {
+   "name": "LEFT_MAIN",
+   "type": "BOGEY",
+   "pos_m": [
+    1.47828,
+    -1.0922,
+    -0.3937
+   ],
+   "static_friction": 0.8,
+   "dynamic_friction": 0.5,
+   "rolling_friction": 0.02,
+   "spring_n_per_m": 78807.07566,
+   "damping_n_s_per_m": 23350.24464,
+   "max_steer_deg": 0.0,
+   "brake_group": "LEFT"
+  },
+  {
+   "name": "RIGHT_MAIN",
+   "type": "BOGEY",
+   "pos_m": [
+    1.47828,
+    1.0922,
+    -0.3937
+   ],
+   "static_friction": 0.8,
+   "dynamic_friction": 0.5,
+   "rolling_friction": 0.02,
+   "spring_n_per_m": 78807.07566,
+   "damping_n_s_per_m": 23350.24464,
+   "max_steer_deg": 0.0,
+   "brake_group": "RIGHT"
+  },
+  {
+   "name": "NOSE_SKID",
+   "type": "STRUCTURE",
+   "pos_m": [
+    -0.95758,
+    0.0,
+    0.67564
+   ],
+   "static_friction": 0.2,
+   "dynamic_friction": 0.2,
+   "rolling_friction": 0.2,
+   "spring_n_per_m": 291878.058,
+   "damping_n_s_per_m": 29187.8058,
+   "max_steer_deg": 0.0,
+   "brake_group": "NONE"
+  },
+  {
+   "name": "TAIL_SKID",
+   "type": "STRUCTURE",
+   "pos_m": [
+    4.7752,
+    0.0,
+    0.2032
+   ],
+   "static_friction": 0.2,
+   "dynamic_friction": 0.2,
+   "rolling_friction": 0.2,
+   "spring_n_per_m": 291878.058,
+   "damping_n_s_per_m": 29187.8058,
+   "max_steer_deg": 0.0,
+   "brake_group": "NONE"
+  },
+  {
+   "name": "LEFT_TIP",
+   "type": "STRUCTURE",
+   "pos_m": [
+    1.09728,
+    -5.45592,
+    1.5087599999999999
+   ],
+   "static_friction": 0.2,
+   "dynamic_friction": 0.2,
+   "rolling_friction": 0.2,
+   "spring_n_per_m": 291878.058,
+   "damping_n_s_per_m": 29187.8058,
+   "max_steer_deg": 0.0,
+   "brake_group": "NONE"
+  },
+  {
+   "name": "RIGHT_TIP",
+   "type": "STRUCTURE",
+   "pos_m": [
+    1.09728,
+    5.45592,
+    1.5087599999999999
+   ],
+   "static_friction": 0.2,
+   "dynamic_friction": 0.2,
+   "rolling_friction": 0.2,
+   "spring_n_per_m": 291878.058,
+   "damping_n_s_per_m": 29187.8058,
+   "max_steer_deg": 0.0,
+   "brake_group": "NONE"
+  }
+ ],
+ "tanks": [
+  {
+   "pos_m": [
+    1.4223999999999999,
+    -2.8447999999999998,
+    1.5087599999999999
+   ],
+   "capacity_kg": 83.91458845000001,
+   "contents_kg": 45.359237
+  },
+  {
+   "pos_m": [
+    1.4223999999999999,
+    2.8447999999999998,
+    1.5087599999999999
+   ],
+   "capacity_kg": 83.91458845000001,
+   "contents_kg": 45.359237
+  }
+ ],
+ "unusable_fuel_kg": 4.08,
+ "controls": {
+  "surfaces": {
+   "elevator": {
+    "min_deg": -28.0,
+    "max_deg": 23.0
+   },
+   "left-aileron": {
+    "min_deg": -20.0,
+    "max_deg": 15.0
+   },
+   "right-aileron": {
+    "min_deg": -20.0,
+    "max_deg": 15.0
+   },
+   "rudder": {
+    "min_deg": -16.0,
+    "max_deg": 16.0
+   }
+  },
+  "flaps": [
+   {
+    "deg": 0.0,
+    "time_s": 0.0
+   },
+   {
+    "deg": 10.0,
+    "time_s": 2.0
+   },
+   {
+    "deg": 20.0,
+    "time_s": 1.0
+   },
+   {
+    "deg": 30.0,
+    "time_s": 1.0
+   }
+  ]
+ },
+ "engine": {
+  "type": "piston",
+  "maxhp": 180.0,
+  "displacement_in3": 360.0,
+  "idle_rpm": 550.0,
+  "max_rpm": 2700.0,
+  "min_map_inhg": 10.0,
+  "max_map_inhg": 28.5,
+  "spark_fail_drop": 0.1,
+  "pos_m": [
+   -0.95758,
+   0.0,
+   0.67564
+  ],
+  "p_factor": 5.0,
+  "sense": 1.0
+ },
+ "propeller": {
+  "diameter_m": 1.905,
+  "ixx_kgm2": 2.2642159765,
+  "blades": 2.0,
+  "pitch_deg": 22.0,
+  "C_THRUST": {
+   "row": null,
+   "col": null,
+   "cols": null,
+   "rows": [
+    0.0,
+    0.1,
+    0.2,
+    0.3,
+    0.4,
+    0.5,
+    0.6,
+    0.7,
+    0.8,
+    0.9,
+    1.0,
+    1.1,
+    1.2,
+    1.3,
+    1.4,
+    1.5,
+    1.6,
+    1.7,
+    1.8,
+    1.9,
+    2.0,
+    2.1,
+    2.2,
+    2.3,
+    5.0
+   ],
+   "data": [
+    [
+     0.073
+    ],
+    [
+     0.073
+    ],
+    [
+     0.072
+    ],
+    [
+     0.071
+    ],
+    [
+     0.069
+    ],
+    [
+     0.066
+    ],
+    [
+     0.062
+    ],
+    [
+     0.055
+    ],
+    [
+     0.045
+    ],
+    [
+     0.034
+    ],
+    [
+     0.024
+    ],
+    [
+     0.013
+    ],
+    [
+     -0.006
+    ],
+    [
+     -0.013
+    ],
+    [
+     -0.024
+    ],
+    [
+     -0.034
+    ],
+    [
+     -0.045
+    ],
+    [
+     -0.055
+    ],
+    [
+     -0.062
+    ],
+    [
+     -0.066
+    ],
+    [
+     -0.069
+    ],
+    [
+     -0.071
+    ],
+    [
+     -0.072
+    ],
+    [
+     -0.073
+    ],
+    [
+     -0.073
+    ]
+   ]
+  },
+  "C_POWER": {
+   "row": null,
+   "col": null,
+   "cols": null,
+   "rows": [
+    0.0,
+    0.1,
+    0.2,
+    0.3,
+    0.4,
+    0.5,
+    0.6,
+    0.7,
+    0.8,
+    0.9,
+    1.0,
+    1.1,
+    1.2,
+    1.3,
+    1.4,
+    1.5,
+    1.6,
+    1.7,
+    1.8,
+    1.9,
+    2.0,
+    2.1,
+    2.2,
+    2.3,
+    2.4,
+    5.0
+   ],
+   "data": [
+    [
+     0.066
+    ],
+    [
+     0.07
+    ],
+    [
+     0.07
+    ],
+    [
+     0.066
+    ],
+    [
+     0.06
+    ],
+    [
+     0.053
+    ],
+    [
+     0.0501
+    ],
+    [
+     0.0469
+    ],
+    [
+     0.0426
+    ],
+    [
+     0.036
+    ],
+    [
+     0.0282
+    ],
+    [
+     0.0191
+    ],
+    [
+     0.0155
+    ],
+    [
+     0.0191
+    ],
+    [
+     0.0282
+    ],
+    [
+     0.036
+    ],
+    [
+     0.0426
+    ],
+    [
+     0.0469
+    ],
+    [
+     0.0501
+    ],
+    [
+     0.0516
+    ],
+    [
+     0.0525
+    ],
+    [
+     0.0525
+    ],
+    [
+     0.0522
+    ],
+    [
+     0.0511
+    ],
+    [
+     0.0504
+    ],
+    [
+     0.0493
+    ]
+   ]
+  },
+  "CT_MACH": {
+   "row": null,
+   "col": null,
+   "cols": null,
+   "rows": [
+    0.85,
+    1.05
+   ],
+   "data": [
+    [
+     1.0
+    ],
+    [
+     0.8
+    ]
+   ]
+  },
+  "CP_MACH": {
+   "row": null,
+   "col": null,
+   "cols": null,
+   "rows": [
+    0.85,
+    1.05,
+    2.0
+   ],
+   "data": [
+    [
+     1.0
+    ],
+    [
+     1.8
+    ],
+    [
+     1.4
+    ]
+   ]
+  }
+ },
+ "vspeeds_kias": {
+  "vs0": 40,
+  "vs1": 48,
+  "vr": 55,
+  "vx": 62,
+  "vy": 74,
+  "vg": 68,
+  "vfe10": 110,
+  "vfe_full": 85,
+  "vno": 129,
+  "vne": 163,
+  "va": 105
+ }
+}
