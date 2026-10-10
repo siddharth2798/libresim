@@ -252,7 +252,7 @@ func _physics_process(dt: float) -> void:
 		var right := Vector2(cos(h0), -sin(h0))
 		var centre: Vector2 = _push.p0 + back * PUSH_STRAIGHT + right * side * PUSH_RADIUS
 		var rel := -right * side * PUSH_RADIUS
-		pos = centre + rel.rotated(-side * a)
+		pos = centre + rel.rotated(side * a)  # keeps moving tail-first around the arc
 		hdg = h0 - side * a  # tail swings toward `side`
 		if a >= PI / 2 - 1e-3:
 			_end_push("Pushback complete — set parking brake, start engine, then T for taxi")
