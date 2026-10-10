@@ -1,4 +1,4 @@
-[gd_scene load_steps=42 format=3]
+[gd_scene load_steps=45 format=3]
 
 [ext_resource type="Script" path="res://world/flight.gd" id="1"]
 [ext_resource type="Script" path="res://world/terrain_quadtree.gd" id="2"]
@@ -36,6 +36,9 @@
 [ext_resource type="Script" path="res://avionics/nav_radios.gd" id="34"]
 [ext_resource type="Script" path="res://avionics/gps.gd" id="35"]
 [ext_resource type="Script" path="res://ui/moving_map.gd" id="36"]
+[ext_resource type="Script" path="res://systems/failure_manager.gd" id="37"]
+[ext_resource type="Script" path="res://ui/failures_panel.gd" id="38"]
+[ext_resource type="Script" path="res://ui/pause_menu.gd" id="39"]
 
 [sub_resource type="ShaderMaterial" id="sky_mat"]
 shader = ExtResource("28")
@@ -117,6 +120,9 @@ script = ExtResource("11")
 [node name="Vacuum" type="Node" parent="Systems"]
 script = ExtResource("12")
 
+[node name="Failures" type="Node" parent="Systems"]
+script = ExtResource("37")
+
 [node name="Avionics" type="Node" parent="."]
 
 [node name="Nav" type="Node" parent="Avionics"]
@@ -175,6 +181,12 @@ script = ExtResource("33")
 
 [node name="Crash" type="Control" parent="UI"]
 script = ExtResource("29")
+
+[node name="Failures" type="PanelContainer" parent="UI"]
+script = ExtResource("38")
+
+[node name="Pause" type="PanelContainer" parent="UI"]
+script = ExtResource("39")
 
 [node name="Credits" type="Control" parent="UI"]
 script = ExtResource("25")

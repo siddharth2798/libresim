@@ -43,8 +43,10 @@ func _physics_process(dt: float) -> void:
 		return
 	var suction := Props.get_f("systems/vacuum/suction_inhg")
 	var drive := clampf((suction - 3.0) / 1.5, 0.0, 1.0)  # rated 4.5-5.5 inHg
-	_ai_spin = move_toward(_ai_spin, drive, (SPIN_UP if drive > _ai_spin else SPIN_DOWN) * dt)
-	_hi_spin = move_toward(_hi_spin, drive, (SPIN_UP if drive > _hi_spin else SPIN_DOWN) * dt)
+	var ai_drive := 0.0 if Props.get_b("failures/ai") else drive  # seized gyro: spins down, wanders
+	var hi_drive := 0.0 if Props.get_b("failures/hi") else drive
+	_ai_spin = move_toward(_ai_spin, ai_drive, (SPIN_UP if ai_drive > _ai_spin else SPIN_DOWN) * dt)
+	_hi_spin = move_toward(_hi_spin, hi_drive, (SPIN_UP if hi_drive > _hi_spin else SPIN_DOWN) * dt)
 	_attitude(dt)
 	_heading(dt)
 	_turn_coordinator(dt)
@@ -84,7 +86,7 @@ func _heading(dt: float) -> void:
 
 
 func _turn_coordinator(dt: float) -> void:
-	var powered := Props.get_b("systems/electrical/tc_powered", true)
+	var powered := Props.get_b("systems/electrical/tc_powered", true) and not Props.get_b("failures/tc")
 	var rate := fdm.w_b.z * cos(PI / 6.0) + fdm.w_b.x * sin(PI / 6.0)
 	var target := rate / deg_to_rad(3.0) if powered else 0.0  # 1.0 = standard-rate mark
 	_tc = lerpf(_tc, clampf(target, -2.0, 2.0), clampf(dt * 3.0, 0.0, 1.0))

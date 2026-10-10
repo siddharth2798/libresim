@@ -30,6 +30,7 @@ var magnetos := 3
 var starter := false
 var fuel_ok := true
 var failed := false  # catastrophic engine failure
+var partial := false  # partial power loss: rough running at ~55 % power
 # outputs
 var running := false
 var map_pa := 101325.0
@@ -91,6 +92,8 @@ func update(dt: float, rpm: float, p_amb: float, t_amb: float, airspeed: float) 
 	var mf := _mixture_factor(phi)
 	running = spark > 0.0 and fuel_ok and not failed and mf > 0.0 and rpm > 150.0
 	var p_ind := _k_power * mdot_air * mf * spark * maxf(1.0 - MAP_ZERO / map_pa, 0.0) if running else 0.0
+	if partial:
+		p_ind *= lerpf(0.9, 0.55, throttle) * (1.0 + randf_range(-0.12, 0.12))  # misfiring: power drops (most at high power) and shakes
 	fuel_flow_kgs = mdot_air * far if running else 0.0
 	var omega := maxf(rpm, 1.0) * TAU / 60.0
 	var p_fric := FRICTION_FRAC * max_power * rpm / max_rpm  # ~constant friction torque

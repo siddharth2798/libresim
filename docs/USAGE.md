@@ -118,11 +118,53 @@ cd game
 
 On first run, Godot imports the project (a few seconds). The data is read from `../data/processed` relative to the project, so build it first (section 3).
 
+### Start screen (flight setup)
+
+Running the game opens the **start screen**. Your last setup is remembered (`user://last_flight.json`). Keys 1–4 switch pages, and Ctrl+Enter flies.
+
+1. **Airport & start:**
+   - Pick an airport from the searchable list. A north-up diagram shows its runways, taxiways and stands, with an arrow at your start point.
+   - Start positions:
+     - **Runway:** the chosen runway end, with the engine running. Tick "cold & dark" to start with everything off.
+     - **Stand / gate:** a stand from OpenStreetMap (jetbridge gate, remote bay or GA parking). Stand starts are **always cold & dark with the parking brake set**, as in the real aircraft.
+     - **In the air:** a height above the field and a distance on final to the chosen runway.
+2. **Aircraft:**
+   - Every `game/aircraft/<id>/aircraft.json` is listed (for now, the Cessna 172S) with its specifications.
+   - Set fuel per tank and the front-seat, rear-seat and baggage loads. The takeoff weight is checked against MTOW. Payload changes the mass, CG and performance in the flight model.
+3. **Weather & time:**
+   - **Weather presets:** Clear, Fair, Scattered, Broken, Overcast, Winter haze, Monsoon.
+   - **Custom sliders:** cloud cover, cloud base, visibility, turbulence, QNH, temperature.
+   - **Time of day:** presets or a slider, plus the clock rate and the month.
+   - **Wind:** presets, direction, speed and gusts, plus a "90° crosswind" button. A live head/crosswind readout covers the chosen runway and turns red above the C172's 15 kt demonstrated crosswind or with a tailwind.
+4. **Failures:**
+   - Any of 26 failures can be scheduled with a trigger: **at start**, **after N min**, **climbing through N ft AGL** or **above N kt**.
+   - Failures by area:
+
+     | Area | Failures |
+     |---|---|
+     | Engine | total, partial power/rough running, left and right magneto |
+     | Fuel | left and right tank leak |
+     | Electrical | alternator, battery |
+     | Vacuum & gyros | vacuum pump, attitude gyro, heading gyro, turn coordinator |
+     | Pitot-static | pitot blocked, static blocked |
+     | Flight controls | flaps jammed, trim jammed, left and right brake |
+     | Avionics | COM1, COM2, NAV1, NAV2, ADF, DME, transponder, GPS |
+
+   - **Random failures:** choose how many, a time window and which systems may fail. You are not told which failures are armed.
+   - "Tell me when something fails" shows a notice. With it off, you diagnose the failure from the instruments and the aircraft's behaviour.
+
+**In flight:**
+- **Esc** opens the pause menu: resume, restart, failures, settings, new flight (back to this screen) or quit.
+- **F9** opens the failures panel. It shows every system as OK, FAILED or armed, lets you fail or repair any of them live, and shows how many random failures are still pending.
+
+Command-line flight options (below) skip the start screen. Add `--menu` to open it pre-filled instead.
+
 ### Flying (M4): the main scene
 
 ```bash
 cd game
-~/.local/bin/godot --path .                                   # Juhu (VAJJ), longest runway, engine idling
+~/.local/bin/godot --path .                                   # start screen
+~/.local/bin/godot --path . -- --airport=VAJJ                 # skip it: Juhu, longest runway, engine idling
 ~/.local/bin/godot --path . -- --airport=VABB --runway=27     # Mumbai runway 27
 ~/.local/bin/godot --path . -- --airport=VAPO --air=2000      # airborne, 5 nm final to Pune at 2000 ft AGL
 ~/.local/bin/godot --path . -- --airport=VANM                 # Navi Mumbai
@@ -133,7 +175,7 @@ cd game
 | `--airport=ICAO` | VAJJ (default), VABB, VAPO, VANM, VAAV (Aamby Valley), … any airport in `runways.json` |
 | `--runway=NN` | runway end, e.g. `08`, `26`, `14`, `32`; default = the longest runway |
 | `--air[=ft]` | start airborne on a 5 nm final at that height above the field (default 1500) |
-| `--stand[=REF]` | start parked at a stand: e.g. `--airport=VABB --stand` (a jetbridge gate), `--stand="Bay 40"`, Juhu `--stand=GA3` |
+| `--stand[=REF]` | start parked at a stand (always cold & dark): e.g. `--airport=VABB --stand` (a jetbridge gate), `--stand="Bay 40"`, Juhu `--stand=GA3` |
 | `--cold` | cold and dark: everything off, parking brake set (do the "Before Starting Engine" and "Starting Engine" checklists) |
 | `--view=NAME` | initial camera: cockpit, chase, orbit, free, tower, wing, tail or flyby (default chase) |
 | `--quality=low\|medium\|high\|ultra` | graphics preset (otherwise the one saved from F10) |
@@ -141,6 +183,11 @@ cd game
 | `--wind=DDD/SS[GNN]` | surface wind, e.g. `--wind=270/15G25` (wind aloft is set a bit stronger and veered) |
 | `--vis=m` | visibility in metres |
 | `--clouds=C@ft` | cloud cover 0–1 at a base in ft AMSL, e.g. `--clouds=0.6@3500` |
+| `--weather=NAME` | weather preset: clear, fair, scattered, broken, overcast, monsoon |
+| `--fail=ID[,ID…]` / `--fail=ID@min` | failures at start / after N minutes, e.g. `--fail=vacuum_pump,mag_left` (ids as in `game/systems/failure_catalog.gd`) |
+| `--random-failures` | one random failure 2–30 min after start (any system) |
+| `--menu` | open the start screen pre-filled with these options instead of flying straight away |
+| `--clean` | hide all UI (screenshots) |
 | `--shot=file.png --time=s` | for testing: fly hands-off `s` seconds, save a screenshot and quit |
 
 **Flight controls (keyboard):**
@@ -328,15 +375,10 @@ Default frequencies are COM1 118.10/121.90, NAV1 116.60/113.90, NAV2 108.10/109.
 - **Sky:** clouds are a cumulus layer that drifts with the wind aloft. Visibility drives haze and fog.
 - **Time of day:** real sun position for Mumbai/Pune (IST). Default 10:00 on 14 February. The F10 time rate can speed it up.
 - **Night:** runway edge lights, threshold and end lights, and approach bars at every runway. The aircraft has nav, beacon, strobe, taxi and landing lights.
-- **Failures (F10):**
-  - engine
-  - vacuum pump
-  - pitot blocked, static blocked
-  - alternator, battery
-  - left tank leak
+- **Failures:** 26 failures with schedules and random failures. See "Start screen" above, and F9 in flight.
 
 **Realism notes:**
-- The engine is running at start (cold-and-dark start comes in M8). If it stops, set magnetos to BOTH (M) and hold S.
+- On runway and air starts the engine is running. Stand starts and `--cold` are cold & dark. To start the engine: BAT on, mixture rich (;), throttle cracked, magnetos BOTH (M), then hold S.
 - With only the pilot aboard (the default load), the CG sits slightly left, so the aircraft rolls gently left hands-off, as the real C172 does. Hold a little right aileron.
 - The aircraft turns left on the takeoff roll (P-factor and torque), so use right rudder (X).
 - **Sound** uses real recordings throughout:

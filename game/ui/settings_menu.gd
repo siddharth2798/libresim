@@ -1,5 +1,5 @@
 extends PanelContainer
-## F10: in-flight settings — weather, time of day and failures. Every control
+## F10: in-flight settings — graphics, weather and time of day. Every control
 ## edits a Props path directly, so changes apply immediately.
 
 const SLIDERS := [
@@ -17,15 +17,6 @@ const SLIDERS := [
 	["Cloud cover", "weather/cloud_cover", 0.0, 1.0, 0.05, ""],
 	["QNH", "weather/qnh_hpa", 980.0, 1040.0, 1.0, "hPa"],
 	["Temperature (sea level)", "weather/temp_c", -5.0, 45.0, 1.0, "°C"],
-]
-const FAILURES := [
-	["Engine failure", "failures/engine"],
-	["Vacuum pump", "failures/vacuum_pump"],
-	["Pitot blocked", "failures/pitot_blocked"],
-	["Static port blocked", "failures/static_blocked"],
-	["Alternator", "failures/alternator"],
-	["Battery dead", "failures/battery"],
-	["Left tank leak", "failures/fuel_leak_left"],
 ]
 
 var _labels := {}
@@ -86,27 +77,10 @@ func _ready() -> void:
 		grid.add_child(vl)
 		_sliders[s[1]] = sl
 		_labels[s[1]] = [vl, s[5]]
-	vb.add_child(HSeparator.new())
 	var fl := Label.new()
-	fl.text = "Failures"
+	fl.text = "Failures: F9.  Back to the start screen (airport, aircraft, weather, failures): Esc."
+	fl.add_theme_color_override("font_color", Color(0.7, 0.7, 0.7))
 	vb.add_child(fl)
-	var fg := GridContainer.new()
-	fg.columns = 2
-	vb.add_child(fg)
-	for f in FAILURES:
-		var cb := CheckBox.new()
-		cb.text = f[0]
-		cb.toggled.connect(func(on): Props.set_v(f[1], on))
-		cb.set_meta("prop", f[1])
-		fg.add_child(cb)
-	var clear := Button.new()
-	clear.text = "Clear all failures"
-	clear.pressed.connect(func():
-		for f in FAILURES:
-			Props.set_v(f[1], false)
-		for c in fg.get_children():
-			(c as CheckBox).set_pressed_no_signal(false))
-	vb.add_child(clear)
 
 
 func _unhandled_key_input(e: InputEvent) -> void:

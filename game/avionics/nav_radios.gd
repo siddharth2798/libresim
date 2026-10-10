@@ -106,6 +106,8 @@ func _nav(i: int, p: Vector3, powered: bool, refresh: bool) -> void:
 					out.gs = clampf((s.gs_deg - ang) / 0.7, -1.0, 1.0)  # + = needle up (fly up)
 					out.gs_valid = true
 				out.dme_nm = p.distance_to(Vector3(s.threshold.x, s.threshold.y, s.threshold.h)) / NM
+	if i == 1 and Props.get_b("failures/dme"):  # the KI-266 is slaved to NAV1
+		out.dme_nm = -1.0
 	for k in out:
 		Props.set_v(pre + k, out[k])
 

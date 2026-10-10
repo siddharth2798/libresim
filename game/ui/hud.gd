@@ -16,8 +16,10 @@ func _ready() -> void:
 	_right.set_anchors_preset(PRESET_TOP_RIGHT)
 	_right.position = Vector2(-270, 90)
 	_warn = _label(Vector2(0, 0))
-	_warn.set_anchors_preset(PRESET_CENTER_TOP)
-	_warn.position = Vector2(-80, 40)
+	_warn.set_anchors_and_offsets_preset(PRESET_CENTER_TOP)
+	_warn.grow_horizontal = GROW_DIRECTION_BOTH
+	_warn.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_warn.offset_top = 40
 	_warn.add_theme_color_override("font_color", Color(1, 0.25, 0.2))
 	_warn.add_theme_font_size_override("font_size", 26)
 	_help = _label(Vector2(12, -230))
@@ -27,9 +29,9 @@ func _ready() -> void:
 		+ "Home/End trim  [ ] or F6/F7 flaps  B brakes  Shift+B parking  ,/. diff brake\n"
 		+ "S starter  M magnetos  Y mouse yoke  V centre view\n"
 		+ "C / 1-8 views: cockpit chase orbit free tower wing tail fly-by (free cam: WASD QE)\n"
-		+ "Tab / Shift+Tab panel layout (Full, Split, Compact, Minimal, Off)  F10 settings (graphics, weather, time, failures)\n"
+		+ "Tab / Shift+Tab panel layout (Full, Split, Compact, Minimal, Off)  F10 settings (graphics, weather, time)  F9 failures\n"
 		+ "T taxi route  P pushback  ` radio (ATC)  F2 checklists\n"
-		+ "Esc pause  H hud  F1 help  F3 perf  F5 reset  F12 credits")
+		+ "Esc pause menu  N map  H hud  F1 help  F3 perf  F5 reset  F12 credits")
 	_help.visible = false
 
 
@@ -60,7 +62,7 @@ func _process(_dt: float) -> void:
 		Units.mps_to_kt(p.get_f("fdm/cas_mps")), Units.m_to_ft(p.get_f("fdm/alt_m")),
 		Units.mps_to_fpm(p.get_f("fdm/vs_mps")), rad_to_deg(p.get_f("fdm/heading_rad")),
 		Units.m_to_ft(p.get_f("fdm/agl_m")), Units.mps_to_kt(p.get_f("fdm/groundspeed_mps")),
-		rad_to_deg(p.get_f("fdm/alpha_rad")), p.get_f("fdm/load_factor")]
+		rad_to_deg(p.get_f("fdm/alpha_rad")) if p.get_f("fdm/cas_mps") > 8.0 else 0.0, p.get_f("fdm/load_factor")]
 	_right.text = "RPM  %4.0f\nTHR  %3.0f %%\nMIX  %3.0f %%\nMAP  %4.1f inHg\nFLAP %2.0f°\nTRIM %+4.2f\nFUEL %4.1f gal\nMAGS %s%s%s" % [
 		p.get_f("engine/rpm"), p.get_f("controls/throttle") * 100.0, p.get_f("controls/mixture") * 100.0,
 		Units.pa_to_inhg(p.get_f("engine/map_pa")), p.get_f("fdm/flap_deg"), p.get_f("controls/pitch_trim"),

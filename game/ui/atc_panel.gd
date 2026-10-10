@@ -58,6 +58,8 @@ func _qnh() -> String:
 ## Is COM1 tuned to this airport's facility? (types: ATIS, CLD/DEL, GND, TWR, APP)
 ## Airports without published frequencies (small fields) accept any COM1 frequency.
 func _tuned(types: Array) -> String:
+	if Props.get_b("failures/com1") or not Props.get_b("systems/electrical/avionics_powered", true):
+		return "nothing: COM1 is dead (squawk 7600, lost-comms procedure)"
 	var a := _apt()
 	var db: NavDatabase = get_node("../../Avionics/Nav").db
 	var list: Array = db.coms.get(a, [])

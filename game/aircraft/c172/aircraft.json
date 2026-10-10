@@ -1,0 +1,22 @@
+{
+	"id": "c172",
+	"name": "Cessna 172S Skyhawk SP",
+	"category": "Single-engine piston · 4 seats · fixed gear",
+	"description": "The world's most-built aircraft and the standard trainer. Steam-gauge panel with two KX-155 NAV/COMs, ADF, DME and transponder. Flight model from the JSBSim c172p data (aerodynamics) with our own IO-360 engine and propeller model, tested against the POH.",
+	"model_credit": "3D model and cockpit: FlightGear c172p team (GPL-2.0-or-later)",
+	"specs": [
+		["Engine", "Lycoming IO-360-L2A, 180 hp"],
+		["Max takeoff weight", "1157 kg (2550 lb)"],
+		["Cruise (75 %)", "124 KTAS"],
+		["Stall (clean / full flaps)", "48 / 40 KIAS"],
+		["Vr / Vx / Vy", "55 / 62 / 74 KIAS"],
+		["Vne", "163 KIAS"],
+		["Fuel", "2 × 28 US gal (53 usable)"],
+		["Range", "about 640 nm"]
+	],
+	"mtow_kg": 1157.0,
+	"empty_kg": 680.4,
+	"pilot_kg": 81.6,
+	"max_baggage_kg": 54.0,
+	"tank_gal": 28.0
+}

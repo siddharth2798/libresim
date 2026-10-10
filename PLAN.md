@@ -208,6 +208,7 @@ free-sim/
 | M5 | Cockpit & instruments | Blender C172 cockpit, clickable controls, six-pack plus engine gauges driven by pitot-static and vacuum | 3–4 weeks (mostly Blender) |
 | M6 | Systems & weather | Electrical, fuel, flaps, lights, failures menu, wind, turbulence, cloud impostors, time of day, runway and approach lights at night | 2–3 weeks |
 | M7 | Navigation | NAV/COM, VOR/ILS/DME/ADF, GPS direct-to, moving map, flight-setup UI, save/load, replay | 2–3 weeks |
+| M7b | Flight setup & failures | Start screen (airport/stand/runway/air, aircraft + payload, weather/time/wind), 26 failures with triggers, random failures, F9 panel, Esc pause menu; session recording (video + sound to a chosen folder, ffmpeg) | done / in progress |
 | M8 | Polish | Checklists, cold-and-dark start, mass & balance, Low/Med/High graphics presets, joystick/gamepad binding UI | 2 weeks |
 | M9 (opt) | ATC & autopilot | KAP140 autopilot, rule-based ATC (Juhu tower, Mumbai approach) with Piper TTS | 3+ weeks |
 | M9b (opt) | iPhone/iPad port | Touch controls (virtual yoke, tilt), phone graphics preset, reduced texture set; built on a Mac with Xcode | 2–3 weeks |
@@ -218,6 +219,11 @@ free-sim/
 | M10 (opt) | Airliner | A320/737-class aircraft reusing the same FDM framework plus FMS-lite | large |
 
 ---
+
+## 8a. Later additions requested
+- **Session recording**: option on the start screen; records the whole flight (video + sound) to a local folder (default: game folder, user-selectable).
+- **Realistic terminals**: terminal buildings that look like the real ones (CSMIA T1/T2, Pune, Navi Mumbai): glass curtain walls, roof forms, piers.
+- **Airbus A320** (final stages): find an open-licence model with accurate cockpit/systems mapping (e.g. FlightGear A320-family, GPL), convert and make it compatible (JSON aircraft data, FDM, panel, sounds), credit it.
 
 ## 8b. Standing requirements (apply to everything built now and later)
 - **Real sounds for every moving/working part.** No synthesized placeholders in releases. Every engine, propeller, actuator, switch, lever, gear, flap motor, trim wheel, stall horn, gyro, wind, tyre/rumble, door, ground vehicle (pushback tug, fuel truck, GPU…), ATC radio and ambient airport sound must use real recordings, layered and pitch/volume-mapped to the simulated state (RPM, load, airspeed, position). Sources: the FlightGear c172p sound set (CC0/CC-BY, credited per its `Thanks` file), Freesound CC0/CC-BY, own field recordings. Every file is listed with its licence in CREDITS.md. The procedural engine sound in `aircraft/c172/engine_sound.gd` is a stand-in until then.

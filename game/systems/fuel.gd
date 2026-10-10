@@ -5,7 +5,7 @@ extends Node
 ## running ~LINE_S seconds after the supply is lost (starvation is not instant).
 ## Inputs: controls/fuel/selector (0 off, 1 left, 2 right, 3 both),
 ##         controls/fuel/shutoff (true = closed), fuel/left_kg, fuel/right_kg (from FDM),
-##         failures/fuel_leak_left (true -> left tank drains ~5 gal/h extra).
+##         failures/fuel_leak_left / _right (true -> that tank drains ~5 gal/h extra).
 ## Outputs: fuel/feed_left, fuel/feed_right (fractions), fuel/available.
 
 const LINE_S := 6.0
@@ -49,3 +49,4 @@ func _physics_process(dt: float) -> void:
 	Props.set_v("fuel/feed_right", fr)
 	Props.set_v("fuel/available", supply or _line > 0.0)
 	Props.set_v("fuel/leak_left_kgs", LEAK_KGS if Props.get_b("failures/fuel_leak_left") else 0.0)
+	Props.set_v("fuel/leak_right_kgs", LEAK_KGS if Props.get_b("failures/fuel_leak_right") else 0.0)

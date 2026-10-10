@@ -34,6 +34,7 @@ var feed_left := 0.5  # fuel feed fractions (fuel system)
 var feed_right := 0.5
 var fuel_available := true
 var leak_left_kgs := 0.0
+var leak_right_kgs := 0.0
 var time := 0.0
 
 # derived (updated every step)
@@ -213,7 +214,7 @@ func _burn_fuel(dt: float) -> void:
 	var l: Dictionary = mb.tanks[0]  # JSBSim tank 0 = left (y < 0)
 	var r: Dictionary = mb.tanks[1]
 	l.contents_kg = maxf(l.contents_kg - burn * feed_left - leak_left_kgs * dt, 0.0)
-	r.contents_kg = maxf(r.contents_kg - burn * feed_right, 0.0)
+	r.contents_kg = maxf(r.contents_kg - burn * feed_right - leak_right_kgs * dt, 0.0)
 	if int(time / dt) % 120 == 0:
 		mb.update()
 	engine.fuel_ok = fuel_available and mb.fuel_kg() > 0.0

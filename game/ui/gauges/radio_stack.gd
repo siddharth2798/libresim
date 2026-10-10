@@ -31,12 +31,17 @@ func _unit(y: float, h: float, title: String) -> Rect2:
 
 func _freq(r: Rect2, x: float, key: String, fmt: String, active: bool, kind: String) -> void:
 	var v := Props.get_f(key)
-	var on := Props.get_b("systems/electrical/avionics_powered", true)
+	var on := _alive(key.get_slice("/", 1))
 	var col := (AMBER if active else DIM) if on else Color(0.1, 0.1, 0.1)
 	var p := r.position + Vector2(x, r.size.y * 0.68)
 	_text(p, fmt % v, int(minf(r.size.y * 0.4, r.size.x * 0.052)), col)
 	if not active:
 		_zones.append([Rect2(p + Vector2(0, -r.size.y * 0.45), Vector2(r.size.x * 0.24, r.size.y * 0.5)), kind, key])
+
+
+## Powered and not failed (failure ids match the radio names: com1, nav2, adf, xpdr, gps).
+func _alive(radio: String) -> bool:
+	return Props.get_b("systems/electrical/avionics_powered", true) and not Props.get_b("failures/" + radio)
 
 
 func _swap(r: Rect2, x: float, a: String, b: String) -> void:
@@ -53,7 +58,7 @@ func _draw() -> void:
 	# GPS (direct-to readout)
 	var g := _unit(y, h * 0.7, "GPS")
 	var tgt: String = str(Props.get_v("avionics/gps/ident", ""))
-	_text(g.position + Vector2(40, g.size.y * 0.7), ("D→ %s  %03.0f°  %.1f nm  ETE %s" % [tgt, Props.get_f("avionics/gps/brg_mag"), Props.get_f("avionics/gps/dist_nm"), Props.get_v("avionics/gps/ete", "--")]) if tgt != "" else "N: map, click an airport / navaid for direct-to", 12, Color(0.5, 1, 0.6))
+	_text(g.position + Vector2(40, g.size.y * 0.7), ("D→ %s  %03.0f°  %.1f nm  ETE %s" % [tgt, Props.get_f("avionics/gps/brg_mag"), Props.get_f("avionics/gps/dist_nm"), Props.get_v("avionics/gps/ete", "--")]) if tgt != "" and _alive("gps") else ("" if not _alive("gps") else "N: map, click an airport / navaid for direct-to"), 12, Color(0.5, 1, 0.6))
 	y += h * 0.7
 	for i in [1, 2]:
 		var r := _unit(y, h, "KX-155  COM%d / NAV%d" % [i, i])
@@ -73,7 +78,7 @@ func _draw() -> void:
 	var code := "%04d" % int(Props.get_v("controls/xpdr/code", 7000))
 	for k in 4:
 		var p := t.position + Vector2(t.size.x * (0.08 + k * 0.1), t.size.y * 0.72)
-		_text(p, code[k], int(t.size.y * 0.5), AMBER)
+		_text(p, code[k], int(t.size.y * 0.5), AMBER if _alive("xpdr") else Color(0.1, 0.1, 0.1))
 		_zones.append([Rect2(p + Vector2(0, -t.size.y * 0.5), Vector2(t.size.x * 0.09, t.size.y * 0.55)), "digit", k])
 	var modes := ["OFF", "SBY", "ON", "ALT"]
 	var mb := Rect2(t.position + Vector2(t.size.x * 0.6, t.size.y * 0.3), Vector2(t.size.x * 0.3, t.size.y * 0.5))

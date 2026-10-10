@@ -89,21 +89,29 @@ func _read_controls() -> void:
 	c.pitch = Props.get_f("controls/pitch")
 	c.roll = Props.get_f("controls/roll")
 	c.yaw = Props.get_f("controls/yaw")
-	c.pitch_trim = Props.get_f("controls/pitch_trim")
+	if not Props.get_b("failures/trim"):  # jammed trim stays where it was
+		c.pitch_trim = Props.get_f("controls/pitch_trim")
 	c.flap_cmd = Props.get_v("controls/flaps", 0)
-	fdm.gear.brake_left = Props.get_f("controls/brake_left")
-	fdm.gear.brake_right = Props.get_f("controls/brake_right")
+	fdm.gear.brake_left = 0.0 if Props.get_b("failures/brake_left") else Props.get_f("controls/brake_left")
+	fdm.gear.brake_right = 0.0 if Props.get_b("failures/brake_right") else Props.get_f("controls/brake_right")
 	var e := fdm.engine
 	e.throttle = Props.get_f("controls/throttle")
 	e.mixture = Props.get_f("controls/mixture", 1.0)
-	e.magnetos = Props.get_v("controls/magnetos", 3)
+	var mags: int = Props.get_v("controls/magnetos", 3)  # bit 1 = L, bit 2 = R
+	if Props.get_b("failures/mag_left"):
+		mags &= ~1
+	if Props.get_b("failures/mag_right"):
+		mags &= ~2
+	e.magnetos = mags
 	e.starter = Props.get_b("controls/starter") and Props.get_b("systems/electrical/starter_ok", true)
 	e.failed = Props.get_b("failures/engine")
-	c.flaps_powered = Props.get_b("systems/electrical/flaps_powered", true)
+	e.partial = Props.get_b("failures/engine_partial")
+	c.flaps_powered = Props.get_b("systems/electrical/flaps_powered", true) and not Props.get_b("failures/flaps")
 	fdm.feed_left = Props.get_f("fuel/feed_left", 0.5)
 	fdm.feed_right = Props.get_f("fuel/feed_right", 0.5)
 	fdm.fuel_available = Props.get_b("fuel/available", true)
 	fdm.leak_left_kgs = Props.get_f("fuel/leak_left_kgs")
+	fdm.leak_right_kgs = Props.get_f("fuel/leak_right_kgs")
 	if Props.has("environment/wind_ned"):
 		fdm.wind_ned = Props.get_v("environment/wind_ned")
 	if Props.has("environment/qnh_pa"):

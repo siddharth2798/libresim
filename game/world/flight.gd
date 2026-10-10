@@ -1,15 +1,21 @@
 extends Node3D
-## Main flight scene (M4). Command-line options (after "--"):
+## Main flight scene. Started from the start screen (ui/menu) with the setup in the
+## Session autoload, or directly with command-line options (after "--"):
 ##   --airport=VAJJ --runway=08   start on a runway (default VAJJ, first runway)
 ##   --air=<alt_ft>               start airborne on the runway's extended centreline, 5 nm out
-##   --stand[=REF]                start parked at a stand/gate (e.g. --stand="Bay 40"); default: a jetbridge gate
+##   --stand[=REF]                start parked at a stand/gate, cold & dark (e.g. --stand="Bay 40"); default: a jetbridge gate
 ##   --cold                       cold & dark (everything off, parking brake set)
 ##   --shot=<png>                 screenshot after 6 s and quit (testing)
 ##   --time=<s>                   with --shot: fly that many seconds hands-off first
 ##   --view=cockpit|chase|orbit|free|tower|wing|tail|flyby   initial camera (default chase)
 ##   --quality=low|medium|high|ultra   graphics preset (saved from the F10 menu otherwise)
 ##   --tod=19.5 --wind=270/15G25 --vis=3000 --clouds=0.6@3000   time (IST h) and weather
-## Keys: Esc pause, F5 reset to start.
+##   --weather=clear|fair|scattered|broken|overcast|monsoon   weather preset
+##   --fail=engine,vacuum_pump | --fail=engine@5   failures at start / after N min
+##   --random-failures            random failures (defaults: 1 in 2-30 min, any system)
+##   --clean                      hide all UI (screenshots)
+##   --menu                       show the start screen pre-filled with these options
+## Keys: Esc pause menu, F5 reset to start, F9 failures.
 
 @onready var terrain: TerrainQuadtree = $Terrain
 @onready var fdm_node: FdmNode = $Fdm
@@ -20,6 +26,7 @@ extends Node3D
 var _start := {}
 var _apt := ""
 var _air_ft := -1.0
+var _air_nm := 5.0
 var _shot := ""
 var _shot_time := 6.0
 var _t := 0.0
@@ -29,23 +36,20 @@ var _cold := false
 
 
 func _ready() -> void:
-	var apt := "VAJJ"
-	var rwy := ""
-	for a in OS.get_cmdline_user_args():
-		var kv := a.trim_prefix("--").split("=")
-		match kv[0]:
-			"airport": apt = kv[1].to_upper()
-			"runway": rwy = kv[1]
-			"air": _air_ft = float(kv[1]) if kv.size() > 1 else 1500.0
-			"shot": _shot = kv[1]
-			"time": _shot_time = float(kv[1]) + 6.0
-			"view": _view = kv[1]
-			"stand": _stand_ref = kv[1] if kv.size() > 1 else "*"
-			"cold": _cold = true
-			"tod": Props.set_v("weather/time_h", float(kv[1]))
-			"wind": _wind(kv[1])
-			"vis": Props.set_v("weather/visibility_m", float(kv[1]))
-			"clouds": _clouds(kv[1])
+	var s: Dictionary = Session.setup
+	var apt: String = s.airport
+	var rwy: String = s.runway
+	match s.start:
+		"air":
+			_air_ft = float(s.air_ft)
+			_air_nm = float(s.air_nm)
+		"stand": _stand_ref = s.stand if s.stand != "" else "*"
+	_cold = bool(s.cold)
+	_shot = Session.shot
+	_shot_time = Session.shot_time
+	_view = Session.view
+	Session.apply_to_props()
+	$UI.visible = not Session.clean
 	airports.build(terrain)
 	$Weather.terrain = terrain
 	$Trees.terrain = terrain
@@ -56,11 +60,16 @@ func _ready() -> void:
 	$UI/Atc.fdm_node = fdm_node
 	$Avionics/Nav.terrain = terrain
 	$Avionics/Gps.db = $Avionics/Nav.db
+	$Systems/Failures.fdm_node = fdm_node
+	$UI/Failures.manager = $Systems/Failures
+	$UI/Pause.flight = self
 	$UI/Map.setup($Avionics/Nav.db, airports, terrain.cache)
 	_apt = apt
 	if airports.data:
 		$RunwayLights.build(airports.data, terrain)
 	_start = airports.runway_start(apt, rwy)
+	if _start.is_empty():
+		_start = airports.runway_start(apt, "")  # unknown runway ident: the longest one
 	if _start.is_empty():
 		push_error("no runway %s at %s, using VAJJ" % [rwy, apt])
 		_start = airports.runway_start("VAJJ", "")
@@ -76,29 +85,13 @@ func _ready() -> void:
 	_reset()
 
 
-func _wind(v: String) -> void:  # "270/15" or "270/15G25"
-	var p := v.split("/")
-	Props.set_v("weather/wind_dir_deg", float(p[0]))
-	var sp := p[1].split("G")
-	Props.set_v("weather/wind_kt", float(sp[0]))
-	Props.set_v("weather/aloft_dir_deg", float(p[0]) + 10.0)
-	Props.set_v("weather/aloft_kt", float(sp[0]) * 1.6)
-	Props.set_v("weather/gust_kt", float(sp[1]) if sp.size() > 1 else 0.0)
-
-
-func _clouds(v: String) -> void:  # "0.5@3500" = cover@base_ft
-	var p := v.split("@")
-	Props.set_v("weather/cloud_cover", float(p[0]))
-	if p.size() > 1:
-		Props.set_v("weather/cloud_base_ft", float(p[1]))
-
-
 func _reset() -> void:
 	var p: Vector2 = _start.pos
 	var hdg: float = _start.heading_deg
 	FloatingOrigin.set_origin(p)
+	_load_aircraft()
 	if _air_ft > 0.0:
-		var back := Vector2(sin(deg_to_rad(hdg)), cos(deg_to_rad(hdg))) * -9260.0
+		var back := Vector2(sin(deg_to_rad(hdg)), cos(deg_to_rad(hdg))) * -_air_nm * 1852.0
 		var q := p + back
 		fdm_node.place_airborne(q.x, q.y, terrain.height_at(p.x, p.y) + _air_ft * 0.3048, hdg, 90.0)
 	elif _stand_ref != "":
@@ -134,8 +127,21 @@ func _reset() -> void:
 	eng.oil_press_pa = 4.5e5
 	$Instruments/Gyros.start_running()
 	$Instruments/Compass.settle()
-	if _cold and _air_ft <= 0.0:
+	if (_cold or _stand_ref != "") and _air_ft <= 0.0:  # parked at a stand = always cold & dark
 		_cold_and_dark()
+	$Systems/Failures.restart()
+
+
+## Fuel and payload from the flight setup (aircraft page).
+func _load_aircraft() -> void:
+	var s: Dictionary = Session.setup
+	var mb := fdm_node.fdm.mb
+	for t in mb.tanks:
+		t.contents_kg = minf(float(s.fuel_gal) * 2.72, t.capacity_kg)
+	mb.set_payload("Co-Pilot", float(s.copilot_kg))
+	mb.set_payload("Left Passenger", float(s.rear_kg) * 0.5)
+	mb.set_payload("Right Passenger", float(s.rear_kg) * 0.5)
+	mb.set_payload("Baggage", float(s.baggage_kg))
 
 
 ## Everything off, parked: the real pre-flight starting state.
@@ -164,9 +170,7 @@ func _cold_and_dark() -> void:
 func _unhandled_key_input(e: InputEvent) -> void:
 	if not e.pressed or e.echo:
 		return
-	if e.keycode == KEY_ESCAPE:
-		fdm_node.paused = not fdm_node.paused
-	elif e.keycode == KEY_F5:
+	if e.keycode == KEY_F5:
 		_reset()
 
 
@@ -181,4 +185,5 @@ func _process(dt: float) -> void:
 		print("saved %s fps %d  kias %.0f alt %.0f ft agl %.0f rpm %.0f" % [_shot, Engine.get_frames_per_second(),
 			Units.mps_to_kt(p.get_f("fdm/cas_mps")), Units.m_to_ft(p.get_f("fdm/alt_m")),
 			Units.m_to_ft(p.get_f("fdm/agl_m")), p.get_f("engine/rpm")])
+		print("failures: ", FailureCatalog.all_ids().filter(func(id): return p.get_b("failures/" + id)), "  events: ", p.get_v("damage/events", []).slice(0, 3))
 		get_tree().quit()

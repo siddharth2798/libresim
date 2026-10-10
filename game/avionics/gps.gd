@@ -35,7 +35,9 @@ func _physics_process(_dt: float) -> void:
 		_last_target = ident
 		_from = p  # direct-to leg starts here
 	var tp = target_position(ident) if ident != "" else null
-	if tp == null:
+	var ok := Props.get_b("systems/electrical/avionics_powered", true) and not Props.get_b("failures/gps")
+	Props.set_v("avionics/gps/valid", ok)
+	if tp == null or not ok:
 		Props.set_v("avionics/gps/ident", "")
 		return
 	var d: Vector2 = tp - p
