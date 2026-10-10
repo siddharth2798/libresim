@@ -28,6 +28,7 @@ func _ready() -> void:
 		+ "S starter  M magnetos  Y mouse yoke  V centre view\n"
 		+ "C / 1-8 views: cockpit chase orbit free tower wing tail fly-by (free cam: WASD QE)\n"
 		+ "Tab / Shift+Tab panel layout (Full, Split, Compact, Minimal, Off)  F10 settings (graphics, weather, time, failures)\n"
+		+ "T taxi route  P pushback  ` radio (ATC)  F2 checklists\n"
 		+ "Esc pause  H hud  F1 help  F3 perf  F5 reset  F12 credits")
 	_help.visible = false
 

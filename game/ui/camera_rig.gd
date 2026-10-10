@@ -77,7 +77,7 @@ func _unhandled_input(e: InputEvent) -> void:
 	if e is InputEventKey and e.pressed and not e.echo:
 		if e.keycode == KEY_C:
 			set_mode(mode + (-1 if e.shift_pressed else 1))
-		elif e.keycode >= KEY_1 and e.keycode <= KEY_8 and not e.ctrl_pressed:
+		elif e.keycode >= KEY_1 and e.keycode <= KEY_8 and not e.ctrl_pressed and not get_viewport().is_input_handled():
 			set_mode(e.keycode - KEY_1)
 		elif e.keycode == KEY_V:
 			_look = Vector2.ZERO

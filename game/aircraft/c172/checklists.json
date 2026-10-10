@@ -1,0 +1,85 @@
+{
+ "source": "Abbreviated from the Cessna 172S POH normal procedures (section 4) for simulator use. Not for real-world flight.",
+ "lists": [
+  {"name": "Before Starting Engine", "items": [
+   {"text": "Preflight inspection — COMPLETE"},
+   {"text": "Seats, belts — ADJUSTED, LOCKED"},
+   {"text": "Brakes — TEST and SET (parking brake)", "prop": "controls/parking_brake", "eq": true},
+   {"text": "Circuit breakers — CHECK IN"},
+   {"text": "Electrical equipment — OFF", "prop": "controls/lights/landing", "eq": false},
+   {"text": "Avionics master — OFF", "prop": "controls/electrical/avionics", "eq": false},
+   {"text": "Fuel selector — BOTH", "prop": "controls/fuel/selector", "eq": 3},
+   {"text": "Fuel shutoff valve — ON (pushed in)", "prop": "controls/fuel/shutoff", "eq": false}
+  ]},
+  {"name": "Starting Engine", "items": [
+   {"text": "Throttle — OPEN 1/4 INCH", "prop": "controls/throttle", "range": [0.03, 0.2]},
+   {"text": "Mixture — RICH", "prop": "controls/mixture", "range": [0.9, 1.0]},
+   {"text": "Master switch (BAT + ALT) — ON", "prop": "controls/electrical/master_bat", "eq": true},
+   {"text": "Beacon — ON", "prop": "controls/lights/beacon", "eq": true},
+   {"text": "Propeller area — CLEAR"},
+   {"text": "Magnetos — BOTH, then START (hold S)", "prop": "engine/running", "eq": true},
+   {"text": "Oil pressure — CHECK (green within 30 s)", "prop": "instruments/oil_press_psi", "range": [20, 115]},
+   {"text": "Avionics master — ON", "prop": "controls/electrical/avionics", "eq": true},
+   {"text": "Ammeter — CHECK charging", "prop": "systems/electrical/battery_amps", "range": [0.0, 60.0]},
+   {"text": "Altimeter — SET (Kollsman to QNH)"}
+  ]},
+  {"name": "Before Takeoff (run-up)", "items": [
+   {"text": "Parking brake — SET", "prop": "controls/parking_brake", "eq": true},
+   {"text": "Flight controls — FREE and CORRECT"},
+   {"text": "Flight instruments — CHECK and SET (sync HI to compass)"},
+   {"text": "Fuel selector — BOTH", "prop": "controls/fuel/selector", "eq": 3},
+   {"text": "Mixture — RICH", "prop": "controls/mixture", "range": [0.9, 1.0]},
+   {"text": "Elevator trim — SET for takeoff"},
+   {"text": "Throttle — 1800 RPM", "prop": "engine/rpm", "range": [1700, 1900]},
+   {"text": "Magnetos — CHECK (drop ≤150 RPM, ≤50 difference), back to BOTH", "prop": "controls/magnetos", "eq": 3},
+   {"text": "Vacuum gauge — CHECK (4.5–5.5)", "prop": "instruments/suction_inhg", "range": [4.5, 5.5]},
+   {"text": "Engine instruments, ammeter — CHECK"},
+   {"text": "Throttle — CHECK IDLE, then 1000 RPM"},
+   {"text": "Strobes, landing light — ON", "prop": "controls/lights/strobe", "eq": true},
+   {"text": "Flaps — 0°–10°", "prop": "fdm/flap_deg", "range": [0.0, 10.5]},
+   {"text": "Parking brake — RELEASE", "prop": "controls/parking_brake", "eq": false}
+  ]},
+  {"name": "Normal Takeoff", "items": [
+   {"text": "Wing flaps — 0°–10°", "prop": "fdm/flap_deg", "range": [0.0, 10.5]},
+   {"text": "Throttle — FULL", "prop": "controls/throttle", "range": [0.97, 1.0]},
+   {"text": "Mixture — RICH (above 3000 ft: lean for max RPM)"},
+   {"text": "Elevator control — LIFT NOSE WHEEL at 55 KIAS"},
+   {"text": "Climb speed — 70–80 KIAS", "prop": "instruments/asi_kt", "range": [70, 80]},
+   {"text": "Wing flaps — RETRACT above 500 ft AGL", "prop": "fdm/flap_deg", "range": [0.0, 0.5]}
+  ]},
+  {"name": "Cruise", "items": [
+   {"text": "Power — 2100–2700 RPM (≤75 %)", "prop": "engine/rpm", "range": [2100, 2700]},
+   {"text": "Elevator trim — ADJUST"},
+   {"text": "Mixture — LEAN for cruise"}
+  ]},
+  {"name": "Before Landing", "items": [
+   {"text": "Seats, belts — SECURE"},
+   {"text": "Fuel selector — BOTH", "prop": "controls/fuel/selector", "eq": 3},
+   {"text": "Mixture — RICH", "prop": "controls/mixture", "range": [0.9, 1.0]},
+   {"text": "Landing light — ON", "prop": "controls/lights/landing", "eq": true},
+   {"text": "Autopilot — OFF"}
+  ]},
+  {"name": "Normal Landing", "items": [
+   {"text": "Airspeed — 65–75 KIAS (flaps up)"},
+   {"text": "Wing flaps — AS DESIRED (0°–10° below 110, 10°–30° below 85 KIAS)"},
+   {"text": "Airspeed — 60–70 KIAS (flaps down)"},
+   {"text": "Touchdown — MAIN WHEELS FIRST"},
+   {"text": "Landing roll — LOWER NOSE WHEEL GENTLY"},
+   {"text": "Braking — MINIMUM REQUIRED"}
+  ]},
+  {"name": "After Landing", "items": [
+   {"text": "Wing flaps — UP", "prop": "fdm/flap_deg", "range": [0.0, 0.5]},
+   {"text": "Strobes — OFF", "prop": "controls/lights/strobe", "eq": false},
+   {"text": "Landing light — OFF", "prop": "controls/lights/landing", "eq": false}
+  ]},
+  {"name": "Securing Airplane", "items": [
+   {"text": "Parking brake — SET", "prop": "controls/parking_brake", "eq": true},
+   {"text": "Throttle — IDLE", "prop": "controls/throttle", "range": [0.0, 0.03]},
+   {"text": "Avionics master — OFF", "prop": "controls/electrical/avionics", "eq": false},
+   {"text": "Mixture — IDLE CUTOFF (pull full out)", "prop": "engine/running", "eq": false},
+   {"text": "Magnetos — OFF", "prop": "controls/magnetos", "eq": 0},
+   {"text": "Master switch — OFF", "prop": "controls/electrical/master_bat", "eq": false},
+   {"text": "Fuel selector — LEFT or RIGHT (prevents cross-feeding)"}
+  ]}
+ ]
+}

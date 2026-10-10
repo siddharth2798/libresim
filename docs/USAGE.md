@@ -62,6 +62,13 @@ git -C data/raw/jsbsim/src sparse-checkout set aircraft/c172p engine
 # Satellite imagery: Sentinel-2 cloudless 2024 (EOX), downloaded and reprojected to the world frame.
 # This takes about 20-40 minutes and produces ~0.5 GB.
 tools/01b_fetch_imagery.sh      # set LAYER=s2cloudless-2023_3857 to use a different year
+tools/01c_fetch_outer_imagery.sh   # outer ring at 80 m (~490 x 490 km), ~15 min; re-run if it reports download errors (it resumes)
+
+# Outer-ring elevation: Copernicus GLO-90 tiles 16-21 N, 70-76 E
+mkdir -p data/raw/dem90 && cd data/raw/dem90
+for lat in 16 17 18 19 20 21; do for lon in 70 71 72 73 74 75 76; do t=N${lat}_00_E0${lon}_00
+  curl -fsLO https://copernicus-dem-90m.s3.amazonaws.com/Copernicus_DSM_COG_30_${t}_DEM/Copernicus_DSM_COG_30_${t}_DEM.tif || true  # open-sea tiles don't exist
+done; done; cd -
 ```
 
 ---
@@ -80,6 +87,8 @@ $PY tools/06_jsbsim_to_json.py     # -> game/aircraft/c172/c172_aero.json, c172_
 $PY tools/09_runways.py            # -> data/processed/runways.json (merged runways + taxiways; after 02 & 04)
 $PY tools/10_buildings.py          # -> data/processed/buildings/ 3D building meshes (after 02, 03 source s2.tif, 04) ~15 s, 63 MB
 $PY tools/11_landclass.py          # -> data/processed/terrain/lc/ land-class masks: water + tree density (after 02-04) ~30 s
+$PY tools/12_outer.py              # -> terrain levels 3-6 over ~980 x 980 km (real 90 m data + filled beyond) ~3 min
+$PY tools/13_airport_ops.py        # -> data/processed/airport_ops.json: stands, gates, jetbridges, hold points, taxi graph
 
 # Aircraft 3D models (FlightGear c172p, GPL), already committed as .glb; only needed to regenerate:
 blender -b --factory-startup --python tools/blender/convert_c172p.py            # exterior.glb
@@ -121,6 +130,8 @@ cd game
 | `--airport=ICAO` | VAJJ (default), VABB, VAPO, VANM, VAAV (Aamby Valley), … any airport in `runways.json` |
 | `--runway=NN` | runway end, e.g. `08`, `26`, `14`, `32`; default = the longest runway |
 | `--air[=ft]` | start airborne on a 5 nm final at that height above the field (default 1500) |
+| `--stand[=REF]` | start parked at a stand: e.g. `--airport=VABB --stand` (a jetbridge gate), `--stand="Bay 40"`, Juhu `--stand=GA3` |
+| `--cold` | cold and dark: everything off, parking brake set (do the "Before Starting Engine" and "Starting Engine" checklists) |
 | `--view=NAME` | initial camera: cockpit, chase, orbit, free, tower, wing, tail or flyby (default chase) |
 | `--quality=low\|medium\|high\|ultra` | graphics preset (otherwise the one saved from F10) |
 | `--tod=h` | local time (IST), e.g. `--tod=6.5` sunrise, `--tod=18.6` sunset, `--tod=21` night |
@@ -150,6 +161,10 @@ cd game
 | Tab / Shift+Tab | 2D panel layout in outside views: Full, Split (six-pack bottom-left, engine gauges right), Compact (small six-pack), Minimal (ASI, AI, ALT top-right), Off. Remembered between sessions |
 | Right-mouse drag | Look around (cockpit, orbit, free, wing, tail). Mouse wheel: cockpit zoom (field of view), orbit distance, free-camera speed |
 | V | Re-centre the view |
+| T | Taxi guidance: route to the into-wind runway (green line on the ground, "Taxi via …, hold short"). T again clears it |
+| P | Pushback (parking brake off): tug pushes you back and swings the tail toward the taxiway. P again stops |
+| ` (backquote) | Radio menu, then 1–6: ATIS, clearance, ground (taxi), tower departure, inbound, final |
+| F2 | Checklists (C172S POH, preflight → securing); Ctrl+PgUp/PgDn change list, Enter ticks the next item; most items tick themselves |
 | H / F1 / F3 | Toggle HUD / key help / performance overlay |
 | F12 | Credits and licences |
 | F10 | Settings: graphics preset and renderer, time of day and time rate, wind and gusts, wind aloft, turbulence, visibility, clouds, QNH, temperature, failures |
@@ -157,6 +172,30 @@ cd game
 | F5 | Reset to the start position |
 
 **A first flight from Juhu:** Page Up to full throttle (about 2300 RPM static). Keep straight with Z/X. At 55 kt, hold ↓ gently to rotate. Climb at 74 kt (Vy). Trim with Home/End until hands-off level, then reduce to about 2400 RPM for cruise. The Ghats are 45 km east; Pune (VAPO) is about 120 km east-southeast.
+
+### Airport operations (phase A)
+
+**Start options:**
+- Start at a stand: at **VABB** 114 stands (52 gates with jetbridges), **VANM** 87, **VAPO** 24, and generated GA parking at **Juhu**.
+- Start **cold and dark** if you want: the C172 needs the real start procedure (master, mixture rich, throttle cracked, magnetos BOTH, starter).
+
+**On the ground:**
+- **Pushback** with a tug.
+- **Taxi guidance:** the route is computed over the real OSM taxiway network, and the instruction names the taxiways ("via A, B").
+
+**Radio and checklists:**
+- **Text ATC** (`): ATIS, clearance with squawk, ground, tower.
+- **Checklists** (F2) that track what you've actually done.
+
+**At the airport:** jetbridges, stand lead-in lines with stand numbers, and windsocks that turn with the wind.
+
+**Not yet:** ground vehicles beyond the tug (fuel truck, GPU, baggage carts), stop bars, AI traffic and voice ATC (M9).
+
+### Beyond the detailed region
+
+- **Detailed area:** about 145 × 115 km, with 30 m terrain and 10 m imagery.
+- **Outer ring:** coarser real data (90 m terrain, 80 m imagery) out to about 245 km, reaching Nashik, Ahmednagar, Satara, Kolhapur and the Konkan coast.
+- **Beyond that,** to about 490 km, the terrain is filled from the nearest real data with generated relief and texture, so there is no edge.
 
 ### Landing, takeoff and damage (realism)
 

@@ -117,7 +117,7 @@ def main():
                 hv = hv[np.ix_(idx, idx)]
                 hs = t[::-1][np.ix_((np.linspace(0, n, c.IMG_N)).astype(int), (np.linspace(0, n, c.IMG_N)).astype(int))]
                 sea = hs <= 0.5
-                noise = fbm((c.IMG_N, c.IMG_N), 24, tx * 31 + ty * 17 + level, 4)[..., None] * 60.0
+                noise = fbm((c.IMG_N, c.IMG_N), 24, (tx * 31 + ty * 17 + level) % 100003, 4)[..., None] * 60.0
                 synth = np.where(sea[..., None], sea_col, land_col + noise)
                 out = np.where(hv[..., None], crop, synth)
                 bc1.write_dds(T / "img" / str(level) / f"{tx}_{ty}.dds", np.clip(out, 0, 255).astype(np.uint8))

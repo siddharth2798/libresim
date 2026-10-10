@@ -52,6 +52,8 @@ func _ready() -> void:
 	$UI/Crash.airports = airports
 	$AirportOps.setup(terrain)
 	$GroundOps.setup($AirportOps, airports, fdm_node, terrain, $UI)
+	$UI/Atc.ground_ops = $GroundOps
+	$UI/Atc.fdm_node = fdm_node
 	_apt = apt
 	if airports.data:
 		$RunwayLights.build(airports.data, terrain)

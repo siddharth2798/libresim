@@ -1,4 +1,4 @@
-[gd_scene load_steps=37 format=3]
+[gd_scene load_steps=39 format=3]
 
 [ext_resource type="Script" path="res://world/flight.gd" id="1"]
 [ext_resource type="Script" path="res://world/terrain_quadtree.gd" id="2"]
@@ -31,6 +31,8 @@
 [ext_resource type="Script" path="res://ui/crash_screen.gd" id="29"]
 [ext_resource type="Script" path="res://world/airport_ops.gd" id="30"]
 [ext_resource type="Script" path="res://world/ground_ops.gd" id="31"]
+[ext_resource type="Script" path="res://ui/checklist_panel.gd" id="32"]
+[ext_resource type="Script" path="res://ui/atc_panel.gd" id="33"]
 
 [sub_resource type="ShaderMaterial" id="sky_mat"]
 shader = ExtResource("28")
@@ -150,6 +152,12 @@ script = ExtResource("17")
 
 [node name="Settings" type="PanelContainer" parent="UI"]
 script = ExtResource("24")
+
+[node name="Checklist" type="PanelContainer" parent="UI"]
+script = ExtResource("32")
+
+[node name="Atc" type="PanelContainer" parent="UI"]
+script = ExtResource("33")
 
 [node name="Crash" type="Control" parent="UI"]
 script = ExtResource("29")

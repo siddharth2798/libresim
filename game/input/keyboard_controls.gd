@@ -74,8 +74,9 @@ func _process(dt: float) -> void:
 	Props.set_v("controls/roll", roll)
 	Props.set_v("controls/yaw", yaw)
 
-	var thr := Props.get_f("controls/throttle") + _axis([KEY_PAGEDOWN, KEY_MINUS, KEY_KP_SUBTRACT],
-		[KEY_PAGEUP, KEY_EQUAL, KEY_KP_ADD]) * LEVER_RATE * dt
+	var thr := Props.get_f("controls/throttle")
+	if not Input.is_key_pressed(KEY_CTRL):  # Ctrl+PgUp/PgDn switch checklists
+		thr += _axis([KEY_PAGEDOWN, KEY_MINUS, KEY_KP_SUBTRACT], [KEY_PAGEUP, KEY_EQUAL, KEY_KP_ADD]) * LEVER_RATE * dt
 	Props.set_v("controls/throttle", clampf(thr, 0.0, 1.0))
 	var mix := Props.get_f("controls/mixture", 1.0) + _axis([KEY_SEMICOLON], [KEY_APOSTROPHE]) * LEVER_RATE * dt
 	Props.set_v("controls/mixture", clampf(mix, 0.0, 1.0))
