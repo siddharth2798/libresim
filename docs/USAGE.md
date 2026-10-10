@@ -122,7 +122,7 @@ On first run, Godot imports the project (a few seconds). The data is read from `
 
 ### Start screen (flight setup)
 
-Running the game opens the **start screen**. Your last setup is remembered (`user://last_flight.json`). Keys 1–5 switch pages, and Ctrl+Enter flies.
+Running the game opens the **start screen**. Your last setup is remembered (`user://last_flight.json`). Keys 1–8 switch pages, and Ctrl+Enter flies.
 
 1. **Airport & start:**
    - Pick an airport from the searchable list. A north-up diagram shows its runways, taxiways and stands, with an arrow at your start point.
@@ -166,8 +166,29 @@ Running the game opens the **start screen**. Your last setup is remembered (`use
    - **Cost:** frames are read back from the GPU asynchronously and encoded on worker threads, so frame rate is barely affected (42 FPS with or without recording on the dev machine).
    - **In flight:** F8 starts and stops recording, and a red ● REC shows the time and size. `--record` on the command line also turns it on.
 
+6. **Controls:** joystick and gamepad bindings.
+   - Connected devices are listed, and hot-plug works.
+   - Each action has a **Bind** button: move an axis or press a button to capture it, or Esc to cancel. Each also has invert, a range (full, half for levers, trigger for toe brakes), deadzone, an expo curve and a live value bar.
+   - "Reset: gamepad defaults" gives: left stick roll/pitch, right stick X yaw, triggers toe brakes, LB/RB flaps, A brakes, X parking brake, Y/B views, D-pad trim and magnetos.
+   - "Reset: joystick defaults" gives: X/Y roll/pitch, twist yaw, throttle axis.
+   - A bound axis takes over from the keyboard. Anything not bound stays on the keyboard.
+   - Saved in `user://input_bindings.json`. Also available in flight with **J**.
+7. **Options:**
+   - Volume and mute for each sound bus: Master, Engine, Wind & environment, Cockpit, Radio, Menus.
+   - Graphics preset.
+   - Units preference (stored for later; the C172 panel stays in ft, kt and inHg).
+   - Whether the HUD is shown at start.
+   - Saved in `user://audio.cfg` and `user://options.cfg`.
+8. **Saved flights:** saved situations with a thumbnail, airport, altitude and IAS. "Fly from this save" resumes exactly there.
+
+The **Aircraft** page also shows a **weight & balance chart**: the C172S normal and utility CG envelopes, with the takeoff and landing points (landing assumes 5 gal per tank). It turns red when overweight or out of CG limits. The flight model flies the CG you load: an aft CG makes the pitch light and less stable.
+
 **In flight:**
 - **Esc** opens the pause menu: resume, restart, failures, settings, new flight (back to this screen) or quit.
+- **Saving and loading:** Esc → Save flight / Load flight, or **F11** to quick-save and **Shift+F11** to quick-load. A save keeps everything: position, motion, engine state, fuel, damage, switches, radios, failures, weather and time. Saves live in `user://saves/`.
+- **Replay (R):** replays up to the last 10 minutes from any camera.
+  - **Space** plays and pauses, **← / →** seek ±5 s, and **[ / ]** change speed (0.25x–4x). The timeline bar can be scrubbed.
+  - **Take control** resumes flying from the replayed moment, with its exact speed and attitude. **Exit replay** returns to where you were.
 - **F9** opens the failures panel. It shows every system as OK, FAILED or armed, lets you fail or repair any of them live, and shows how many random failures are still pending.
 
 Command-line flight options (below) skip the start screen. Add `--menu` to open it pre-filled instead.

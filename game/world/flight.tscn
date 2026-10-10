@@ -1,4 +1,4 @@
-[gd_scene load_steps=47 format=3]
+[gd_scene load_steps=52 format=3]
 
 [ext_resource type="Script" path="res://world/flight.gd" id="1"]
 [ext_resource type="Script" path="res://world/terrain_quadtree.gd" id="2"]
@@ -41,6 +41,11 @@
 [ext_resource type="Script" path="res://ui/pause_menu.gd" id="39"]
 [ext_resource type="Script" path="res://ui/session_recorder.gd" id="40"]
 [ext_resource type="Script" path="res://world/terminals.gd" id="41"]
+[ext_resource type="Script" path="res://input/joystick_controls.gd" id="42"]
+[ext_resource type="Script" path="res://ui/controls_overlay.gd" id="43"]
+[ext_resource type="Script" path="res://ui/saves_panel.gd" id="44"]
+[ext_resource type="Script" path="res://systems/replay.gd" id="45"]
+[ext_resource type="Script" path="res://ui/replay_bar.gd" id="46"]
 
 [sub_resource type="ShaderMaterial" id="sky_mat"]
 shader = ExtResource("28")
@@ -161,6 +166,12 @@ script = ExtResource("5")
 [node name="Controls" type="Node" parent="."]
 script = ExtResource("7")
 
+[node name="JoystickControls" type="Node" parent="."]
+script = ExtResource("42")
+
+[node name="Replay" type="Node" parent="."]
+script = ExtResource("45")
+
 [node name="Audio" type="Node" parent="."]
 script = ExtResource("10")
 
@@ -193,8 +204,14 @@ script = ExtResource("38")
 [node name="Recorder" type="Label" parent="UI"]
 script = ExtResource("40")
 
+[node name="ReplayBar" type="Control" parent="UI"]
+script = ExtResource("46")
+
 [node name="Pause" type="PanelContainer" parent="UI"]
 script = ExtResource("39")
+
+[node name="Saves" type="PanelContainer" parent="UI"]
+script = ExtResource("44")
 
 [node name="Credits" type="Control" parent="UI"]
 script = ExtResource("25")
@@ -204,3 +221,6 @@ offset_left = 10.0
 offset_top = 8.0
 script = ExtResource("9")
 terrain_path = NodePath("../../Terrain")
+
+[node name="ControlsOverlay" type="CanvasLayer" parent="."]
+script = ExtResource("43")

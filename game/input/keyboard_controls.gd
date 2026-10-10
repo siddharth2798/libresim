@@ -37,7 +37,7 @@ func _unhandled_key_input(e: InputEvent) -> void:
 			Props.set_v("controls/magnetos", (int(Props.get_v("controls/magnetos", 3)) + 1) % 4)
 		KEY_B:
 			if e.shift_pressed:
-				parking_brake = not parking_brake
+				parking_brake = not Props.get_b("controls/parking_brake")
 				Props.set_v("controls/parking_brake", parking_brake)
 
 
@@ -70,21 +70,27 @@ func _process(dt: float) -> void:
 		pitch = _rate(pitch, _axis([KEY_UP, KEY_KP_8], [KEY_DOWN, KEY_KP_2]), dt)
 		roll = _rate(roll, _axis([KEY_LEFT, KEY_KP_4], [KEY_RIGHT, KEY_KP_6]), dt)
 	yaw = _rate(yaw, _axis([KEY_Z, KEY_KP_0], [KEY_X, KEY_KP_ENTER]), dt)
-	Props.set_v("controls/pitch", pitch)
-	Props.set_v("controls/roll", roll)
-	Props.set_v("controls/yaw", yaw)
+	_put("pitch", pitch)
+	_put("roll", roll)
+	_put("yaw", yaw)
 
 	var thr := Props.get_f("controls/throttle")
 	if not Input.is_key_pressed(KEY_CTRL):  # Ctrl+PgUp/PgDn switch checklists
 		thr += _axis([KEY_PAGEDOWN, KEY_MINUS, KEY_KP_SUBTRACT], [KEY_PAGEUP, KEY_EQUAL, KEY_KP_ADD]) * LEVER_RATE * dt
-	Props.set_v("controls/throttle", clampf(thr, 0.0, 1.0))
+	_put("throttle", clampf(thr, 0.0, 1.0))
 	var mix := Props.get_f("controls/mixture", 1.0) + _axis([KEY_SEMICOLON], [KEY_APOSTROPHE]) * LEVER_RATE * dt
-	Props.set_v("controls/mixture", clampf(mix, 0.0, 1.0))
+	_put("mixture", clampf(mix, 0.0, 1.0))
 	var trim := Props.get_f("controls/pitch_trim") + _axis([KEY_HOME, KEY_KP_7], [KEY_END, KEY_KP_1]) * TRIM_RATE * dt
-	Props.set_v("controls/pitch_trim", clampf(trim, -1.0, 1.0))
+	_put("pitch_trim", clampf(trim, -1.0, 1.0))
 
 	var both := Input.is_physical_key_pressed(KEY_B) and not Input.is_key_pressed(KEY_SHIFT)
-	var pb := 1.0 if parking_brake else 0.0
-	Props.set_v("controls/brake_left", maxf(pb, 1.0 if both or Input.is_physical_key_pressed(KEY_COMMA) else 0.0))
-	Props.set_v("controls/brake_right", maxf(pb, 1.0 if both or Input.is_physical_key_pressed(KEY_PERIOD) else 0.0))
-	Props.set_v("controls/starter", Input.is_physical_key_pressed(KEY_S) and not Props.get_b("view/free_cam"))
+	var pb := 1.0 if Props.get_b("controls/parking_brake") else 0.0
+	_put("brake_left", maxf(pb, 1.0 if both or Input.is_physical_key_pressed(KEY_COMMA) else 0.0))
+	_put("brake_right", maxf(pb, 1.0 if both or Input.is_physical_key_pressed(KEY_PERIOD) else 0.0))
+	_put("starter", Input.is_physical_key_pressed(KEY_S) and not Props.get_b("view/free_cam"))
+
+
+## Write controls/<name> unless a joystick axis/button owns it (JoystickControls).
+func _put(name: String, v: Variant) -> void:
+	if Props.get_v("input/axis_owner/" + name, "") != "joy":
+		Props.set_v("controls/" + name, v)

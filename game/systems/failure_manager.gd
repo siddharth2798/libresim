@@ -53,7 +53,7 @@ func repair(id: String) -> void:
 
 
 func _physics_process(dt: float) -> void:
-	if fdm_node == null or fdm_node.paused or fdm_node.fdm.damage.crashed:
+	if fdm_node == null or fdm_node.paused or fdm_node.replaying or fdm_node.fdm.damage.crashed:
 		return
 	elapsed += dt
 	_check()

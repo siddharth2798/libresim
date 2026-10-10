@@ -11,6 +11,9 @@ const PAGES := [
 	["Weather & time", "res://ui/menu/conditions_page.gd"],
 	["Failures", "res://ui/menu/failures_page.gd"],
 	["Recording", "res://ui/menu/recording_page.gd"],
+	["Controls", "res://ui/menu/controls_page.gd"],
+	["Options", "res://ui/menu/options_page.gd"],
+	["Saved flights", "res://ui/menu/saves_page.gd"],
 ]
 
 var _pages: Array[Control] = []
@@ -23,6 +26,7 @@ func _ready() -> void:
 	if Session.skip_menu:
 		get_tree().change_scene_to_file.call_deferred(FLIGHT)
 		return
+	AudioSettings.apply()
 	set_anchors_preset(PRESET_FULL_RECT)
 	theme = MenuTheme.make()
 	if ResourceLoader.exists(BG):

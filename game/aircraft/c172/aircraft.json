@@ -18,5 +18,18 @@
 	"empty_kg": 680.4,
 	"pilot_kg": 81.6,
 	"max_baggage_kg": 54.0,
-	"tank_gal": 28.0
+	"tank_gal": 28.0,
+	"cg_envelope": {
+		"source": "Cessna 172S POH section 2 (CG limits) / section 6 (CG envelope chart)",
+		"units": "points are [CG inches aft of datum, weight lb]; datum = front face of firewall (POH station 0)",
+		"datum_offset_in": 0.0,
+		"datum_note": "POH inches = JSBSim c172p structural x (in) + datum_offset_in. The c172p frame is already firewall-referenced: empty CG 41.0 in (POH C172S basic empty arm is typically 38-41 in), baggage 95 in (POH 95), front seats 36 in (POH 37, range 34-46), rear seats 70 in (POH 73). Fuel tank arm is 56 in in the c172p data vs 48 in in the C172S POH; W&B uses the config stations so it matches what the FDM flies.",
+		"config": "c172_config.json",
+		"fuel_kg_per_gal": 2.72,
+		"landing_fuel_gal_per_tank": 5.0,
+		"max_lb": 2550.0,
+		"normal": [[35.0, 1500.0], [35.0, 1950.0], [41.0, 2550.0], [47.3, 2550.0], [47.3, 1500.0]],
+		"utility_max_lb": 2200.0,
+		"utility": [[35.0, 1500.0], [35.0, 1950.0], [37.5, 2200.0], [40.5, 2200.0], [40.5, 1500.0]]
+	}
 }

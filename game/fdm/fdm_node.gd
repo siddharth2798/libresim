@@ -12,6 +12,7 @@ const SUBSTEPS := 2
 
 var fdm: FDM
 var paused := false
+var replaying := false  # replay (systems/replay.gd) drives the state; physics holds
 var _prev_pos := Vector3.ZERO  # ENU at previous physics tick
 var _prev_q := Quaternion.IDENTITY
 var _terrain: TerrainQuadtree
@@ -73,7 +74,7 @@ func _snap() -> void:
 
 
 func _physics_process(delta: float) -> void:
-	if paused or fdm.damage.crashed:
+	if paused or replaying or fdm.damage.crashed:
 		return
 	_prev_pos = position_enu()
 	_prev_q = fdm.q

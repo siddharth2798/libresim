@@ -18,6 +18,10 @@ func _ready() -> void:
 	t.add_theme_font_size_override("font_size", 24)
 	vb.add_child(t)
 	for item in [["Resume", _close], ["Restart flight (F5)", func(): _close(); flight._reset()],
+			["Save flight", func(): _close(); flight.get_node("UI/Saves").open(true)],
+			["Load flight", func(): _close(); flight.get_node("UI/Saves").open()],
+			["Replay (R)", func(): _close(); flight.get_node("Replay").start_replay(60.0)],
+			["Controls (J)", func(): _close(); flight.get_node("ControlsOverlay").toggle()],
 			["Failures (F9)", func(): _close(); _press(KEY_F9)],
 			["Settings (F10)", func(): _close(); _press(KEY_F10)],
 			["New flight (start screen)", _new_flight], ["Quit", func(): get_tree().quit()]]:

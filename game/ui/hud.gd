@@ -33,6 +33,7 @@ func _ready() -> void:
 		+ "T taxi route  P pushback  ` radio (ATC)  F2 checklists\n"
 		+ "Esc pause menu  N map  H hud  F1 help  F3 perf  F5 reset  F12 credits")
 	_help.visible = false
+	visible = bool(UserOptions.get_v("hud_at_start"))
 
 
 func _label(pos: Vector2) -> Label:

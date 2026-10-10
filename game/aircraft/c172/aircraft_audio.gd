@@ -19,7 +19,13 @@ const WATCH := ["controls/electrical/master_bat", "controls/electrical/master_al
 	"controls/lights/strobe", "controls/electrical/pitot_heat", "systems/alternate_static", "controls/fuel/shutoff"]
 
 
+const BUS := {"engine-idle": "Engine", "engine": "Engine", "engine-crank": "Engine", "engine-start": "Engine",
+	"engine-cut": "Engine", "wind1": "Environment", "tires-rolling-asphalt": "Environment", "rumble": "Environment",
+	"rain": "Environment", "squeal": "Environment"}  # everything else: Cockpit (see core/audio_settings.gd)
+
+
 func _ready() -> void:
+	AudioSettings.apply()
 	for n in ["engine-idle", "engine", "engine-crank", "gyro", "wind1", "tires-rolling-asphalt", "rumble",
 			"stall2", "flaps-motor", "trim", "avionics-400Hz", "rain"]:
 		_loops[n] = _player(n, true)
@@ -37,6 +43,7 @@ func _player(n: String, loop: bool) -> AudioStreamPlayer:
 		s.loop_end = int(s.get_length() * s.mix_rate)
 	p.stream = s
 	p.volume_db = -80.0
+	p.bus = BUS.get(n, "Cockpit")
 	add_child(p)
 	if loop:
 		p.play()

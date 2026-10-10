@@ -16,7 +16,7 @@ extends Node3D
 ##   --record                     record the session (video + sound, see the start screen)
 ##   --clean                      hide all UI (screenshots)
 ##   --menu                       show the start screen pre-filled with these options
-## Keys: Esc pause menu, F5 reset to start, F9 failures.
+## Keys: Esc pause menu, F5 reset to start, F9 failures, F11 quick-save (Shift: load), R replay, J controls.
 
 @onready var terrain: TerrainQuadtree = $Terrain
 @onready var fdm_node: FdmNode = $Fdm
@@ -84,9 +84,13 @@ func _ready() -> void:
 	cam.set_mode(vi if vi >= 0 else 1)
 	Graphics.apply_to_scene(self)
 	_reset()
+	$UI/Saves.flight = self
+	if Situation.load_pending(self) != "":
+		$Replay.clear()
 
 
 func _reset() -> void:
+	$Replay.clear()
 	var p: Vector2 = _start.pos
 	var hdg: float = _start.heading_deg
 	FloatingOrigin.set_origin(p)
