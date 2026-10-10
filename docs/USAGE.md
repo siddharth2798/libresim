@@ -120,7 +120,7 @@ On first run, Godot imports the project (a few seconds). The data is read from `
 
 ### Start screen (flight setup)
 
-Running the game opens the **start screen**. Your last setup is remembered (`user://last_flight.json`). Keys 1–4 switch pages, and Ctrl+Enter flies.
+Running the game opens the **start screen**. Your last setup is remembered (`user://last_flight.json`). Keys 1–5 switch pages, and Ctrl+Enter flies.
 
 1. **Airport & start:**
    - Pick an airport from the searchable list. A north-up diagram shows its runways, taxiways and stands, with an arrow at your start point.
@@ -152,6 +152,17 @@ Running the game opens the **start screen**. Your last setup is remembered (`use
 
    - **Random failures:** choose how many, a time window and which systems may fail. You are not told which failures are armed.
    - "Tell me when something fails" shows a notice. With it off, you diagnose the failure from the instruments and the aircraft's behaviour.
+
+5. **Recording:**
+   - Tick "Record this flight" to record the whole session, **picture and sound**.
+   - Files go to `recordings/` in the game folder by default, or to any folder you choose. Read-only installs (AppImage, .app) fall back to `~/.local/share/godot/app_userdata/free-sim/recordings`.
+   - Choose 720p, 1080p or native resolution, at 24, 30 or 60 fps.
+   - **Format:** files are named `free-sim_<date>_<time>.mkv` (MJPEG video plus 16-bit PCM sound), written by the game itself, so no extra software is needed. They play in VLC and mpv and import into video editors.
+   - **Size:** about 5 MB/s at 720p30.
+   - **MP4:** if `ffmpeg` is installed, the file is converted to a much smaller MP4 (H.264 + AAC) when the recording stops.
+   - **Crash-safe:** the file is written as a stream, so it stays playable even if the game is killed.
+   - **Cost:** frames are read back from the GPU asynchronously and encoded on worker threads, so frame rate is barely affected (42 FPS with or without recording on the dev machine).
+   - **In flight:** F8 starts and stops recording, and a red ● REC shows the time and size. `--record` on the command line also turns it on.
 
 **In flight:**
 - **Esc** opens the pause menu: resume, restart, failures, settings, new flight (back to this screen) or quit.
@@ -187,6 +198,7 @@ cd game
 | `--fail=ID[,ID…]` / `--fail=ID@min` | failures at start / after N minutes, e.g. `--fail=vacuum_pump,mag_left` (ids as in `game/systems/failure_catalog.gd`) |
 | `--random-failures` | one random failure 2–30 min after start (any system) |
 | `--menu` | open the start screen pre-filled with these options instead of flying straight away |
+| `--record` | record the session (video + sound) |
 | `--clean` | hide all UI (screenshots) |
 | `--shot=file.png --time=s` | for testing: fly hands-off `s` seconds, save a screenshot and quit |
 

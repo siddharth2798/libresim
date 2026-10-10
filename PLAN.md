@@ -208,7 +208,7 @@ free-sim/
 | M5 | Cockpit & instruments | Blender C172 cockpit, clickable controls, six-pack plus engine gauges driven by pitot-static and vacuum | 3–4 weeks (mostly Blender) |
 | M6 | Systems & weather | Electrical, fuel, flaps, lights, failures menu, wind, turbulence, cloud impostors, time of day, runway and approach lights at night | 2–3 weeks |
 | M7 | Navigation | NAV/COM, VOR/ILS/DME/ADF, GPS direct-to, moving map, flight-setup UI, save/load, replay | 2–3 weeks |
-| M7b | Flight setup & failures | Start screen (airport/stand/runway/air, aircraft + payload, weather/time/wind), 26 failures with triggers, random failures, F9 panel, Esc pause menu; session recording (video + sound to a chosen folder, ffmpeg) | done / in progress |
+| M7b | Flight setup & failures | Start screen (airport/stand/runway/air, aircraft + payload, weather/time/wind), 26 failures with triggers, random failures, F9 panel, Esc pause menu; session recording (built-in MKV writer, video + sound, chosen folder, MP4 via ffmpeg if present) | done |
 | M8 | Polish | Checklists, cold-and-dark start, mass & balance, Low/Med/High graphics presets, joystick/gamepad binding UI | 2 weeks |
 | M9 (opt) | ATC & autopilot | KAP140 autopilot, rule-based ATC (Juhu tower, Mumbai approach) with Piper TTS | 3+ weeks |
 | M9b (opt) | iPhone/iPad port | Touch controls (virtual yoke, tilt), phone graphics preset, reduced texture set; built on a Mac with Xcode | 2–3 weeks |

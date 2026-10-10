@@ -1,4 +1,4 @@
-[gd_scene load_steps=45 format=3]
+[gd_scene load_steps=46 format=3]
 
 [ext_resource type="Script" path="res://world/flight.gd" id="1"]
 [ext_resource type="Script" path="res://world/terrain_quadtree.gd" id="2"]
@@ -39,6 +39,7 @@
 [ext_resource type="Script" path="res://systems/failure_manager.gd" id="37"]
 [ext_resource type="Script" path="res://ui/failures_panel.gd" id="38"]
 [ext_resource type="Script" path="res://ui/pause_menu.gd" id="39"]
+[ext_resource type="Script" path="res://ui/session_recorder.gd" id="40"]
 
 [sub_resource type="ShaderMaterial" id="sky_mat"]
 shader = ExtResource("28")
@@ -184,6 +185,9 @@ script = ExtResource("29")
 
 [node name="Failures" type="PanelContainer" parent="UI"]
 script = ExtResource("38")
+
+[node name="Recorder" type="Label" parent="UI"]
+script = ExtResource("40")
 
 [node name="Pause" type="PanelContainer" parent="UI"]
 script = ExtResource("39")

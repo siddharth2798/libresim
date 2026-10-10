@@ -10,6 +10,7 @@ const PAGES := [
 	["Aircraft", "res://ui/menu/aircraft_page.gd"],
 	["Weather & time", "res://ui/menu/conditions_page.gd"],
 	["Failures", "res://ui/menu/failures_page.gd"],
+	["Recording", "res://ui/menu/recording_page.gd"],
 ]
 
 var _pages: Array[Control] = []
@@ -167,7 +168,7 @@ func _fly() -> void:
 func _unhandled_key_input(e: InputEvent) -> void:
 	if not e.pressed or e.echo:
 		return
-	if e.keycode >= KEY_1 and e.keycode <= KEY_4 and not get_viewport().gui_get_focus_owner() is LineEdit:
+	if e.keycode >= KEY_1 and e.keycode < KEY_1 + PAGES.size() and not get_viewport().gui_get_focus_owner() is LineEdit:
 		_show(e.keycode - KEY_1)
 	elif e.keycode == KEY_ENTER and e.ctrl_pressed:
 		_fly()

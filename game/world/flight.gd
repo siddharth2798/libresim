@@ -13,6 +13,7 @@ extends Node3D
 ##   --weather=clear|fair|scattered|broken|overcast|monsoon   weather preset
 ##   --fail=engine,vacuum_pump | --fail=engine@5   failures at start / after N min
 ##   --random-failures            random failures (defaults: 1 in 2-30 min, any system)
+##   --record                     record the session (video + sound, see the start screen)
 ##   --clean                      hide all UI (screenshots)
 ##   --menu                       show the start screen pre-filled with these options
 ## Keys: Esc pause menu, F5 reset to start, F9 failures.

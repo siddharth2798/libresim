@@ -11,7 +11,7 @@ func _ready() -> void:
 	var out := OS.get_environment("FREESIM_SHOTS")
 	if out == "":
 		out = OS.get_user_data_dir()
-	for i in 4:
+	for i in _s.PAGES.size():
 		_s._show(i)
 		await get_tree().create_timer(1.0).timeout
 		get_viewport().get_texture().get_image().save_png(out.path_join("menu_%d.png" % i))

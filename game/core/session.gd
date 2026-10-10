@@ -17,7 +17,8 @@ const DEFAULT := {
 	"failures": {},  # id -> [mode index (FailureCatalog.MODES), value]
 	"random": {"enabled": false, "count": 1, "from_min": 2.0, "to_min": 30.0,
 		"categories": ["Engine", "Fuel", "Electrical", "Vacuum & gyros", "Pitot-static", "Flight controls", "Avionics"]},
-	"notify": true,  # tell the pilot when a failure happens (off = find out yourself)
+	"notify": true,
+	"record": false, "record_dir": "", "record_height": 720, "record_fps": 30, "record_mp4": true,  # tell the pilot when a failure happens (off = find out yourself)
 }
 ## Weather presets: name -> weather/* values (wind is chosen separately).
 const WEATHER := {
@@ -99,6 +100,7 @@ func _parse_cmdline() -> void:
 			"time": shot_time = float(v) + 6.0
 			"view": view = v
 			"clean": clean = true
+			"record": setup.record = true
 
 
 func _wind(v: String) -> void:  # "270/15" or "270/15G25"
@@ -150,4 +152,4 @@ func summary() -> String:
 	return "%s · %s%s · %s · %02d:%02d IST · wind %03d/%d%s · %d failure(s)%s" % [setup.airport, where,
 		" · cold & dark" if (setup.cold and setup.start == "runway") or setup.start == "stand" else "", setup.weather, int(t), int(fmod(t, 1.0) * 60.0),
 		int(setup.wind_dir_deg), int(setup.wind_kt), ("G%d" % int(setup.gust_kt)) if setup.gust_kt > setup.wind_kt else "",
-		nf, " + random" if setup.random.enabled else ""]
+		nf, " + random" if setup.random.enabled else ""] + ("  · ● REC" if setup.get("record", false) else "")
