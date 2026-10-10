@@ -14,7 +14,8 @@ const LON := 73.4
 
 var _sun: DirectionalLight3D
 var _env: Environment
-var _sky: ProceduralSkyMaterial
+var _sky: ShaderMaterial  # world/sky_clouds.gdshader
+var _drift := Vector2.ZERO
 
 
 func _ready() -> void:
@@ -58,11 +59,14 @@ func _process(dt: float) -> void:
 	_sun.light_color = Color(1.0, 0.95, 0.88).lerp(Color(1.0, 0.55, 0.3), dusk)
 	var night_top := Color(0.01, 0.015, 0.04)
 	var night_hor := Color(0.03, 0.04, 0.07)
-	_sky.sky_top_color = night_top.lerp(Color(0.32, 0.5, 0.78), day)
-	RenderingServer.global_shader_parameter_set("sky_top_color", _sky.sky_top_color)
+	var top := night_top.lerp(Color(0.25, 0.45, 0.85), day)
+	_sky.set_shader_parameter("zenith_color", top)
+	_sky.set_shader_parameter("day", day)
+	_sky.set_shader_parameter("dusk", dusk)
+	RenderingServer.global_shader_parameter_set("sky_top_color", top)
 	var hor := night_hor.lerp(Color(0.7, 0.78, 0.88), day).lerp(Color(0.95, 0.6, 0.4), dusk * 0.6 * day)
-	_sky.sky_horizon_color = hor
-	_sky.ground_horizon_color = hor
+	_sky.set_shader_parameter("horizon_color", hor)
+	_sky.set_shader_parameter("ground_color", hor * 0.4)
 	_env.ambient_light_energy = lerpf(0.06, 0.7, day)
 	# visibility -> haze (Koschmieder: extinction = 3.9 / visibility)
 	var vis := maxf(Props.get_f("weather/visibility_m", 20000.0), 200.0)
@@ -73,3 +77,28 @@ func _process(dt: float) -> void:
 	_env.fog_light_color = hor
 	_env.fog_density = haze * 0.6
 	_env.fog_sky_affect = 0.3
+	_update_clouds(dt)  # last: in-cloud fog overrides the visibility fog
+
+
+## Feed the volumetric cloud pass (CloudLayer on the camera) and detect flying inside a cloud.
+func _update_clouds(dt: float) -> void:
+	var cam := get_viewport().get_camera_3d()
+	if cam == null:
+		return
+	var layer := cam.get_node_or_null("CloudLayer") as CloudLayer
+	if layer == null:
+		return
+	var w := FloatingOrigin.to_world(cam.global_position)
+	var wind: Vector3 = Weather._from_dir_to_ned(Props.get_f("weather/aloft_dir_deg"), Props.get_f("weather/aloft_kt") * Units.KT)
+	_drift -= Vector2(wind.y, wind.x) * dt  # field moves with the wind
+	var day: float = _sky.get_shader_parameter("day")
+	var sun_col := _sun.light_color * clampf(_sun.light_energy, 0.15, 1.2)
+	var amb := Color(0.5, 0.56, 0.66).lerp(Color(0.05, 0.06, 0.09), 1.0 - day)
+	layer.update_layer(w, Units.ft_to_m(Props.get_f("weather/cloud_base_ft", 4500.0)), Props.get_f("weather/cloud_cover"),
+		_drift, _sun.global_transform.basis.z, sun_col, amb)
+	var d := layer.density_at(w)
+	Props.set_v("environment/in_cloud", d > 0.05)
+	if d > 0.05:
+		_env.fog_enabled = true
+		_env.fog_density = lerpf(0.002, 0.03, clampf(d * 2.0, 0.0, 1.0))
+		_env.fog_light_color = Color(0.85, 0.87, 0.9) * maxf(day, 0.1)

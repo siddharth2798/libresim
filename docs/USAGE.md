@@ -122,6 +122,7 @@ cd game
 | `--runway=NN` | runway end, e.g. `08`, `26`, `14`, `32`; default = the longest runway |
 | `--air[=ft]` | start airborne on a 5 nm final at that height above the field (default 1500) |
 | `--view=NAME` | initial camera: cockpit, chase, orbit, free, tower, wing, tail or flyby (default chase) |
+| `--quality=low\|medium\|high\|ultra` | graphics preset (otherwise the one saved from F10) |
 | `--tod=h` | local time (IST), e.g. `--tod=6.5` sunrise, `--tod=18.6` sunset, `--tod=21` night |
 | `--wind=DDD/SS[GNN]` | surface wind, e.g. `--wind=270/15G25` (wind aloft is set a bit stronger and veered) |
 | `--vis=m` | visibility in metres |
@@ -146,12 +147,12 @@ cd game
 | S (hold) | Starter |
 | Y | Toggle mouse yoke (mouse position = control column) |
 | C / Shift+C, or 1–8 | Camera: 1 cockpit, 2 chase, 3 orbit, 4 free camera (WASD to move, Q/E down/up, right-drag to look, Shift for speed, wheel to set speed), 5 tower, 6 wing, 7 tail, 8 fly-by |
-| Tab | Show/hide the 2D instrument panel in outside views |
+| Tab / Shift+Tab | 2D panel layout in outside views: Full, Split (six-pack bottom-left, engine gauges right), Compact (small six-pack), Minimal (ASI, AI, ALT top-right), Off. Remembered between sessions |
 | Right-mouse drag | Look around (cockpit, orbit, free, wing, tail). Mouse wheel: cockpit zoom (field of view), orbit distance, free-camera speed |
 | V | Re-centre the view |
 | H / F1 / F3 | Toggle HUD / key help / performance overlay |
 | F12 | Credits and licences |
-| F10 | Settings: time of day and time rate, wind and gusts, wind aloft, turbulence, visibility, clouds, QNH, temperature, failures |
+| F10 | Settings: graphics preset and renderer, time of day and time rate, wind and gusts, wind aloft, turbulence, visibility, clouds, QNH, temperature, failures |
 | Esc | Pause |
 | F5 | Reset to the start position |
 
@@ -294,6 +295,22 @@ The aircraft's behaviour is data, so you can tune it without touching code:
 **Water:**
 - The Arabian Sea, creeks, rivers and lakes (from the elevation data and OSM water polygons) use an animated water surface.
 - It has wind waves, sun glints and a Fresnel sky reflection, and keeps the satellite tint in shallow creeks.
+
+**Clouds:**
+- A raymarched volumetric cumulus layer at the configured base and cover.
+- It reads the scene depth, so you can fly under it, through it (fog inside) and above it, looking down on the tops.
+- It drifts with the wind aloft and is lit by the sun, with darker bases and warm tints at sunset.
+
+**Graphics presets** (F10 or `--quality=`):
+
+| Preset | FPS on a Radeon 780M | Render scale | Shadows | Buildings / trees range | Cloud steps |
+|---|---|---|---|---|---|
+| Low | ~69 | 70 % + FSR | off | 4 km / 1.2 km | 10 |
+| Medium | ~62 | 85 % + FSR | 150 m | 6 km / 1.8 km | 16 |
+| High | ~51 | 100 % + MSAA 2× | 300 m | 9 km / 2.2 km | 24 |
+| Ultra | ~45 | 100 % + MSAA 4× | 600 m | 12 km / 3 km | 40 |
+
+With the Forward+ renderer (F10 → Renderer, then restart; or launch with `--rendering-method forward_plus`), Ultra also enables SSAO and TAA. Mobile is the default renderer and the fastest on integrated GPUs.
 
 **Trees:**
 - Forests are placed from the satellite vegetation index, excluding buildings, roads, runways and water.

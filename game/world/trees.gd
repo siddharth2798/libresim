@@ -1,13 +1,13 @@
 class_name Trees
 extends Node3D
 ## Forests from the land-class mask (tools/11_landclass.py, 1..200 = tree density).
-## The world is split into CHUNK-metre cells; cells within RADIUS of the camera get
+## The world is split into CHUNK-metre cells; cells within radius of the camera get
 ## a MultiMesh of crossed-quad trees, placed deterministically (same trees every time).
 ## Generation runs on the main thread with a per-frame budget (it reads the terrain
 ## height cache, which is not thread-safe). Hidden above HIDE_AGL.
 
 const CHUNK := 480.0
-const RADIUS := 2200.0
+var radius := 2200.0  # graphics presets
 const HIDE_AGL := 1500.0
 const PX := 10.0  # land-class pixel size (m)
 const BUDGET := 2  # chunks generated per frame
@@ -61,12 +61,12 @@ func _process(dt: float) -> void:
 		return
 	var w := FloatingOrigin.to_world(cam.global_position)
 	var c := Vector2i(floori(w.x / CHUNK), floori(w.y / CHUNK))
-	var r := int(ceil(RADIUS / CHUNK))
+	var r := int(ceil(radius / CHUNK))
 	var want := {}
 	for j in range(-r, r + 1):
 		for i in range(-r, r + 1):
 			var k := c + Vector2i(i, j)
-			if Vector2(w.x, w.y).distance_to((Vector2(k) + Vector2(0.5, 0.5)) * CHUNK) < RADIUS + CHUNK * 0.7:
+			if Vector2(w.x, w.y).distance_to((Vector2(k) + Vector2(0.5, 0.5)) * CHUNK) < radius + CHUNK * 0.7:
 				want[k] = true
 				if not _chunks.has(k):
 					_chunks[k] = null

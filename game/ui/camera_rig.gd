@@ -31,6 +31,9 @@ func setup(model: C172Model) -> void:
 	near = 0.05
 	far = 160000.0
 	FloatingOrigin.shifted.connect(func(d: Vector3): _chase_pos += d)
+	var clouds := CloudLayer.new()
+	clouds.name = "CloudLayer"
+	add_child(clouds)
 	var data = Paths.load_json("airports.json")
 	if data:
 		for a in data:

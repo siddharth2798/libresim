@@ -42,6 +42,31 @@ func _ready() -> void:
 	title.text = "Settings  (F10 to close)"
 	title.add_theme_font_size_override("font_size", 20)
 	vb.add_child(title)
+	var gl := Label.new()
+	gl.text = "Graphics preset"
+	vb.add_child(gl)
+	var gh := HBoxContainer.new()
+	vb.add_child(gh)
+	for p in Graphics.ORDER:
+		var b := Button.new()
+		b.text = p.capitalize()
+		b.toggle_mode = true
+		b.button_pressed = p == Graphics.preset
+		b.pressed.connect(func():
+			Graphics.set_preset(p)
+			for c in gh.get_children():
+				if c is Button and c.has_meta("preset"):
+					c.button_pressed = c.get_meta("preset") == p)
+		b.set_meta("preset", p)
+		gh.add_child(b)
+	var rend := Button.new()
+	var fp := Graphics.renderer() == "forward_plus"
+	rend.text = ("Renderer: Forward+ (switch to Mobile)" if fp else "Renderer: Mobile (switch to Forward+ for SSAO/TAA)") + " — restart"
+	rend.pressed.connect(func():
+		Graphics.set_renderer("mobile" if fp else "forward_plus")
+		rend.text = "Saved — restart free-sim to apply")
+	gh.add_child(rend)
+	vb.add_child(HSeparator.new())
 	var grid := GridContainer.new()
 	grid.columns = 3
 	vb.add_child(grid)

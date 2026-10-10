@@ -5,6 +5,7 @@ extends Node3D
 ##   --shot=<png>                 screenshot after 6 s and quit (testing)
 ##   --time=<s>                   with --shot: fly that many seconds hands-off first
 ##   --view=cockpit|chase|orbit|free|tower|wing|tail|flyby   initial camera (default chase)
+##   --quality=low|medium|high|ultra   graphics preset (saved from the F10 menu otherwise)
 ##   --tod=19.5 --wind=270/15G25 --vis=3000 --clouds=0.6@3000   time (IST h) and weather
 ## Keys: Esc pause, F5 reset to start.
 
@@ -55,6 +56,7 @@ func _ready() -> void:
 	var views := ["cockpit", "chase", "orbit", "free", "tower", "wing", "tail", "flyby"]
 	var vi := views.find(_view)
 	cam.set_mode(vi if vi >= 0 else 1)
+	Graphics.apply_to_scene(self)
 	_reset()
 
 

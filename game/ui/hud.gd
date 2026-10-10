@@ -27,7 +27,7 @@ func _ready() -> void:
 		+ "Home/End trim  [ ] or F6/F7 flaps  B brakes  Shift+B parking  ,/. diff brake\n"
 		+ "S starter  M magnetos  Y mouse yoke  V centre view\n"
 		+ "C / 1-8 views: cockpit chase orbit free tower wing tail fly-by (free cam: WASD QE)\n"
-		+ "Tab 2D panel  F10 weather/time/failures (click switches on the panel)\n"
+		+ "Tab / Shift+Tab panel layout (Full, Split, Compact, Minimal, Off)  F10 settings (graphics, weather, time, failures)\n"
 		+ "Esc pause  H hud  F1 help  F3 perf  F5 reset  F12 credits")
 	_help.visible = false
 

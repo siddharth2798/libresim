@@ -1,11 +1,11 @@
 class_name Buildings
 extends Node3D
 ## Streams 3D OSM buildings (data/processed/buildings/<tx>_<ty>.bin, tools/10_buildings.py)
-## for the level-0 terrain tiles within RADIUS of the camera. Meshes are built on
+## for the level-0 terrain tiles within radius of the camera. Meshes are built on
 ## worker threads straight from the file bytes (no per-vertex script loops).
 ## Hidden above HIDE_AGL to save GPU when flying high (they'd be sub-pixel anyway).
 
-const RADIUS := 9000.0
+var radius := 9000.0  # graphics presets
 const HIDE_AGL := 2500.0
 const MAX_LOADS := 2  # tiles finished per frame
 
@@ -42,13 +42,13 @@ func _process(dt: float) -> void:
 	var w := FloatingOrigin.to_world(cam.global_position)
 	var s := TerrainTileCache.TILE_SIZE_DEFAULT
 	var want := {}
-	var r := int(ceil(RADIUS / s))
+	var r := int(ceil(radius / s))
 	var c := Vector2i(floori(w.x / s), floori(w.y / s))
 	for j in range(-r, r + 1):
 		for i in range(-r, r + 1):
 			var k := c + Vector2i(i, j)
 			var d := Vector2(w.x, w.y).distance_to(Vector2((k.x + 0.5) * s, (k.y + 0.5) * s)) - s * 0.71
-			if d < RADIUS:
+			if d < radius:
 				want[k] = true
 	for k in want:
 		if not _tiles.has(k) and FileAccess.file_exists(_path(k)):

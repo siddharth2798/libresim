@@ -22,21 +22,19 @@
 [ext_resource type="Script" path="res://systems/fuel.gd" id="19"]
 [ext_resource type="Script" path="res://world/weather.gd" id="20"]
 [ext_resource type="Script" path="res://world/sky_time.gd" id="21"]
-[ext_resource type="Script" path="res://world/clouds.gd" id="22"]
 [ext_resource type="Script" path="res://world/runway_lights.gd" id="23"]
 [ext_resource type="Script" path="res://ui/settings_menu.gd" id="24"]
 [ext_resource type="Script" path="res://ui/credits_screen.gd" id="25"]
 [ext_resource type="Script" path="res://world/buildings.gd" id="26"]
 [ext_resource type="Script" path="res://world/trees.gd" id="27"]
+[ext_resource type="Shader" path="res://world/sky_clouds.gdshader" id="28"]
 
-[sub_resource type="ProceduralSkyMaterial" id="sky_mat"]
-sky_top_color = Color(0.32, 0.5, 0.78, 1)
-sky_horizon_color = Color(0.7, 0.78, 0.88, 1)
-ground_horizon_color = Color(0.7, 0.78, 0.88, 1)
-ground_bottom_color = Color(0.3, 0.32, 0.3, 1)
+[sub_resource type="ShaderMaterial" id="sky_mat"]
+shader = ExtResource("28")
 
 [sub_resource type="Sky" id="sky"]
 sky_material = SubResource("sky_mat")
+process_mode = 1
 
 [sub_resource type="Environment" id="env"]
 background_mode = 2
@@ -85,9 +83,6 @@ script = ExtResource("20")
 script = ExtResource("21")
 sun_path = NodePath("../Sun")
 env_path = NodePath("../WorldEnvironment")
-
-[node name="Clouds" type="MultiMeshInstance3D" parent="."]
-script = ExtResource("22")
 
 [node name="RunwayLights" type="MultiMeshInstance3D" parent="."]
 script = ExtResource("23")
@@ -139,7 +134,7 @@ script = ExtResource("10")
 [node name="Hud" type="Control" parent="UI"]
 script = ExtResource("8")
 
-[node name="Panel" type="TextureRect" parent="UI"]
+[node name="Panel" type="Control" parent="UI"]
 script = ExtResource("17")
 
 [node name="Settings" type="PanelContainer" parent="UI"]
