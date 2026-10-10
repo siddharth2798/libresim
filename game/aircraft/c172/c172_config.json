@@ -254,7 +254,9 @@
     "deg": 30.0,
     "time_s": 1.0
    }
-  ]
+  ],
+  "aileron_rigging": 0.018,
+  "rudder_rigging": 0.0
  },
  "engine": {
   "type": "piston",

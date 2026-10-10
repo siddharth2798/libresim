@@ -1,0 +1,76 @@
+[gd_scene load_steps=16 format=3]
+
+[ext_resource type="Script" path="res://world/flight.gd" id="1"]
+[ext_resource type="Script" path="res://world/terrain_quadtree.gd" id="2"]
+[ext_resource type="Script" path="res://fdm/fdm_node.gd" id="3"]
+[ext_resource type="Script" path="res://aircraft/c172/c172_model.gd" id="4"]
+[ext_resource type="Script" path="res://ui/camera_rig.gd" id="5"]
+[ext_resource type="Script" path="res://world/airport_builder.gd" id="6"]
+[ext_resource type="Script" path="res://input/keyboard_controls.gd" id="7"]
+[ext_resource type="Script" path="res://ui/hud.gd" id="8"]
+[ext_resource type="Script" path="res://ui/perf_overlay.gd" id="9"]
+[ext_resource type="Script" path="res://aircraft/c172/engine_sound.gd" id="10"]
+
+[sub_resource type="ProceduralSkyMaterial" id="sky_mat"]
+sky_top_color = Color(0.32, 0.5, 0.78, 1)
+sky_horizon_color = Color(0.7, 0.78, 0.88, 1)
+ground_horizon_color = Color(0.7, 0.78, 0.88, 1)
+ground_bottom_color = Color(0.3, 0.32, 0.3, 1)
+
+[sub_resource type="Sky" id="sky"]
+sky_material = SubResource("sky_mat")
+
+[sub_resource type="Environment" id="env"]
+background_mode = 2
+sky = SubResource("sky")
+ambient_light_source = 3
+ambient_light_energy = 0.7
+tonemap_mode = 2
+
+[node name="Flight" type="Node3D"]
+script = ExtResource("1")
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("env")
+
+[node name="Sun" type="DirectionalLight3D" parent="."]
+transform = Transform3D(0.866, 0.25, -0.433, 0, 0.866, 0.5, 0.5, -0.433, 0.75, 0, 0, 0)
+light_energy = 1.3
+shadow_enabled = true
+directional_shadow_mode = 0
+directional_shadow_max_distance = 200.0
+
+[node name="Terrain" type="Node3D" parent="."]
+script = ExtResource("2")
+
+[node name="Airports" type="Node3D" parent="."]
+script = ExtResource("6")
+
+[node name="Fdm" type="Node" parent="."]
+script = ExtResource("3")
+terrain_path = NodePath("../Terrain")
+
+[node name="Aircraft" type="Node3D" parent="."]
+script = ExtResource("4")
+
+[node name="Camera" type="Camera3D" parent="."]
+process_priority = 10
+current = true
+script = ExtResource("5")
+
+[node name="Controls" type="Node" parent="."]
+script = ExtResource("7")
+
+[node name="EngineSound" type="AudioStreamPlayer" parent="."]
+script = ExtResource("10")
+
+[node name="UI" type="CanvasLayer" parent="."]
+
+[node name="Hud" type="Control" parent="UI"]
+script = ExtResource("8")
+
+[node name="Perf" type="Label" parent="UI"]
+offset_left = 10.0
+offset_top = 8.0
+script = ExtResource("9")
+terrain_path = NodePath("../../Terrain")

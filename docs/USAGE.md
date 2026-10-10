@@ -2,7 +2,7 @@
 
 This guide covers how to install, build the map data, and run free-sim, a local Cessna 172 flight simulator for the Mumbai–Pune region. Design and roadmap are in `PLAN.md`; the coding conventions are in `CLAUDE.md`.
 
-> **Current state:** M1 (data pipeline) and M2 (terrain viewer) are complete: you can fly a free camera over the real Mumbai–Pune terrain with satellite imagery (~350 FPS on the Radeon 780M). M3 (flight model) is complete and passes all POH test cards headlessly. The aircraft becomes flyable on screen in M4. Each section below says which milestone it belongs to.
+> **Current state:** M1 (data pipeline) and M2 (terrain viewer) are complete: you can fly a free camera over the real Mumbai–Pune terrain with satellite imagery (~350 FPS on the Radeon 780M). M3 (flight model) and M4 (first flight) are complete: you can take off from Juhu, Mumbai, Pune or Navi Mumbai and fly the C172 over the whole region. The aircraft and cockpit are still placeholders until M5. Each section below says which milestone it belongs to.
 
 ---
 
@@ -76,6 +76,7 @@ $PY tools/04_osm_extract.py        # -> data/processed/osm/ (runways, roads, wat
 $PY tools/02_dem_tiles.py          # -> data/processed/terrain/h/  (heightmaps, runways flattened)
 $PY tools/03_imagery_tiles.py      # -> data/processed/terrain/img/ BC1 .dds tiles (needs s2.tif) ~15 s
 $PY tools/06_jsbsim_to_json.py     # -> game/aircraft/c172/c172_aero.json, c172_config.json (committed)
+$PY tools/09_runways.py            # -> data/processed/runways.json (merged runways + taxiways; after 02 & 04)
 $PY tools/07_preview.py 1          # -> data/processed/preview_L1.png  (sanity check)
 $PY tools/08_jsbsim_reference.py   # optional: standalone JSBSim climb numbers for comparison
 ```
@@ -98,30 +99,64 @@ cd game
 
 On first run, Godot imports the project (a few seconds). The data is read from `../data/processed` relative to the project, so build it first (section 3).
 
-### Terrain viewer (M2)
-
-Command-line options go after `--`:
+### Flying (M4): the main scene
 
 ```bash
-~/.local/bin/godot --path . -- --at=-15000,-20000,1400 --heading=70 --pitch=-12
-~/.local/bin/godot --path . -- --shot=/tmp/view.png   # save a screenshot after 4 s and quit
+cd game
+~/.local/bin/godot --path .                                   # Juhu (VAJJ), longest runway, engine idling
+~/.local/bin/godot --path . -- --airport=VABB --runway=27     # Mumbai runway 27
+~/.local/bin/godot --path . -- --airport=VAPO --air=2000      # airborne, 5 nm final to Pune at 2000 ft AGL
+~/.local/bin/godot --path . -- --airport=VANM                 # Navi Mumbai
 ```
 
-`--at=east,north,altitude` is in world metres (altitude above mean sea level). The default start is 600 m over Juhu, heading east.
+| Option (after `--`) | Meaning |
+|---|---|
+| `--airport=ICAO` | VAJJ (default), VABB, VAPO, VANM, VAAV (Aamby Valley), … any airport in `runways.json` |
+| `--runway=NN` | runway end, e.g. `08`, `26`, `14`, `32`; default = the longest runway |
+| `--air[=ft]` | start airborne on a 5 nm final at that height above the field (default 1500) |
+| `--shot=file.png --time=s` | for testing: fly hands-off `s` seconds, save a screenshot and quit |
+
+**Flight controls (keyboard):**
 
 | Key | Action |
 |---|---|
-| Right mouse drag | Look around |
-| W / A / S / D or arrows | Move forward / left / back / right |
-| E / Q | Up / down |
-| Shift (hold) | 10× speed |
-| Ctrl (hold) | 0.1× speed |
-| Mouse wheel | Change base speed |
-| G | Drop to 50 m above the ground |
-| R | Reset to the start point |
-| F3 | Toggle the FPS / position overlay |
+| ↑ / ↓ (or numpad 8 / 2) | Pitch: ↓ pulls back (nose up), ↑ pushes (nose down). Rate-based: hold to deflect, release to re-centre |
+| ← / → (or numpad 4 / 6) | Roll (ailerons) |
+| Z / X (or numpad 0 / Enter) | Rudder left / right; also nosewheel steering on the ground |
+| Page Up / Page Down (or = / −) | Throttle up / down |
+| ' / ; | Mixture richer / leaner |
+| Home / End (or numpad 7 / 1) | Pitch trim: nose down / nose up |
+| ] or F7 / [ or F6 | Flaps down / up one notch (0°, 10°, 20°, 30°; electric, takes a few seconds) |
+| B (hold) | Both brakes |
+| , / . (hold) | Left / right brake (differential steering) |
+| Shift+B | Toggle parking brake |
+| M | Cycle magnetos OFF → L → R → BOTH |
+| S (hold) | Starter |
+| Y | Toggle mouse yoke (mouse position = control column) |
+| C | Cycle camera: chase → orbit → cockpit |
+| Right-mouse drag | Look around (cockpit / orbit); mouse wheel zooms the orbit camera |
+| V | Re-centre the view |
+| H / F1 / F3 | Toggle HUD / key help / performance overlay |
+| Esc | Pause |
+| F5 | Reset to the start position |
 
-The overlay shows FPS, frame time, draw calls, triangles, lat/lon, altitude, height above ground (AGL) and the number of terrain LOD nodes.
+**A first flight from Juhu:** Page Up to full throttle (about 2300 RPM static). Keep straight with Z/X. At 55 kt, hold ↓ gently to rotate. Climb at 74 kt (Vy). Trim with Home/End until hands-off level, then reduce to about 2400 RPM for cruise. The Ghats are 45 km east; Pune (VAPO) is about 120 km east-southeast.
+
+**Realism notes:**
+- The engine is running at start (cold-and-dark start comes in M8). If it stops, set magnetos to BOTH (M) and hold S.
+- With only the pilot aboard (the default load), the CG sits slightly left, so the aircraft rolls gently left hands-off, as the real C172 does. Hold a little right aileron.
+- The aircraft turns left on the takeoff roll (P-factor and torque), so use right rudder (X).
+- Engine sound is synthesised (firing pulses scale with RPM and power, plus wind and stall horn) until recorded CC0 audio replaces it.
+
+### Terrain viewer (M2)
+
+A free camera without an aircraft, for inspecting the scenery:
+
+```bash
+~/.local/bin/godot --path . res://world/terrain_viewer.tscn -- --at=-15000,-20000,1400 --heading=70 --pitch=-12
+```
+
+`--at=east,north,altitude` is in world metres (altitude above mean sea level). Keys: right-mouse look, W/A/S/D move, E/Q up/down, Shift ×10, Ctrl ×0.1, mouse wheel changes speed, G drops to 50 m AGL, R resets, F3 shows the overlay.
 
 ### Automated tests
 
@@ -167,12 +202,12 @@ data/raw      downloaded sources (gitignored)
 data/processed generated tiles/JSON (gitignored)
 game/         Godot project
   core/       floating_origin + props (autoloads), geo (lat/lon <-> ENU), units, paths
-  world/      terrain quadtree, tile cache, mesh, shader, terrain_viewer scene
-  input/      free_camera
+  world/      flight scene (main), terrain quadtree/cache/shader, airport_builder + runway shader, terrain_viewer scene
+  input/      free_camera, keyboard_controls
   fdm/        flight model: aero (JSBSim tables), engine, propeller, gear, atmosphere (M3)
   tests/      headless test runner + suites
-  ui/         perf_overlay
-  aircraft/c172/  aero + config JSON generated from JSBSim (edit freely to tune)
+  ui/         hud, camera_rig, perf_overlay
+  aircraft/c172/  aero + config JSON (from JSBSim; edit to tune), placeholder model, procedural engine sound
 docs/USAGE.md this file
 ```
 
@@ -186,4 +221,6 @@ docs/USAGE.md this file
 | `missing data file: .../terrain/meta.json` | Run the pipeline (section 3) |
 | Terrain is a flat green-grey colour | Imagery tiles are missing: run `01b_fetch_imagery.sh`, then `03_imagery_tiles.py` |
 | `01b_fetch_imagery.sh` fails partway with HTTP errors | Re-run it; GDAL retries each tile 5 times. The EOX server sometimes rate-limits |
-| Low FPS | Check the F3 overlay. In `world/terrain_viewer.tscn`, lower `lod_k` on the Terrain node (default 1.6) |
+| Low FPS | Check the F3 overlay. Lower `lod_k` on the Terrain node in `world/flight.tscn` (default 1.6), or turn off `shadow_enabled` on the Sun |
+| Aircraft spawns in the wrong place / no runway | Run `tools/09_runways.py` (it writes `data/processed/runways.json`) |
+| No sound | Godot uses PulseAudio/PipeWire; check the system output device |

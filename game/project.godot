@@ -3,7 +3,7 @@ config_version=5
 
 [application]
 config/name="free-sim"
-run/main_scene="res://world/terrain_viewer.tscn"
+run/main_scene="res://world/flight.tscn"
 config/features=PackedStringArray("4.7", "Mobile")
 
 [autoload]

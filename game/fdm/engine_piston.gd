@@ -14,6 +14,7 @@ const VOL_EFF := 0.85
 const FRICTION_FRAC := 0.10  # friction power at max RPM as a fraction of max power
 const STARTER_TORQUE := 120.0  # N*m at the crankshaft
 const STARTER_RPM := 220.0
+const MAP_ZERO := 4.0 * 3386.389  # IMEP ~ k * (MAP - MAP_ZERO): low-MAP inefficiency
 
 var max_power: float
 var max_rpm: float
@@ -48,11 +49,16 @@ func _init(cfg: Dictionary) -> void:
 	spark_drop = cfg.spark_fail_drop
 	var mdot := _air_flow(29.0 * INHG, max_rpm, 288.15 + 10.0)
 	var p_fric := FRICTION_FRAC * max_power
-	_k_power = (max_power + p_fric) / mdot
+	_k_power = (max_power + p_fric) / (mdot * (1.0 - MAP_ZERO / (29.0 * INHG)))
 
 
 func _air_flow(map: float, rpm: float, t_k: float) -> float:
 	return VOL_EFF * displacement * (rpm / 120.0) * map / (R_AIR * t_k)
+
+
+## Pumping loss (W): drawing air through a part-closed throttle.
+func _pumping(map: float, p_amb: float, rpm: float) -> float:
+	return maxf(p_amb - map, 0.0) * displacement * rpm / 120.0
 
 
 ## Power factor vs equivalence ratio (1.0 at best power, phi ~ 1.15-1.2).
@@ -66,7 +72,7 @@ func update(dt: float, rpm: float, p_amb: float, t_amb: float, airspeed: float) 
 	# Manifold pressure: throttle plate vs. engine suction (more RPM -> more vacuum at part throttle)
 	var open := pow(clampf(throttle, 0.0, 1.0), 0.75)
 	var suction := clampf(rpm / max_rpm, 0.0, 1.2)
-	var closed_frac := clampf(0.55 - 0.28 * suction, 0.25, 1.0)
+	var closed_frac := clampf(0.36 - 0.2 * suction, 0.2, 1.0)
 	var target_map := p_amb * lerpf(closed_frac, 0.975, open)
 	if rpm < 50.0:
 		target_map = p_amb
@@ -83,11 +89,11 @@ func update(dt: float, rpm: float, p_amb: float, t_amb: float, airspeed: float) 
 		3: spark = 1.0
 	var mf := _mixture_factor(phi)
 	running = spark > 0.0 and fuel_ok and mf > 0.0 and rpm > 150.0
-	var p_ind := _k_power * mdot_air * mf * spark if running else 0.0
+	var p_ind := _k_power * mdot_air * mf * spark * maxf(1.0 - MAP_ZERO / map_pa, 0.0) if running else 0.0
 	fuel_flow_kgs = mdot_air * far if running else 0.0
 	var omega := maxf(rpm, 1.0) * TAU / 60.0
 	var p_fric := FRICTION_FRAC * max_power * rpm / max_rpm  # ~constant friction torque
-	power_w = p_ind - p_fric
+	power_w = p_ind - p_fric - _pumping(map_pa, p_amb, rpm)
 	torque = power_w / omega
 	if rpm < 5.0:
 		torque = 0.0  # no stiction model; starter breaks away instantly

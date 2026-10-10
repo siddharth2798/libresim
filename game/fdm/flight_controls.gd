@@ -14,6 +14,8 @@ var roll := 0.0
 var yaw := 0.0
 var pitch_trim := 0.0
 var flap_cmd := 0  # detent index
+var aileron_rigging := 0.0  # fixed trim tab (config)
+var rudder_rigging := 0.0
 
 var elevator := 0.0  # rad
 var aileron := 0.0
@@ -23,6 +25,8 @@ var flap_deg := 0.0
 
 func _init(cfg: Dictionary) -> void:
 	_surf = cfg.controls.surfaces
+	aileron_rigging = cfg.controls.get("aileron_rigging", 0.0)
+	rudder_rigging = cfg.controls.get("rudder_rigging", 0.0)
 	var prev := 0.0
 	for s in cfg.controls.flaps:
 		_flap_detents.append(s.deg)
@@ -37,8 +41,8 @@ static func _scale(x: float, r: Dictionary) -> float:
 func update(dt: float) -> void:
 	var e := clampf(-(pitch + pitch_trim), -1.0, 1.0)
 	elevator = _scale(e, _surf.elevator)
-	aileron = _scale(clampf(roll, -1.0, 1.0), _surf["left-aileron"])
-	rudder = _scale(clampf(-yaw, -1.0, 1.0), _surf.rudder)
+	aileron = _scale(clampf(roll + aileron_rigging, -1.0, 1.0), _surf["left-aileron"])
+	rudder = _scale(clampf(-(yaw + rudder_rigging), -1.0, 1.0), _surf.rudder)
 	var target: float = _flap_detents[clampi(flap_cmd, 0, _flap_detents.size() - 1)]
 	if not is_equal_approx(flap_deg, target):
 		var seg := 1
