@@ -1,12 +1,13 @@
-extends SceneTree
-## Headless test runner: godot --headless --path game -s tests/run_tests.gd [-- --only=<prefix>]
+extends Node
+## Headless test runner (a scene, so autoloads such as Props exist):
+##   godot --headless --path game res://tests/run_tests.tscn [-- --only=<prefix>]
 ## Each test_* method returns "" on success or a failure message.
 ## Test suites: tests/test_core.gd (M2), tests/test_fdm_cards.gd (M3 POH test cards).
 
-const SUITES := ["res://tests/test_core.gd", "res://tests/test_fdm_cards.gd", "res://tests/test_flight.gd"]
+const SUITES := ["res://tests/test_core.gd", "res://tests/test_fdm_cards.gd", "res://tests/test_flight.gd", "res://tests/test_instruments.gd"]
 
 
-func _init() -> void:
+func _ready() -> void:
 	var only := ""
 	for a in OS.get_cmdline_user_args():
 		if a.begins_with("--only="):
@@ -18,7 +19,7 @@ func _init() -> void:
 			continue
 		var suite = load(path).new()
 		if suite is Node:
-			root.add_child(suite)
+			add_child(suite)
 		for m in suite.get_method_list():
 			var name: String = m.name
 			if not name.begins_with("test_") or not name.begins_with("test_" + only):
@@ -33,4 +34,4 @@ func _init() -> void:
 				fails += 1
 				print("  FAIL  %s: %s" % [name, err])
 	print("%d/%d passed" % [total - fails, total])
-	quit(1 if fails > 0 else 0)
+	get_tree().quit(1 if fails > 0 else 0)

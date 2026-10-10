@@ -1,4 +1,4 @@
-[gd_scene load_steps=16 format=3]
+[gd_scene load_steps=24 format=3]
 
 [ext_resource type="Script" path="res://world/flight.gd" id="1"]
 [ext_resource type="Script" path="res://world/terrain_quadtree.gd" id="2"]
@@ -10,6 +10,14 @@
 [ext_resource type="Script" path="res://ui/hud.gd" id="8"]
 [ext_resource type="Script" path="res://ui/perf_overlay.gd" id="9"]
 [ext_resource type="Script" path="res://aircraft/c172/engine_sound.gd" id="10"]
+
+[ext_resource type="Script" path="res://systems/pitot_static.gd" id="11"]
+[ext_resource type="Script" path="res://systems/vacuum.gd" id="12"]
+[ext_resource type="Script" path="res://instruments/air_data_instruments.gd" id="13"]
+[ext_resource type="Script" path="res://instruments/gyro_instruments.gd" id="14"]
+[ext_resource type="Script" path="res://instruments/magnetic_compass.gd" id="15"]
+[ext_resource type="Script" path="res://instruments/engine_instruments.gd" id="16"]
+[ext_resource type="Script" path="res://ui/panel_overlay.gd" id="17"]
 
 [sub_resource type="ProceduralSkyMaterial" id="sky_mat"]
 sky_top_color = Color(0.32, 0.5, 0.78, 1)
@@ -50,6 +58,28 @@ script = ExtResource("6")
 script = ExtResource("3")
 terrain_path = NodePath("../Terrain")
 
+[node name="Systems" type="Node" parent="."]
+
+[node name="PitotStatic" type="Node" parent="Systems"]
+script = ExtResource("11")
+
+[node name="Vacuum" type="Node" parent="Systems"]
+script = ExtResource("12")
+
+[node name="Instruments" type="Node" parent="."]
+
+[node name="AirData" type="Node" parent="Instruments"]
+script = ExtResource("13")
+
+[node name="Gyros" type="Node" parent="Instruments"]
+script = ExtResource("14")
+
+[node name="Compass" type="Node" parent="Instruments"]
+script = ExtResource("15")
+
+[node name="Engine" type="Node" parent="Instruments"]
+script = ExtResource("16")
+
 [node name="Aircraft" type="Node3D" parent="."]
 script = ExtResource("4")
 
@@ -68,6 +98,9 @@ script = ExtResource("10")
 
 [node name="Hud" type="Control" parent="UI"]
 script = ExtResource("8")
+
+[node name="Panel" type="TextureRect" parent="UI"]
+script = ExtResource("17")
 
 [node name="Perf" type="Label" parent="UI"]
 offset_left = 10.0

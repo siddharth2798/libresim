@@ -114,5 +114,5 @@ func _update_temps(dt: float, p_ind: float, phi: float, rpm: float, t_amb: float
 	cht_k = lerpf(cht_k, cht_target, clampf(dt * 0.02, 0.0, 1.0))
 	var oil_target := t_amb + 100.0 * clampf(heat + 0.25 * float(running), 0.0, 1.0) / sqrt(cooling)
 	oil_temp_k = lerpf(oil_temp_k, oil_target, clampf(dt * 0.008, 0.0, 1.0))
-	var press_target := clampf(rpm / 1200.0, 0.0, 1.0) * 5.5e5 * clampf(1.3 - (oil_temp_k - 330.0) / 300.0, 0.7, 1.3)
+	var press_target := clampf(rpm / 1200.0, 0.0, 1.0) * 4.8e5 * clampf(1.15 - (oil_temp_k - 350.0) / 400.0, 0.8, 1.35)  # ~70-80 psi warm
 	oil_press_pa = lerpf(oil_press_pa, press_target, clampf(dt * 3.0, 0.0, 1.0))

@@ -4,6 +4,7 @@ extends Node3D
 ##   --air=<alt_ft>               start airborne on the runway's extended centreline, 5 nm out
 ##   --shot=<png>                 screenshot after 6 s and quit (testing)
 ##   --time=<s>                   with --shot: fly that many seconds hands-off first
+##   --view=cockpit|orbit         initial camera (default chase)
 ## Keys: Esc pause, F5 reset to start.
 
 @onready var terrain: TerrainQuadtree = $Terrain
@@ -17,6 +18,7 @@ var _air_ft := -1.0
 var _shot := ""
 var _shot_time := 6.0
 var _t := 0.0
+var _view := ""
 
 
 func _ready() -> void:
@@ -30,6 +32,7 @@ func _ready() -> void:
 			"air": _air_ft = float(kv[1]) if kv.size() > 1 else 1500.0
 			"shot": _shot = kv[1]
 			"time": _shot_time = float(kv[1]) + 6.0
+			"view": _view = kv[1]
 	airports.build(terrain)
 	_start = airports.runway_start(apt, rwy)
 	if _start.is_empty():
@@ -37,6 +40,13 @@ func _ready() -> void:
 		_start = airports.runway_start("VAJJ", "")
 	model.build(fdm_node)
 	cam.setup(model)
+	$Instruments/Gyros.fdm = fdm_node.fdm
+	$Instruments/Compass.fdm = fdm_node.fdm
+	$UI/Panel.setup(model.cockpit, cam)
+	if _view == "cockpit":
+		cam.mode = CameraRig.Mode.COCKPIT
+	elif _view == "orbit":
+		cam.mode = CameraRig.Mode.ORBIT
 	_reset()
 
 
@@ -56,7 +66,17 @@ func _reset() -> void:
 		Props.set_v("controls/throttle", 0.0)
 		Props.set_v("controls/pitch_trim", -0.05)
 	Props.set_v("controls/flaps", 0)
-	fdm_node.fdm.engine.running = true
+	Props.set_v("environment/qnh_pa", 101325.0)
+	Props.set_v("environment/delta_t", 0.0)
+	Props.set_v("instruments/altimeter/kollsman_inhg", 29.92)
+	var eng := fdm_node.fdm.engine
+	eng.running = true
+	eng.oil_temp_k = 355.0  # warmed up: 180 F oil, 380 F CHT
+	eng.cht_k = 466.0
+	eng.egt_k = 900.0
+	eng.oil_press_pa = 4.5e5
+	$Instruments/Gyros.start_running()
+	$Instruments/Compass.settle()
 
 
 func _unhandled_key_input(e: InputEvent) -> void:

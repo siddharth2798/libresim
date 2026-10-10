@@ -24,6 +24,10 @@ func setup(model: C172Model) -> void:
 
 
 func _unhandled_input(e: InputEvent) -> void:
+	if mode == Mode.COCKPIT and e is InputEventMouseButton and e.button_index != MOUSE_BUTTON_RIGHT:
+		if aircraft.cockpit.forward_mouse(e, self):
+			get_viewport().set_input_as_handled()
+			return
 	if e is InputEventKey and e.pressed and not e.echo:
 		if e.keycode == KEY_C:
 			mode = (mode + 1) % 3 as Mode

@@ -6,6 +6,7 @@ extends Node3D
 ## Animates the propeller, control surfaces and flaps from Props.
 
 var fdm_node: FdmNode
+var cockpit: Cockpit
 var _cg := Vector3.ZERO
 var _prop: Node3D
 var _surfaces := {}  # name -> [Node3D pivot, axis Vector3]
@@ -26,10 +27,10 @@ func build(node: FdmNode) -> void:
 	_glass.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	_glass.roughness = 0.1
 	# fuselage: cabin box + tapering tail cone + cowling
-	_box(Vector3(0.6, 0.0, 0.55), Vector3(1.1, 1.25, 2.4), _white)  # cabin
+	_box(Vector3(0.6, 0.0, 0.7), Vector3(1.1, 1.5, 2.4), _white)  # cabin (roof meets the wing)
 	_box(Vector3(-0.75, 0.0, 0.35), Vector3(1.0, 0.85, 0.8), _white)  # cowling
 	_box(Vector3(3.6, 0.0, 0.55), Vector3(0.5, 0.75, 3.6), _white)  # tail cone
-	_box(Vector3(0.75, 0.0, 1.05), Vector3(1.12, 0.45, 1.6), _glass)  # windows band
+	_box(Vector3(0.75, 0.0, 1.15), Vector3(1.12, 0.55, 1.6), _glass)  # windows band
 	_box(Vector3(2.2, 0.0, 0.45), Vector3(1.13, 0.12, 4.0), _stripe)  # side stripe
 	# wing (high wing) with flaps and ailerons as pivots on the trailing edge
 	_box(Vector3(1.05, 0.0, 1.5), Vector3(11.0, 0.16, 1.45), _white)
@@ -46,6 +47,10 @@ func build(node: FdmNode) -> void:
 	_surface("elevator", Vector3(6.15, 0.0, 0.62), Vector3(3.3, 0.06, 0.45), Vector3(1, 0, 0))
 	_box(Vector3(5.6, 0.0, 1.35), Vector3(0.08, 1.4, 1.0), _white)
 	_surface("rudder", Vector3(6.15, 0.0, 1.3), Vector3(0.06, 1.45, 0.4), Vector3(0, 1, 0))
+	var e: Array = node.fdm.cfg.metrics.eyepoint_m
+	cockpit = Cockpit.new()
+	add_child(cockpit)
+	cockpit.build(_s(Vector3(e[0], e[1], e[2])))
 	# propeller: spinner + two blades
 	_prop = Node3D.new()
 	_prop.position = _s(Vector3(-1.28, 0.0, 0.35))

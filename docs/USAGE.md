@@ -2,7 +2,7 @@
 
 This guide covers how to install, build the map data, and run free-sim, a local Cessna 172 flight simulator for the Mumbai–Pune region. Design and roadmap are in `PLAN.md`; the coding conventions are in `CLAUDE.md`.
 
-> **Current state:** M1 (data pipeline) and M2 (terrain viewer) are complete: you can fly a free camera over the real Mumbai–Pune terrain with satellite imagery (~350 FPS on the Radeon 780M). M3 (flight model) and M4 (first flight) are complete: you can take off from Juhu, Mumbai, Pune or Navi Mumbai and fly the C172 over the whole region. The aircraft and cockpit are still placeholders until M5. Each section below says which milestone it belongs to.
+> **Current state:** M1 (data pipeline) and M2 (terrain viewer) are complete: you can fly a free camera over the real Mumbai–Pune terrain with satellite imagery (~350 FPS on the Radeon 780M). M3 (flight model), M4 (first flight) and M5 (cockpit & instruments, code side) are complete: you can take off from Juhu, Mumbai, Pune or Navi Mumbai and fly the C172 over the whole region on a working steam-gauge panel. The 3D aircraft and cockpit are still placeholder geometry until a Blender model replaces them (see section 5). Each section below says which milestone it belongs to.
 
 ---
 
@@ -114,6 +114,7 @@ cd game
 | `--airport=ICAO` | VAJJ (default), VABB, VAPO, VANM, VAAV (Aamby Valley), … any airport in `runways.json` |
 | `--runway=NN` | runway end, e.g. `08`, `26`, `14`, `32`; default = the longest runway |
 | `--air[=ft]` | start airborne on a 5 nm final at that height above the field (default 1500) |
+| `--view=cockpit` / `--view=orbit` | initial camera (default: chase) |
 | `--shot=file.png --time=s` | for testing: fly hands-off `s` seconds, save a screenshot and quit |
 
 **Flight controls (keyboard):**
@@ -134,6 +135,7 @@ cd game
 | S (hold) | Starter |
 | Y | Toggle mouse yoke (mouse position = control column) |
 | C | Cycle camera: chase → orbit → cockpit |
+| Tab | Show/hide the 2D instrument panel in outside views |
 | Right-mouse drag | Look around (cockpit / orbit); mouse wheel zooms the orbit camera |
 | V | Re-centre the view |
 | H / F1 / F3 | Toggle HUD / key help / performance overlay |
@@ -141,6 +143,35 @@ cd game
 | F5 | Reset to the start position |
 
 **A first flight from Juhu:** Page Up to full throttle (about 2300 RPM static). Keep straight with Z/X. At 55 kt, hold ↓ gently to rotate. Climb at 74 kt (Vy). Trim with Home/End until hands-off level, then reduce to about 2400 RPM for cruise. The Ghats are 45 km east; Pune (VAPO) is about 120 km east-southeast.
+
+### Instruments and cockpit (M5)
+
+The panel is a C172S steam-gauge layout:
+
+- **Six-pack:** airspeed, attitude, altimeter, turn coordinator, heading indicator, VSI.
+- **Tachometer.**
+- **Engine/fuel cluster:** fuel L/R, oil temperature and pressure, EGT, fuel flow, vacuum, ammeter.
+- **Wet compass strip.**
+
+It shows on the 3D panel in the cockpit view (C) and as a 2D strip at the bottom of the screen in outside views (Tab).
+
+**Clickable knobs**, in the cockpit or on the 2D panel:
+
+| Gauge | Click left / right half, or mouse wheel | Other |
+|---|---|---|
+| Altimeter | Kollsman setting −/+ 0.01 inHg (hold Shift for 0.10) | |
+| Heading indicator | Turn the card −/+ 1° (hold Shift for 10°) | Middle-click syncs it to the magnetic compass |
+
+**What the instruments model:**
+- **Airspeed:** C172S position error (reads about 6 kt low near the stall); pitot pressure falls off at high angle of attack.
+- **Altimeter:** Kollsman setting and slight lag.
+- **VSI:** about 6 s to settle after a pitch change.
+- **Attitude indicator:** vacuum-driven gyro with a 3°/min erection mechanism, so it shows small turn and acceleration errors. It spins down and wanders after a vacuum failure, and shows a GYRO flag.
+- **Heading indicator:** drifts about 4° per 15 min. Re-sync it to the compass regularly.
+- **Compass:** pendulous card with real northerly turning and acceleration errors, and swing and overshoot.
+- **Turn coordinator:** electric rate gyro canted 30°, with the slip ball.
+
+Failures can already be triggered from code or a debug console by setting the properties `failures/vacuum_pump`, `failures/pitot_blocked` and `failures/static_blocked` (true/false), or `systems/alternate_static` for the alternate static source. A failures menu comes in M6.
 
 **Realism notes:**
 - The engine is running at start (cold-and-dark start comes in M8). If it stops, set magnetos to BOTH (M) and hold S.
@@ -162,11 +193,18 @@ A free camera without an aircraft, for inspecting the scenery:
 
 ```bash
 cd game
-~/.local/bin/godot --headless --path . -s tests/run_tests.gd               # all tests
-~/.local/bin/godot --headless --path . -s tests/run_tests.gd -- --only=fdm  # tests named test_fdm*
+~/.local/bin/godot --headless --path . res://tests/run_tests.tscn               # all tests
+~/.local/bin/godot --headless --path . res://tests/run_tests.tscn -- --only=fdm  # tests named test_fdm*
 ```
 
-The runner prints PASS/FAIL per test and exits non-zero on failure. `tests/test_core.gd` covers geo projection, the floating origin and terrain heights/runway flatness. `tests/test_fdm_cards.gd` holds the POH performance test cards (M3).
+The runner prints PASS/FAIL per test and exits non-zero on failure. Ignore the "ObjectDB instances leaked" warnings at exit.
+
+| Suite | Covers |
+|---|---|
+| `tests/test_core.gd` | Geo projection, floating origin, terrain heights and runway flatness |
+| `tests/test_fdm_cards.gd` | POH performance test cards (M3) |
+| `tests/test_flight.gd` | Takeoff from Juhu on the real terrain and runway (M4) |
+| `tests/test_instruments.gd` | Altimeter and Kollsman, ASI, VSI lag, vacuum-failure gyro drift, compass northerly turning error (M5) |
 
 ### Flight-model test cards (M3)
 
@@ -194,7 +232,20 @@ The aircraft's behaviour is data, so you can tune it without touching code:
 
 ---
 
-## 5. Project layout
+## 5. Replacing the placeholder aircraft and cockpit with Blender models
+
+The exterior (`aircraft/c172/c172_model.gd`) and cockpit (`aircraft/c172/cockpit.gd`) are built from boxes so the sim works without art. To use real models:
+
+1. Model in Blender in metres, with **−Z forward, +Y up, origin at the C172's CG**. The CG is about 1.0 m aft of the JSBSim datum; see `mass.empty_cg_m` in `c172_config.json`. Export glTF (`.glb`) to `game/aircraft/c172/exterior.glb` and `cockpit.glb`.
+2. Name animated parts `elevator`, `rudder`, `aileron_L`, `aileron_R`, `flap_L`, `flap_R` and `prop`, with pivots on their hinge lines.
+3. In the cockpit model, leave a flat panel face with UVs covering 0–1. Assign it a material whose albedo is the panel SubViewport texture (see `Cockpit.build`), so the existing gauges and clickable knobs keep working.
+4. Instantiate the `.glb` files in `C172Model.build()` instead of the `_box()` calls (a few lines of code).
+
+The FlightGear c172p model (GPL) is fine as a private, local stand-in while you build your own, but don't redistribute it.
+
+---
+
+## 6. Project layout
 
 ```
 tools/        offline Python pipeline (section 3); common.py holds region/grid constants
@@ -206,14 +257,16 @@ game/         Godot project
   input/      free_camera, keyboard_controls
   fdm/        flight model: aero (JSBSim tables), engine, propeller, gear, atmosphere (M3)
   tests/      headless test runner + suites
-  ui/         hud, camera_rig, perf_overlay
+  ui/         hud, camera_rig, perf_overlay, instrument_panel + gauges/, panel_overlay
+  systems/    pitot_static, vacuum (M5); electrical, fuel, lights… (M6)
+  instruments/ air-data, gyro, compass, engine gauge models (publish instruments/* props)
   aircraft/c172/  aero + config JSON (from JSBSim; edit to tune), placeholder model, procedural engine sound
 docs/USAGE.md this file
 ```
 
 ---
 
-## 6. Troubleshooting
+## 7. Troubleshooting
 
 | Symptom | Fix |
 |---|---|
