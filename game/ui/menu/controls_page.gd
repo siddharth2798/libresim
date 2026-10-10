@@ -2,7 +2,8 @@ extends HBoxContainer
 ## Controls page (start screen, and in flight via ui/controls_overlay.gd): connected
 ## joysticks / gamepads, one row per action with Bind (capture the next axis moved
 ## > 0.5 or button pressed), invert / range / deadzone / curve and a live bar, reset
-## to gamepad or joystick defaults, and the keyboard reference. Saves on every change.
+## to gamepad or joystick defaults, rebindable flight keys
+## (key_bindings_section.gd) and the other hotkeys. Saves on every change.
 
 signal changed
 
@@ -53,7 +54,11 @@ func _ready() -> void:
 	col.add_child(MenuTheme.heading("Buttons"))
 	for a in InputBindings.BUTTONS:
 		_add_row(col, a)
-	col.add_child(MenuTheme.heading("Keyboard"))
+	var keys := VBoxContainer.new()
+	keys.set_script(load("res://ui/menu/key_bindings_section.gd"))
+	keys.connect("changed", func(): changed.emit())
+	col.add_child(keys)
+	col.add_child(MenuTheme.heading("Other keys"))
 	var kb := GridContainer.new()
 	kb.set_script(load("res://ui/menu/keyboard_reference.gd"))
 	col.add_child(kb)

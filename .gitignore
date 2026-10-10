@@ -8,3 +8,5 @@ tools/.venv/
 gdalwmscache/
 game/override.cfg
 recordings/
+data/.stamps/
+data/run.log

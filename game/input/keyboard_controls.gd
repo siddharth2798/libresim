@@ -3,7 +3,7 @@ extends Node
 ## Keyboard (and optional mouse-yoke) pilot input -> Props "controls/*".
 ## Primary controls are rate-based: holding a key moves the surface, releasing
 ## springs it back to centre. Throttle/mixture/trim move while held and stay put.
-## See docs/USAGE.md for the key map.
+## Keys come from core/key_bindings.gd (defaults: docs/USAGE.md key map).
 
 const RATE := 1.6          # stick travel per second while held
 const SPRING := 2.5        # return-to-centre per second
@@ -15,41 +15,51 @@ var roll := 0.0
 var yaw := 0.0
 var mouse_yoke := false
 var parking_brake := false
+var keys := {}  # KeyBindings table (core/key_bindings.gd), reloaded on input/bindings_rev
+var _shifted := {}
+var _keys_rev := -1
 
 
 func _ready() -> void:
 	Props.set_v("controls/parking_brake", false)
+	_load_keys()
+
+
+func _load_keys() -> void:
+	keys = KeyBindings.load_from()
+	_shifted = KeyBindings.shifted_keys(keys)
+	_keys_rev = int(Props.get_v("input/bindings_rev", 0))
 
 
 func _unhandled_key_input(e: InputEvent) -> void:
 	if not e.pressed or e.echo:
 		return
 	var flaps: int = Props.get_v("controls/flaps", 0)
-	match e.keycode:
-		KEY_F7, KEY_BRACKETRIGHT:
-			Props.set_v("controls/flaps", mini(flaps + 1, 3))
-		KEY_F6, KEY_BRACKETLEFT:
-			Props.set_v("controls/flaps", maxi(flaps - 1, 0))
-		KEY_Y:
-			mouse_yoke = not mouse_yoke
-			Props.set_v("controls/mouse_yoke", mouse_yoke)
-		KEY_M:
-			Props.set_v("controls/magnetos", (int(Props.get_v("controls/magnetos", 3)) + 1) % 4)
-		KEY_B:
-			if e.shift_pressed:
-				parking_brake = not Props.get_b("controls/parking_brake")
-				Props.set_v("controls/parking_brake", parking_brake)
+	if _on(e, "flaps_down"):
+		Props.set_v("controls/flaps", mini(flaps + 1, 3))
+	if _on(e, "flaps_up"):
+		Props.set_v("controls/flaps", maxi(flaps - 1, 0))
+	if _on(e, "mouse_yoke"):
+		mouse_yoke = not mouse_yoke
+		Props.set_v("controls/mouse_yoke", mouse_yoke)
+	if _on(e, "magnetos_next"):
+		Props.set_v("controls/magnetos", (int(Props.get_v("controls/magnetos", 3)) + 1) % 4)
+	if _on(e, "parking_brake"):
+		parking_brake = not Props.get_b("controls/parking_brake")
+		Props.set_v("controls/parking_brake", parking_brake)
 
 
-func _axis(neg: Array, pos: Array) -> float:
-	var v := 0.0
-	for k in neg:
-		if Input.is_physical_key_pressed(k):
-			v -= 1.0
-	for k in pos:
-		if Input.is_physical_key_pressed(k):
-			v += 1.0
-	return v
+func _on(e: InputEventKey, action: String) -> bool:
+	return KeyBindings.matches(keys, action, e, _shifted)
+
+
+func _k(action: String) -> bool:
+	return KeyBindings.held(keys, action, _shifted)
+
+
+## -1 / 0 / +1 from a pair of held actions.
+func _axis(neg: String, pos: String) -> float:
+	return (1.0 if _k(pos) else 0.0) - (1.0 if _k(neg) else 0.0)
 
 
 static func _rate(cur: float, input: float, dt: float) -> float:
@@ -61,33 +71,34 @@ static func _rate(cur: float, input: float, dt: float) -> float:
 
 
 func _process(dt: float) -> void:
+	if int(Props.get_v("input/bindings_rev", 0)) != _keys_rev:
+		_load_keys()
 	if mouse_yoke:
 		var vp := get_viewport()
 		var m := vp.get_mouse_position() / vp.get_visible_rect().size * 2.0 - Vector2.ONE
 		roll = clampf(m.x * 1.3, -1.0, 1.0)
 		pitch = clampf(m.y * 1.3, -1.0, 1.0)  # mouse down = pull back
 	else:
-		pitch = _rate(pitch, _axis([KEY_UP, KEY_KP_8], [KEY_DOWN, KEY_KP_2]), dt)
-		roll = _rate(roll, _axis([KEY_LEFT, KEY_KP_4], [KEY_RIGHT, KEY_KP_6]), dt)
-	yaw = _rate(yaw, _axis([KEY_Z, KEY_KP_0], [KEY_X, KEY_KP_ENTER]), dt)
+		pitch = _rate(pitch, _axis("pitch_down", "pitch_up"), dt)
+		roll = _rate(roll, _axis("roll_left", "roll_right"), dt)
+	yaw = _rate(yaw, _axis("yaw_left", "yaw_right"), dt)
 	_put("pitch", pitch)
 	_put("roll", roll)
 	_put("yaw", yaw)
 
 	var thr := Props.get_f("controls/throttle")
-	if not Input.is_key_pressed(KEY_CTRL):  # Ctrl+PgUp/PgDn switch checklists
-		thr += _axis([KEY_PAGEDOWN, KEY_MINUS, KEY_KP_SUBTRACT], [KEY_PAGEUP, KEY_EQUAL, KEY_KP_ADD]) * LEVER_RATE * dt
+	thr += _axis("throttle_down", "throttle_up") * LEVER_RATE * dt  # Ctrl+PgUp/PgDn (checklists) don't match
 	_put("throttle", clampf(thr, 0.0, 1.0))
-	var mix := Props.get_f("controls/mixture", 1.0) + _axis([KEY_SEMICOLON], [KEY_APOSTROPHE]) * LEVER_RATE * dt
+	var mix := Props.get_f("controls/mixture", 1.0) + _axis("mixture_lean", "mixture_rich") * LEVER_RATE * dt
 	_put("mixture", clampf(mix, 0.0, 1.0))
-	var trim := Props.get_f("controls/pitch_trim") + _axis([KEY_HOME, KEY_KP_7], [KEY_END, KEY_KP_1]) * TRIM_RATE * dt
+	var trim := Props.get_f("controls/pitch_trim") + _axis("trim_down", "trim_up") * TRIM_RATE * dt
 	_put("pitch_trim", clampf(trim, -1.0, 1.0))
 
-	var both := Input.is_physical_key_pressed(KEY_B) and not Input.is_key_pressed(KEY_SHIFT)
+	var both := _k("brakes")
 	var pb := 1.0 if Props.get_b("controls/parking_brake") else 0.0
-	_put("brake_left", maxf(pb, 1.0 if both or Input.is_physical_key_pressed(KEY_COMMA) else 0.0))
-	_put("brake_right", maxf(pb, 1.0 if both or Input.is_physical_key_pressed(KEY_PERIOD) else 0.0))
-	_put("starter", Input.is_physical_key_pressed(KEY_S) and not Props.get_b("view/free_cam"))
+	_put("brake_left", maxf(pb, 1.0 if both or _k("brake_left") else 0.0))
+	_put("brake_right", maxf(pb, 1.0 if both or _k("brake_right") else 0.0))
+	_put("starter", _k("starter") and not Props.get_b("view/free_cam"))
 
 
 ## Write controls/<name> unless a joystick axis/button owns it (JoystickControls).

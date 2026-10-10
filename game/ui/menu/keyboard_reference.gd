@@ -1,20 +1,8 @@
 extends GridContainer
-## Read-only keyboard reference (mirrors docs/USAGE.md "Flight controls (keyboard)").
+## Read-only list of the hotkeys that are not rebindable (flight-control keys are
+## edited in key_bindings_section.gd). Mirrors docs/USAGE.md.
 
 const KEYS := [
-	["↑ / ↓  (num 8 / 2)", "Pitch: ↓ pulls back, ↑ pushes"],
-	["← / →  (num 4 / 6)", "Roll"],
-	["Z / X  (num 0 / Enter)", "Rudder / nosewheel"],
-	["PgUp / PgDn  (= / −)", "Throttle"],
-	["' / ;", "Mixture richer / leaner"],
-	["Home / End  (num 7 / 1)", "Trim nose down / up"],
-	["] or F7 / [ or F6", "Flaps down / up"],
-	["B (hold)", "Both brakes"],
-	[", / . (hold)", "Left / right brake"],
-	["Shift+B", "Parking brake"],
-	["M", "Cycle magnetos"],
-	["S (hold)", "Starter"],
-	["Y", "Mouse yoke"],
 	["C / Shift+C, 1–8", "Camera views"],
 	["Tab / Shift+Tab", "2D panel layout"],
 	["V", "Re-centre view"],
@@ -24,7 +12,10 @@ const KEYS := [
 	["F2", "Checklists"],
 	["F9", "Failures panel"],
 	["F10", "Settings"],
+	["F11", "Saved flights"],
+	["R", "Instant replay"],
 	["H / F1 / F3", "HUD / key help / perf"],
+	["J", "Controls panel"],
 	["F5", "Reset to start"],
 	["Esc", "Pause"],
 ]

@@ -2,6 +2,24 @@
 
 This guide covers how to install, build the map data, and run free-sim, a local Cessna 172 flight simulator for the Mumbai–Pune region. Design and roadmap are in `PLAN.md`; the coding conventions are in `CLAUDE.md`.
 
+## Quick start: `./run.sh`
+
+One command installs what is missing, downloads the raw data, builds the game data and opens the game:
+
+```bash
+./run.sh                              # set up everything (first run: ~1-2 h, mostly downloads), then fly
+./run.sh --airport=VABB --stand       # game options pass straight through (section 4)
+./run.sh --dry-run                    # show what would run or be skipped, and why
+```
+
+Each step runs only when needed (outputs missing, or older than their scripts/inputs; stamps in `data/.stamps/`), so later runs start the game in seconds. Options: `--setup-only`, `--skip-data` (launch without touching data), `--region=mumbai_pune|all` (default `all` also fetches the Konkan-Kerala corridor), `--force-step=NN` (re-run one pipeline step), `--yes` (answer yes to prompts), `--help`. Missing system packages (GDAL, python3-venv, curl, git, unzip) are detected for apt, dnf, pacman and Homebrew; the install command is printed and only run with `sudo` after you say yes. If Godot 4.7.2 is missing it offers to download it into `~/.local/bin`. Blender is not needed. Everything is logged to `data/run.log`.
+
+**macOS:** the script needs bash 4+ and Homebrew GDAL: `brew install bash gdal python`. It re-runs itself under Homebrew's bash (`/opt/homebrew/bin/bash` on Apple Silicon, `/usr/local/bin/bash` on Intel) and builds the venv from Homebrew's `python3`, whose site-packages contain GDAL's Python bindings.
+
+The sections below describe the individual steps that `run.sh` automates.
+
+---
+
 > **Current state:** M1 (data pipeline) and M2 (terrain viewer) are complete: you can fly a free camera over the real Mumbai–Pune terrain with satellite imagery (~350 FPS on the Radeon 780M). M3 (flight model), M4 (first flight), M5 (cockpit & instruments, code side) and M6 (systems, weather, time of day, night lighting) are complete: you can take off from Juhu, Mumbai, Pune or Navi Mumbai and fly the C172 over the whole region on a working steam-gauge panel. The 3D aircraft and cockpit are still placeholder geometry until a Blender model replaces them (see section 5). Each section below says which milestone it belongs to.
 
 ---
@@ -173,6 +191,7 @@ Running the game opens the **start screen**. Your last setup is remembered (`use
    - "Reset: joystick defaults" gives: X/Y roll/pitch, twist yaw, throttle axis.
    - A bound axis takes over from the keyboard. Anything not bound stays on the keyboard.
    - Saved in `user://input_bindings.json`. Also available in flight with **J**.
+   - **Keyboard keys are rebindable too.** Click a key slot (up to 3 keys per action, with Shift, Ctrl or Alt allowed), then press the new key. Esc cancels; Delete clears the slot. Conflicts with other actions or fixed hotkeys are shown in orange. Keys match by physical position. Keys are saved in `user://key_bindings.json`.
 7. **Options:**
    - Volume and mute for each sound bus: Master, Engine, Wind & environment, Cockpit, Radio, Menus.
    - Graphics preset.

@@ -1,6 +1,7 @@
 extends Node
 ## Debug: show the controls page as the start screen would (glass panel right of the
 ## 200 px page nav) and the in-flight overlay, saving $FREESIM_SHOTS/controls_page.png
+## controls_page_keys.png (keyboard rows, with a conflict), controls_page_end.png
 ## and controls_overlay.png (default user://), then quit.
 
 
@@ -36,7 +37,13 @@ func _ready() -> void:
 	await get_tree().create_timer(0.8).timeout
 	get_viewport().get_texture().get_image().save_png(out.path_join("controls_page.png"))
 	page._start_capture("throttle")  # waiting state
-	scroll.scroll_vertical = 2000
+	var keys: Control = page.get_child(0).get_children().filter(func(c): return c.has_method("_start"))[0]
+	keys.table.starter = [KeyBindings.spec(KEY_M)]  # in-memory conflict, not saved
+	keys._start("mixture_rich", 1)
+	scroll.scroll_vertical = int(keys.position.y)
+	await get_tree().create_timer(0.5).timeout
+	get_viewport().get_texture().get_image().save_png(out.path_join("controls_page_keys.png"))
+	scroll.scroll_vertical = 4000
 	await get_tree().create_timer(0.5).timeout
 	get_viewport().get_texture().get_image().save_png(out.path_join("controls_page_end.png"))
 	root.queue_free()

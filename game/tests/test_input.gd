@@ -151,3 +151,95 @@ func test_input_button_effects() -> String:
 	if not pb:
 		return "parking brake button did not toggle"
 	return "" if mags == 0 else "magnetos did not cycle BOTH -> OFF"
+
+
+func _key(k: Key, shift := false, ctrl := false) -> InputEventKey:
+	var e := InputEventKey.new()
+	e.keycode = k
+	e.physical_keycode = k
+	e.shift_pressed = shift
+	e.ctrl_pressed = ctrl
+	e.pressed = true
+	return e
+
+
+func test_input_keys_defaults_match_old() -> String:
+	var old := {  # the hard-coded keys keyboard_controls.gd used before bindings
+		"pitch_down": [KEY_UP, KEY_KP_8], "pitch_up": [KEY_DOWN, KEY_KP_2],
+		"roll_left": [KEY_LEFT, KEY_KP_4], "roll_right": [KEY_RIGHT, KEY_KP_6],
+		"yaw_left": [KEY_Z, KEY_KP_0], "yaw_right": [KEY_X, KEY_KP_ENTER],
+		"throttle_up": [KEY_PAGEUP, KEY_EQUAL, KEY_KP_ADD], "throttle_down": [KEY_PAGEDOWN, KEY_MINUS, KEY_KP_SUBTRACT],
+		"mixture_rich": [KEY_APOSTROPHE], "mixture_lean": [KEY_SEMICOLON],
+		"trim_down": [KEY_HOME, KEY_KP_7], "trim_up": [KEY_END, KEY_KP_1],
+		"brakes": [KEY_B], "brake_left": [KEY_COMMA], "brake_right": [KEY_PERIOD], "starter": [KEY_S],
+		"flaps_down": [KEY_F7, KEY_BRACKETRIGHT], "flaps_up": [KEY_F6, KEY_BRACKETLEFT],
+		"magnetos_next": [KEY_M], "mouse_yoke": [KEY_Y], "parking_brake": [KEY_B],
+	}
+	var d := KeyBindings.defaults()
+	if d.size() != old.size() or d.size() != (KeyBindings.HELD + KeyBindings.PRESS).size():
+		return "default action count %d, want %d" % [d.size(), old.size()]
+	for a in old:
+		var got: Array = d[a].map(func(s): return int(s.key))
+		if got != old[a]:
+			return "%s: %s != %s" % [a, got, old[a]]
+	if not d.parking_brake[0].shift or d.brakes[0].shift:
+		return "parking brake must be Shift+B and brakes plain B"
+	if not KeyBindings.conflicts(d).is_empty():
+		return "defaults have conflicts: %s" % KeyBindings.conflicts(d)
+	return ""
+
+
+func test_input_keys_roundtrip() -> String:
+	var t := KeyBindings.defaults()
+	t.pitch_up = [KeyBindings.spec(KEY_W), KeyBindings.spec(KEY_K, false, true, true)]
+	t.starter = []
+	if not KeyBindings.save_to(t, TMP):
+		return "save failed"
+	var r := KeyBindings.load_from(TMP)
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(TMP))
+	if r.size() != t.size():
+		return "action count changed"
+	for a in t:
+		if r[a].size() != t[a].size():
+			return "%s: %d keys after load, want %d" % [a, r[a].size(), t[a].size()]
+		for i in t[a].size():
+			if not KeyBindings.same(r[a][i], t[a][i]) or typeof(r[a][i].key) != TYPE_INT:
+				return "%s[%d]: %s != %s" % [a, i, r[a][i], t[a][i]]
+	return ""
+
+
+func test_input_keys_conflicts() -> String:
+	var t := KeyBindings.defaults()
+	t.starter = [KeyBindings.spec(KEY_M)]  # clashes with magnetos
+	t.mouse_yoke = [KeyBindings.spec(KEY_N)]  # clashes with the moving map hotkey
+	t.brake_left = [KeyBindings.spec(KEY_N, true)]  # Shift+N is fine
+	var c := KeyBindings.conflicts(t)
+	if c.size() != 2:
+		return "want 2 conflicts, got %s" % [c]
+	return ""
+
+
+func test_input_keys_modifiers() -> String:
+	var t := KeyBindings.defaults()
+	var sh := KeyBindings.shifted_keys(t)
+	if not KeyBindings.matches(t, "parking_brake", _key(KEY_B, true), sh):
+		return "Shift+B should toggle parking brake"
+	if KeyBindings.matches(t, "parking_brake", _key(KEY_B), sh):
+		return "plain B toggled parking brake"
+	if not KeyBindings.matches(t, "flaps_down", _key(KEY_F7, true), sh):
+		return "Shift should not matter for keys never bound with Shift"
+	if KeyBindings.matches(t, "flaps_down", _key(KEY_F7, false, true), sh):
+		return "Ctrl+F7 should not match plain F7"
+	# rebinding is honoured by KeyboardControls (event path)
+	var k := KeyboardControls.new()
+	k.keys = t
+	k.keys.flaps_down = [KeyBindings.spec(KEY_G)]
+	k._shifted = KeyBindings.shifted_keys(k.keys)
+	Props.set_v("controls/flaps", 0)
+	k._unhandled_key_input(_key(KEY_F7))
+	var f0: int = Props.get_v("controls/flaps")
+	k._unhandled_key_input(_key(KEY_G))
+	var f1: int = Props.get_v("controls/flaps")
+	k.free()
+	Props.set_v("controls/flaps", 0)
+	return "" if f0 == 0 and f1 == 1 else "rebound flaps key: F7 -> %d, G -> %d" % [f0, f1]

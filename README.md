@@ -7,6 +7,8 @@ A free, offline, realistic Cessna 172 flight simulator for the Mumbai–Pune reg
 - **Aircraft:** the FlightGear c172p 3D model and cockpit, with live, physically modelled instruments.
 - **Simulation:** systems, failures, weather with ridge lift off the Western Ghats, time of day and night lighting.
 
+**Quick start:** `./run.sh` checks and installs the prerequisites (asking before any `sudo`), downloads the data, builds it and opens the game. Re-running it just launches the game. `./run.sh --help` lists the options; details are in [docs/USAGE.md](docs/USAGE.md).
+
 **Docs:**
 - How to install, build the data, run and fly: [docs/USAGE.md](docs/USAGE.md)
 - Roadmap: [PLAN.md](PLAN.md)
