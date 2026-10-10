@@ -6,6 +6,7 @@ extends RefCounted
 ## Tile key = Vector3i(level, tx, ty); see tools/02_dem_tiles.py for the layout.
 
 const MAX_UPLOADS_PER_FRAME := 6
+const TILE_SIZE_DEFAULT := 7680.0  # level-0 tile size (tools/common.py TILE_SIZE)
 const MAX_ENTRIES := 400
 
 var meta: Dictionary

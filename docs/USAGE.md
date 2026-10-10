@@ -13,7 +13,8 @@ This guide covers how to install, build the map data, and run free-sim, a local 
 | GDAL + Python bindings | `sudo apt install gdal-bin python3-gdal` | already installed on this machine (GDAL 3.8) |
 | QGIS (optional) | `sudo apt install qgis` | only for inspecting data |
 | Godot 4.7.2 (standard build) | already installed at `~/.local/share/godot/`, with a symlink at `~/.local/bin/godot` | see below |
-| Python venv | `python3 -m venv --system-site-packages tools/.venv && tools/.venv/bin/pip install osmium jsbsim` | `--system-site-packages` lets it use the apt GDAL bindings |
+| Python venv | `python3 -m venv --system-site-packages tools/.venv && tools/.venv/bin/pip install osmium jsbsim mapbox_earcut` | `--system-site-packages` lets it use the apt GDAL bindings |
+| Blender 4.x + AC3D add-on | `sudo apt install blender`; add-on: download https://github.com/NikolaiVChr/Blender-AC3D (branch `4.0`) into `data/raw/fg/addon/` | only to regenerate the aircraft models |
 | Disk | ~1.5 GB raw data + ~0.4 GB processed | |
 
 `~/.local/bin` is **not on your PATH** in this shell. Either run Godot by its full path (`~/.local/bin/godot`) or add this to `~/.bashrc`:
@@ -77,6 +78,11 @@ $PY tools/02_dem_tiles.py          # -> data/processed/terrain/h/  (heightmaps, 
 $PY tools/03_imagery_tiles.py      # -> data/processed/terrain/img/ BC1 .dds tiles (needs s2.tif) ~15 s
 $PY tools/06_jsbsim_to_json.py     # -> game/aircraft/c172/c172_aero.json, c172_config.json (committed)
 $PY tools/09_runways.py            # -> data/processed/runways.json (merged runways + taxiways; after 02 & 04)
+$PY tools/10_buildings.py          # -> data/processed/buildings/ 3D building meshes (after 02, 03 source s2.tif, 04) ~15 s, 63 MB
+
+# Aircraft 3D models (FlightGear c172p, GPL), already committed as .glb; only needed to regenerate:
+blender -b --factory-startup --python tools/blender/convert_c172p.py            # exterior.glb
+blender -b --factory-startup --python tools/blender/convert_c172p_interior.py   # interior.glb
 $PY tools/07_preview.py 1          # -> data/processed/preview_L1.png  (sanity check)
 $PY tools/08_jsbsim_reference.py   # optional: standalone JSBSim climb numbers for comparison
 ```
@@ -114,7 +120,7 @@ cd game
 | `--airport=ICAO` | VAJJ (default), VABB, VAPO, VANM, VAAV (Aamby Valley), … any airport in `runways.json` |
 | `--runway=NN` | runway end, e.g. `08`, `26`, `14`, `32`; default = the longest runway |
 | `--air[=ft]` | start airborne on a 5 nm final at that height above the field (default 1500) |
-| `--view=cockpit` / `--view=orbit` | initial camera (default: chase) |
+| `--view=NAME` | initial camera: cockpit, chase, orbit, free, tower, wing, tail or flyby (default chase) |
 | `--tod=h` | local time (IST), e.g. `--tod=6.5` sunrise, `--tod=18.6` sunset, `--tod=21` night |
 | `--wind=DDD/SS[GNN]` | surface wind, e.g. `--wind=270/15G25` (wind aloft is set a bit stronger and veered) |
 | `--vis=m` | visibility in metres |
@@ -138,11 +144,12 @@ cd game
 | M | Cycle magnetos OFF → L → R → BOTH |
 | S (hold) | Starter |
 | Y | Toggle mouse yoke (mouse position = control column) |
-| C | Cycle camera: chase → orbit → cockpit |
+| C / Shift+C, or 1–8 | Camera: 1 cockpit, 2 chase, 3 orbit, 4 free camera (WASD to move, Q/E down/up, right-drag to look, Shift for speed, wheel to set speed), 5 tower, 6 wing, 7 tail, 8 fly-by |
 | Tab | Show/hide the 2D instrument panel in outside views |
-| Right-mouse drag | Look around (cockpit / orbit); mouse wheel zooms the orbit camera |
+| Right-mouse drag | Look around (cockpit, orbit, free, wing, tail). Mouse wheel: cockpit zoom (field of view), orbit distance, free-camera speed |
 | V | Re-centre the view |
 | H / F1 / F3 | Toggle HUD / key help / performance overlay |
+| F12 | Credits and licences |
 | F10 | Settings: time of day and time rate, wind and gusts, wind aloft, turbulence, visibility, clouds, QNH, temperature, failures |
 | Esc | Pause |
 | F5 | Reset to the start position |
@@ -269,9 +276,18 @@ The aircraft's behaviour is data, so you can tune it without touching code:
 
 ---
 
-## 5. Replacing the placeholder aircraft and cockpit with Blender models
+## 5. Aircraft models and 3D scenery
 
-The exterior (`aircraft/c172/c172_model.gd`) and cockpit (`aircraft/c172/cockpit.gd`) are built from boxes so the sim works without art. To use real models:
+**The aircraft** is the FlightGear c172p model and cockpit (GPL-2.0-or-later, c172p team), converted by the Blender scripts in `tools/blender/`. The original sources are vendored in `third_party/c172p/`. The live free-sim gauges are drawn onto the real panel at each instrument's true position. If the `.glb` files are missing, the sim falls back to the box placeholder.
+
+**3D buildings:**
+- Built from 578k OSM footprints, with heights from OSM tags or a synthetic estimate by footprint size.
+- Roofs take their colour from the satellite image; facades get procedural windows that light up at night.
+- Streamed within 9 km and hidden above 2500 ft AGL.
+
+### Replacing the models with your own Blender models
+
+To use your own models instead of the converted FlightGear ones:
 
 1. Model in Blender in metres, with **−Z forward, +Y up, origin at the C172's CG**. The CG is about 1.0 m aft of the JSBSim datum; see `mass.empty_cg_m` in `c172_config.json`. Export glTF (`.glb`) to `game/aircraft/c172/exterior.glb` and `cockpit.glb`.
 2. Name animated parts `elevator`, `rudder`, `aileron_L`, `aileron_R`, `flap_L`, `flap_R` and `prop`, with pivots on their hinge lines.

@@ -1,0 +1,57 @@
+shader_type spatial;
+// OSM buildings: flat-shaded extruded footprints (tools/10_buildings.py).
+// CUSTOM0 = roof colour (rgb, from satellite imagery) + facade style (a).
+// Walls get a procedural facade: floor bands + window grid, windows lit at night.
+
+global uniform vec3 fog_color;
+global uniform float haze_density;
+uniform float night = 0.0;  // 0 day .. 1 night (set by Buildings from the sun)
+
+varying vec4 v_custom;
+varying vec3 v_world;
+varying float v_dist;
+
+void vertex() {
+	v_custom = CUSTOM0;
+	v_world = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
+	v_dist = length((MODELVIEW_MATRIX * vec4(VERTEX, 1.0)).xyz);
+}
+
+float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+
+void fragment() {
+	vec3 n_world = normalize(cross(dFdx(v_world), dFdy(v_world)));
+	NORMAL = normalize(cross(dFdx(VERTEX), dFdy(VERTEX)));
+	float style = v_custom.a;
+	vec3 roof = v_custom.rgb;
+	vec3 col;
+	vec3 emit = vec3(0.0);
+	if (abs(n_world.y) > 0.7) {
+		// roof: imagery colour, a bit brighter (imagery is dark & hazy)
+		col = pow(roof, vec3(0.85)) * 1.2;
+	} else {
+		// wall: palette by style, tinted slightly toward the roof colour
+		vec3 pal = mix(vec3(0.78, 0.76, 0.72), vec3(0.88, 0.84, 0.74), fract(style * 7.0));
+		pal = mix(pal, vec3(0.62, 0.64, 0.66), step(0.7, fract(style * 3.0)));
+		col = mix(pal, roof * 1.4, 0.15);
+		// facade coordinate along the wall (pick the horizontal axis by wall facing)
+		float u = abs(n_world.x) > abs(n_world.z) ? v_world.z : v_world.x;
+		float floor_h = 3.1;
+		vec2 cell = vec2(u / 2.6, v_world.y / floor_h);
+		vec2 f = fract(cell);
+		float window = step(0.2, f.x) * step(f.x, 0.8) * step(0.3, f.y) * step(f.y, 0.78);
+		float glass_dark = mix(0.35, 0.55, fract(style * 13.0));
+		col = mix(col, col * glass_dark + vec3(0.03, 0.05, 0.07), window * 0.85);
+		// some windows lit at night
+		float lit = step(0.55, hash(floor(cell) + style * 31.0)) * window * night;
+		emit = vec3(1.0, 0.82, 0.55) * lit * 1.6;
+		// fade the pattern out with distance to avoid shimmer
+		float far = smoothstep(800.0, 2500.0, v_dist);
+		col = mix(col, mix(pal, roof, 0.2) * 0.9, far);
+		emit *= 1.0 - far * 0.5;
+	}
+	float haze = 1.0 - exp(-v_dist * haze_density);
+	ALBEDO = mix(col, fog_color, haze * 0.75);
+	EMISSION = emit;
+	ROUGHNESS = 0.85;
+}

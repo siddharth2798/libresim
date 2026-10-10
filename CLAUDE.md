@@ -13,5 +13,5 @@ Local desktop C172 flight sim, Mumbai–Pune region, Godot 4 (Mobile renderer), 
 tools/ offline pipeline · data/raw, data/processed (gitignored) · game/{core,fdm,systems,avionics,instruments,world,aircraft,input,ui,atc,tests}
 
 ## Status
-M0, M1 done (pipeline: tools/0*.py, run order in docs/USAGE.md). M2 terrain viewer done (game/world, tests/run_tests.gd). M3 FDM done (game/fdm, tests/test_fdm_cards.gd all pass). M4 first flight, M5 instruments+placeholder cockpit done. Tests: godot --headless --path game res://tests/run_tests.tscn. M6 systems+weather done. Next: G (graphics toward MSFS, user priority), then M7 navigation.
+M0, M1 done (pipeline: tools/0*.py, run order in docs/USAGE.md). M2 terrain viewer done (game/world, tests/run_tests.gd). M3 FDM done (game/fdm, tests/test_fdm_cards.gd all pass). M4 first flight, M5 instruments+placeholder cockpit done. Tests: godot --headless --path game res://tests/run_tests.tscn. M6 done. Real c172p model+cockpit (tools/blender), 8 cameras, credits/GPL done, 3D OSM buildings (tools/10). In progress: G graphics. Then A (terminal start), M7 nav, P packaging. Standing reqs: PLAN.md §8b.
 Godot 4.7.2 at ~/.local/bin/godot (not on PATH). Python: tools/.venv. Keep docs/USAGE.md updated each milestone.
