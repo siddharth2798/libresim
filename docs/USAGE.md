@@ -220,7 +220,12 @@ It shows on the 3D panel in the cockpit view (C) and as a 2D strip at the bottom
 - The engine is running at start (cold-and-dark start comes in M8). If it stops, set magnetos to BOTH (M) and hold S.
 - With only the pilot aboard (the default load), the CG sits slightly left, so the aircraft rolls gently left hands-off, as the real C172 does. Hold a little right aileron.
 - The aircraft turns left on the takeoff roll (P-factor and torque), so use right rudder (X).
-- Engine sound is synthesised (firing pulses scale with RPM and power, plus wind and stall horn) until recorded CC0 audio replaces it.
+- **Sound** uses real recordings throughout:
+  - the C172 engine (start, crank, idle, run and cut, pitched by RPM)
+  - stall horn, gyro spin-up, flap motor, trim wheel
+  - tyre roll, touchdown squeal, wind by airspeed
+  - switch clicks and levers
+  - Switch clicks are cockpit-only. Sources and licences are in `game/aircraft/c172/sounds/SOURCES.md`.
 
 ### Terrain viewer (M2)
 

@@ -16,6 +16,17 @@ free-sim itself is licensed under **GPL-2.0-or-later** (see `LICENSE`). Licence 
 - **Propeller blade model:** Syd Adams and Heiko Schulz (c182s project), GPL-2.0, via the c172p team.
 - **Flight-model data:** JSBSim `c172p` aircraft, `engIO360C` engine and `prop_75in2f` propeller, by the JSBSim Team and contributors (https://github.com/JSBSim-Team/jsbsim), LGPL-2.1. free-sim converted them to JSON and retuned them (`tools/06_jsbsim_to_json.py`).
 
+### Sounds
+All sounds are real recordings, listed file by file in `game/aircraft/c172/sounds/SOURCES.md`:
+- **C172 engine** (start, crank, idle, run, cut): "small plane cessna engine start idle and takeoff" by **JLWSound** (freesound.org/s/322321), CC0, via the c172p team.
+- **Stall horn:** from "Stalling and spinning with a Cessna 152" by **Morsule**, CC-BY.
+- **Gyro spin:** from "Starting C172N" by **algefaen**, CC-BY.
+- **Parking brake lever:** "Old Lever Pull" by **DrMinky**, CC0.
+- **Trim wheel:** "rubber.wav" by **datasoundsample**, CC0.
+- **Primer:** by **coltures**, CC0.
+- **Flap motor, tyres, switches and doors:** c172p team, GPL-2.0-or-later.
+- **Wind, rumble, squeal, rain, avionics fan:** FlightGear fgdata contributors (https://gitlab.com/flightgear/fgdata), GPL-2.0-or-later.
+
 ### Engine (runtime)
 - **Godot Engine 4.7** (https://godotengine.org), MIT licence, © Juan Linietsky, Ariel Manzur and Godot Engine contributors. Godot bundles third-party components (FreeType, HarfBuzz, Vulkan loader, fonts and others); their licences are listed in full on the in-game credits screen (taken from the engine itself).
 
