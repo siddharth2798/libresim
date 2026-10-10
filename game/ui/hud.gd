@@ -26,6 +26,7 @@ func _ready() -> void:
 	_help.text = ("arrows pitch/roll  Z/X rudder  PgUp/PgDn throttle  ;/' mixture\n"
 		+ "Home/End trim  [ ] or F6/F7 flaps  B brakes  Shift+B parking  ,/. diff brake\n"
 		+ "S starter  M magnetos  Y mouse yoke  C camera  V centre view\n"
+		+ "Tab 2D panel  F10 weather/time/failures (click switches on the panel)\n"
 		+ "Esc pause  H hud  F1 help  F3 perf  F5 reset")
 	_help.visible = false
 

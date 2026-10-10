@@ -2,7 +2,7 @@
 
 This guide covers how to install, build the map data, and run free-sim, a local Cessna 172 flight simulator for the Mumbai–Pune region. Design and roadmap are in `PLAN.md`; the coding conventions are in `CLAUDE.md`.
 
-> **Current state:** M1 (data pipeline) and M2 (terrain viewer) are complete: you can fly a free camera over the real Mumbai–Pune terrain with satellite imagery (~350 FPS on the Radeon 780M). M3 (flight model), M4 (first flight) and M5 (cockpit & instruments, code side) are complete: you can take off from Juhu, Mumbai, Pune or Navi Mumbai and fly the C172 over the whole region on a working steam-gauge panel. The 3D aircraft and cockpit are still placeholder geometry until a Blender model replaces them (see section 5). Each section below says which milestone it belongs to.
+> **Current state:** M1 (data pipeline) and M2 (terrain viewer) are complete: you can fly a free camera over the real Mumbai–Pune terrain with satellite imagery (~350 FPS on the Radeon 780M). M3 (flight model), M4 (first flight), M5 (cockpit & instruments, code side) and M6 (systems, weather, time of day, night lighting) are complete: you can take off from Juhu, Mumbai, Pune or Navi Mumbai and fly the C172 over the whole region on a working steam-gauge panel. The 3D aircraft and cockpit are still placeholder geometry until a Blender model replaces them (see section 5). Each section below says which milestone it belongs to.
 
 ---
 
@@ -115,6 +115,10 @@ cd game
 | `--runway=NN` | runway end, e.g. `08`, `26`, `14`, `32`; default = the longest runway |
 | `--air[=ft]` | start airborne on a 5 nm final at that height above the field (default 1500) |
 | `--view=cockpit` / `--view=orbit` | initial camera (default: chase) |
+| `--tod=h` | local time (IST), e.g. `--tod=6.5` sunrise, `--tod=18.6` sunset, `--tod=21` night |
+| `--wind=DDD/SS[GNN]` | surface wind, e.g. `--wind=270/15G25` (wind aloft is set a bit stronger and veered) |
+| `--vis=m` | visibility in metres |
+| `--clouds=C@ft` | cloud cover 0–1 at a base in ft AMSL, e.g. `--clouds=0.6@3500` |
 | `--shot=file.png --time=s` | for testing: fly hands-off `s` seconds, save a screenshot and quit |
 
 **Flight controls (keyboard):**
@@ -139,6 +143,7 @@ cd game
 | Right-mouse drag | Look around (cockpit / orbit); mouse wheel zooms the orbit camera |
 | V | Re-centre the view |
 | H / F1 / F3 | Toggle HUD / key help / performance overlay |
+| F10 | Settings: time of day and time rate, wind and gusts, wind aloft, turbulence, visibility, clouds, QNH, temperature, failures |
 | Esc | Pause |
 | F5 | Reset to the start position |
 
@@ -171,7 +176,38 @@ It shows on the 3D panel in the cockpit view (C) and as a 2D strip at the bottom
 - **Compass:** pendulous card with real northerly turning and acceleration errors, and swing and overshoot.
 - **Turn coordinator:** electric rate gyro canted 30°, with the slip ball.
 
-Failures can already be triggered from code or a debug console by setting the properties `failures/vacuum_pump`, `failures/pitot_blocked` and `failures/static_blocked` (true/false), or `systems/alternate_static` for the alternate static source. A failures menu comes in M6.
+### Systems, weather and failures (M6)
+
+**Switch panel** (the bottom row of the instrument panel; click to toggle):
+- **Electrical:** BAT and ALT masters, AVN (avionics).
+- **Lights:** BCN, LAND, TAXI, NAV, STRB.
+- **Other switches:** PITOT HT; fuel SHUTOFF valve; ALT STAT (alternate static source).
+- **Rotary selectors** (click left/right half, or mouse wheel):
+  - MAGS: OFF/R/L/BOTH
+  - FUEL selector: OFF/LEFT/RIGHT/BOTH
+
+**What's modelled:**
+- **Electrical:** 24 V battery (35 Ah) and 60 A alternator.
+  - The alternator needs more than about 1000 RPM, so at idle the ammeter shows discharge.
+  - The LOW VOLTS light comes on below 24.5 V.
+  - The starter needs battery power, and the flaps and turn coordinator need bus power.
+- **Fuel:**
+  - Left and right tanks feed according to the selector.
+  - The engine runs about 6 s on line fuel after starvation, and restarts while windmilling once fuel returns.
+  - A left-tank leak failure is available.
+- **Weather** (F10 or command line):
+  - **Wind:** logarithmic surface profile blending into the wind aloft, plus gusts and turbulence.
+  - **Terrain effects:** ridge lift on windward slopes (the Ghats give about 3 m/s in a 20 kt westerly) and sink plus mechanical turbulence on the lee side.
+  - **Atmosphere:** QNH and temperature affect density altitude and the altimeter. The Kollsman window is preset to QNH at start.
+- **Sky:** clouds are a cumulus layer that drifts with the wind aloft. Visibility drives haze and fog.
+- **Time of day:** real sun position for Mumbai/Pune (IST). Default 10:00 on 14 February. The F10 time rate can speed it up.
+- **Night:** runway edge lights, threshold and end lights, and approach bars at every runway. The aircraft has nav, beacon, strobe, taxi and landing lights.
+- **Failures (F10):**
+  - engine
+  - vacuum pump
+  - pitot blocked, static blocked
+  - alternator, battery
+  - left tank leak
 
 **Realism notes:**
 - The engine is running at start (cold-and-dark start comes in M8). If it stops, set magnetos to BOTH (M) and hold S.
@@ -205,6 +241,7 @@ The runner prints PASS/FAIL per test and exits non-zero on failure. Ignore the "
 | `tests/test_fdm_cards.gd` | POH performance test cards (M3) |
 | `tests/test_flight.gd` | Takeoff from Juhu on the real terrain and runway (M4) |
 | `tests/test_instruments.gd` | Altimeter and Kollsman, ASI, VSI lag, vacuum-failure gyro drift, compass northerly turning error (M5) |
+| `tests/test_systems.gd` | Alternator failure and battery drain, fuel starvation and restart, wind profile, Ghats ridge lift (M6) |
 
 ### Flight-model test cards (M3)
 
@@ -245,6 +282,12 @@ The FlightGear c172p model (GPL) is fine as a private, local stand-in while you 
 
 ---
 
+## 5b. FlightGear assets and licences
+
+See `docs/FLIGHTGEAR_NOTES.md`. In short, the FlightGear c172p model and cockpit (GPL-2.0-or-later) can be converted with the Blender AC3D add-on and used locally. Distributing them requires GPL compliance; the details and credit text are in `CREDITS.md`. The satellite imagery is CC BY-NC-SA, which means non-commercial use only.
+
+---
+
 ## 6. Project layout
 
 ```
@@ -253,12 +296,12 @@ data/raw      downloaded sources (gitignored)
 data/processed generated tiles/JSON (gitignored)
 game/         Godot project
   core/       floating_origin + props (autoloads), geo (lat/lon <-> ENU), units, paths
-  world/      flight scene (main), terrain quadtree/cache/shader, airport_builder + runway shader, terrain_viewer scene
+  world/      flight scene (main), weather, sky_time, clouds, runway_lights, terrain quadtree/cache/shader, airport_builder + runway shader, terrain_viewer scene
   input/      free_camera, keyboard_controls
   fdm/        flight model: aero (JSBSim tables), engine, propeller, gear, atmosphere (M3)
   tests/      headless test runner + suites
   ui/         hud, camera_rig, perf_overlay, instrument_panel + gauges/, panel_overlay
-  systems/    pitot_static, vacuum (M5); electrical, fuel, lights… (M6)
+  systems/    pitot_static, vacuum, electrical, fuel
   instruments/ air-data, gyro, compass, engine gauge models (publish instruments/* props)
   aircraft/c172/  aero + config JSON (from JSBSim; edit to tune), placeholder model, procedural engine sound
 docs/USAGE.md this file

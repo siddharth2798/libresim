@@ -51,6 +51,9 @@ func build(node: FdmNode) -> void:
 	cockpit = Cockpit.new()
 	add_child(cockpit)
 	cockpit.build(_s(Vector3(e[0], e[1], e[2])))
+	var lights := AircraftLights.new()
+	add_child(lights)
+	lights.build(_s)
 	# propeller: spinner + two blades
 	_prop = Node3D.new()
 	_prop.position = _s(Vector3(-1.28, 0.0, 0.35))

@@ -211,6 +211,7 @@ free-sim/
 | M8 | Polish | Checklists, cold-and-dark start, mass & balance, Low/Med/High graphics presets, joystick/gamepad binding UI | 2 weeks |
 | M9 (opt) | ATC & autopilot | KAP140 autopilot, rule-based ATC (Juhu tower, Mumbai approach) with Piper TTS | 3+ weeks |
 | M9b (opt) | iPhone/iPad port | Touch controls (virtual yoke, tilt), phone graphics preset, reduced texture set; built on a Mac with Xcode | 2–3 weeks |
+| **G** | **Graphics toward MSFS quality** (user priority) | Presets Low/Med/High/Ultra; High+ switch to Forward+ renderer, plus:<br>• rendering: TAA/FSR2<br>• sky and clouds: physical atmosphere scattering, raymarched volumetric clouds<br>• water: reflective with waves (coast, creeks, lakes, from OSM water polygons)<br>• scenery: OSM 3D buildings (578k footprints, merged per tile, PBR facades), tree/forest scatter from imagery classes, terrain detail textures + normal maps<br>• aircraft: PBR C172 (converted FlightGear c172p, GPL)<br>• weather effects: rain and wet-runway reflections | 3–5 weeks |
 | M10 (opt) | Airliner | A320/737-class aircraft reusing the same FDM framework plus FMS-lite | large |
 
 ---

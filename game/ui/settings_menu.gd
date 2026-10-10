@@ -1,0 +1,104 @@
+extends PanelContainer
+## F10: in-flight settings — weather, time of day and failures. Every control
+## edits a Props path directly, so changes apply immediately.
+
+const SLIDERS := [
+	# [label, prop, min, max, step, unit]
+	["Time of day (IST)", "weather/time_h", 0.0, 24.0, 0.25, "h"],
+	["Time rate", "weather/time_rate", 0.0, 60.0, 1.0, "x"],
+	["Wind from", "weather/wind_dir_deg", 0.0, 360.0, 10.0, "°"],
+	["Wind (surface)", "weather/wind_kt", 0.0, 40.0, 1.0, "kt"],
+	["Gusts to", "weather/gust_kt", 0.0, 50.0, 1.0, "kt"],
+	["Wind aloft from", "weather/aloft_dir_deg", 0.0, 360.0, 10.0, "°"],
+	["Wind aloft", "weather/aloft_kt", 0.0, 60.0, 1.0, "kt"],
+	["Turbulence", "weather/turbulence", 0.0, 1.0, 0.05, ""],
+	["Visibility", "weather/visibility_m", 500.0, 40000.0, 500.0, "m"],
+	["Cloud base (AMSL)", "weather/cloud_base_ft", 1000.0, 12000.0, 100.0, "ft"],
+	["Cloud cover", "weather/cloud_cover", 0.0, 1.0, 0.05, ""],
+	["QNH", "weather/qnh_hpa", 980.0, 1040.0, 1.0, "hPa"],
+	["Temperature (sea level)", "weather/temp_c", -5.0, 45.0, 1.0, "°C"],
+]
+const FAILURES := [
+	["Engine failure", "failures/engine"],
+	["Vacuum pump", "failures/vacuum_pump"],
+	["Pitot blocked", "failures/pitot_blocked"],
+	["Static port blocked", "failures/static_blocked"],
+	["Alternator", "failures/alternator"],
+	["Battery dead", "failures/battery"],
+	["Left tank leak", "failures/fuel_leak_left"],
+]
+
+var _labels := {}
+var _sliders := {}
+
+
+func _ready() -> void:
+	visible = false
+	set_anchors_preset(PRESET_CENTER)
+	custom_minimum_size = Vector2(560, 0)
+	var vb := VBoxContainer.new()
+	add_child(vb)
+	var title := Label.new()
+	title.text = "Settings  (F10 to close)"
+	title.add_theme_font_size_override("font_size", 20)
+	vb.add_child(title)
+	var grid := GridContainer.new()
+	grid.columns = 3
+	vb.add_child(grid)
+	for s in SLIDERS:
+		var l := Label.new()
+		l.text = s[0]
+		grid.add_child(l)
+		var sl := HSlider.new()
+		sl.min_value = s[2]
+		sl.max_value = s[3]
+		sl.step = s[4]
+		sl.custom_minimum_size = Vector2(260, 20)
+		sl.value_changed.connect(func(v): Props.set_v(s[1], v))
+		grid.add_child(sl)
+		var vl := Label.new()
+		vl.custom_minimum_size = Vector2(90, 0)
+		grid.add_child(vl)
+		_sliders[s[1]] = sl
+		_labels[s[1]] = [vl, s[5]]
+	vb.add_child(HSeparator.new())
+	var fl := Label.new()
+	fl.text = "Failures"
+	vb.add_child(fl)
+	var fg := GridContainer.new()
+	fg.columns = 2
+	vb.add_child(fg)
+	for f in FAILURES:
+		var cb := CheckBox.new()
+		cb.text = f[0]
+		cb.toggled.connect(func(on): Props.set_v(f[1], on))
+		cb.set_meta("prop", f[1])
+		fg.add_child(cb)
+	var clear := Button.new()
+	clear.text = "Clear all failures"
+	clear.pressed.connect(func():
+		for f in FAILURES:
+			Props.set_v(f[1], false)
+		for c in fg.get_children():
+			(c as CheckBox).set_pressed_no_signal(false))
+	vb.add_child(clear)
+
+
+func _unhandled_key_input(e: InputEvent) -> void:
+	if e.pressed and not e.echo and e.keycode == KEY_F10:
+		visible = not visible
+		if visible:
+			for p in _sliders:
+				(_sliders[p] as HSlider).set_value_no_signal(Props.get_f(p))
+
+
+func _process(_dt: float) -> void:
+	if not visible:
+		return
+	for p in _labels:
+		var v := Props.get_f(p)
+		var unit: String = _labels[p][1]
+		if p == "weather/time_h":
+			_labels[p][0].text = "%02d:%02d" % [int(v), int(fmod(v, 1.0) * 60.0)]
+		else:
+			_labels[p][0].text = ("%.2f" if v < 2.0 and v != 0.0 else "%.0f") % v + " " + unit

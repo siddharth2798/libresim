@@ -107,8 +107,8 @@ def config(root):
                                    "pos_m": loc(p.find("location"))} for p in mb.findall("pointmass")]},
         "gear": gear,
         "tanks": tanks, "unusable_fuel_kg": 1.5 * 2.72,
-        # rigging = fixed ground-adjustable trim tabs, set so cruise is hands-off neutral
-        "controls": {"surfaces": surf, "flaps": flaps, "aileron_rigging": 0.018, "rudder_rigging": 0.0},
+        # rigging = fixed ground-adjustable trim tabs, set so cruise is hands-off neutral with the default solo pilot
+        "controls": {"surfaces": surf, "flaps": flaps, "aileron_rigging": 0.029, "rudder_rigging": 0.0},
         "engine": {"type": "piston", "maxhp": txt(eng, "maxhp"), "displacement_in3": txt(eng, "displacement"),
                    "idle_rpm": txt(eng, "idlerpm"), "max_rpm": txt(eng, "maxrpm"),
                    "min_map_inhg": txt(eng, "minmp"), "max_map_inhg": txt(eng, "maxmp"),

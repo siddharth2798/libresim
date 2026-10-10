@@ -29,6 +29,7 @@ var mixture := 1.0
 var magnetos := 3
 var starter := false
 var fuel_ok := true
+var failed := false  # catastrophic engine failure
 # outputs
 var running := false
 var map_pa := 101325.0
@@ -88,7 +89,7 @@ func update(dt: float, rpm: float, p_amb: float, t_amb: float, airspeed: float) 
 		1, 2: spark = 1.0 - spark_drop * 0.9  # single mag: slower burn, ~4 % RPM drop
 		3: spark = 1.0
 	var mf := _mixture_factor(phi)
-	running = spark > 0.0 and fuel_ok and mf > 0.0 and rpm > 150.0
+	running = spark > 0.0 and fuel_ok and not failed and mf > 0.0 and rpm > 150.0
 	var p_ind := _k_power * mdot_air * mf * spark * maxf(1.0 - MAP_ZERO / map_pa, 0.0) if running else 0.0
 	fuel_flow_kgs = mdot_air * far if running else 0.0
 	var omega := maxf(rpm, 1.0) * TAU / 60.0

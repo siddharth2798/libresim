@@ -15,8 +15,10 @@ const GAUGES := {
 }
 const CELL := 190.0
 const PAD := 12.0
+const SWITCH_H := 70.0
 
 var _strip: Control
+var _switches: Control
 
 
 func _ready() -> void:
@@ -28,13 +30,16 @@ func _ready() -> void:
 	_strip = Control.new()
 	_strip.set_script(load("res://ui/gauges/engine_strip.gd"))
 	add_child(_strip)
+	_switches = Control.new()
+	_switches.set_script(load("res://ui/gauges/switch_row.gd"))
+	add_child(_switches)
 	resized.connect(_layout)
 	_layout()
 
 
 ## Panel's natural size (for the SubViewport).
 static func natural_size() -> Vector2:
-	return Vector2(CELL * 5.6, CELL * 2 + PAD * 3)
+	return Vector2(CELL * 5.6, CELL * 2 + PAD * 3 + SWITCH_H)
 
 
 func _layout() -> void:
@@ -50,6 +55,8 @@ func _layout() -> void:
 	tach.size = Vector2(CELL * 0.95, CELL * 0.95) * s
 	_strip.position = Vector2(PAD + 4.15 * CELL, PAD) * s
 	_strip.size = Vector2(CELL * 1.4, CELL * 2.0 + PAD) * s
+	_switches.position = Vector2(PAD, PAD * 2 + CELL * 2 + PAD * 0.5) * s
+	_switches.size = Vector2(CELL * 5.6 - PAD * 2, SWITCH_H - PAD * 0.5) * s
 
 
 func _draw() -> void:

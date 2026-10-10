@@ -15,8 +15,8 @@ uniform float h_scale = 0.1;
 uniform float h_offset = -100.0;
 uniform float tile_n = 256.0;
 uniform float skirt_depth = 30.0;
-uniform vec3 fog_color : source_color = vec3(0.70, 0.78, 0.88);
-uniform float haze_density = 0.000018;
+global uniform vec3 fog_color;      // set by SkyTime (visibility / time of day)
+global uniform float haze_density;
 
 varying float v_dist;
 

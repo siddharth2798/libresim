@@ -46,6 +46,9 @@ func place_on_ground(east: float, north: float, heading_deg: float) -> void:
 func place_airborne(east: float, north: float, alt: float, heading_deg: float, kias: float) -> void:
 	fdm.set_airborne(north, east, alt, deg_to_rad(heading_deg), kias * 0.514444)
 	fdm.prop.rpm = 2300.0
+	fdm.trim_level(kias * 0.514444)
+	Props.set_v("controls/throttle", fdm.engine.throttle)
+	Props.set_v("controls/pitch_trim", fdm.fcs.pitch_trim)
 	_snap()
 
 
@@ -79,7 +82,13 @@ func _read_controls() -> void:
 	e.throttle = Props.get_f("controls/throttle")
 	e.mixture = Props.get_f("controls/mixture", 1.0)
 	e.magnetos = Props.get_v("controls/magnetos", 3)
-	e.starter = Props.get_b("controls/starter")
+	e.starter = Props.get_b("controls/starter") and Props.get_b("systems/electrical/starter_ok", true)
+	e.failed = Props.get_b("failures/engine")
+	c.flaps_powered = Props.get_b("systems/electrical/flaps_powered", true)
+	fdm.feed_left = Props.get_f("fuel/feed_left", 0.5)
+	fdm.feed_right = Props.get_f("fuel/feed_right", 0.5)
+	fdm.fuel_available = Props.get_b("fuel/available", true)
+	fdm.leak_left_kgs = Props.get_f("fuel/leak_left_kgs")
 	if Props.has("environment/wind_ned"):
 		fdm.wind_ned = Props.get_v("environment/wind_ned")
 	if Props.has("environment/qnh_pa"):
@@ -125,6 +134,9 @@ func _publish() -> void:
 	Props.set_v("engine/power_w", f.engine.power_w)
 	Props.set_v("engine/thrust_n", f.prop.thrust)
 	Props.set_v("fuel/total_kg", f.mb.fuel_kg())
+	Props.set_v("fuel/left_kg", f.mb.tanks[0].contents_kg)
+	Props.set_v("fuel/right_kg", f.mb.tanks[1].contents_kg)
+	Props.set_v("systems/electrical/flap_motor_running", f.fcs.flap_motor_running)
 
 
 ## Pose interpolated between physics ticks, in render space.

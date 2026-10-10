@@ -1,4 +1,4 @@
-[gd_scene load_steps=24 format=3]
+[gd_scene load_steps=31 format=3]
 
 [ext_resource type="Script" path="res://world/flight.gd" id="1"]
 [ext_resource type="Script" path="res://world/terrain_quadtree.gd" id="2"]
@@ -18,6 +18,13 @@
 [ext_resource type="Script" path="res://instruments/magnetic_compass.gd" id="15"]
 [ext_resource type="Script" path="res://instruments/engine_instruments.gd" id="16"]
 [ext_resource type="Script" path="res://ui/panel_overlay.gd" id="17"]
+[ext_resource type="Script" path="res://systems/electrical.gd" id="18"]
+[ext_resource type="Script" path="res://systems/fuel.gd" id="19"]
+[ext_resource type="Script" path="res://world/weather.gd" id="20"]
+[ext_resource type="Script" path="res://world/sky_time.gd" id="21"]
+[ext_resource type="Script" path="res://world/clouds.gd" id="22"]
+[ext_resource type="Script" path="res://world/runway_lights.gd" id="23"]
+[ext_resource type="Script" path="res://ui/settings_menu.gd" id="24"]
 
 [sub_resource type="ProceduralSkyMaterial" id="sky_mat"]
 sky_top_color = Color(0.32, 0.5, 0.78, 1)
@@ -34,6 +41,10 @@ sky = SubResource("sky")
 ambient_light_source = 3
 ambient_light_energy = 0.7
 tonemap_mode = 2
+glow_enabled = true
+glow_intensity = 0.6
+glow_bloom = 0.05
+glow_hdr_threshold = 1.2
 
 [node name="Flight" type="Node3D"]
 script = ExtResource("1")
@@ -58,7 +69,27 @@ script = ExtResource("6")
 script = ExtResource("3")
 terrain_path = NodePath("../Terrain")
 
+[node name="Weather" type="Node" parent="."]
+script = ExtResource("20")
+
+[node name="SkyTime" type="Node" parent="."]
+script = ExtResource("21")
+sun_path = NodePath("../Sun")
+env_path = NodePath("../WorldEnvironment")
+
+[node name="Clouds" type="MultiMeshInstance3D" parent="."]
+script = ExtResource("22")
+
+[node name="RunwayLights" type="MultiMeshInstance3D" parent="."]
+script = ExtResource("23")
+
 [node name="Systems" type="Node" parent="."]
+
+[node name="Electrical" type="Node" parent="Systems"]
+script = ExtResource("18")
+
+[node name="Fuel" type="Node" parent="Systems"]
+script = ExtResource("19")
 
 [node name="PitotStatic" type="Node" parent="Systems"]
 script = ExtResource("11")
@@ -101,6 +132,9 @@ script = ExtResource("8")
 
 [node name="Panel" type="TextureRect" parent="UI"]
 script = ExtResource("17")
+
+[node name="Settings" type="PanelContainer" parent="UI"]
+script = ExtResource("24")
 
 [node name="Perf" type="Label" parent="UI"]
 offset_left = 10.0

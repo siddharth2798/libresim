@@ -255,7 +255,7 @@
     "time_s": 1.0
    }
   ],
-  "aileron_rigging": 0.018,
+  "aileron_rigging": 0.029,
   "rudder_rigging": 0.0
  },
  "engine": {

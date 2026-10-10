@@ -27,6 +27,10 @@ var v_b := Vector3.ZERO
 var w_b := Vector3.ZERO
 var q := Quaternion.IDENTITY
 var wind_ned := Vector3.ZERO  # air mass velocity (m/s, NED)
+var feed_left := 0.5  # fuel feed fractions (fuel system)
+var feed_right := 0.5
+var fuel_available := true
+var leak_left_kgs := 0.0
 var time := 0.0
 
 # derived (updated every step)
@@ -86,6 +90,11 @@ func set_airborne(n: float, e: float, alt: float, heading: float, tas: float, pi
 	v_b = Vector3(tas * cos(pitch), 0.0, tas * sin(pitch))
 	w_b = Vector3.ZERO
 	_alpha_prev = pitch
+
+
+## Trim for steady level flight at the current position/heading (see trim.gd).
+func trim_level(tas: float) -> void:
+	Trim.trim_level(self, tas)
 
 
 ## Start at rest on the ground with gear just touching; settles in ~1 s.
@@ -169,15 +178,10 @@ func step(dt: float) -> void:
 
 func _burn_fuel(dt: float) -> void:
 	var burn := engine.fuel_flow_kgs * dt
-	if burn <= 0.0:
-		return
-	var n_tanks := 0
-	for t in mb.tanks:
-		if t.contents_kg > 0.0:
-			n_tanks += 1
-	for t in mb.tanks:
-		if t.contents_kg > 0.0:
-			t.contents_kg = maxf(t.contents_kg - burn / n_tanks, 0.0)
+	var l: Dictionary = mb.tanks[0]  # JSBSim tank 0 = left (y < 0)
+	var r: Dictionary = mb.tanks[1]
+	l.contents_kg = maxf(l.contents_kg - burn * feed_left - leak_left_kgs * dt, 0.0)
+	r.contents_kg = maxf(r.contents_kg - burn * feed_right, 0.0)
 	if int(time / dt) % 120 == 0:
 		mb.update()
-	engine.fuel_ok = mb.fuel_kg() > cfg.unusable_fuel_kg
+	engine.fuel_ok = fuel_available and mb.fuel_kg() > 0.0

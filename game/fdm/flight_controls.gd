@@ -15,6 +15,8 @@ var yaw := 0.0
 var pitch_trim := 0.0
 var flap_cmd := 0  # detent index
 var aileron_rigging := 0.0  # fixed trim tab (config)
+var flaps_powered := true
+var flap_motor_running := false
 var rudder_rigging := 0.0
 
 var elevator := 0.0  # rad
@@ -44,7 +46,8 @@ func update(dt: float) -> void:
 	aileron = _scale(clampf(roll + aileron_rigging, -1.0, 1.0), _surf["left-aileron"])
 	rudder = _scale(clampf(-(yaw + rudder_rigging), -1.0, 1.0), _surf.rudder)
 	var target: float = _flap_detents[clampi(flap_cmd, 0, _flap_detents.size() - 1)]
-	if not is_equal_approx(flap_deg, target):
+	flap_motor_running = flaps_powered and not is_equal_approx(flap_deg, target)
+	if flap_motor_running:
 		var seg := 1
 		while seg < _flap_detents.size() - 1 and flap_deg >= _flap_detents[seg]:
 			seg += 1
