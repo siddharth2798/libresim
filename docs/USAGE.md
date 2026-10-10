@@ -170,7 +170,8 @@ Mistakes end the flight the way they would in reality. The thresholds come from 
 **Strikes and impacts:**
 - **Prop strike:** the propeller tip touches the ground (for example, landing nose wheel first or porpoising). The engine is destroyed, and if you were moving faster than about 25 kt the aircraft noses over (crash).
 - **Wingtip strike** above 10 kt (ground loop) is a crash. A **tail strike** damages the airframe.
-- **Ditching** (touching water) is a crash, and so is flying **into trees**.
+- **Ditching** (touching water) is a crash, and so is flying **into trees** or **into buildings**. Buildings are checked at the nose, wingtips, tail and fuselage against OSM footprints and heights.
+- **Crosswind:** touching down while drifting sideways more than about 6 kt damages the gear; more than about 10 kt folds it (ground loop). Use a crab or wing-low correction.
 
 **In-flight limits:**
 - More than 2 s above **Vne 163 KIAS** damages the airframe; at **185 KIAS** the structure fails.
@@ -190,14 +191,13 @@ Mistakes end the flight the way they would in reality. The thresholds come from 
 | Flared 300 fpm landing | no damage | — |
 | 1200 fpm unflared arrival | gear collapse | — |
 | Pushing onto the nose wheel | nose gear collapse / prop strike | — |
-| Ditching, Vne dive, full-aft pull at 145 kt, flaps 30 at 120 kt | each detected | — |
+| Ditching, Vne dive, full-aft pull at 145 kt, flaps 30 at 120 kt, uncorrected 15 kt crosswind touchdown | each detected | — |
 
 **Not modelled yet:**
-- collisions with buildings
-- gear side-load failures in crosswind touchdowns
-- runway overruns into obstacles beyond terrain and trees
 - tyre bursts
-- engine damage from over-temperature
+- engine damage from over-temperature or over-speed
+- collisions with ground vehicles
+- bird strikes
 
 ### Instruments and cockpit (M5)
 

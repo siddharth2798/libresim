@@ -128,3 +128,22 @@ func test_flap_overspeed() -> String:
 	h.run(10.0)
 	print("    %s" % [f.damage.events])
 	return "" if f.damage.flaps_jammed else "flaps 30 at 120 kt (VFE 85) did not damage the flaps"
+
+
+func test_land_crosswind_drift_side_load() -> String:
+	# 15 kt direct crosswind, wings level and no correction: the aircraft drifts sideways at touchdown
+	var h := FdmHarness.new(2550.0)
+	var f := h.f
+	f.wind_ned = Vector3(0.0, 15.0 * KT, 0.0)  # air moving east = wind from the west
+	f.fcs.flap_cmd = 3
+	f.fcs.flap_deg = 30.0
+	f.set_airborne(0, 0, 15.0, 0.0, 60 * KT, 0.0)
+	f.engine.throttle = 0.0
+	h.mode = "pitch"
+	h.target_pitch = deg_to_rad(4.0)
+	h.run(30.0, func():
+		f.fcs.yaw = clampf(-3.0 * wrapf(f.euler().z, -PI, PI), -1, 1)  # keep the nose on the runway heading: no crab
+		return f.gear.wow)
+	h.run(2.0)
+	print("    events: %s" % [f.damage.events])
+	return "" if f.damage.structure_damaged or not f.damage.gear_failed.is_empty() else "touching down drifting in a 15 kt crosswind caused no side load"

@@ -7,6 +7,8 @@ Output: data/processed/buildings/<tx>_<ty>.bin  (gzip) =
         nverts * f32 xyz  (tile-local render axes: x = east - tile_x0, y = height AMSL, z = -(north - tile_y0)),
         nverts * u8 rgba  (rgb = roof colour from imagery, a = facade style 0..255),
         nidx * u32 indices (walls + earcut roofs; flat normals are made in the shader)
+Also data/processed/buildings/<tx>_<ty>.col (gzip): b"COL1", u32 count, then per building
+        u16 n, f32 base, f32 top, n * (f32 east, f32 north) world metres -- for collisions.
 Two vertex rings per footprint (ground + roof line), shared between walls and roof.
 Heights: OSM height / building:levels when tagged, else a deterministic synthetic
 height from footprint area (Mumbai: small = 1-4 floors, large blocks up to ~40 m).
@@ -70,8 +72,11 @@ def area(p):
     return 0.5 * (np.dot(x, np.roll(y, -1)) - np.dot(y, np.roll(x, -1)))
 
 
+MAX_TAGGED_H = 320.0  # tallest Mumbai towers are ~300 m; larger tags are OSM errors
+
+
 def synth_height(a, cx, cy, tagged):
-    if tagged != DEFAULT_H:
+    if tagged != DEFAULT_H and 2.0 <= tagged <= MAX_TAGGED_H:
         return tagged
     r = (math.sin(cx * 12.9898 + cy * 78.233) * 43758.5453) % 1.0  # deterministic per building
     if a < 80:
@@ -116,6 +121,7 @@ def build_tile(path):
     img = roof_colours(tx, ty)
     x0, y0 = hts.x0, hts.y0
     pos, col, idx = [], [], []
+    colrec = []
     nv = 0
     for tagged_h, ring in read_tile(path):
         if len(ring) < 3:
@@ -134,6 +140,7 @@ def build_tile(path):
         pj = int(np.clip((y0 + c.TILE_SIZE - cy) / 10.0, 0, 767))
         rgb = img[pj, pi].astype(int)
         style = int((math.sin(cx * 3.1 + cy * 7.7) * 9999.0) % 1.0 * 255)
+        colrec.append(struct.pack("<Hff", n, base, base + h) + ring.astype("<f4").tobytes())
         lx, lz = ring[:, 0] - x0, -(ring[:, 1] - y0)
         for k in range(n):  # ground ring then roof ring
             pos.append((lx[k], base, lz[k]))
@@ -155,6 +162,8 @@ def build_tile(path):
     ix = np.asarray(idx, "<u4")
     data = b"BLD1" + struct.pack("<II", len(p), len(ix)) + p.tobytes() + cl.tobytes() + ix.tobytes()
     (DST / f"{path.stem}.bin").write_bytes(gzip.compress(data, 6))
+    cdata = b"COL1" + struct.pack("<I", len(colrec)) + b"".join(colrec)
+    (DST / f"{path.stem}.col").write_bytes(gzip.compress(cdata, 6))
     return path.stem, len(p), len(ix)
 
 

@@ -77,6 +77,7 @@ script = ExtResource("6")
 script = ExtResource("3")
 terrain_path = NodePath("../Terrain")
 trees_path = NodePath("../Trees")
+buildings_path = NodePath("../Buildings")
 
 [node name="Weather" type="Node" parent="."]
 script = ExtResource("20")

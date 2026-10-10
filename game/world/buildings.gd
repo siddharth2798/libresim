@@ -15,6 +15,8 @@ var _mutex := Mutex.new()
 var _mat := ShaderMaterial.new()
 var _timer := 0.0
 var _dir := ""
+const CELL := 64.0
+var _col := {}  # Vector2i tile -> {"cells": {Vector2i: [idx...]}, "polys": [PackedVector2Array], "base": [], "top": []}
 
 
 func _ready() -> void:
@@ -30,6 +32,8 @@ func _process(dt: float) -> void:
 	_mutex.unlock()
 	for item in batch:
 		_add(item[0], item[1])
+		if not item[2].is_empty():
+			_col[item[0]] = item[2]
 	_mat.set_shader_parameter("night", clampf((2.0 - Props.get_f("environment/sun_elev_deg", 30.0)) / 8.0, 0.0, 1.0))
 	visible = Props.get_f("fdm/agl_m", 0.0) < HIDE_AGL or not Props.has("fdm/agl_m")
 	_timer -= dt
@@ -56,6 +60,7 @@ func _process(dt: float) -> void:
 			WorkerThreadPool.add_task(_load.bind(k))
 	for k in _tiles.keys():
 		if not want.has(k) and _tiles[k] != null:
+			_col.erase(k)
 			_tiles[k].queue_free()
 			_tiles.erase(k)
 
@@ -82,9 +87,58 @@ func _load(k: Vector2i) -> void:
 	var mesh := ArrayMesh.new()
 	var fmt := Mesh.ARRAY_CUSTOM_RGBA8_UNORM << Mesh.ARRAY_FORMAT_CUSTOM0_SHIFT
 	mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays, [], {}, fmt)
+	var col := _load_collision(k)
 	_mutex.lock()
-	_done.append([k, mesh])
+	_done.append([k, mesh, col])
 	_mutex.unlock()
+
+
+func _load_collision(k: Vector2i) -> Dictionary:
+	var p := _dir.path_join("%d_%d.col" % [k.x, k.y])
+	if not FileAccess.file_exists(p):
+		return {}
+	var b := FileAccess.get_file_as_bytes(p).decompress_dynamic(-1, FileAccess.COMPRESSION_GZIP)
+	if b.size() < 8 or b.slice(0, 4).get_string_from_ascii() != "COL1":
+		return {}
+	var count := b.decode_u32(4)
+	var o := 8
+	var polys: Array = []
+	var base := PackedFloat32Array()
+	var top := PackedFloat32Array()
+	var cells := {}
+	for i in count:
+		var n := b.decode_u16(o)
+		base.append(b.decode_float(o + 2))
+		top.append(b.decode_float(o + 6))
+		var pts := b.slice(o + 10, o + 10 + n * 8).to_vector2_array()
+		o += 10 + n * 8
+		polys.append(pts)
+		var lo := pts[0]
+		var hi := pts[0]
+		for q in pts:
+			lo = lo.min(q)
+			hi = hi.max(q)
+		for cy in range(floori(lo.y / CELL), floori(hi.y / CELL) + 1):
+			for cx in range(floori(lo.x / CELL), floori(hi.x / CELL) + 1):
+				var key := Vector2i(cx, cy)
+				if not cells.has(key):
+					cells[key] = []
+				cells[key].append(i)
+	return {"cells": cells, "polys": polys, "base": base, "top": top}
+
+
+## Roof height (m AMSL) of the building containing world (east, north), else -INF.
+func building_top_at(east: float, north: float) -> float:
+	var s := TerrainTileCache.TILE_SIZE_DEFAULT
+	var t: Dictionary = _col.get(Vector2i(floori(east / s), floori(north / s)), {})
+	if t.is_empty():
+		return -INF
+	var ids: Array = t.cells.get(Vector2i(floori(east / CELL), floori(north / CELL)), [])
+	var p := Vector2(east, north)
+	for i in ids:
+		if Geometry2D.is_point_in_polygon(p, t.polys[i]):
+			return t.top[i]
+	return -INF
 
 
 func _add(k: Vector2i, mesh: ArrayMesh) -> void:

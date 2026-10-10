@@ -19,7 +19,7 @@ var gear: GearGround
 var fcs: FlightControls
 var ground_height: Callable = func(_n: float, _e: float) -> float: return 0.0
 var surface: Callable = func(_n: float, _e: float) -> int: return 0  # land class (255 = water)
-var obstacle_top: Callable = func(_n: float, _e: float) -> float: return -INF  # trees etc.
+var obstacle_top: Callable = func(_n: float, _e: float) -> Array: return [-INF, ""]  # [top m, "trees"/"a building"]
 var damage := Damage.new()
 
 # state
@@ -167,8 +167,8 @@ func step(dt: float) -> void:
 	var gr: Array = gear.compute(mb, r_bn, Vector3(pos_n, pos_e, pos_d), v_b, w_b,
 		func(n: float, e: float) -> float: return ground_height.call(n, e))
 	damage.update(self, dt, gear.info, surface)
-	if agl < 25.0 and not damage.crashed and -pos_d < obstacle_top.call(pos_n, pos_e):
-		damage._crash("flew into trees")
+	if agl < 400.0 and not damage.crashed:
+		_check_obstacles(r_bn)
 	var f_ext: Vector3 = f_aero + f_thr + gr[0]
 	var m_tot: Vector3 = m_aero + m_thr + gr[1]
 	var f_grav := r_nb * Vector3(0.0, 0.0, G * mb.mass)
@@ -190,6 +190,22 @@ func step(dt: float) -> void:
 	pos_d += v_ned.z * dt
 	_burn_fuel(dt)
 	time += dt
+
+
+## Nose, wingtips, tail and CG against trees/buildings (obstacle_top returns the
+## highest obstacle top at a point and a label).
+func _check_obstacles(r_bn: Basis) -> void:
+	for c in gear.contacts:
+		if c.wheel:
+			continue
+		var p := r_bn * mb.body_of(c.pos)
+		var top: Array = obstacle_top.call(pos_n + p.x, pos_e + p.y)
+		if -(pos_d + p.z) < top[0]:
+			damage._crash("%s hit %s" % [c.name.to_lower().replace("_", " "), top[1]])
+			return
+	var t2: Array = obstacle_top.call(pos_n, pos_e)
+	if -pos_d < t2[0]:
+		damage._crash("flew into %s" % t2[1])
 
 
 func _burn_fuel(dt: float) -> void:

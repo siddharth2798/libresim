@@ -19,6 +19,8 @@ const HARD := 3.0  # m/s (~590 fpm) at the wheel
 const COLLAPSE := 4.6  # m/s (~900 fpm)
 const NOSE_COLLAPSE := 2.6  # m/s
 const COLLAPSE_DROP := 0.35  # m the airframe sinks onto a failed leg
+const SIDE_DAMAGE := 3.0  # m/s sideways drift of a main wheel at touchdown (~6 kt)
+const SIDE_COLLAPSE := 5.0  # m/s (~10 kt): gear folds / ground loop
 const MAIN_LOAD_W := 3.0  # main gear force limit, multiples of aircraft weight (backstop)
 const NOSE_LOAD_W := 1.6  # nose gear force limit (weaker)
 const VNE := 163.0 * KT
@@ -96,6 +98,13 @@ func update(f: FDM, dt: float, contact_info: Dictionary, surface: Callable) -> v
 			var is_nose: bool = c.name == "NOSE"
 			var limit_v := NOSE_COLLAPSE if is_nose else COLLAPSE
 			var limit_f := weight * (NOSE_LOAD_W if is_nose else MAIN_LOAD_W)
+			var drift: float = absf(info.get("vlat", 0.0))
+			if first and not is_nose and drift > SIDE_COLLAPSE:
+				_fail_gear(c, "%s gear folded: touched down drifting sideways at %.0f kt (side load)" % [c.name.to_lower().replace("_", " "), drift / KT])
+				continue
+			if first and not is_nose and drift > SIDE_DAMAGE:
+				structure_damaged = true
+				_event("Side-load landing: drifting %.0f kt at touchdown — gear damaged (use a crab/wing-low correction)" % (drift / KT))
 			if first:
 				_touchdown(f, c.name, vz)
 				if vz > limit_v:

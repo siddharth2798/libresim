@@ -61,6 +61,7 @@ func compute(mb: MassBalance, r_bn: Basis, pos_ned: Vector3, v_b: Vector3, w_b: 
 		var s_h := Vector2(-f_h.y, f_h.x)
 		var v_long := v_c.x * f_h.x + v_c.y * f_h.y
 		var v_lat := v_c.x * s_h.x + v_c.y * s_h.y
+		info[c.name]["vlat"] = v_lat  # sideways drift of the tyre (side load)
 		var mu_long: float = c.mu_roll
 		var mu_lat: float = lerpf(c.mu_s, c.mu_d, clampf(absf(v_lat) / 2.0, 0.0, 1.0))
 		if c.wheel:

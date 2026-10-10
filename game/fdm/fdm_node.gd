@@ -8,6 +8,7 @@ const SUBSTEPS := 2
 
 @export var terrain_path: NodePath
 @export var trees_path: NodePath
+@export var buildings_path: NodePath
 
 var fdm: FDM
 var paused := false
@@ -23,8 +24,11 @@ func _ready() -> void:
 		fdm.ground_height = func(n: float, e: float) -> float: return _terrain.height_at(e, n)
 		fdm.surface = func(n: float, e: float) -> int: return _terrain.cache.landclass_at(e, n)
 	var trees := get_node_or_null(trees_path) as Trees
-	if trees:
-		fdm.obstacle_top = func(n: float, e: float) -> float: return trees.tree_top_at(e, n)
+	var blds := get_node_or_null(buildings_path) as Buildings
+	fdm.obstacle_top = func(n: float, e: float) -> Array:
+		var tb := blds.building_top_at(e, n) if blds else -INF
+		var tt := trees.tree_top_at(e, n) if trees else -INF
+		return [tb, "a building"] if tb >= tt else [tt, "trees"]
 	_defaults()
 
 
