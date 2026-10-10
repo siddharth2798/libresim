@@ -3,7 +3,17 @@ config_version=5
 
 [application]
 config/name="free-sim"
-config/features=PackedStringArray("4.3", "Mobile")
+run/main_scene="res://world/terrain_viewer.tscn"
+config/features=PackedStringArray("4.7", "Mobile")
+
+[autoload]
+FloatingOrigin="*res://core/floating_origin.gd"
+Props="*res://core/props.gd"
+
+[display]
+window/size/viewport_width=1280
+window/size/viewport_height=720
+window/vsync/vsync_mode=0
 
 [physics]
 common/physics_ticks_per_second=120
@@ -11,3 +21,5 @@ common/physics_ticks_per_second=120
 [rendering]
 renderer/rendering_method="mobile"
 textures/vram_compression/import_etc2_astc=true
+textures/vram_compression/compress_with_gpu=false
+anti_aliasing/quality/screen_space_aa=1

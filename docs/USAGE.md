@@ -2,7 +2,7 @@
 
 This guide covers how to install, build the map data, and run free-sim, a local Cessna 172 flight simulator for the Mumbai–Pune region. Design and roadmap are in `PLAN.md`; the coding conventions are in `CLAUDE.md`.
 
-> **Current state:** M1 (data pipeline) is complete. M2 (terrain viewer) is in progress: you can fly a free camera over the real Mumbai–Pune terrain. There is no aircraft yet; that arrives in M3/M4. Each section below says which milestone it belongs to.
+> **Current state:** M1 (data pipeline) and M2 (terrain viewer) are complete: you can fly a free camera over the real Mumbai–Pune terrain with satellite imagery (~350 FPS on the Radeon 780M). M3 (flight model) is in progress; the aircraft is flyable from M4. Each section below says which milestone it belongs to.
 
 ---
 
@@ -74,7 +74,7 @@ PY=tools/.venv/bin/python
 $PY tools/05_airports_navaids.py   # -> data/processed/airports.json, navaids.json
 $PY tools/04_osm_extract.py        # -> data/processed/osm/ (runways, roads, water, buildings) ~1 min
 $PY tools/02_dem_tiles.py          # -> data/processed/terrain/h/  (heightmaps, runways flattened)
-$PY tools/03_imagery_tiles.py      # -> data/processed/terrain/img/ (needs s2.tif) ~few min
+$PY tools/03_imagery_tiles.py      # -> data/processed/terrain/img/ BC1 .dds tiles (needs s2.tif) ~15 s
 $PY tools/06_jsbsim_to_json.py     # -> game/aircraft/c172/c172_aero.json, c172_config.json (committed)
 $PY tools/07_preview.py 1          # -> data/processed/preview_L1.png  (sanity check)
 ```
@@ -122,6 +122,16 @@ Command-line options go after `--`:
 
 The overlay shows FPS, frame time, draw calls, triangles, lat/lon, altitude, height above ground (AGL) and the number of terrain LOD nodes.
 
+### Automated tests
+
+```bash
+cd game
+~/.local/bin/godot --headless --path . -s tests/run_tests.gd               # all tests
+~/.local/bin/godot --headless --path . -s tests/run_tests.gd -- --only=fdm  # tests named test_fdm*
+```
+
+The runner prints PASS/FAIL per test and exits non-zero on failure. `tests/test_core.gd` covers geo projection, the floating origin and terrain heights/runway flatness. `tests/test_fdm_cards.gd` holds the POH performance test cards (M3).
+
 ---
 
 ## 5. Project layout
@@ -131,9 +141,11 @@ tools/        offline Python pipeline (section 3); common.py holds region/grid c
 data/raw      downloaded sources (gitignored)
 data/processed generated tiles/JSON (gitignored)
 game/         Godot project
-  core/       floating_origin (autoload), geo (lat/lon <-> ENU), units, paths
+  core/       floating_origin + props (autoloads), geo (lat/lon <-> ENU), units, paths
   world/      terrain quadtree, tile cache, mesh, shader, terrain_viewer scene
   input/      free_camera
+  fdm/        flight model: aero (JSBSim tables), engine, propeller, gear, atmosphere (M3)
+  tests/      headless test runner + suites
   ui/         perf_overlay
   aircraft/c172/  aero + config JSON generated from JSBSim (edit freely to tune)
 docs/USAGE.md this file

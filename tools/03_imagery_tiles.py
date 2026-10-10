@@ -1,16 +1,19 @@
-"""data/raw/imagery/s2.tif (world frame, 10 m) -> data/processed/terrain/img/<L>/<tx>_<ty>.jpg
+"""data/raw/imagery/s2.tif (world frame, 10 m) -> data/processed/terrain/img/<L>/<tx>_<ty>.dds
 
-One IMG_N x IMG_N JPEG per terrain tile (same L/tx/ty as the heightmaps, see
+One IMG_N x IMG_N BC1/DXT1 DDS (full mip chain, sRGB data) per terrain tile (same L/tx/ty as the heightmaps, see
 02_dem_tiles.py). Image row 0 is the NORTH edge (normal image order); the tile
 covers world x in [tx*S, (tx+1)*S], y in [ty*S, (ty+1)*S], S = TILE_SIZE * 2^L.
 Run 02_dem_tiles.py first (reads terrain/meta.json for the tile list).
 """
 import json
 import sys
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ProcessPoolExecutor
+
+import numpy as np
 
 from osgeo import gdal
 
+import bc1
 import common as c
 
 gdal.UseExceptions()
@@ -29,16 +32,14 @@ def ensure_overviews():
 
 def make_tile(job):
     level, tx, ty, size = job
-    out = c.OUT / "terrain" / "img" / str(level) / f"{tx}_{ty}.jpg"
+    out = c.OUT / "terrain" / "img" / str(level) / f"{tx}_{ty}.dds"
     if out.exists():
         return
     x0, y0 = tx * size, ty * size
-    gdal.Translate(str(out), str(SRC), format="JPEG", projWin=[x0, y0 + size, x0 + size, y0],
-                   width=c.IMG_N, height=c.IMG_N, resampleAlg="average",
-                   creationOptions=["QUALITY=85"])
-    aux = out.with_suffix(".jpg.aux.xml")
-    if aux.exists():
-        aux.unlink()
+    ds = gdal.Translate("", str(SRC), format="MEM", projWin=[x0, y0 + size, x0 + size, y0],
+                        width=c.IMG_N, height=c.IMG_N, resampleAlg="average")
+    img = np.dstack([ds.GetRasterBand(b).ReadAsArray() for b in (1, 2, 3)]).astype(np.uint8)
+    bc1.write_dds(out, img)
 
 
 def main():
@@ -50,7 +51,7 @@ def main():
         for key in L["tiles"]:
             tx, ty = map(int, key.split("_"))
             jobs.append((L["level"], tx, ty, L["size_m"]))
-    with ThreadPoolExecutor(int(sys.argv[1]) if len(sys.argv) > 1 else 8) as ex:
+    with ProcessPoolExecutor(int(sys.argv[1]) if len(sys.argv) > 1 else 8) as ex:
         list(ex.map(make_tile, jobs))
     meta["img_n"] = c.IMG_N
     (c.OUT / "terrain" / "meta.json").write_text(json.dumps(meta))

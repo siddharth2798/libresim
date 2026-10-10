@@ -1,0 +1,36 @@
+extends SceneTree
+## Headless test runner: godot --headless --path game -s tests/run_tests.gd [-- --only=<prefix>]
+## Each test_* method returns "" on success or a failure message.
+## Test suites: tests/test_core.gd (M2), tests/test_fdm_cards.gd (M3 POH test cards).
+
+const SUITES := ["res://tests/test_core.gd", "res://tests/test_fdm_cards.gd"]
+
+
+func _init() -> void:
+	var only := ""
+	for a in OS.get_cmdline_user_args():
+		if a.begins_with("--only="):
+			only = a.substr(7)
+	var fails := 0
+	var total := 0
+	for path in SUITES:
+		if not ResourceLoader.exists(path):
+			continue
+		var suite = load(path).new()
+		if suite is Node:
+			root.add_child(suite)
+		for m in suite.get_method_list():
+			var name: String = m.name
+			if not name.begins_with("test_") or not name.begins_with("test_" + only):
+				continue
+			total += 1
+			var t := Time.get_ticks_msec()
+			var err: String = suite.call(name)
+			var ms := Time.get_ticks_msec() - t
+			if err.is_empty():
+				print("  PASS  %s  (%d ms)" % [name, ms])
+			else:
+				fails += 1
+				print("  FAIL  %s: %s" % [name, err])
+	print("%d/%d passed" % [total - fails, total])
+	quit(1 if fails > 0 else 0)
