@@ -42,21 +42,31 @@ static func natural_size() -> Vector2:
 	return Vector2(CELL * 5.6, CELL * 2 + PAD * 3 + SWITCH_H)
 
 
+## Pixel rects (at natural size) of each gauge, the engine strip and the switch row.
+static func rects() -> Dictionary:
+	var r := {}
+	for k in GAUGES:
+		var cell: Vector2 = GAUGES[k][1]
+		var sz := CELL * (0.95 if k == "tach" else 1.0)
+		r[k] = Rect2(Vector2(PAD + cell.x * CELL, PAD + cell.y * (CELL + PAD)), Vector2(sz, sz))
+	r["strip"] = Rect2(Vector2(PAD + 4.15 * CELL, PAD), Vector2(CELL * 1.4, CELL * 2.0 + PAD))
+	r["switches"] = Rect2(Vector2(PAD, PAD * 2 + CELL * 2 + PAD * 0.5), Vector2(CELL * 5.6 - PAD * 2, SWITCH_H - PAD * 0.5))
+	return r
+
+
 func _layout() -> void:
 	var s := minf(size.x / natural_size().x, size.y / natural_size().y)
 	if s <= 0.0:
 		return
+	var r := rects()
 	for k in GAUGES:
 		var g: Control = get_node(k)
-		var cell: Vector2 = GAUGES[k][1]
-		g.position = Vector2(PAD + cell.x * CELL, PAD + cell.y * (CELL + PAD)) * s
-		g.size = Vector2(CELL, CELL) * s
-	var tach: Control = get_node("tach")
-	tach.size = Vector2(CELL * 0.95, CELL * 0.95) * s
-	_strip.position = Vector2(PAD + 4.15 * CELL, PAD) * s
-	_strip.size = Vector2(CELL * 1.4, CELL * 2.0 + PAD) * s
-	_switches.position = Vector2(PAD, PAD * 2 + CELL * 2 + PAD * 0.5) * s
-	_switches.size = Vector2(CELL * 5.6 - PAD * 2, SWITCH_H - PAD * 0.5) * s
+		g.position = r[k].position * s
+		g.size = r[k].size * s
+	_strip.position = r.strip.position * s
+	_strip.size = r.strip.size * s
+	_switches.position = r.switches.position * s
+	_switches.size = r.switches.size * s
 
 
 func _draw() -> void:

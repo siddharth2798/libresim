@@ -1,4 +1,4 @@
-[gd_scene load_steps=31 format=3]
+[gd_scene load_steps=32 format=3]
 
 [ext_resource type="Script" path="res://world/flight.gd" id="1"]
 [ext_resource type="Script" path="res://world/terrain_quadtree.gd" id="2"]
@@ -25,6 +25,7 @@
 [ext_resource type="Script" path="res://world/clouds.gd" id="22"]
 [ext_resource type="Script" path="res://world/runway_lights.gd" id="23"]
 [ext_resource type="Script" path="res://ui/settings_menu.gd" id="24"]
+[ext_resource type="Script" path="res://ui/credits_screen.gd" id="25"]
 
 [sub_resource type="ProceduralSkyMaterial" id="sky_mat"]
 sky_top_color = Color(0.32, 0.5, 0.78, 1)
@@ -135,6 +136,9 @@ script = ExtResource("17")
 
 [node name="Settings" type="PanelContainer" parent="UI"]
 script = ExtResource("24")
+
+[node name="Credits" type="Control" parent="UI"]
+script = ExtResource("25")
 
 [node name="Perf" type="Label" parent="UI"]
 offset_left = 10.0

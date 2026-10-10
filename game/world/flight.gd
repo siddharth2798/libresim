@@ -4,7 +4,7 @@ extends Node3D
 ##   --air=<alt_ft>               start airborne on the runway's extended centreline, 5 nm out
 ##   --shot=<png>                 screenshot after 6 s and quit (testing)
 ##   --time=<s>                   with --shot: fly that many seconds hands-off first
-##   --view=cockpit|orbit         initial camera (default chase)
+##   --view=cockpit|chase|orbit|free|tower|wing|tail|flyby   initial camera (default chase)
 ##   --tod=19.5 --wind=270/15G25 --vis=3000 --clouds=0.6@3000   time (IST h) and weather
 ## Keys: Esc pause, F5 reset to start.
 
@@ -51,10 +51,9 @@ func _ready() -> void:
 	$Instruments/Gyros.fdm = fdm_node.fdm
 	$Instruments/Compass.fdm = fdm_node.fdm
 	$UI/Panel.setup(model.cockpit, cam)
-	if _view == "cockpit":
-		cam.mode = CameraRig.Mode.COCKPIT
-	elif _view == "orbit":
-		cam.mode = CameraRig.Mode.ORBIT
+	var views := ["cockpit", "chase", "orbit", "free", "tower", "wing", "tail", "flyby"]
+	var vi := views.find(_view)
+	cam.set_mode(vi if vi >= 0 else 1)
 	_reset()
 
 

@@ -86,4 +86,4 @@ func _process(dt: float) -> void:
 	var pb := 1.0 if parking_brake else 0.0
 	Props.set_v("controls/brake_left", maxf(pb, 1.0 if both or Input.is_physical_key_pressed(KEY_COMMA) else 0.0))
 	Props.set_v("controls/brake_right", maxf(pb, 1.0 if both or Input.is_physical_key_pressed(KEY_PERIOD) else 0.0))
-	Props.set_v("controls/starter", Input.is_physical_key_pressed(KEY_S))
+	Props.set_v("controls/starter", Input.is_physical_key_pressed(KEY_S) and not Props.get_b("view/free_cam"))

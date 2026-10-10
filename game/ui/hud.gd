@@ -25,9 +25,10 @@ func _ready() -> void:
 	_help.position = Vector2(12, -235)
 	_help.text = ("arrows pitch/roll  Z/X rudder  PgUp/PgDn throttle  ;/' mixture\n"
 		+ "Home/End trim  [ ] or F6/F7 flaps  B brakes  Shift+B parking  ,/. diff brake\n"
-		+ "S starter  M magnetos  Y mouse yoke  C camera  V centre view\n"
+		+ "S starter  M magnetos  Y mouse yoke  V centre view\n"
+		+ "C / 1-8 views: cockpit chase orbit free tower wing tail fly-by (free cam: WASD QE)\n"
 		+ "Tab 2D panel  F10 weather/time/failures (click switches on the panel)\n"
-		+ "Esc pause  H hud  F1 help  F3 perf  F5 reset")
+		+ "Esc pause  H hud  F1 help  F3 perf  F5 reset  F12 credits")
 	_help.visible = false
 
 
