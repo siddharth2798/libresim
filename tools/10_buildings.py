@@ -1,7 +1,9 @@
 """OSM building footprints -> per-tile 3D building meshes for Godot.
 
 Input:  data/processed/osm/buildings/<tx>_<ty>.bin (04_osm_extract.py), level-0 DEM tiles,
-        data/raw/imagery/s2.tif (roof colours).
+        roof colours from data/raw/imagery/s2.tif (10 m, Mumbai-Pune grid tiles) or
+        data/raw/imagery/corridor/s2_corridor.vrt (20 m, Konkan-Kerala corridor tiles).
+        Tiles whose level-0 heights do not exist yet are skipped (re-run after 02).
 Output: data/processed/buildings/<tx>_<ty>.bin  (gzip) =
         b"BLD1", u32 nverts, u32 nidx,
         nverts * f32 xyz  (tile-local render axes: x = east - tile_x0, y = height AMSL, z = -(north - tile_y0)),
@@ -27,6 +29,7 @@ import numpy as np
 from osgeo import gdal
 
 import common as c
+import osm_regions as R
 
 gdal.UseExceptions()
 SRC = c.OUT / "osm" / "buildings"
@@ -34,6 +37,8 @@ DST = c.OUT / "buildings"
 MIN_AREA = 20.0
 SIMPLIFY = 0.6  # m, Douglas-Peucker
 DEFAULT_H = 9.0  # 04_osm_extract marks untagged buildings with this
+CORRIDOR_VRT = c.RAW / "imagery" / "corridor" / "s2_corridor.vrt"
+GRID = R.grid_tiles()
 
 
 def read_tile(path):
@@ -111,10 +116,13 @@ class Heights:
 
 
 def roof_colours(tx, ty):
+    """(rgb image, metres per pixel) for a level-0 tile; both sources are in the world TM."""
     x0, y0, s = tx * c.TILE_SIZE, ty * c.TILE_SIZE, c.TILE_SIZE
-    ds = gdal.Translate("", str(c.RAW / "imagery" / "s2.tif"), format="MEM",
-                        projWin=[x0, y0 + s, x0 + s, y0], width=768, height=768)
-    return np.dstack([ds.GetRasterBand(b).ReadAsArray() for b in (1, 2, 3)])
+    src, res = ((c.RAW / "imagery" / "s2.tif", 10.0) if (tx, ty) in GRID
+                else (CORRIDOR_VRT, c.CORRIDOR_IMG_RES))
+    n = int(s / res)
+    ds = gdal.Translate("", str(src), format="MEM", projWin=[x0, y0 + s, x0 + s, y0], width=n, height=n)
+    return np.dstack([ds.GetRasterBand(b).ReadAsArray() for b in (1, 2, 3)]), res
 
 
 def landmark_paths():
@@ -131,8 +139,11 @@ LANDMARKS = landmark_paths()
 
 def build_tile(path):
     tx, ty = map(int, path.stem.split("_"))
+    if not (c.OUT / "terrain" / "h" / "0" / f"{tx}_{ty}.r16").exists():
+        return path.stem, -1, 0  # heights not generated yet
     hts = Heights(tx, ty)
-    img = roof_colours(tx, ty)
+    img, res = roof_colours(tx, ty)
+    npx = img.shape[0] - 1
     x0, y0 = hts.x0, hts.y0
     pos, col, idx = [], [], []
     colrec = []
@@ -150,9 +161,11 @@ def build_tile(path):
         cx, cy = ring.mean(0)
         base = float(hts.at(ring[:, 0], ring[:, 1]).min()) - 0.3
         h = synth_height(abs(a), cx, cy, tagged_h)
-        pi = int(np.clip((cx - x0) / 10.0, 0, 767))
-        pj = int(np.clip((y0 + c.TILE_SIZE - cy) / 10.0, 0, 767))
+        pi = int(np.clip((cx - x0) / res, 0, npx))
+        pj = int(np.clip((y0 + c.TILE_SIZE - cy) / res, 0, npx))
         rgb = img[pj, pi].astype(int)
+        if (tx, ty) not in GRID and not rgb.any():  # corridor imagery gap
+            rgb = np.array([150, 140, 130])
         style = int((math.sin(cx * 3.1 + cy * 7.7) * 9999.0) % 1.0 * 255)
         colrec.append(struct.pack("<Hff", n, base, base + h) + ring.astype("<f4").tobytes())
         if any(lp.contains_point((cx, cy)) for lp in LANDMARKS):
@@ -186,12 +199,22 @@ def build_tile(path):
 def main():
     DST.mkdir(parents=True, exist_ok=True)
     files = sorted(SRC.glob("*.bin"))
-    tv = 0
+    if not CORRIDOR_VRT.exists():
+        print(f"WARNING: {CORRIDOR_VRT} missing: corridor tiles skipped")
+        files = [f for f in files if tuple(map(int, f.stem.split("_"))) in GRID]
+    tv, skipped = 0, []
     with ProcessPoolExecutor(int(sys.argv[1]) if len(sys.argv) > 1 else 12) as ex:
         for name, nv, ni in ex.map(build_tile, files):
-            tv += nv
+            if nv < 0:
+                skipped.append(name)
+            else:
+                tv += nv
     size = sum(f.stat().st_size for f in DST.glob("*.bin"))
-    print(f"tiles {len(files)}, vertices {tv}, {size / 1e6:.0f} MB")
+    size_c = sum(f.stat().st_size for f in DST.glob("*.col"))
+    print(f"tiles {len(files) - len(skipped)}, vertices {tv}, meshes {size / 1e6:.0f} MB, collision {size_c / 1e6:.0f} MB")
+    if skipped:
+        print(f"SKIPPED {len(skipped)} tiles: no level-0 heights yet in terrain/h/0 (corridor terrain from 02); "
+              f"re-run 10_buildings.py once they exist. e.g. {' '.join(sorted(skipped)[:8])}")
 
 
 if __name__ == "__main__":

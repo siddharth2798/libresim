@@ -9,7 +9,7 @@ render_mode cull_disabled;
 
 global uniform vec3 fog_color;
 global uniform float haze_density;
-global uniform vec2 world_origin;
+global uniform vec2 pattern_origin;  // origin mod ~50 km (float32-safe)
 global uniform vec3 sky_top_color;
 
 uniform int kind = 1;
@@ -18,13 +18,13 @@ uniform float mullion = 1.6;   // m between vertical mullions
 uniform float floor_h = 4.5;   // m between transoms / floors
 uniform float night = 0.0;
 
-varying vec3 v_world;   // world ENU-ish: x east, y up, z = -north (origin-corrected)
+varying vec3 v_world;   // x east, y up, z = -north, relative to the pattern wrap base
 varying vec3 v_n;
 varying float v_dist;
 
 void vertex() {
 	vec3 w = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
-	v_world = w + vec3(world_origin.x, 0.0, -world_origin.y);
+	v_world = w + vec3(pattern_origin.x, 0.0, -pattern_origin.y);
 	v_n = normalize((MODEL_MATRIX * vec4(NORMAL, 0.0)).xyz);
 	v_dist = length((MODELVIEW_MATRIX * vec4(VERTEX, 1.0)).xyz);
 }

@@ -4,18 +4,24 @@
   water.json      water/riverbank polygons (outer rings)
   buildings/<tx>_<ty>.bin   footprints grouped by level-0 terrain tile:
       repeated [u16 n][f32 height_m][n * (f32 x, f32 y)]  little-endian, world metres
+Covers the Mumbai-Pune BBOX plus the Konkan-Kerala corridor, reading both Geofabrik extracts
+(western + southern zone, de-duplicated by OSM id). Corridor buildings follow the density
+policy in building_density.py (run 05 first: airport zones); thinning is off by default
+(the full corridor is ~1.8 M buildings, ~0.3 GB of meshes). Usage: 04_osm_extract.py [--thin]
 """
 import json
 import math
 import struct
+import sys
 import time
 from collections import defaultdict
 
 import osmium
 
+import building_density
 import common as c
+import osm_regions as R
 
-PBF = c.RAW / "osm" / "western-zone-latest.osm.pbf"
 OUTD = c.OUT / "osm"
 ROAD_CLASSES = {"motorway", "trunk", "primary", "secondary", "tertiary",
                 "motorway_link", "trunk_link", "primary_link"}
@@ -41,10 +47,8 @@ def building_height(tags):
 
 def main():
     fwd = c.transformer()
-    lon0, lat0, lon1, lat1 = c.BBOX
-
-    def inside(loc):
-        return lon0 <= loc.lon <= lon1 and lat0 <= loc.lat <= lat1
+    policy = building_density.Policy(fwd, thin="--thin" in sys.argv)
+    tiles_ok = R.grid_tiles() | R.corridor_tiles()
 
     def line_xy(nodes):
         pts = []
@@ -58,15 +62,14 @@ def main():
     buildings = defaultdict(list)
     n_bld = 0
     t0 = time.time()
-    fp = (osmium.FileProcessor(str(PBF)).with_locations().with_areas()
-          .with_filter(osmium.filter.KeyFilter("aeroway", "building", "natural",
-                                               "water", "waterway", "highway")))
-    for obj in fp:
+    def proc(path):
+        return (osmium.FileProcessor(str(path)).with_locations().with_areas()
+                .with_filter(osmium.filter.KeyFilter("aeroway", "building", "natural",
+                                                     "water", "waterway", "highway")))
+    for obj in R.iter_osm(proc, R.region_filter()):
         tags = obj.tags
         if obj.is_way():
             nodes = obj.nodes
-            if len(nodes) < 2 or not nodes[0].location.valid() or not inside(nodes[0].location):
-                continue
             aw, hw = tags.get("aeroway"), tags.get("highway")
             if aw in ("runway", "taxiway") and not obj.is_closed():
                 pts = line_xy(nodes)
@@ -81,8 +84,6 @@ def main():
                     roads.append({"cls": hw, "pts": [[r2(x), r2(y)] for x, y in pts]})
         elif obj.is_area():
             rings = list(obj.outer_rings())
-            if not rings or not rings[0][0].location.valid() or not inside(rings[0][0].location):
-                continue
             aw = tags.get("aeroway")
             if aw in ("runway", "apron", "taxiway"):
                 for ring in rings:
@@ -102,6 +103,11 @@ def main():
                 cx = sum(p[0] for p in pts) / len(pts)
                 cy = sum(p[1] for p in pts) / len(pts)
                 key = (math.floor(cx / c.TILE_SIZE), math.floor(cy / c.TILE_SIZE))
+                if key not in tiles_ok:
+                    continue
+                a = 0.5 * abs(sum(x0 * y1 - x1 * y0 for (x0, y0), (x1, y1) in zip(pts, pts[1:])))
+                if not policy.keep(key, obj.id, cx, cy, a):
+                    continue
                 buildings[key].append((building_height(tags), pts[:-1]))
                 n_bld += 1
 
@@ -120,6 +126,7 @@ def main():
                 f.write(struct.pack(f"<{2 * len(pts)}f", *(v for p in pts for v in p)))
     print(f"{time.time() - t0:.0f}s  aero lines {len(aero_lines)}, aero areas {len(aero_areas)}, "
           f"roads {len(roads)}, water {len(water)}, buildings {n_bld} in {len(buildings)} tiles")
+    policy.report()
 
 
 if __name__ == "__main__":

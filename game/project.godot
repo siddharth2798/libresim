@@ -36,7 +36,7 @@ fog_color={
 "type": "color",
 "value": Color(0.7, 0.78, 0.88, 1)
 }
-world_origin={
+pattern_origin={
 "type": "vec2",
 "value": Vector2(0, 0)
 }

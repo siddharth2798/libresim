@@ -1,37 +1,43 @@
 class_name TerrainTileCache
 extends RefCounted
-## Loads heightmap (.r16) + imagery (.dds, BC1) tiles on worker threads and turns them
-## into textures on the main thread. Also answers CPU height queries from level-0
-## tiles (used by camera clamp, FDM ground contact, LOS checks).
+## Loads heightmap (.r16), imagery (.dds, BC1) and land-class (.r8.gz) tiles on
+## worker threads and turns them into textures on the main thread. Heights and
+## textures are cached separately: a tile without imagery / land class (flags in
+## TerrainMeta) shares its nearest ancestor's textures, which are loaded once.
+## Also answers CPU height queries from level-0 tiles (camera clamp, FDM ground
+## contact, LOS) and land-class queries (ditching, tree density).
 ## Tile key = Vector3i(level, tx, ty); see tools/02_dem_tiles.py for the layout.
 
 const MAX_UPLOADS_PER_FRAME := 6
 const TILE_SIZE_DEFAULT := 7680.0  # level-0 tile size (tools/common.py TILE_SIZE)
-const MAX_ENTRIES := 400
+const MAX_ENTRIES := 400  # per kind (heights, textures)
+const MAX_CPU := 160  # CPU-side height / land-class tiles kept for queries
+const IMG_N := 768
+const NONE := TerrainMeta.NONE
 
-var meta: Dictionary
+var tmeta: TerrainMeta
 var tile_n: int
 var h_scale: float
 var h_offset: float
-var levels: Array = []  # [{size_m, tiles: {"tx_ty": [min,max]}}]
+var levels: Array = []  # TerrainMeta.levels (merged base + regions)
 
-var _entries := {}  # Vector3i -> {state, htex, itex, used}
-var _done: Array = []  # [key, Image h, Image img]
+var _h := {}  # Vector3i -> {state, htex, used}
+var _t := {}  # Vector3i -> {state, itex, lctex, lcimg, used}   (texture source tiles)
+var _tiles := {}  # Vector3i -> composite {htex, itex, lctex, img_src, lc_src}
+var _done: Array = []  # [kind, key, Image a, Image b]
 var _mutex := Mutex.new()
 var _cpu_heights := {}  # Vector2i(tx,ty) of level 0 -> PackedByteArray
 var _frame := 0
 var _fallback_img: ImageTexture
 var _fallback_lc: ImageTexture
-var _lc_cpu := {}  # Vector2i -> Image (level-0 land class, for trees)
-const IMG_N := 768
 
 
 func _init() -> void:
-	meta = Paths.load_json("terrain/meta.json")
-	tile_n = int(meta.tile_n)
-	h_scale = meta.h_scale
-	h_offset = meta.h_offset
-	levels = meta.levels
+	tmeta = TerrainMeta.new()
+	tile_n = tmeta.tile_n
+	h_scale = tmeta.h_scale
+	h_offset = tmeta.h_offset
+	levels = tmeta.levels
 	var img := Image.create(4, 4, false, Image.FORMAT_RGB8)
 	img.fill(Color(0.35, 0.4, 0.3))
 	_fallback_img = ImageTexture.create_from_image(img)
@@ -40,48 +46,85 @@ func _init() -> void:
 
 
 func level_size(level: int) -> float:
-	return float(meta.tile_size_m) * pow(2.0, level)
+	return tmeta.level_size(level)
 
 
 func has_tile(level: int, tx: int, ty: int) -> bool:
-	return level >= 0 and level < levels.size() and levels[level].tiles.has("%d_%d" % [tx, ty])
+	return tmeta.has_tile(level, tx, ty)
 
 
 func min_max(level: int, tx: int, ty: int) -> Vector2:
-	var mm = levels[level].tiles.get("%d_%d" % [tx, ty], [0.0, 0.0])
-	return Vector2(mm[0], mm[1])
+	return tmeta.min_max(level, tx, ty)
 
 
-## Returns {htex, itex} when ready, otherwise starts loading and returns {}.
+## Returns {htex, itex, lctex, img_src, lc_src} once the tile's heights and its
+## (possibly borrowed) textures are ready; otherwise starts loading and returns {}.
 func get_tile(level: int, tx: int, ty: int) -> Dictionary:
 	var key := Vector3i(level, tx, ty)
-	var e = _entries.get(key)
-	if e == null:
-		_entries[key] = {"state": 0, "used": _frame}
-		WorkerThreadPool.add_task(_load.bind(key))
+	var isrc := tmeta.tex_source(level, tx, ty, TerrainMeta.HAS_IMG)
+	var lsrc := tmeta.tex_source(level, tx, ty, TerrainMeta.HAS_LC)
+	var h = _request(_h, key, 0)
+	var ti = _request(_t, isrc, 1) if isrc != NONE else null
+	var tl = _request(_t, lsrc, 1) if lsrc != NONE else null
+	if h.state != 1 or (ti != null and ti.state != 1) or (tl != null and tl.state != 1):
 		return {}
+	var c = _tiles.get(key)
+	if c == null:
+		c = {"htex": h.htex, "itex": ti.itex if ti != null and ti.itex else _fallback_img,
+			"lctex": tl.lctex if tl != null and tl.lctex else _fallback_lc,
+			"img_src": isrc, "lc_src": lsrc}
+		_tiles[key] = c
+	return c
+
+
+func _request(store: Dictionary, key: Vector3i, kind: int) -> Dictionary:
+	var e = store.get(key)
+	if e == null:
+		e = {"state": 0, "used": _frame}
+		store[key] = e
+		if kind == 0:
+			WorkerThreadPool.add_task(_load_h.bind(key))
+		else:
+			WorkerThreadPool.add_task(_load_t.bind(key, tmeta.flags(key.x, key.y, key.z)))
 	e.used = _frame
-	return e if e.state == 1 else {}
+	return e
 
 
-func _load(key: Vector3i) -> void:
+func _load_h(key: Vector3i) -> void:
+	var p := Paths.data("terrain/h/%d/%d_%d.r16" % [key.x, key.y, key.z])
+	var hb := FileAccess.get_file_as_bytes(p)
+	var w := tile_n + 1
+	if hb.size() != w * w * 2:  # missing / truncated: flat at 0 m rather than a hole
+		push_warning("terrain: bad heightmap " + p)
+		hb = PackedByteArray()
+		hb.resize(w * w * 2)
+		var raw := clampi(roundi(-h_offset / h_scale), 0, 65535)
+		for i in w * w:
+			hb.encode_u16(i * 2, raw)
+	var h := Image.create_from_data(w, w, false, Image.FORMAT_RG8, hb)
+	_finish([0, key, h, null])
+
+
+func _load_t(key: Vector3i, fl: int) -> void:
 	var base := "terrain/%s/%d/%d_%d"
-	var hb := FileAccess.get_file_as_bytes(Paths.data(base % ["h", key.x, key.y, key.z] + ".r16"))
-	var h := Image.create_from_data(tile_n + 1, tile_n + 1, false, Image.FORMAT_RG8, hb)
 	var img: Image = null
 	var dds := Paths.data(base % ["img", key.x, key.y, key.z] + ".dds")
-	if FileAccess.file_exists(dds):
+	if fl & TerrainMeta.HAS_IMG and FileAccess.file_exists(dds):
 		img = Image.new()
 		if img.load_dds_from_buffer(FileAccess.get_file_as_bytes(dds)) != OK:
 			img = null
 	var lc: Image = null
 	var lcp := Paths.data(base % ["lc", key.x, key.y, key.z] + ".r8.gz")
-	if FileAccess.file_exists(lcp):
+	if fl & TerrainMeta.HAS_LC and FileAccess.file_exists(lcp):
 		var lb := FileAccess.get_file_as_bytes(lcp).decompress_dynamic(-1, FileAccess.COMPRESSION_GZIP)
 		if lb.size() == IMG_N * IMG_N:
 			lc = Image.create_from_data(IMG_N, IMG_N, false, Image.FORMAT_R8, lb)
+	_finish([1, key, img, lc])
+
+
+func _finish(item: Array) -> void:
 	_mutex.lock()
-	_done.append([key, h, img, lc])
+	_done.append(item)
 	_mutex.unlock()
 
 
@@ -94,31 +137,47 @@ func process() -> void:
 	_done = _done.slice(n)
 	_mutex.unlock()
 	for item in batch:
-		var e = _entries.get(item[0])
+		var key: Vector3i = item[1]
+		var e = (_h if item[0] == 0 else _t).get(key)
 		if e == null:
 			continue
-		e.htex = ImageTexture.create_from_image(item[1])
-		e.itex = ImageTexture.create_from_image(item[2]) if item[2] else _fallback_img
-		e.lctex = ImageTexture.create_from_image(item[3]) if item[3] else _fallback_lc
-		if key_level(item[0]) == 0 and item[3]:
-			_lc_cpu[Vector2i(item[0].y, item[0].z)] = item[3]
+		if item[0] == 0:
+			e.htex = ImageTexture.create_from_image(item[2])
+		else:
+			e.itex = ImageTexture.create_from_image(item[2]) if item[2] else null
+			e.lctex = ImageTexture.create_from_image(item[3]) if item[3] else null
+			e.lcimg = item[3]  # CPU copy for landclass_at()
 		e.state = 1
-	if _entries.size() > MAX_ENTRIES and _frame % 60 == 0:
-		_evict()
+	if _frame % 60 == 0:
+		if _h.size() > MAX_ENTRIES:
+			_evict(_h)
+		if _t.size() > MAX_ENTRIES:
+			_evict(_t)
+		if _tiles.size() > MAX_ENTRIES:
+			_tiles.clear()  # composites are rebuilt on demand from the entries
 
 
-func _evict() -> void:
-	var keys := _entries.keys()
-	keys.sort_custom(func(a, b): return _entries[a].used < _entries[b].used)
-	for i in range(_entries.size() - MAX_ENTRIES * 3 / 4):
-		var e = _entries[keys[i]]
+func _evict(store: Dictionary) -> void:
+	var keys := store.keys()
+	keys.sort_custom(func(a, b): return store[a].used < store[b].used)
+	for i in range(store.size() - MAX_ENTRIES * 3 / 4):
+		var e = store[keys[i]]
 		if e.state == 1 and _frame - e.used > 120:
-			_entries.erase(keys[i])
+			store.erase(keys[i])
+			if store == _h:
+				_tiles.erase(keys[i])
+			else:
+				_tiles.clear()  # some composite may reference this texture tile
+
+
+static func _cap(d: Dictionary) -> void:
+	while d.size() >= MAX_CPU:
+		d.erase(d.keys()[0])  # oldest inserted
 
 
 ## Terrain height (m) at world ENU (east, north), bilinear on level-0 samples.
 func height_at(east: float, north: float) -> float:
-	var size: float = meta.tile_size_m
+	var size: float = tmeta.tile_size_m
 	var tx := floori(east / size)
 	var ty := floori(north / size)
 	var tk := Vector2i(tx, ty)
@@ -127,6 +186,9 @@ func height_at(east: float, north: float) -> float:
 		if not has_tile(0, tx, ty):
 			return 0.0
 		b = FileAccess.get_file_as_bytes(Paths.data("terrain/h/0/%d_%d.r16" % [tx, ty]))
+		if b.size() != (tile_n + 1) * (tile_n + 1) * 2:
+			return 0.0
+		_cap(_cpu_heights)
 		_cpu_heights[tk] = b
 	var res := size / tile_n
 	var fx := (east - tx * size) / res
@@ -148,16 +210,21 @@ static func key_level(k: Vector3i) -> int:
 	return k.x
 
 
-## Level-0 land-class value (0 other, 1..200 tree density, 255 water) at world (east, north),
-## or -1 if that tile's mask isn't loaded yet.
+## Land-class value (0 other, 1..200 tree density, 255 water) at world (east, north),
+## from the finest tile that has a land-class mask there (level 0, else the nearest
+## ancestor). -1 while that mask is still loading; 0 where no tile has one.
 func landclass_at(east: float, north: float) -> int:
-	var size: float = meta.tile_size_m
-	var tx := floori(east / size)
-	var ty := floori(north / size)
-	var img: Image = _lc_cpu.get(Vector2i(tx, ty))
-	if img == null:
-		get_tile(0, tx, ty)
+	var size: float = tmeta.tile_size_m
+	var src := tmeta.tex_source(0, floori(east / size), floori(north / size), TerrainMeta.HAS_LC)
+	if src == NONE:
+		return 0
+	var e := _request(_t, src, 1)
+	if e.state != 1:
 		return -1
-	var px := clampi(int((east - tx * size) / size * IMG_N), 0, IMG_N - 1)
-	var py := clampi(int((1.0 - (north - ty * size) / size) * IMG_N), 0, IMG_N - 1)
+	var img: Image = e.lcimg
+	if img == null:
+		return 0
+	var ss := tmeta.level_size(src.x)
+	var px := clampi(int((east - src.y * ss) / ss * IMG_N), 0, IMG_N - 1)
+	var py := clampi(int((1.0 - (north - src.z * ss) / ss) * IMG_N), 0, IMG_N - 1)
 	return int(img.get_pixel(px, py).r * 255.0 + 0.5)

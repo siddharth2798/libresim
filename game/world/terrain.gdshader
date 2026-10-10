@@ -11,18 +11,21 @@ uniform int texel_step;        // heightmap texels per grid cell
 uniform float tile_size;       // metres covered by this node
 uniform vec2 img_off;          // imagery UV of this node's SW corner (v measured from north)
 uniform float img_scale;       // imagery UV span of this node
+// land class may come from a different (ancestor) tile than imagery
+uniform vec2 lc_off = vec2(0.0, 1.0);
+uniform float lc_scale = 1.0;
 uniform float h_scale = 0.1;
 uniform float h_offset = -100.0;
 uniform float tile_n = 256.0;
 uniform float skirt_depth = 30.0;
 global uniform vec3 fog_color;      // set by SkyTime (visibility / time of day)
 global uniform float haze_density;
-global uniform vec2 world_origin;   // FloatingOrigin (ENU east, north of render 0,0,0)
+global uniform vec2 pattern_origin; // FloatingOrigin.pattern_origin(): origin mod ~50 km (float32-safe)
 global uniform vec3 sky_top_color;
 uniform sampler2D lc_tex : filter_linear, repeat_disable;  // land class: 255 = water
 
 varying float v_dist;
-varying vec2 v_en;  // world east/north (m)
+varying vec2 v_en;  // world east/north (m) relative to the pattern wrap base
 
 float h_at(ivec2 t) {
 	vec2 rg = texelFetch(height_tex, clamp(t, ivec2(0), ivec2(int(tile_n))), 0).rg;
@@ -40,7 +43,7 @@ void vertex() {
 	VERTEX = vec3(UV.x * tile_size, h - UV2.x * skirt_depth, -UV.y * tile_size);
 	v_dist = length((MODELVIEW_MATRIX * vec4(VERTEX, 1.0)).xyz);
 	vec3 wr = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
-	v_en = vec2(wr.x + world_origin.x, -wr.z + world_origin.y);
+	v_en = vec2(wr.x + pattern_origin.x, -wr.z + pattern_origin.y);
 }
 
 float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
@@ -64,10 +67,11 @@ vec2 wave_grad(vec2 p, float t) {
 
 void fragment() {
 	vec2 uv = img_off + vec2(UV.x, -UV.y) * img_scale;
+	vec2 lc_uv = lc_off + vec2(UV.x, -UV.y) * lc_scale;
 	vec3 col = texture(img_tex, uv).rgb;
 	// Sentinel-2 mosaics are dark and slightly blue-shifted; lift for daylight.
 	col = pow(col, vec3(0.85)) * 1.15;
-	float water = smoothstep(0.88, 0.97, texture(lc_tex, uv).r);
+	float water = smoothstep(0.88, 0.97, texture(lc_tex, lc_uv).r);
 	float rough = 0.95;
 	float spec = 0.1;
 	if (water > 0.0) {

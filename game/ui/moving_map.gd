@@ -83,10 +83,15 @@ func _draw() -> void:
 		for tx in range(floori((c.x - half.x) / ts), floori((c.x + half.x) / ts) + 1):
 			if not cache.has_tile(level, tx, ty):
 				continue
-			var t := _tile_tex(level, tx, ty)
+			# region tiles may lack imagery: draw the ancestor's on a sub-rect
+			var node := Vector3i(level, tx, ty)
+			var src := cache.tmeta.tex_source(level, tx, ty, TerrainMeta.HAS_IMG)
+			var t := _tile_tex(src.x, src.y, src.z) if src != TerrainMeta.NONE else null
 			if t:
+				var r := TerrainMeta.sub_rect(node, src)
+				var w := float(t.get_width())
 				var a := _to_px(Vector2(tx * ts, (ty + 1) * ts))
-				draw_texture_rect(t, Rect2(a, Vector2(ts, ts) / _m_per_px), false, Color(0.85, 0.85, 0.85))
+				draw_texture_rect_region(t, Rect2(a, Vector2(ts, ts) / _m_per_px), Rect2((r.x) * w, (r.y - r.z) * w, r.z * w, r.z * w), Color(0.85, 0.85, 0.85))
 	# runways, airports
 	for r in runways:
 		draw_line(_to_px(Vector2(r.ends[0].x, r.ends[0].y)), _to_px(Vector2(r.ends[1].x, r.ends[1].y)), Color.WHITE, maxf(3.0, r.width / _m_per_px), true)

@@ -2,8 +2,10 @@ class_name TerrainQuadtree
 extends Node3D
 ## Chunked-LOD terrain. Quadtree roots are the coarsest data tiles; nodes split
 ## while the camera is closer than size * lod_k. Levels below 0 are "virtual":
-## they reuse a level-0 tile's textures on a sub-rectangle so the finest node
-## (MIN_LEVEL) reaches the DEM's native 30 m vertex spacing.
+## they reuse a level-0 tile's heights on a sub-rectangle so the finest node
+## (MIN_LEVEL) reaches the DEM's native 30 m vertex spacing. Heights and textures
+## have separate sources: a tile without imagery / land class (region packs)
+## borrows its nearest ancestor's, so each node gets one sub-rect per source.
 ## A node only splits once all its children's textures are loaded (no holes).
 
 const MIN_LEVEL := -2
@@ -20,11 +22,13 @@ var _active := {}  # Vector3i -> MeshInstance3D
 var _pool: Array[MeshInstance3D] = []
 var _cam_enu := Vector3.ZERO
 var visible_nodes := 0
+var _roots: Array[Vector3i] = []
 
 
 func _ready() -> void:
 	cache = TerrainTileCache.new()
 	_mesh = TerrainMesh.build()
+	_roots = cache.tmeta.roots()
 
 
 func height_at(east: float, north: float) -> float:
@@ -37,23 +41,17 @@ func _process(_dt: float) -> void:
 		return
 	_cam_enu = FloatingOrigin.to_world(cam.global_position)
 	cache.process()
-	var top := cache.levels.size() - 1
 	var wanted: Array[Vector3i] = []
-	for key in cache.levels[top].tiles:
-		var p: PackedStringArray = key.split("_")
-		_select(top, int(p[0]), int(p[1]), wanted)
+	for r in _roots:
+		_select(r.x, r.y, r.z, wanted)
 	_apply(wanted)
 
 
-## The data tile a node draws from: itself if it exists, else the nearest
+## The data tile a node takes heights from: itself if it exists, else the nearest
 ## ancestor (virtual levels below 0, or nodes past the data edge).
 func _source(level: int, tx: int, ty: int) -> Vector3i:
-	for l in range(maxi(level, 0), cache.levels.size()):
-		var d := 1 << (l - level)
-		var s := Vector3i(l, floori(float(tx) / d), floori(float(ty) / d))
-		if cache.has_tile(s.x, s.y, s.z):
-			return s
-	return Vector3i(cache.levels.size() - 1, 0, 0)
+	var s := cache.tmeta.height_source(level, tx, ty)
+	return s if s != TerrainMeta.NONE else _roots[0]
 
 
 func _ready_tile(level: int, tx: int, ty: int) -> bool:
@@ -126,7 +124,9 @@ func _make_instance(k: Vector3i) -> MeshInstance3D:
 	var d := s.x - level  # how many virtual levels below the source tile
 	var span := 1 << d
 	var sub := Vector2i(k.y - s.y * span, k.z - s.z * span)
-	var per := cache.tile_n / span  # source texels covered by this node
+	var per := cache.tile_n / span  # source heightmap texels covered by this node
+	var ir := TerrainMeta.sub_rect(k, t.img_src)  # imagery may come from a coarser tile
+	var lr := TerrainMeta.sub_rect(k, t.lc_src)
 	var mm := cache.min_max(s.x, s.y, s.z)
 	var skirt := maxf(size * SKIRT_FRAC, 10.0)
 	var m: ShaderMaterial = mi.material_override
@@ -136,8 +136,10 @@ func _make_instance(k: Vector3i) -> MeshInstance3D:
 	m.set_shader_parameter("texel_off", sub * per)
 	m.set_shader_parameter("texel_step", per / TerrainMesh.GRID)
 	m.set_shader_parameter("tile_size", size)
-	m.set_shader_parameter("img_scale", 1.0 / span)
-	m.set_shader_parameter("img_off", Vector2(float(sub.x) / span, 1.0 - float(sub.y) / span))
+	m.set_shader_parameter("img_scale", ir.z)
+	m.set_shader_parameter("img_off", Vector2(ir.x, ir.y))
+	m.set_shader_parameter("lc_scale", lr.z)
+	m.set_shader_parameter("lc_off", Vector2(lr.x, lr.y))
 	m.set_shader_parameter("h_scale", cache.h_scale)
 	m.set_shader_parameter("h_offset", cache.h_offset)
 	m.set_shader_parameter("tile_n", float(cache.tile_n))

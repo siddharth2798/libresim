@@ -5,6 +5,7 @@ shader_type spatial;
 
 global uniform vec3 fog_color;
 global uniform float haze_density;
+global uniform vec2 pattern_origin;  // FloatingOrigin: origin mod ~50 km (float32-safe)
 uniform float night = 0.0;  // 0 day .. 1 night (set by Buildings from the sun)
 
 varying vec4 v_custom;
@@ -13,7 +14,8 @@ varying float v_dist;
 
 void vertex() {
 	v_custom = CUSTOM0;
-	v_world = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
+	// world-stable facade coordinates (no window jump on a floating-origin shift)
+	v_world = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz + vec3(pattern_origin.x, 0.0, -pattern_origin.y);
 	v_dist = length((MODELVIEW_MATRIX * vec4(VERTEX, 1.0)).xyz);
 }
 

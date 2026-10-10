@@ -106,13 +106,13 @@ Run from the repo root, **in this order** (later steps read earlier outputs):
 
 ```bash
 PY=tools/.venv/bin/python
-$PY tools/05_airports_navaids.py   # -> data/processed/airports.json, navaids.json
-$PY tools/04_osm_extract.py        # -> data/processed/osm/ (runways, roads, water, buildings) ~1 min
+$PY tools/05_airports_navaids.py   # -> data/processed/airports.json, navaids.json (Mumbai-Pune + Konkan-Kerala corridor)
+$PY tools/04_osm_extract.py        # -> data/processed/osm/ (runways, roads, water, buildings) both regions, western+southern pbf ~6.5 min ([--thin] corridor density policy)
 $PY tools/02_dem_tiles.py          # -> data/processed/terrain/h/  (heightmaps, runways flattened)
 $PY tools/03_imagery_tiles.py      # -> data/processed/terrain/img/ BC1 .dds tiles (needs s2.tif) ~15 s
 $PY tools/06_jsbsim_to_json.py     # -> game/aircraft/c172/c172_aero.json, c172_config.json (committed)
 $PY tools/09_runways.py            # -> data/processed/runways.json (merged runways + taxiways; after 02 & 04)
-$PY tools/10_buildings.py          # -> data/processed/buildings/ 3D building meshes (after 02, 03 source s2.tif, 04) ~15 s, 63 MB
+$PY tools/10_buildings.py          # -> data/processed/buildings/ 3D building meshes (after 02, 04; roofs from s2.tif / corridor s2_corridor.vrt; skips tiles without heights) ~7 min, 207 MB + 79 MB collision
 $PY tools/11_landclass.py          # -> data/processed/terrain/lc/ land-class masks: water + tree density (after 02-04) ~30 s
 $PY tools/12_outer.py              # -> terrain levels 3-6 over ~980 x 980 km (real 90 m data + filled beyond) ~3 min
 $PY tools/13_airport_ops.py        # -> data/processed/airport_ops.json: stands, gates, jetbridges, hold points, taxi graph

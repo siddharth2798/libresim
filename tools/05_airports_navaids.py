@@ -1,8 +1,10 @@
-"""OurAirports CSV -> data/processed/airports.json, navaids.json (world metres + lat/lon)."""
+"""OurAirports CSV -> data/processed/airports.json, navaids.json (world metres + lat/lon).
+Covers both regions: the Mumbai-Pune BBOX and the Konkan-Kerala corridor (osm_regions)."""
 import csv
 import json
 
 import common as c
+import osm_regions as R
 
 FT = 0.3048
 NAVAID_PAD_DEG = 1.0  # keep VORs/NDBs a little beyond the map (radio range)
@@ -45,7 +47,7 @@ def main():
     airports = []
     for a in read("airports"):
         lat, lon = num(a["latitude_deg"]), num(a["longitude_deg"])
-        if a["type"] in ("closed", "balloonport") or not c.in_bbox(lon, lat):
+        if a["type"] in ("closed", "balloonport") or lat is None or not R.in_regions(lon, lat):
             continue
         x, y = fwd(lon, lat)
         runways = []
@@ -65,11 +67,13 @@ def main():
             "elev_m": round(num(a["elevation_ft"], 0.0) * FT, 2),
             "runways": runways, "freqs": freqs.get(a["ident"], []),
         })
+        if R.region_of(lon, lat) != "mumbai_pune":
+            airports[-1]["region"] = "konkan_kerala"
 
     navaids = []
     for n in read("navaids"):
         lat, lon = num(n["latitude_deg"]), num(n["longitude_deg"])
-        if lat is None or not c.in_bbox(lon, lat, NAVAID_PAD_DEG):
+        if lat is None or not R.in_regions(lon, lat, NAVAID_PAD_DEG):
             continue
         x, y = fwd(lon, lat)
         navaids.append({

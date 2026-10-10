@@ -2,7 +2,7 @@
 
 runways:  [{airport, ends: [{ident, x, y, h, heading_true}, {...}], width, length}]
 taxiways: [{width, pts: [[x, y, h], ...]}]   (heights sampled from the flattened DEM)
-Run after 02_dem_tiles.py.
+Run after 02_dem_tiles.py (both regions: re-run once the corridor level-0 heights exist).
 """
 import json
 import math
@@ -13,6 +13,7 @@ import common as c
 import flatten
 
 TAXI_W = 15.0
+MISSING = set()  # level-0 height tiles not generated yet (heights 0 there)
 
 
 def load_heights():
@@ -26,6 +27,8 @@ def load_heights():
             p = c.OUT / "terrain" / "h" / "0" / f"{tx}_{ty}.r16"
             cache[(tx, ty)] = (np.fromfile(p, "<u2").reshape(n + 1, n + 1) * meta["h_scale"] + meta["h_offset"]
                                if p.exists() else np.zeros((n + 1, n + 1)))
+            if not p.exists():
+                MISSING.add((tx, ty))
 
         a = cache[(tx, ty)]
         fx, fy = (x - tx * c.TILE_SIZE) / c.DEM_RES, (y - ty * c.TILE_SIZE) / c.DEM_RES
@@ -73,6 +76,9 @@ def main():
     for r in runways:
         print(r["airport"], "/".join(e["ident"] for e in r["ends"]), f'{r["length"]:.0f} m x {r["width"]:.0f} m')
     print("taxiways:", len(taxiways))
+    if MISSING:
+        print(f"WARNING: {len(MISSING)} level-0 height tiles missing, heights there are 0; re-run after 02: "
+              + " ".join(f"{a}_{b}" for a, b in sorted(MISSING)))
 
 
 if __name__ == "__main__":

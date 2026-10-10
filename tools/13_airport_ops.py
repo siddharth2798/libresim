@@ -10,7 +10,8 @@ Per airport (nearest OurAirports airport within 6 km):
   windsocks, towers: [{x, y}]
   taxi:        {nodes: {id: [x, y]}, edges: [[id_a, id_b, ref, width_m, kind]]}
                graph from aeroway=taxiway/taxilane/runway ways (shared OSM nodes = junctions)
-World metres (x east, y north). Run after 05_airports_navaids.py.
+World metres (x east, y north). Both regions (Mumbai-Pune BBOX + Konkan-Kerala corridor),
+both Geofabrik extracts, de-duplicated by OSM id. Run after 05_airports_navaids.py.
 """
 import json
 import math
@@ -19,6 +20,7 @@ from collections import defaultdict
 import osmium
 
 import common as c
+import osm_regions as R
 
 KEYS = ("aeroway",)
 LINK_KINDS = {"taxiway", "taxilane", "runway", "parking_position"}
@@ -62,25 +64,19 @@ def synth_ga_stands(out, nearest_airport, heading):
 
 def main():
     fwd = c.transformer()
-    lon0, lat0, lon1, lat1 = c.BBOX
     airports = json.loads((c.OUT / "airports.json").read_text())
 
-    def inside(loc):
-        return lon0 <= loc.lon <= lon1 and lat0 <= loc.lat <= lat1
+    def proc(path):
+        return osmium.FileProcessor(str(path)).with_locations().with_filter(osmium.filter.KeyFilter(*KEYS))
 
     nodes_pt, ways, terminals = [], [], []
-    fp = osmium.FileProcessor(str(c.RAW / "osm" / "western-zone-latest.osm.pbf")).with_locations() \
-        .with_filter(osmium.filter.KeyFilter(*KEYS))
-    for o in fp:
+    for o in R.iter_osm(proc, R.region_filter()):
         aw = o.tags.get("aeroway")
         if o.is_node():
-            if inside(o.location):
-                x, y = fwd(o.location.lon, o.location.lat)
-                nodes_pt.append({"kind": aw, "ref": o.tags.get("ref", o.tags.get("name", "")), "x": x, "y": y})
+            x, y = fwd(o.location.lon, o.location.lat)
+            nodes_pt.append({"kind": aw, "ref": o.tags.get("ref", o.tags.get("name", "")), "x": x, "y": y})
         elif o.is_way():
             ns = o.nodes
-            if len(ns) < 2 or not ns[0].location.valid() or not inside(ns[0].location):
-                continue
             pts = [(n.ref, *fwd(n.location.lon, n.location.lat)) for n in ns if n.location.valid()]
             rec = {"kind": aw, "ref": o.tags.get("ref", ""), "width": o.tags.get("width", ""), "pts": pts}
             if aw == "terminal":

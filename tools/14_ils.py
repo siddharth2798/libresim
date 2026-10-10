@@ -20,8 +20,11 @@ def main():
     rw = json.loads((c.OUT / "runways.json").read_text())["runways"]
     out = []
     k = 0
-    for r in sorted(rw, key=lambda r: (r["airport"], -r["length"])):
-        if r["length"] < MIN_LENGTH or not r["airport"].startswith("VA"):
+    corr = {a["icao"] or a["ident"] for a in json.loads((c.OUT / "airports.json").read_text())
+            if a.get("region") == "konkan_kerala"}
+    # Mumbai-Pune first so its (simulated) channels stay stable; then the corridor
+    for r in sorted(rw, key=lambda r: (r["airport"] in corr, r["airport"], -r["length"])):
+        if r["length"] < MIN_LENGTH or not r["airport"][:2] in ("VA", "VO"):
             continue
         for i in (0, 1):
             thr, far = r["ends"][i], r["ends"][1 - i]
