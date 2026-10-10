@@ -91,6 +91,15 @@ done; done; cd -
 
 ---
 
+### Phase R corridor (Mumbai → Kochi)
+
+```bash
+tools/.venv/bin/python tools/01d_fetch_corridor.py all   # GLO-30 + GLO-90 + 20 m / 80 m imagery + southern-zone OSM; ~40 min, resumable
+```
+
+- Downloads about 1.1 GB of DEM tiles, 163 MB of corridor imagery, 20 MB of outer-south imagery and 558 MB of OSM.
+- Missing GLO-30 cells are open sea, listed in `data/raw/dem/missing_sea.txt`.
+
 ## 3. Building the game data (M1)
 
 Run from the repo root, **in this order** (later steps read earlier outputs):
