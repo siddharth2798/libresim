@@ -29,10 +29,17 @@ func update_focus(enu: Vector3) -> void:
 	var new_origin := Vector2(snappedf(enu.x, SHIFT_STEP), snappedf(enu.y, SHIFT_STEP))
 	var d := new_origin - origin
 	origin = new_origin
+	_publish()
 	shifted.emit(Vector3(-d.x, 0.0, d.y))
 
 
 func set_origin(o: Vector2) -> void:
 	var d := o - origin
 	origin = o
+	_publish()
 	shifted.emit(Vector3(-d.x, 0.0, d.y))
+
+
+## Shaders that need stable world coordinates (water waves, trees) read this.
+func _publish() -> void:
+	RenderingServer.global_shader_parameter_set("world_origin", origin)

@@ -31,8 +31,12 @@ void fragment() {
 		col = pow(roof, vec3(0.85)) * 1.2;
 	} else {
 		// wall: palette by style, tinted slightly toward the roof colour
-		vec3 pal = mix(vec3(0.78, 0.76, 0.72), vec3(0.88, 0.84, 0.74), fract(style * 7.0));
-		pal = mix(pal, vec3(0.62, 0.64, 0.66), step(0.7, fract(style * 3.0)));
+		// Mumbai/Pune palette: weathered concrete, cream, pastel and stained greys
+		vec3 pal = mix(vec3(0.58, 0.56, 0.52), vec3(0.74, 0.70, 0.60), fract(style * 7.0));
+		pal = mix(pal, vec3(0.50, 0.53, 0.56), step(0.65, fract(style * 3.0)));
+		pal = mix(pal, vec3(0.72, 0.62, 0.52), step(0.85, fract(style * 5.0)));
+		// monsoon staining: darker toward the ground
+		pal *= mix(0.78, 1.0, smoothstep(0.0, 12.0, fract(v_world.y / 40.0) * 40.0));
 		col = mix(pal, roof * 1.4, 0.15);
 		// facade coordinate along the wall (pick the horizontal axis by wall facing)
 		float u = abs(n_world.x) > abs(n_world.z) ? v_world.z : v_world.x;

@@ -59,6 +59,7 @@ func _process(dt: float) -> void:
 	var night_top := Color(0.01, 0.015, 0.04)
 	var night_hor := Color(0.03, 0.04, 0.07)
 	_sky.sky_top_color = night_top.lerp(Color(0.32, 0.5, 0.78), day)
+	RenderingServer.global_shader_parameter_set("sky_top_color", _sky.sky_top_color)
 	var hor := night_hor.lerp(Color(0.7, 0.78, 0.88), day).lerp(Color(0.95, 0.6, 0.4), dusk * 0.6 * day)
 	_sky.sky_horizon_color = hor
 	_sky.ground_horizon_color = hor

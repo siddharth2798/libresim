@@ -34,3 +34,11 @@ fog_color={
 "type": "color",
 "value": Color(0.7, 0.78, 0.88, 1)
 }
+world_origin={
+"type": "vec2",
+"value": Vector2(0, 0)
+}
+sky_top_color={
+"type": "color",
+"value": Color(0.32, 0.5, 0.78, 1)
+}

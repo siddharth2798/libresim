@@ -132,6 +132,7 @@ func _make_instance(k: Vector3i) -> MeshInstance3D:
 	var m: ShaderMaterial = mi.material_override
 	m.set_shader_parameter("height_tex", t.htex)
 	m.set_shader_parameter("img_tex", t.itex)
+	m.set_shader_parameter("lc_tex", t.lctex)
 	m.set_shader_parameter("texel_off", sub * per)
 	m.set_shader_parameter("texel_step", per / TerrainMesh.GRID)
 	m.set_shader_parameter("tile_size", size)

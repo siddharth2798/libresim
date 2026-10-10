@@ -1,4 +1,4 @@
-[gd_scene load_steps=33 format=3]
+[gd_scene load_steps=34 format=3]
 
 [ext_resource type="Script" path="res://world/flight.gd" id="1"]
 [ext_resource type="Script" path="res://world/terrain_quadtree.gd" id="2"]
@@ -27,6 +27,7 @@
 [ext_resource type="Script" path="res://ui/settings_menu.gd" id="24"]
 [ext_resource type="Script" path="res://ui/credits_screen.gd" id="25"]
 [ext_resource type="Script" path="res://world/buildings.gd" id="26"]
+[ext_resource type="Script" path="res://world/trees.gd" id="27"]
 
 [sub_resource type="ProceduralSkyMaterial" id="sky_mat"]
 sky_top_color = Color(0.32, 0.5, 0.78, 1)
@@ -66,6 +67,9 @@ script = ExtResource("2")
 
 [node name="Buildings" type="Node3D" parent="."]
 script = ExtResource("26")
+
+[node name="Trees" type="Node3D" parent="."]
+script = ExtResource("27")
 
 [node name="Airports" type="Node3D" parent="."]
 script = ExtResource("6")

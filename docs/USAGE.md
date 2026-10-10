@@ -79,6 +79,7 @@ $PY tools/03_imagery_tiles.py      # -> data/processed/terrain/img/ BC1 .dds til
 $PY tools/06_jsbsim_to_json.py     # -> game/aircraft/c172/c172_aero.json, c172_config.json (committed)
 $PY tools/09_runways.py            # -> data/processed/runways.json (merged runways + taxiways; after 02 & 04)
 $PY tools/10_buildings.py          # -> data/processed/buildings/ 3D building meshes (after 02, 03 source s2.tif, 04) ~15 s, 63 MB
+$PY tools/11_landclass.py          # -> data/processed/terrain/lc/ land-class masks: water + tree density (after 02-04) ~30 s
 
 # Aircraft 3D models (FlightGear c172p, GPL), already committed as .glb; only needed to regenerate:
 blender -b --factory-startup --python tools/blender/convert_c172p.py            # exterior.glb
@@ -289,6 +290,15 @@ The aircraft's behaviour is data, so you can tune it without touching code:
 - Built from 578k OSM footprints, with heights from OSM tags or a synthetic estimate by footprint size.
 - Roofs take their colour from the satellite image; facades get procedural windows that light up at night.
 - Streamed within 9 km and hidden above 2500 ft AGL.
+
+**Water:**
+- The Arabian Sea, creeks, rivers and lakes (from the elevation data and OSM water polygons) use an animated water surface.
+- It has wind waves, sun glints and a Fresnel sky reflection, and keeps the satellite tint in shallow creeks.
+
+**Trees:**
+- Forests are placed from the satellite vegetation index, excluding buildings, roads, runways and water.
+- They're generated deterministically within about 2 km of the aircraft: crossed-quad canopies with colour variation and wind sway.
+- Hidden above 1500 m AGL.
 
 ### Replacing the models with your own Blender models
 

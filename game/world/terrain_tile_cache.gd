@@ -21,6 +21,9 @@ var _mutex := Mutex.new()
 var _cpu_heights := {}  # Vector2i(tx,ty) of level 0 -> PackedByteArray
 var _frame := 0
 var _fallback_img: ImageTexture
+var _fallback_lc: ImageTexture
+var _lc_cpu := {}  # Vector2i -> Image (level-0 land class, for trees)
+const IMG_N := 768
 
 
 func _init() -> void:
@@ -32,6 +35,8 @@ func _init() -> void:
 	var img := Image.create(4, 4, false, Image.FORMAT_RGB8)
 	img.fill(Color(0.35, 0.4, 0.3))
 	_fallback_img = ImageTexture.create_from_image(img)
+	var lci := Image.create(4, 4, false, Image.FORMAT_R8)
+	_fallback_lc = ImageTexture.create_from_image(lci)
 
 
 func level_size(level: int) -> float:
@@ -69,8 +74,14 @@ func _load(key: Vector3i) -> void:
 		img = Image.new()
 		if img.load_dds_from_buffer(FileAccess.get_file_as_bytes(dds)) != OK:
 			img = null
+	var lc: Image = null
+	var lcp := Paths.data(base % ["lc", key.x, key.y, key.z] + ".r8.gz")
+	if FileAccess.file_exists(lcp):
+		var lb := FileAccess.get_file_as_bytes(lcp).decompress_dynamic(-1, FileAccess.COMPRESSION_GZIP)
+		if lb.size() == IMG_N * IMG_N:
+			lc = Image.create_from_data(IMG_N, IMG_N, false, Image.FORMAT_R8, lb)
 	_mutex.lock()
-	_done.append([key, h, img])
+	_done.append([key, h, img, lc])
 	_mutex.unlock()
 
 
@@ -88,6 +99,9 @@ func process() -> void:
 			continue
 		e.htex = ImageTexture.create_from_image(item[1])
 		e.itex = ImageTexture.create_from_image(item[2]) if item[2] else _fallback_img
+		e.lctex = ImageTexture.create_from_image(item[3]) if item[3] else _fallback_lc
+		if key_level(item[0]) == 0 and item[3]:
+			_lc_cpu[Vector2i(item[0].y, item[0].z)] = item[3]
 		e.state = 1
 	if _entries.size() > MAX_ENTRIES and _frame % 60 == 0:
 		_evict()
@@ -128,3 +142,22 @@ func height_at(east: float, north: float) -> float:
 	var h11 := b.decode_u16(((j + 1) * w + i + 1) * 2)
 	var hv := lerpf(lerpf(h00, h10, u), lerpf(h01, h11, u), v)
 	return hv * h_scale + h_offset
+
+
+static func key_level(k: Vector3i) -> int:
+	return k.x
+
+
+## Level-0 land-class value (0 other, 1..200 tree density, 255 water) at world (east, north),
+## or -1 if that tile's mask isn't loaded yet.
+func landclass_at(east: float, north: float) -> int:
+	var size: float = meta.tile_size_m
+	var tx := floori(east / size)
+	var ty := floori(north / size)
+	var img: Image = _lc_cpu.get(Vector2i(tx, ty))
+	if img == null:
+		get_tile(0, tx, ty)
+		return -1
+	var px := clampi(int((east - tx * size) / size * IMG_N), 0, IMG_N - 1)
+	var py := clampi(int((1.0 - (north - ty * size) / size) * IMG_N), 0, IMG_N - 1)
+	return int(img.get_pixel(px, py).r * 255.0 + 0.5)
