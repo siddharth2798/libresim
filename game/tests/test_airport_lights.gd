@@ -202,6 +202,6 @@ func test_levels() -> String:
 	var fog := RunwayLights.levels(40.0, 1500.0)
 	if night.taxi < 0.99 or day.taxi > 0.01 or fog.stop < 0.99:
 		return "taxi/stop levels"
-	if day.papi < 0.99 or day.flash < 0.99 or day.rwy > 0.2:
+	if day.papi < 0.99 or day.flash < 0.3 or day.flash > 0.5 or night.flash < 0.99 or day.rwy > 0.2:  # flashers dimmed by day, not off
 		return "day levels"
 	return ""
