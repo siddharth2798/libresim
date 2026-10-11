@@ -110,7 +110,7 @@ script = ExtResource("21")
 sun_path = NodePath("../Sun")
 env_path = NodePath("../WorldEnvironment")
 
-[node name="RunwayLights" type="MultiMeshInstance3D" parent="."]
+[node name="RunwayLights" type="Node3D" parent="."]
 script = ExtResource("23")
 
 [node name="GroundOps" type="Node3D" parent="."]

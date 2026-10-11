@@ -1,100 +1,227 @@
 class_name RunwayLights
-extends MultiMeshInstance3D
-## Night lighting for every runway in runways.json: white edge lights every
-## 60 m (last 600 m amber), green threshold / red end bars, and a simple
-## approach light bar (white, 300 m) on runways >= 1500 m. One MultiMesh.
-## Fixed-size additive billboards (StandardMaterial3D) so they stay visible at range.
-## Fades in when the sun is low (environment/sun_elev_deg) or visibility is poor.
+extends Node3D
+## Aerodrome lighting manager. Builds AirportLights lazily for airports within
+## BUILD_RADIUS of the camera (frees them beyond FREE_RADIUS), keeps them on the
+## floating origin, drives the day / night / visibility intensity of each light group,
+## places a few real OmniLights under the apron floodlight masts nearest the camera, and
+## runs the rotating beacons (AirportBeacon). Data: runways.json, ils.json,
+## airport_ops.json, airports.json. Run with "-- --lights-debug" to print PAPI readings.
 
-const EDGE_SPACING := 60.0
-const LIFT := 1.2  # above the DEM so coarse terrain LODs don't hide them
-const SPRITE := 0.012  # fixed-size billboard (fraction of screen height)
+const BUILD_RADIUS := 25000.0
+const FREE_RADIUS := 30000.0
+const REAL_LIGHTS := 4
+const REAL_LIGHT_RANGE := 800.0  # masts farther than this only get the fake pool
 
-var _anchor := Vector3.ZERO
+## group -> [additive?, gain, base_m, min_px, max_m, halo]
+const GROUPS := {
+	"rwy": [true, 2.4, 0.4, 1.8, 10.0, 0.2],
+	"app": [true, 2.4, 0.4, 1.8, 10.0, 0.2],
+	"flash": [true, 3.5, 0.6, 2.6, 18.0, 0.4],
+	"taxi": [true, 1.6, 0.3, 1.4, 6.0, 0.15],
+	"stop": [true, 2.4, 0.35, 1.7, 8.0, 0.25],
+	"papi": [false, 1.5, 0.8, 2.6, 18.0, 0.25],
+	"flood": [true, 2.0, 0.7, 1.8, 8.0, 0.3],
+	"beacon": [true, 3.5, 1.0, 2.6, 30.0, 0.45],
+}
 
-
-func build(data: Dictionary, terrain: TerrainQuadtree) -> void:
-	var pts: Array = []  # [enu Vector3, Color]
-	for r in data.runways:
-		var a: Dictionary = r.ends[0]
-		var b: Dictionary = r.ends[1]
-		var pa := Vector2(a.x, a.y)
-		var pb := Vector2(b.x, b.y)
-		var len: float = pa.distance_to(pb)
-		var u := (pb - pa) / len
-		var side := Vector2(u.y, -u.x) * (float(r.width) * 0.5 + 1.0)
-		var n := int(len / EDGE_SPACING)
-		for i in n + 1:
-			var p := pa.lerp(pb, float(i) / n)
-			var along := float(i) / n * len
-			for s in [-1.0, 1.0]:
-				var q: Vector2 = p + side * s
-				var amber_a := along > len - 600.0  # last 600 m seen when landing toward b
-				pts.append([q, Color(1.0, 0.85, 0.4, 0.9) if amber_a else Color(1.0, 0.97, 0.9, 0.9)])
-		for e in [[pa, u, Color(0.2, 1.0, 0.3, 1.0), Color(1.0, 0.15, 0.1, 1.0)], [pb, -u, Color(0.2, 1.0, 0.3, 1.0), Color(1.0, 0.15, 0.1, 1.0)]]:
-			var c: Vector2 = e[0]
-			var w: float = float(r.width) * 0.5
-			for k in range(-int(w / 3.0), int(w / 3.0) + 1):
-				var q2: Vector2 = c + Vector2(u.y, -u.x) * k * 3.0
-				pts.append([q2 - e[1] * 1.5, e[2]])  # green threshold (facing arrivals)
-				pts.append([q2 + e[1] * 1.5, e[3]])  # red end (seen from the other way)
-			if len >= 1500.0:
-				for m in range(30, 301, 30):
-					var ap: Vector2 = c - e[1] * float(m)
-					for k2 in range(-2, 3):
-						pts.append([ap + Vector2(u.y, -u.x) * k2 * 1.5, Color(1.0, 1.0, 0.95, 1.0)])
-	multimesh = MultiMesh.new()
-	multimesh.transform_format = MultiMesh.TRANSFORM_3D
-	multimesh.use_colors = true
-	var q := QuadMesh.new()
-	q.size = Vector2(1, 1)
-	multimesh.mesh = q
-	multimesh.instance_count = pts.size()
-	_anchor = Vector3.ZERO
-	if pts.size() > 0:
-		var p0: Vector2 = pts[0][0]
-		_anchor = Vector3(p0.x, p0.y, 0.0)
-	for i in pts.size():
-		var p: Vector2 = pts[i][0]
-		var h := terrain.height_at(p.x, p.y) + LIFT
-		multimesh.set_instance_transform(i, Transform3D(Basis(), Vector3(p.x - _anchor.x, h, -(p.y - _anchor.y))))
-		multimesh.set_instance_color(i, pts[i][1])
-	q.size = Vector2(SPRITE, SPRITE)
-	var g := GradientTexture2D.new()
-	g.fill = GradientTexture2D.FILL_RADIAL
-	g.fill_from = Vector2(0.5, 0.5)
-	g.fill_to = Vector2(1.0, 0.5)
-	var grad := Gradient.new()
-	grad.set_color(0, Color(1, 1, 1, 1))
-	grad.set_color(1, Color(1, 1, 1, 0))
-	grad.add_point(0.25, Color(1, 1, 1, 0.8))
-	g.gradient = grad
-	var m := StandardMaterial3D.new()
-	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	m.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
-	m.fixed_size = true
-	m.vertex_color_use_as_albedo = true
-	m.albedo_texture = g
-	m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	m.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
-	m.disable_fog = true
-	m.albedo_color = Color(3, 3, 3, 1)
-	material_override = m
-	cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	extra_cull_margin = 1e6
-	FloatingOrigin.shifted.connect(func(_d): _place())
-	_place()
+var terrain: TerrainQuadtree
+var mats := {}
+var _airports := {}  # icao -> {center, runways, taxiways}
+var _ils: Array = []
+var _ops := {}
+var _built := {}  # icao -> AirportLights
+var _timer := 0.0
+var _lamps: Array[OmniLight3D] = []
+var _beacon: AirportBeacon
+var _debug := false
+var _dbg_t := 0.0
 
 
-func _place() -> void:
-	position = FloatingOrigin.to_render(_anchor)
+func build(data: Dictionary, t: TerrainQuadtree) -> void:
+	terrain = t
+	_debug = "--lights-debug" in OS.get_cmdline_user_args()
+	var il = Paths.load_json("ils.json")
+	_ils = il if il is Array else []
+	var op = Paths.load_json("airport_ops.json")
+	_ops = op if op is Dictionary else {}
+	_make_materials()
+	for rw in data.runways:
+		var icao: String = rw.airport
+		if not _airports.has(icao):
+			_airports[icao] = {"runways": [], "taxiways": [], "center": Vector2.ZERO}
+		_airports[icao].runways.append(rw)
+	for icao in _airports:
+		var c := Vector2.ZERO
+		for rw in _airports[icao].runways:
+			c += Vector2(rw.ends[0].x + rw.ends[1].x, rw.ends[0].y + rw.ends[1].y) * 0.5
+		_airports[icao].center = c / _airports[icao].runways.size()
+	_assign_taxiways(data.get("taxiways", []))
+	for k in REAL_LIGHTS:
+		var l := OmniLight3D.new()
+		l.light_color = ApronFloodlights.WARM
+		l.omni_range = 90.0
+		l.omni_attenuation = 1.2
+		l.light_energy = 0.0
+		l.shadow_enabled = false
+		l.visible = false
+		add_child(l)
+		_lamps.append(l)
+	_beacon = AirportBeacon.new()
+	_beacon.name = "Beacons"
+	add_child(_beacon)
+	_beacon.setup(_beacon_sites(), _h, mats.beacon)
+	FloatingOrigin.shifted.connect(func(_d): _reposition())
 
 
-func _process(_dt: float) -> void:
-	var sun := Props.get_f("environment/sun_elev_deg", 30.0)
-	var vis := Props.get_f("weather/visibility_m", 20000.0)
-	var v := clampf((4.0 - sun) / 8.0, 0.0, 1.0)
-	if vis < 5000.0:
-		v = maxf(v, 0.6)
-	(material_override as StandardMaterial3D).albedo_color = Color(3, 3, 3, 1) * v
-	visible = v > 0.01
+func _h(e: float, n: float) -> float:
+	return terrain.height_at(e, n) if terrain else 0.0
+
+
+## Each taxiway belongs to the airport of the nearest runway (within 5 km).
+func _assign_taxiways(taxiways: Array) -> void:
+	for tw in taxiways:
+		if tw.pts.size() < 2:
+			continue
+		var p := Vector2(tw.pts[0][0], tw.pts[0][1])
+		var best := ""
+		var bd := 5000.0
+		for icao in _airports:
+			for rw in _airports[icao].runways:
+				var q := Geometry2D.get_closest_point_to_segment(p, Vector2(rw.ends[0].x, rw.ends[0].y),
+					Vector2(rw.ends[1].x, rw.ends[1].y))
+				if p.distance_to(q) < bd:
+					bd = p.distance_to(q)
+					best = icao
+		if best != "":
+			_airports[best].taxiways.append(tw)
+
+
+## Beacon sites: the control tower, else 300 m off the runway midpoint (lit airports only).
+func _beacon_sites() -> Array:
+	var out := []
+	for icao in _airports:
+		var a: Dictionary = _airports[icao]
+		if not a.runways.any(func(rw): return AirportLights.is_lit(icao, rw)):
+			continue
+		var towers: Array = _ops.get(icao, {}).get("towers", [])
+		if not towers.is_empty():
+			out.append([icao, Vector2(towers[0].x, towers[0].y)])
+		else:
+			var rw: Dictionary = a.runways[0]
+			var u := Vector2(rw.ends[1].x - rw.ends[0].x, rw.ends[1].y - rw.ends[0].y).normalized()
+			out.append([icao, a.center + Vector2(u.y, -u.x) * 300.0])
+	return out
+
+
+func _make_materials() -> void:
+	var add := preload("res://world/light_point.gdshader")
+	var mix := preload("res://world/light_point_mix.gdshader")
+	for g in GROUPS:
+		var p: Array = GROUPS[g]
+		var m := ShaderMaterial.new()
+		m.shader = add if p[0] else mix
+		m.set_shader_parameter("gain", p[1])
+		m.set_shader_parameter("base_m", p[2])
+		m.set_shader_parameter("min_px", p[3])
+		m.set_shader_parameter("max_m", p[4])
+		m.set_shader_parameter("halo", p[5])
+		m.render_priority = 1 if p[0] else 0
+		mats[g] = m
+	var pool := ShaderMaterial.new()
+	pool.shader = preload("res://world/light_pool.gdshader")
+	mats["pool"] = pool
+
+
+func _reposition() -> void:
+	for icao in _built:
+		var root: Node3D = _built[icao].root
+		var a: Vector2 = root.get_meta("anchor", Vector2.ZERO)
+		root.position = FloatingOrigin.to_render_d(a.x, a.y, 0.0)
+
+
+## Group intensities from the sun elevation and the visibility.
+static func levels(sun_deg: float, vis_m: float) -> Dictionary:
+	var night := clampf((5.0 - sun_deg) / 9.0, 0.0, 1.0)
+	var on := maxf(night, clampf((6000.0 - vis_m) / 2000.0, 0.0, 1.0))
+	return {"rwy": lerpf(0.1, 1.0, on), "app": lerpf(0.3, 1.0, on), "flash": 1.0,
+		"taxi": on, "stop": on, "papi": 1.0, "beacon": on,
+		"flood": clampf((2.0 - sun_deg) / 6.0, 0.0, 1.0), "pool": clampf((0.0 - sun_deg) / 6.0, 0.0, 1.0)}
+
+
+func _process(dt: float) -> void:
+	var cam := get_viewport().get_camera_3d()
+	if cam == null or terrain == null:
+		return
+	var lv := levels(Props.get_f("environment/sun_elev_deg", 30.0), Props.get_f("weather/visibility_m", 20000.0))
+	for g in lv:
+		mats[g].set_shader_parameter("level", lv[g])
+	var w := FloatingOrigin.to_world(cam.global_position)
+	var c := Vector2(w.x, w.y)
+	_timer -= dt
+	if _timer <= 0.0:
+		_timer = 0.5
+		_update_built(c)
+		_update_lamps(c, lv.flood)
+	if _debug:
+		_dbg_t -= dt
+		if _dbg_t <= 0.0:
+			_dbg_t = 1.0
+			_print_papi(w)
+
+
+## Builds at most one airport per call (spreads the cost when several come into range).
+func _update_built(c: Vector2) -> void:
+	var built_one := false
+	var order := _airports.keys()
+	order.sort_custom(func(a, b): return c.distance_squared_to(_airports[a].center) < c.distance_squared_to(_airports[b].center))
+	for icao in order:  # nearest first
+		var d := c.distance_to(_airports[icao].center)
+		if d < BUILD_RADIUS and not _built.has(icao) and not built_one:
+			built_one = true
+			var t0 := Time.get_ticks_usec()
+			var al := AirportLights.new()
+			var a: Dictionary = _airports[icao]
+			add_child(al.build(icao, a.runways, a.taxiways, _ils, _ops.get(icao, {}), _h, mats))
+			_built[icao] = al
+			_reposition()
+			if _debug:
+				print("lights %s built in %.0f ms: %s" % [icao, (Time.get_ticks_usec() - t0) / 1000.0, al.counts])
+		elif d > FREE_RADIUS and _built.has(icao):
+			_built[icao].root.queue_free()
+			_built.erase(icao)
+
+
+## Real OmniLights under the floodlight masts nearest the camera.
+func _update_lamps(c: Vector2, level: float) -> void:
+	var near := []
+	if level > 0.01:
+		for icao in _built:
+			for m in _built[icao].masts:
+				if c.distance_to(m) < REAL_LIGHT_RANGE:
+					near.append(m)
+	near.sort_custom(func(a, b): return c.distance_squared_to(a) < c.distance_squared_to(b))
+	for k in _lamps.size():
+		var l := _lamps[k]
+		l.visible = k < near.size()
+		if l.visible:
+			var m: Vector2 = near[k]
+			l.position = FloatingOrigin.to_render_d(m.x, m.y, _h(m.x, m.y) + ApronFloodlights.MAST_H - 4.0)
+			l.light_energy = 2.5 * level
+
+
+## Debug: what the nearest PAPI shows to the camera, with the elevation angle.
+func _print_papi(eye: Vector3) -> void:
+	var best := []
+	var bd := INF
+	for icao in _built:
+		for p in _built[icao].papis:
+			var v := Vector2(eye.x, eye.y) - Vector2(p[1][0].pos.x, p[1][0].pos.y)
+			var d := v.length()
+			if d < bd and v.normalized().dot(p[1][0].dir) > 0.85:  # in front of the beam
+				bd = d
+				best = p
+	if best.is_empty():
+		return
+	var u: Vector3 = best[1][1].pos
+	var el := rad_to_deg(atan2(eye.z - u.z, Vector2(eye.x - u.x, eye.y - u.y).length()))
+	print("PAPI %s: %s  (eye %.2f deg, %.0f m)" % [best[0], Papi.reading(best[1], eye), el, bd])

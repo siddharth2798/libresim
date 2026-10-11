@@ -247,6 +247,8 @@ cd game
 | `--airport=ICAO` | VAJJ (default), VABB, VAPO, VANM, VAAV (Aamby Valley), … any airport in `runways.json` |
 | `--runway=NN` | runway end, e.g. `08`, `26`, `14`, `32`; default = the longest runway |
 | `--air[=ft]` | start airborne on a 5 nm final at that height above the field (default 1500) |
+| `--air-nm=N` | with `--air`: distance out on final in nm (default 5) |
+| `--lights-debug` | print aerodrome-light build times and what the nearest PAPI shows the camera (e.g. `WWRR`, eye angle) |
 | `--stand[=REF]` | start parked at a stand (always cold & dark): e.g. `--airport=VABB --stand` (a jetbridge gate), `--stand="Bay 40"`, Juhu `--stand=GA3` |
 | `--cold` | cold and dark: everything off, parking brake set (do the "Before Starting Engine" and "Starting Engine" checklists) |
 | `--view=NAME` | initial camera: cockpit, chase, orbit, free, tower, wing, tail or flyby (default chase) |
@@ -460,7 +462,7 @@ Default frequencies are COM1 118.10/121.90, NAV1 116.60/113.90, NAV2 108.10/109.
   - **Atmosphere:** QNH and temperature affect density altitude and the altimeter. The Kollsman window is preset to QNH at start.
 - **Sky:** clouds are a cumulus layer that drifts with the wind aloft. Visibility drives haze and fog.
 - **Time of day:** real sun position for Mumbai/Pune (IST). Default 10:00 on 14 February. The F10 time rate can speed it up.
-- **Night:** runway edge lights, threshold and end lights, and approach bars at every runway. The aircraft has nav, beacon, strobe, taxi and landing lights.
+- **Night:** ICAO/FAA aerodrome lighting, built per airport within 25 km: runway edge lights (white, last 600 m yellow on instrument runways), green threshold / red end bars with wing bars, centreline lights (white, red/white alternating 900-300 m, red last 300 m) and touchdown-zone barrettes on ILS runways, ALSF-II-style approach lights with sequenced flashers ("the rabbit") on ILS ends and a 420 m simple system elsewhere, a PAPI on the left of each runway (2 red + 2 white on a 3 degree path, visible by day too), blue taxiway edge and green centreline lights with green/yellow lead-on lights, red stop bars and flashing runway guard lights at holding points (night and visibility under 5 km), rotating green/white aerodrome beacons, and apron floodlight masts. Lights are directional, fade in haze and dim by day. The aircraft has nav, beacon, strobe, taxi and landing lights.
 - **Failures:** 26 failures with schedules and random failures. See "Start screen" above, and F9 in flight.
 
 **Realism notes:**
