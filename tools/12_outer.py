@@ -1,9 +1,10 @@
-"""Outer ring: coarse real data for terrain levels >= OUTER_MIN_LEVEL over a ~980 km box.
+"""Outer ring: coarse real data for terrain levels >= OUTER_MIN_LEVEL over OUTER_TOTAL
+(~980 x 1475 km: level-6 tiles tx -1..0, ty -2..0, reaching Kochi).
 
 Heights: Copernicus GLO-90 (+ GLO-30) warped at 240 m; cells with no data are filled
 by GDAL FillNodata (sea extends seaward, plateau inland) plus fractal detail, so the
-world never ends abruptly. Imagery: s2_outer.tif (80 m) where available, else a
-synthetic texture (sea / land colours from the real imagery + noise).
+world never ends abruptly. Imagery: s2_outer.tif + s2_outer_south.tif (80 m, over OUTER and
+OUTER_SOUTH) where available, else a synthetic texture (sea / land colours from the real imagery + noise).
 Land class: water where the height is ~0 m.
 Writes h/, img/, lc/ tiles for levels 3..6 (overwriting the clamped ones from 02/03/11)
 and extends terrain/meta.json. Run after 02, 03, 11.
@@ -22,7 +23,7 @@ gdal.UseExceptions()
 T = c.OUT / "terrain"
 RES = c.TILE_SIZE * 8 / c.TILE_N  # 240 m = level-3 sample spacing
 TOP = c.LEVELS_TOTAL - 1
-BOX = c.TILE_SIZE * 2 ** TOP  # level-6 tile size (491.52 km): grid covers +/- one of them
+X0, Y0, X1, Y1 = c.OUTER_TOTAL  # whole level-6 tiles
 
 
 def fbm(shape, scale, seed, octaves=5):
@@ -49,11 +50,12 @@ def height_grid():
     srcs = sorted(str(p) for p in (c.RAW / "dem90").glob("*.tif")) + sorted(str(p) for p in (c.RAW / "dem").glob("*.tif"))
     h = RES / 2
     ds = gdal.Warp("", srcs, format="MEM", dstSRS=c.WORLD_PROJ, xRes=RES, yRes=RES,
-                   outputBounds=(-BOX - h, -BOX - h, BOX + h, BOX + h), resampleAlg="average",
+                   outputBounds=(X0 - h, Y0 - h, X1 + h, Y1 + h), resampleAlg="average",
                    dstNodata=-9999, outputType=gdal.GDT_Float32)
     band = ds.GetRasterBand(1)
     nodata = band.ReadAsArray() < -500
-    gdal.FillNodata(band, None, maxSearchDist=4000, smoothingIterations=3)
+    # 1000 px = 240 km reach; cost grows ~quadratically (4000 px took 5 h over OUTER_TOTAL)
+    gdal.FillNodata(band, None, maxSearchDist=1000, smoothingIterations=3)
     a = band.ReadAsArray()[::-1].astype(np.float64)
     nodata = nodata[::-1]
     a[a < -500] = 0.0
@@ -64,17 +66,15 @@ def height_grid():
     return a, nodata
 
 
-def imagery_grid(shape_px):
-    """Real outer imagery where present, else synthetic sea/land colour."""
-    p = c.RAW / "imagery" / "s2_outer.tif"
-    n = shape_px
-    if p.exists():
-        ds = gdal.Warp("", [str(p)], format="MEM", outputBounds=(-BOX, -BOX, BOX, BOX),
-                       width=n, height=n, resampleAlg="average", dstNodata=0)
-        img = np.dstack([ds.GetRasterBand(b).ReadAsArray() for b in (1, 2, 3)]).astype(np.float32)
-    else:
-        img = np.zeros((n, n, 3), np.float32)
-    return img  # row 0 = north
+def imagery_grid(res):
+    """Real outer imagery (uint8, 0 = none) at res metres over OUTER_TOTAL; row 0 = north."""
+    srcs = [str(p) for p in (c.RAW / "imagery" / "s2_outer.tif", c.RAW / "imagery" / "s2_outer_south.tif") if p.exists()]
+    w, hgt = int((X1 - X0) / res), int((Y1 - Y0) / res)
+    if not srcs:
+        return np.zeros((hgt, w, 3), np.uint8)
+    ds = gdal.Warp("", srcs, format="MEM", outputBounds=(X0, Y0, X1, Y1),
+                   width=w, height=hgt, resampleAlg="average", dstNodata=0)
+    return np.dstack([ds.GetRasterBand(b).ReadAsArray() for b in (1, 2, 3)]).astype(np.uint8)
 
 
 def main():
@@ -82,9 +82,11 @@ def main():
     hgrid, filled = height_grid()
     n = c.TILE_N
     # imagery mosaic at 160 m over the whole box (level-4 tile resolution)
-    img = imagery_grid(int(2 * BOX / 160.0))
-    have = img.sum(axis=2) > 0
-    land_col = np.median(img[have & (img.mean(axis=2) > 40)], axis=0) if have.any() else np.array([120, 110, 85])
+    img = imagery_grid(160.0)
+    have = img.sum(axis=2, dtype=np.int32) > 0
+    sel = img[have & (img.mean(axis=2) > 40)]
+    land_col = np.median(sel, axis=0).astype(np.float32) if len(sel) else np.array([120, 110, 85])
+    del sel
     sea_col = np.array([28, 52, 66], np.float32)
     meta["levels"] = meta["levels"][:c.OUTER_MIN_LEVEL]
     grid = hgrid
@@ -92,13 +94,14 @@ def main():
         size = c.TILE_SIZE * 2 ** level
         step = int(size / n / RES)  # grid samples per tile sample
         g = grid[::step, ::step] if step > 1 else grid
-        cnt = int(round(2 * BOX / size))
+        tx0, ty0 = int(round(X0 / size)), int(round(Y0 / size))
+        cx, cy = int(round((X1 - X0) / size)), int(round((Y1 - Y0) / size))
         tiles = {}
         for d in ("h", "img", "lc"):
             (T / d / str(level)).mkdir(parents=True, exist_ok=True)
-        for j in range(cnt):
-            for i in range(cnt):
-                tx, ty = i - cnt // 2, j - cnt // 2
+        for j in range(cy):
+            for i in range(cx):
+                tx, ty = tx0 + i, ty0 + j
                 jj = np.clip(np.arange(j * n, j * n + n + 1), 0, g.shape[0] - 1)
                 ii = np.clip(np.arange(i * n, i * n + n + 1), 0, g.shape[1] - 1)
                 t = g[np.ix_(jj, ii)]
@@ -106,14 +109,14 @@ def main():
                 v.tofile(T / "h" / str(level) / f"{tx}_{ty}.r16")
                 tiles[f"{tx}_{ty}"] = [round(float(t.min()), 1), round(float(t.max()), 1)]
                 # imagery: crop the 160 m mosaic (rows north->south), resample to IMG_N
-                px = img.shape[0] / (2 * BOX)
-                r0 = int((BOX - (ty + 1) * size) * px)
-                c0 = int((tx * size + BOX) * px)
+                px = img.shape[1] / (X1 - X0)
+                r0 = int((Y1 - (ty + 1) * size) * px)
+                c0 = int((tx * size - X0) * px)
                 k = int(size * px)
                 crop = img[r0:r0 + k, c0:c0 + k]
                 hv = have[r0:r0 + k, c0:c0 + k]
                 idx = (np.linspace(0, k - 1, c.IMG_N)).astype(int)
-                crop = crop[np.ix_(idx, idx)]
+                crop = crop[np.ix_(idx, idx)].astype(np.float32)
                 hv = hv[np.ix_(idx, idx)]
                 hs = t[::-1][np.ix_((np.linspace(0, n, c.IMG_N)).astype(int), (np.linspace(0, n, c.IMG_N)).astype(int))]
                 sea = hs <= 0.5
@@ -123,10 +126,10 @@ def main():
                 bc1.write_dds(T / "img" / str(level) / f"{tx}_{ty}.dds", np.clip(out, 0, 255).astype(np.uint8))
                 lc = np.where(sea, 255, 0).astype(np.uint8)
                 (T / "lc" / str(level) / f"{tx}_{ty}.r8.gz").write_bytes(gzip.compress(lc.tobytes(), 6))
-        meta["levels"].append({"level": level, "size_m": size, "tx": [-(cnt // 2), cnt - cnt // 2 - 1],
-                               "ty": [-(cnt // 2), cnt - cnt // 2 - 1], "tiles": tiles})
+        meta["levels"].append({"level": level, "size_m": size, "tx": [tx0, tx0 + cx - 1],
+                               "ty": [ty0, ty0 + cy - 1], "tiles": tiles})
         print(f"level {level}: {len(tiles)} tiles of {size / 1000:.0f} km")
-    meta["outer_box"] = [-BOX, -BOX, BOX, BOX]
+    meta["outer_box"] = list(c.OUTER_TOTAL)
     (T / "meta.json").write_text(json.dumps(meta))
 
 

@@ -146,3 +146,56 @@ def apply(a):
                     n += flatten_runway(a, (r["le"]["x"], r["le"]["y"]), (r["he"]["x"], r["he"]["y"]),
                                         r["width_m"] or DEFAULT_W)
     return n
+
+
+def corridor_features():
+    """Runways/aprons for regions other than mumbai_pune (02_dem_tiles corridor blocks).
+    Runways, first source wins per runway (deduplicated by midpoint within 400 m):
+    data/processed/runways.json (09_runways.py), merged OSM runway lines (osm/aeroways.json),
+    OurAirports runway ends (airports.json). Aprons: osm/aeroways.json.
+    Returns ([(p0, p1, width)], [apron pts]). Features outside a grid are skipped by apply_features."""
+    rwys = []
+
+    def add(p0, p1, w):
+        p0, p1 = np.asarray(p0, float), np.asarray(p1, float)
+        mid, u = (p0 + p1) / 2, _axis(np.array([p0, p1]))
+        for a, b, _ in rwys:  # same runway = close midpoints and parallel (crossing runways are not)
+            if np.hypot(*(mid - (a + b) / 2)) < 400 and abs(u @ _axis(np.array([a, b]))) > 0.98:
+                return
+        rwys.append((p0, p1, w))
+    p = c.OUT / "runways.json"
+    if p.exists():
+        for r in json.loads(p.read_text()).get("runways", []):
+            e0, e1 = r["ends"][:2]
+            add((e0["x"], e0["y"]), (e1["x"], e1["y"]), r.get("width") or DEFAULT_W)
+    p = c.OUT / "osm" / "aeroways.json"
+    osm = json.loads(p.read_text()) if p.exists() else {"lines": [], "areas": []}
+    for p0, p1, w in merge_runways([l for l in osm["lines"] if l["kind"] == "runway"]):
+        add(p0, p1, w)
+    p = c.OUT / "airports.json"
+    if p.exists():
+        for ap in json.loads(p.read_text()):
+            for r in ap["runways"]:
+                if r.get("le") and r.get("he"):
+                    add((r["le"]["x"], r["le"]["y"]), (r["he"]["x"], r["he"]["y"]), r.get("width_m") or DEFAULT_W)
+    aprons = [ar["pts"] for ar in osm["areas"] if ar["kind"] == "apron" and len(ar["pts"]) >= 4]
+    return rwys, aprons
+
+
+def _touches(pts, a, pad):
+    pts = np.asarray(pts, float)
+    x1, y1 = X0 + (a.shape[1] - 1) * c.DEM_RES, Y0 + (a.shape[0] - 1) * c.DEM_RES
+    lo, hi = pts.min(0) - pad, pts.max(0) + pad
+    return not (hi[0] < X0 or lo[0] > x1 or hi[1] < Y0 or lo[1] > y1)
+
+
+def apply_features(a, rwys, aprons):
+    """Like apply() but with explicit features; only those overlapping the grid are cut."""
+    n = 0
+    for pts in aprons:
+        if _touches(pts, a, FEATHER):
+            n += flatten_area(a, pts)
+    for p0, p1, w in rwys:
+        if _touches([p0, p1], a, FEATHER + w):
+            n += flatten_runway(a, p0, p1, w)
+    return n
