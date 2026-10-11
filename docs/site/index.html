@@ -1,0 +1,1772 @@
+<title>free-sim Handbook</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:ital,wght@0,400;0,500;0,600;1,400&amp;family=Barlow+Condensed:wght@500;600;700&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap">
+<style>
+/* Layout: an AIP-style pilot handbook. Sticky contents rail on the left, one ~70ch reading
+   column on chart-paper white; sections carry AIP part codes (GEN / OPS / DEV / REF).
+   Light = VFR chart (magenta + chart blue on paper). Dark = night panel (amber + green readouts). */
+:root {
+  --paper: #f5f7f6;
+  --sheet: #ffffff;
+  --ink: #15212b;
+  --muted: #53616c;
+  --rule: #cdd6db;
+  --rule-strong: #8e9ba5;
+  --accent: #9c1f63;
+  --link: #1b5596;
+  --tint-accent: #f7e9f1;
+  --tint-link: #e7eef7;
+  --code-bg: #edf1f3;
+  --kbd-bg: #ffffff;
+  --kbd-edge: #98a5ae;
+  --caution: #845400;
+  --caution-bg: #fbf1dc;
+  --ok: #1d6b3a;
+  --warn: #a3261f;
+  --focus: #1b5596;
+  --papi-red: #c62828;
+  --papi-white: #ffffff;
+  --papi-case: #2b3640;
+  --gauge-face: #1d252b;
+  --gauge-mark: #e9edf0;
+  --font-body: "Barlow", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+  --font-display: "Barlow Condensed", "Arial Narrow", "Roboto Condensed", sans-serif;
+  --font-mono: "JetBrains Mono", "DejaVu Sans Mono", Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #0b0f12;
+    --sheet: #11181d;
+    --ink: #d6dee3;
+    --muted: #8d9ba5;
+    --rule: #25313a;
+    --rule-strong: #43525d;
+    --accent: #f2b33d;
+    --link: #7fd99a;
+    --tint-accent: #2a2112;
+    --tint-link: #11261a;
+    --code-bg: #0f1519;
+    --kbd-bg: #1a2329;
+    --kbd-edge: #43525d;
+    --caution: #f2b33d;
+    --caution-bg: #2a2112;
+    --ok: #7fd99a;
+    --warn: #ff7a6e;
+    --focus: #f2b33d;
+    --papi-red: #ff5a4f;
+    --papi-white: #f4f4ee;
+    --papi-case: #43525d;
+    --gauge-face: #050809;
+    --gauge-mark: #f2b33d;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #0b0f12;
+  --sheet: #11181d;
+  --ink: #d6dee3;
+  --muted: #8d9ba5;
+  --rule: #25313a;
+  --rule-strong: #43525d;
+  --accent: #f2b33d;
+  --link: #7fd99a;
+  --tint-accent: #2a2112;
+  --tint-link: #11261a;
+  --code-bg: #0f1519;
+  --kbd-bg: #1a2329;
+  --kbd-edge: #43525d;
+  --caution: #f2b33d;
+  --caution-bg: #2a2112;
+  --ok: #7fd99a;
+  --warn: #ff7a6e;
+  --focus: #f2b33d;
+  --papi-red: #ff5a4f;
+  --papi-white: #f4f4ee;
+  --papi-case: #43525d;
+  --gauge-face: #050809;
+  --gauge-mark: #f2b33d;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html { scroll-behavior: smooth; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } * { transition: none !important; } }
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 1.0625rem;
+  line-height: 1.6;
+  padding-inline: max(16px, 2.5vw);
+  padding-block: 0 4rem;
+  overflow-wrap: break-word;
+}
+a { color: var(--link); text-underline-offset: 0.18em; text-decoration-thickness: 1px; }
+a:hover { text-decoration-thickness: 2px; }
+:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; border-radius: 2px; }
+
+.page {
+  display: grid;
+  grid-template-columns: 17.5rem minmax(0, 46rem);
+  gap: clamp(1.5rem, 4vw, 3.5rem);
+  max-width: 70rem;
+  margin-inline: auto;
+}
+
+/* ---------- contents rail ---------- */
+.rail {
+  position: sticky;
+  top: env(safe-area-inset-top, 0px);
+  align-self: start;
+  max-height: 100vh;
+  overflow-y: auto;
+  padding-block: 1.5rem 2rem;
+  min-width: 0;
+  font-size: 0.95rem;
+}
+.rail details > summary { display: none; }
+.rail-brand {
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  font-size: 1.05rem;
+  color: var(--accent);
+  margin: 0 0 0.75rem;
+}
+.rail label { display: block; font-family: var(--font-display); font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; font-size: 0.78rem; color: var(--muted); margin-bottom: 0.3rem; }
+.rail input[type="search"] {
+  width: 100%;
+  font: inherit;
+  font-size: 0.95rem;
+  padding: 0.45rem 0.6rem;
+  border: 1px solid var(--rule-strong);
+  border-radius: 3px;
+  background: var(--sheet);
+  color: var(--ink);
+}
+.toc { list-style: none; margin: 1rem 0 0; padding: 0; }
+.toc .part {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 0.78rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-top: 1rem;
+  padding-bottom: 0.2rem;
+  border-bottom: 1px solid var(--rule);
+}
+.toc a {
+  display: grid;
+  grid-template-columns: 3.6rem minmax(0, 1fr);
+  gap: 0.3rem;
+  padding: 0.22rem 0.3rem;
+  color: var(--ink);
+  text-decoration: none;
+  border-radius: 2px;
+  line-height: 1.35;
+}
+.toc a .no { font-family: var(--font-mono); font-size: 0.78rem; color: var(--accent); padding-top: 0.12rem; }
+.toc a:hover { background: var(--tint-link); }
+.toc a[aria-current="true"] { background: var(--tint-accent); }
+.toc-empty { color: var(--muted); font-style: italic; margin-top: 0.75rem; }
+
+/* ---------- main column ---------- */
+main { min-width: 0; padding-block: 1.5rem 0; }
+.masthead {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.25rem 1rem;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  border-top: 3px solid var(--accent);
+  border-bottom: 1px solid var(--rule);
+  padding-block: 0.4rem;
+}
+h1, h2, h3, h4 { font-family: var(--font-display); text-wrap: balance; line-height: 1.15; }
+h1 { font-size: clamp(2.3rem, 6vw, 3.4rem); font-weight: 700; letter-spacing: 0.01em; margin: 1.4rem 0 0.4rem; }
+.lead { font-size: 1.18rem; color: var(--muted); margin: 0 0 1.25rem; max-width: 62ch; }
+.facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(10.5rem, 1fr));
+  gap: 0;
+  border: 1px solid var(--rule);
+  background: var(--sheet);
+  margin-block: 1.25rem 0.5rem;
+}
+.facts div { padding: 0.6rem 0.8rem; border-right: 1px solid var(--rule); border-bottom: 1px solid var(--rule); min-width: 0; }
+.facts dt { font-family: var(--font-display); font-size: 0.75rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+.facts dd { margin: 0; font-family: var(--font-mono); font-size: 0.9rem; font-variant-numeric: tabular-nums; }
+
+.part-head {
+  margin-top: 3.5rem;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 0.9rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--accent);
+  border-bottom: 2px solid var(--accent);
+  padding-bottom: 0.25rem;
+}
+section { scroll-margin-top: 1rem; }
+h2 {
+  font-size: clamp(1.7rem, 4vw, 2.1rem);
+  font-weight: 600;
+  margin: 2.25rem 0 0.75rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.2rem 0.75rem;
+}
+h2 .no, h3 .no { font-family: var(--font-mono); font-weight: 500; color: var(--accent); font-size: 0.6em; letter-spacing: 0.02em; }
+h3 { font-size: 1.35rem; font-weight: 600; margin: 1.9rem 0 0.5rem; scroll-margin-top: 1rem; }
+h3 .no { font-size: 0.72em; margin-right: 0.45rem; }
+h4 { font-size: 1.08rem; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; margin: 1.3rem 0 0.35rem; color: var(--muted); }
+p, ul, ol { margin: 0 0 0.85rem; max-width: 70ch; }
+ul, ol { padding-left: 1.3rem; }
+li { margin-bottom: 0.25rem; }
+li > ul { margin-top: 0.25rem; }
+strong { font-weight: 600; }
+.top { display: block; text-align: right; font-family: var(--font-display); font-size: 0.85rem; letter-spacing: 0.08em; text-transform: uppercase; margin-top: 1rem; }
+
+code, kbd, pre, .mono { font-family: var(--font-mono); font-size: 0.86em; }
+code { background: var(--code-bg); padding: 0.05em 0.3em; border-radius: 2px; }
+kbd {
+  display: inline-block;
+  min-width: 1.6em;
+  text-align: center;
+  padding: 0.05em 0.4em;
+  border: 1px solid var(--kbd-edge);
+  border-bottom-width: 2px;
+  border-radius: 3px;
+  background: var(--kbd-bg);
+  color: var(--ink);
+  line-height: 1.35;
+  white-space: nowrap;
+}
+.cmd { position: relative; margin: 0 0 1rem; border: 1px solid var(--rule); background: var(--code-bg); border-radius: 3px; }
+.cmd pre { margin: 0; padding: 0.8rem 5rem 0.8rem 0.9rem; overflow-x: auto; line-height: 1.5; }
+.cmd pre code { background: none; padding: 0; font-size: 0.84rem; }
+.cmd .c { color: var(--muted); }
+.copy {
+  position: absolute;
+  top: 0.45rem;
+  right: 0.45rem;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 0.78rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 0.25rem 0.6rem;
+  border: 1px solid var(--rule-strong);
+  border-radius: 3px;
+  background: var(--sheet);
+  color: var(--ink);
+  cursor: pointer;
+}
+.copy:hover { border-color: var(--link); color: var(--link); }
+
+.tbl { overflow-x: auto; margin: 0 0 1.1rem; border: 1px solid var(--rule); background: var(--sheet); }
+table { border-collapse: collapse; width: 100%; font-size: 0.93rem; font-variant-numeric: tabular-nums; }
+caption { text-align: left; font-family: var(--font-display); font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; font-size: 0.8rem; color: var(--muted); padding: 0.5rem 0.7rem 0.2rem; }
+th, td { text-align: left; vertical-align: top; padding: 0.45rem 0.7rem; border-bottom: 1px solid var(--rule); }
+th { font-family: var(--font-display); font-weight: 600; letter-spacing: 0.04em; font-size: 0.9rem; background: var(--tint-link); white-space: nowrap; }
+tbody tr:last-child td { border-bottom: 0; }
+td.num, th.num { text-align: right; white-space: nowrap; }
+td.nw { white-space: nowrap; }
+td .mono, td code { white-space: nowrap; }
+.group td { background: var(--tint-accent); font-family: var(--font-display); font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; font-size: 0.82rem; color: var(--accent); }
+
+.note, .caution {
+  border-left: 3px solid var(--link);
+  background: var(--tint-link);
+  padding: 0.6rem 0.9rem;
+  margin: 0 0 1rem;
+  max-width: 70ch;
+}
+.caution { border-left-color: var(--caution); background: var(--caution-bg); }
+.note > :last-child, .caution > :last-child { margin-bottom: 0; }
+.label { font-family: var(--font-display); font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; font-size: 0.8rem; margin-right: 0.4rem; }
+.caution .label { color: var(--caution); }
+.note .label { color: var(--link); }
+.ok { color: var(--ok); font-weight: 600; }
+.bad { color: var(--warn); font-weight: 600; }
+
+ol.steps { counter-reset: s; list-style: none; padding-left: 0; }
+ol.steps > li { counter-increment: s; display: grid; grid-template-columns: 2rem minmax(0, 1fr); gap: 0.5rem; margin-bottom: 0.4rem; }
+ol.steps > li::before { content: counter(s); font-family: var(--font-mono); font-size: 0.85rem; color: var(--accent); border: 1px solid var(--accent); border-radius: 50%; width: 1.6rem; height: 1.6rem; display: grid; place-items: center; }
+ol.steps > li > span { min-width: 0; }
+
+figure { margin: 0 0 1.2rem; }
+figure .fig { overflow-x: auto; border: 1px solid var(--rule); background: var(--sheet); padding: 0.75rem; }
+figure svg { display: block; max-width: 100%; height: auto; margin-inline: auto; }
+figcaption { font-size: 0.88rem; color: var(--muted); margin-top: 0.35rem; }
+.svg-label { font-family: var(--font-mono); font-size: 11px; fill: var(--ink); }
+.svg-small { font-family: var(--font-mono); font-size: 9.5px; fill: var(--muted); }
+
+dl.defs { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 0.3rem 1rem; margin: 0 0 1rem; }
+dl.defs dt { font-weight: 600; }
+dl.defs dd { margin: 0; min-width: 0; }
+
+footer { margin-top: 3rem; padding-top: 0.6rem; border-top: 1px solid var(--rule); color: var(--muted); font-size: 0.88rem; }
+
+@media (max-width: 860px) {
+  .page { grid-template-columns: minmax(0, 1fr); gap: 0; }
+  .rail {
+    max-height: none;
+    overflow: visible;
+    padding-block: 0;
+    z-index: 5;
+    margin-inline: calc(-1 * max(16px, 2.5vw));
+    padding-inline: max(16px, 2.5vw);
+    background: var(--paper);
+    border-bottom: 1px solid var(--rule);
+  }
+  .rail details > summary {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    list-style: none;
+    padding-block: 0.7rem;
+    font-family: var(--font-display);
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    font-size: 0.95rem;
+  }
+  .rail details > summary::-webkit-details-marker { display: none; }
+  .rail details > summary::after { content: "+"; font-family: var(--font-mono); color: var(--accent); font-size: 1.1rem; }
+  .rail details[open] > summary::after { content: "\2212"; }
+  .rail .toc-body { max-height: 65vh; overflow-y: auto; padding-bottom: 1rem; }
+  .rail-brand { display: none; }
+  dl.defs { grid-template-columns: minmax(0, 1fr); }
+  dl.defs dd { margin-bottom: 0.4rem; }
+}
+</style>
+
+<div class="page" id="top">
+<aside class="rail" aria-label="Table of contents">
+  <details id="toc-wrap" open>
+    <summary>Contents</summary>
+    <div class="toc-body">
+      <p class="rail-brand">free-sim Handbook</p>
+      <label for="toc-filter">Filter contents</label>
+      <input type="search" id="toc-filter" placeholder="e.g. ILS, pushback, F9" autocomplete="off">
+      <ol class="toc" id="toc">
+        <li class="part">GEN · General</li>
+        <li><a href="#overview" data-k="about region aircraft highlights c172 mumbai pune kochi"><span class="no">GEN 1</span><span>Overview</span></a></li>
+        <li><a href="#install" data-k="install run.sh requirements linux macos appimage flatpak tar.gz windows data size godot"><span class="no">GEN 2</span><span>Install and run</span></a></li>
+        <li><a href="#start-screen" data-k="start screen menu airport stand runway air payload weight balance weather failures random recording controls options saves"><span class="no">GEN 3</span><span>Start screen</span></a></li>
+        <li class="part">OPS · Flight operations</li>
+        <li><a href="#flying" data-k="controls keyboard mouse yoke joystick gamepad rebind control feel cold dark start engine takeoff landing trim grade crash v-speeds"><span class="no">OPS 1</span><span>Flying the C172</span></a></li>
+        <li><a href="#cockpit" data-k="panel six-pack instruments engine gauges switches radio stack com nav adf xpdr transponder dme cdi gps moving map panel layouts tab cameras views"><span class="no">OPS 2</span><span>Cockpit and instruments</span></a></li>
+        <li><a href="#navigation" data-k="vor ils ndb dme frequencies simulated atc atis tower ground clearance checklists f2 radio"><span class="no">OPS 3</span><span>Navigation and ATC</span></a></li>
+        <li><a href="#airports" data-k="airports icao runways stands gates taxi follow-me pushback vehicles lights papi approach stop bars terminals"><span class="no">OPS 4</span><span>Airports and ground ops</span></a></li>
+        <li><a href="#weather" data-k="aircraft lights beacon strobe landing light panel dimmer weather met presets wind turbulence ridge lift rain visibility clouds qnh time sun moon night lighting monsoon"><span class="no">OPS 5</span><span>Weather, time and night</span></a></li>
+        <li><a href="#systems" data-k="systems electrical fuel vacuum pitot static failures catalogue random f9 alternator battery magneto"><span class="no">OPS 6</span><span>Systems and failures</span></a></li>
+        <li><a href="#realism" data-k="realism flight model fdm jsbsim flightgear comparison poh test cards damage weight balance cg"><span class="no">OPS 7</span><span>Realism</span></a></li>
+        <li><a href="#saving" data-k="save load f11 replay recording mkv mp4 f8"><span class="no">OPS 8</span><span>Saving, replay and recording</span></a></li>
+        <li><a href="#graphics" data-k="graphics performance presets low medium high ultra renderer forward+ mobile fps"><span class="no">OPS 9</span><span>Graphics and performance</span></a></li>
+        <li class="part">DEV · Builders and contributors</li>
+        <li><a href="#world-data" data-k="world data sources copernicus sentinel eox osm ourairports jsbsim pipeline tools rebuild regions"><span class="no">DEV 1</span><span>World data and pipeline</span></a></li>
+        <li><a href="#developers" data-k="developers architecture property tree 120 hz floating origin modules tests e2e debug scenes aircraft.json conventions"><span class="no">DEV 2</span><span>For developers</span></a></li>
+        <li class="part">REF · Reference</li>
+        <li><a href="#cli" data-k="command line options arguments flags --airport --stand --air"><span class="no">REF 1</span><span>Command-line reference</span></a></li>
+        <li><a href="#keys" data-k="keyboard reference keys hotkeys shortcuts"><span class="no">REF 2</span><span>Keyboard reference</span></a></li>
+        <li><a href="#credits" data-k="credits licences license gpl cc by-nc-sa odbl"><span class="no">REF 3</span><span>Credits and licences</span></a></li>
+        <li><a href="#faq" data-k="faq troubleshooting problems fps sound terrain missing"><span class="no">REF 4</span><span>FAQ and troubleshooting</span></a></li>
+      </ol>
+      <p class="toc-empty" id="toc-empty" hidden>No section matches.</p>
+    </div>
+  </details>
+</aside>
+
+<main>
+<div class="masthead"><span>FREE-SIM · PILOT AND BUILDER HANDBOOK</span><span>AMDT 924456f · 11 OCT 2026</span></div>
+<h1>free-sim Handbook</h1>
+<p class="lead">free-sim is a free, open-source desktop flight simulator of the Cessna 172S over Mumbai, Pune and the Western Ghats, with a coastal corridor running south to Kochi. This handbook covers flying it first, then building and changing it.</p>
+<dl class="facts">
+  <div><dt>Aircraft</dt><dd>Cessna 172S, IO-360 180 hp</dd></div>
+  <div><dt>Region</dt><dd>Mumbai–Pune + Konkan–Kerala</dd></div>
+  <div><dt>Engine</dt><dd>Godot 4.7.2, GDScript</dd></div>
+  <div><dt>FDM rate</dt><dd>120 Hz, 6-DOF</dd></div>
+  <div><dt>Licence</dt><dd>GPL-2.0-or-later</dd></div>
+  <div><dt>Network</dt><dd>None; fully offline</dd></div>
+</dl>
+<p class="note"><span class="label">Units</span>The cockpit and this handbook use aviation units: kt, ft, fpm, inHg on the altimeter, hPa for QNH, nm for distance and IST (UTC+5:30) for local time. Inside the code everything is SI.</p>
+
+<p class="part-head">Part GEN · General</p>
+
+<!-- ===================== GEN 1 ===================== -->
+<section id="overview">
+<h2><span class="no">GEN 1</span>Overview</h2>
+<p>free-sim is a local, offline flight simulator built around one aircraft and one region, done in depth. It runs as a native desktop program on Linux, with a macOS build also produced. There are no accounts, servers or online services.</p>
+
+<h3 id="overview-region"><span class="no">1.1</span>The region</h3>
+<ul>
+  <li><strong>Detailed area:</strong> about 145 × 115 km around Mumbai, Navi Mumbai, the Thane creek, the Western Ghats (Lonavala, Khandala, Sinhagad) and Pune. It has 30 m terrain and 10 m Sentinel-2 imagery, 3D buildings from 578k OpenStreetMap footprints, water and forests.</li>
+  <li><strong>Outer ring:</strong> 90 m terrain and 80 m imagery out to about 245 km, reaching Nashik, Ahmednagar, Satara, Kolhapur and the Konkan coast.</li>
+  <li><strong>Konkan–Kerala corridor (phase R):</strong> a coastal strip to Kochi with 30 m terrain and 20 m imagery, covering Goa, Mangaluru, Kannur, Kozhikode and Kochi, with 13 more airfields.</li>
+  <li><strong>Beyond:</strong> terrain to about 490 km is filled from the nearest real data with generated relief, so the world has no edge.</li>
+</ul>
+
+<h3 id="overview-aircraft"><span class="no">1.2</span>The aircraft</h3>
+<p>The Cessna 172S Skyhawk SP: the FlightGear c172p 3D model and cockpit, flown by a JSBSim-derived six-degree-of-freedom flight model with free-sim's own engine, propeller and gear code. Headless test cards check it against the C172S Pilot's Operating Handbook (POH).</p>
+<div class="tbl"><table>
+  <caption>C172S data as shown on the Aircraft page</caption>
+  <thead><tr><th>Item</th><th>Value</th></tr></thead>
+  <tbody>
+    <tr><td>Engine</td><td>Lycoming IO-360-L2A, 180 hp</td></tr>
+    <tr><td>Max takeoff weight</td><td>1157 kg (2550 lb)</td></tr>
+    <tr><td>Cruise (75 % power)</td><td>124 KTAS</td></tr>
+    <tr><td>Stall, clean / full flaps</td><td>48 / 40 KIAS</td></tr>
+    <tr><td>V<sub>R</sub> / V<sub>X</sub> / V<sub>Y</sub></td><td>55 / 62 / 74 KIAS</td></tr>
+    <tr><td>V<sub>NE</sub></td><td>163 KIAS</td></tr>
+    <tr><td>Fuel</td><td>2 × 28 US gal (53 usable)</td></tr>
+    <tr><td>Range</td><td>about 640 nm</td></tr>
+  </tbody>
+</table></div>
+
+<h3 id="overview-highlights"><span class="no">1.3</span>Highlights</h3>
+<ul>
+  <li>Real terrain and satellite imagery everywhere, runways and taxiways from OpenStreetMap, 3D buildings, animated water, volumetric clouds and forests.</li>
+  <li>A working steam-gauge panel with modelled instrument errors, two NAV/COMs, ADF, DME, transponder, a GPS direct-to line and a moving map.</li>
+  <li>Electrical, fuel, vacuum and pitot-static systems with 26 schedulable failures and random failures.</li>
+  <li>Weather presets from Clear to Monsoon, ridge lift off the Ghats, rain on the windshield, a real sun and moon, and ICAO/FAA aerodrome lighting at night.</li>
+  <li>Airport operations: stand and gate starts, taxi routing with a follow-me car, pushback, ground vehicles, text ATC and auto-ticking checklists.</li>
+  <li>A damage model: hard landings, gear collapse, prop strikes, ditching, overspeed and overstress.</li>
+  <li>Saved flights, a 10-minute instant replay, and built-in video recording.</li>
+  <li>Real recorded sounds throughout.</li>
+</ul>
+<a class="top" href="#top">Back to top</a>
+</section>
+
+<!-- ===================== GEN 2 ===================== -->
+<section id="install">
+<h2><span class="no">GEN 2</span>Install and run</h2>
+
+<h3 id="install-quick"><span class="no">2.1</span>Quick start from source</h3>
+<p>One script checks prerequisites, downloads the raw data, builds the game data and opens the game:</p>
+<div class="cmd"><pre><code>git clone &lt;repository&gt; free-sim &amp;&amp; cd free-sim
+./run.sh</code></pre><button class="copy" type="button">Copy</button></div>
+<ul>
+  <li>The first run takes about 1–2 hours, mostly downloads. Each step runs only when its outputs are missing or older than its scripts or inputs (stamps live in <code>data/.stamps/</code>), so later runs start the game in seconds.</li>
+  <li>Missing system packages (GDAL, python3-venv, curl, git, unzip) are detected for apt, dnf, pacman and Homebrew. The script prints the install command and runs it with <code>sudo</code> only after you say yes.</li>
+  <li>If Godot 4.7.2 is missing, it offers to download it into <code>~/.local/bin</code>. Blender is not needed.</li>
+  <li>Everything is logged to <code>data/run.log</code>.</li>
+  <li>Game options pass straight through: <code>./run.sh --airport=VABB --stand</code>.</li>
+</ul>
+<div class="tbl"><table>
+  <caption>run.sh options</caption>
+  <thead><tr><th>Option</th><th>Effect</th></tr></thead>
+  <tbody>
+    <tr><td><code>--setup-only</code></td><td>Do everything but do not launch the game</td></tr>
+    <tr><td><code>--skip-data</code></td><td>Skip raw downloads and the pipeline; launch even if data is incomplete</td></tr>
+    <tr><td><code>--region=R</code></td><td><code>mumbai_pune</code> or <code>all</code> (default <code>all</code> also fetches the Konkan–Kerala corridor)</td></tr>
+    <tr><td><code>--force-step=NN</code></td><td>Re-run pipeline step NN (for example <code>02</code>, <code>10</code>); may be repeated</td></tr>
+    <tr><td><code>--dry-run</code></td><td>Print which steps would run or be skipped and why; change nothing</td></tr>
+    <tr><td><code>--yes</code>, <code>-y</code></td><td>Answer yes to every prompt (sudo installs, Godot download)</td></tr>
+    <tr><td><code>--help</code>, <code>-h</code></td><td>Show the help</td></tr>
+    <tr><td>anything else, or after <code>--</code></td><td>Passed to the game (see <a href="#cli">REF 1</a>)</td></tr>
+  </tbody>
+</table></div>
+<div class="cmd"><pre><code>./run.sh --dry-run                          <span class="c"># what would run, and why</span>
+./run.sh --setup-only --region=mumbai_pune  <span class="c"># build only the Mumbai–Pune data</span>
+./run.sh --airport=VAPO --air=2000          <span class="c"># fly straight into a Pune approach</span></code></pre><button class="copy" type="button">Copy</button></div>
+
+<h3 id="install-req"><span class="no">2.2</span>Requirements by system</h3>
+<div class="tbl"><table>
+  <thead><tr><th>System</th><th>What you need</th></tr></thead>
+  <tbody>
+    <tr><td class="nw">Linux (developed on Pop!_OS / Ubuntu 24.04)</td><td>GDAL with Python bindings (<code>gdal-bin python3-gdal</code>), python3-venv, curl, git, unzip; Godot 4.7.2 standard build. <code>run.sh</code> installs what is missing.</td></tr>
+    <tr><td class="nw">macOS</td><td>bash 4+ and Homebrew GDAL: <code>brew install bash gdal python</code>. The script re-runs itself under Homebrew's bash and builds the venv from Homebrew's <code>python3</code>, which carries GDAL's Python bindings.</td></tr>
+    <tr><td class="nw">Windows</td><td>No Windows build or package exists yet.</td></tr>
+    <tr><td class="nw">GPU</td><td>Vulkan-capable. The default Mobile renderer is tuned for integrated GPUs; the reference machine is a Radeon 780M.</td></tr>
+    <tr><td class="nw">Disk</td><td>About 1.5 GB raw data and 0.4 GB processed data for Mumbai–Pune, plus 3D buildings (207 MB meshes, 79 MB collision). The corridor adds about 1.1 GB of terrain tiles, 183 MB of imagery and 558 MB of OSM data.</td></tr>
+    <tr><td class="nw">Optional</td><td>Blender 4.x with the AC3D add-on (only to regenerate aircraft models); QGIS for inspecting data; <code>ffmpeg</code> to convert recordings to MP4.</td></tr>
+  </tbody>
+</table></div>
+<p>Godot is installed at <code>~/.local/bin/godot</code>, which is not always on <code>PATH</code>. Either call it by full path or add <code>export PATH="$HOME/.local/bin:$PATH"</code> to <code>~/.bashrc</code>. To run the game by hand:</p>
+<div class="cmd"><pre><code>cd game
+~/.local/bin/godot --path .          <span class="c"># start screen</span>
+~/.local/bin/godot -e --path .       <span class="c"># Godot editor</span></code></pre><button class="copy" type="button">Copy</button></div>
+
+<h3 id="install-packages"><span class="no">2.3</span>Release packages</h3>
+<p>Build them from the repo root after the data pipeline has run (needs the Godot 4.7.2 export templates; about 4 minutes):</p>
+<div class="cmd"><pre><code>tools/package/make_release.sh 0.1.0</code></pre><button class="copy" type="button">Copy</button></div>
+<div class="tbl"><table>
+  <caption>Outputs in build/</caption>
+  <thead><tr><th>File</th><th class="num">Size</th><th>For</th></tr></thead>
+  <tbody>
+    <tr><td><code>free-sim-&lt;v&gt;-linux-x86_64.tar.gz</code></td><td class="num">~450 MB</td><td>Any 64-bit Linux: extract and run <code>free-sim/free-sim.sh</code></td></tr>
+    <tr><td><code>free-sim-&lt;v&gt;-x86_64.AppImage</code></td><td class="num">~440 MB</td><td>Any Linux, single file: <code>chmod +x</code> and run</td></tr>
+    <tr><td><code>free-sim-&lt;v&gt;-macos-universal.zip</code></td><td class="num">~480 MB</td><td>macOS 11+, Intel and Apple Silicon: move <code>free-sim.app</code> to Applications</td></tr>
+    <tr><td><code>free-sim-&lt;v&gt;-source.tar.gz</code></td><td class="num">~65 MB</td><td>GPL corresponding source of that build</td></tr>
+  </tbody>
+</table></div>
+<h4>Flatpak</h4>
+<div class="cmd"><pre><code>flatpak install --user flathub org.freedesktop.Platform//25.08 org.freedesktop.Sdk//25.08 org.flatpak.Builder
+flatpak run org.flatpak.Builder --user --install --force-clean build/flatpak packaging/flatpak/org.freesim.FreeSim.yml
+flatpak run org.freesim.FreeSim</code></pre><button class="copy" type="button">Copy</button></div>
+<h4>macOS first launch</h4>
+<p>The build is ad-hoc signed but not notarised. Right-click the app and choose Open the first time, or run:</p>
+<div class="cmd"><pre><code>xattr -dr com.apple.quarantine /Applications/free-sim.app</code></pre><button class="copy" type="button">Copy</button></div>
+<p class="caution"><span class="label">Caution</span>The macOS build has been checked for structure on Linux (universal binary, data in <code>Contents/Resources</code>, valid signature) but has not yet been run on a Mac.</p>
+<h4>Options in packaged builds</h4>
+<p>Command-line options work the same in every package: <code>./free-sim.sh -- --airport=VABB --stand</code>. The AppImage takes them directly: <code>free-sim.AppImage -- --stand</code>. On read-only installs (AppImage, Flatpak) the F10 renderer toggle cannot write <code>override.cfg</code>; start with <code>--rendering-method forward_plus</code> instead.</p>
+<a class="top" href="#top">Back to top</a>
+</section>
+
+<!-- ===================== GEN 3 ===================== -->
+<section id="start-screen">
+<h2><span class="no">GEN 3</span>Start screen</h2>
+<p>Running the game opens the start screen. It remembers your last setup (<code>user://last_flight.json</code>). Keys <kbd>1</kbd>–<kbd>8</kbd> switch pages and <kbd>Ctrl</kbd>+<kbd>Enter</kbd> flies. A summary line at the bottom shows the whole setup, for example <span class="mono">VAJJ · runway (longest) · Fair · 10:00 IST · wind 270/8 · 0 failure(s)</span>.</p>
+
+<h3 id="ss-airport"><span class="no">3.1</span>Airport and start position</h3>
+<ul>
+  <li>Pick an airport from the searchable list. A north-up diagram shows its runways, taxiways and stands, with an arrow at your start point.</li>
+  <li><strong>Runway:</strong> the chosen runway end with the engine running. Tick "cold &amp; dark" to start with everything off.</li>
+  <li><strong>Stand / gate:</strong> a stand from OpenStreetMap (jetbridge gate, remote bay or GA parking). Stand starts are always cold and dark with the parking brake set, as in the real aircraft.</li>
+  <li><strong>In the air:</strong> a height above the field and a distance on final to the chosen runway. The aircraft starts trimmed for the actual weather and wind.</li>
+</ul>
+
+<h3 id="ss-aircraft"><span class="no">3.2</span>Aircraft, payload and weight and balance</h3>
+<ul>
+  <li>Every <code>game/aircraft/&lt;id&gt;/aircraft.json</code> is listed with its specifications. Today that is the Cessna 172S.</li>
+  <li>Set fuel per tank (default 17 US gal each) and the front-seat, rear-seat and baggage loads (baggage up to 54 kg). The pilot is 81.6 kg (180 lb).</li>
+  <li>The takeoff weight is checked against the 1157 kg (2550 lb) MTOW.</li>
+  <li>A <strong>weight and balance chart</strong> plots the C172S normal and utility CG envelopes with your takeoff and landing points (landing assumes 5 gal per tank). It turns red when overweight or out of CG limits.</li>
+  <li>The flight model flies the CG you load: an aft CG makes the pitch light and less stable.</li>
+</ul>
+
+<h3 id="ss-weather"><span class="no">3.3</span>Weather and time</h3>
+<ul>
+  <li><strong>Presets:</strong> Clear, Fair, Scattered, Broken (passing showers), Overcast (drizzle), Winter haze, Monsoon (heavy rain under a low deck, occasional lightning). Values are in <a href="#weather">OPS 5</a>.</li>
+  <li><strong>Custom sliders:</strong> cloud cover, cloud base, visibility, rain, turbulence, QNH, temperature.</li>
+  <li><strong>Time of day:</strong> presets or a slider, plus the clock rate and the month. Dawn and Dusk are the real sunrise and sunset for the chosen month (mid-February 07:10 and 18:40 IST; June about 06:00 and 19:15).</li>
+  <li><strong>Wind:</strong> presets, direction, speed and gusts, and a "90° crosswind" button. A live head/crosswind readout for the chosen runway turns red above the C172's 15 kt demonstrated crosswind, or with a tailwind.</li>
+</ul>
+
+<h3 id="ss-failures"><span class="no">3.4</span>Failures</h3>
+<ul>
+  <li>Any of the 26 failures (catalogue in <a href="#systems-failures">OPS 6.5</a>) can be scheduled with a trigger: <strong>at start</strong>, <strong>after N min</strong>, <strong>above N ft AGL</strong> or <strong>above N kt</strong>.</li>
+  <li><strong>Random failures:</strong> choose how many, a time window (default 2–30 min) and which systems may fail. You are not told which failures are armed.</li>
+  <li><strong>"Tell me when something fails"</strong> shows a notice card. With it off, diagnose the failure from the instruments and the aircraft's behaviour.</li>
+</ul>
+
+<h3 id="ss-recording"><span class="no">3.5</span>Recording</h3>
+<p>Tick "Record this flight" to record the whole session, picture and sound. Choose the folder, 720p, 1080p or native resolution, and 24, 30 or 60 fps. Details are in <a href="#saving-recording">OPS 8.3</a>.</p>
+
+<h3 id="ss-controls"><span class="no">3.6</span>Controls</h3>
+<p>Joystick, gamepad and keyboard bindings, also reachable in flight with <kbd>J</kbd>. See <a href="#flying-devices">OPS 1.3</a> and <a href="#flying-rebind">OPS 1.4</a>. The page also lists the fixed hotkeys.</p>
+
+<h3 id="ss-options"><span class="no">3.7</span>Options</h3>
+<ul>
+  <li>Volume and mute for each sound bus: Master, Engine, Wind &amp; environment, Cockpit, Radio, Menus.</li>
+  <li>Graphics preset.</li>
+  <li>Flight-control feel: yoke keys, input smoothing, auto-coordination (<a href="#flying-feel">OPS 1.5</a>).</li>
+  <li>Units preference (stored for later; the C172 panel stays in ft, kt and inHg).</li>
+  <li>Whether the flight-data bar shows at start.</li>
+</ul>
+<p>Saved in <code>user://audio.cfg</code> and <code>user://options.cfg</code>.</p>
+
+<h3 id="ss-saves"><span class="no">3.8</span>Saved flights</h3>
+<p>Saved situations with a thumbnail, airport, altitude and IAS. "Fly from this save" resumes exactly there.</p>
+<p class="note"><span class="label">Note</span>Command-line flight options skip the start screen and start from the defaults, not from your last setup. Add <code>--menu</code> to open the start screen pre-filled with them instead.</p>
+<a class="top" href="#top">Back to top</a>
+</section>
+
+<p class="part-head">Part OPS · Flight operations</p>
+
+<!-- ===================== OPS 1 ===================== -->
+<section id="flying">
+<h2><span class="no">OPS 1</span>Flying the C172</h2>
+
+<h3 id="flying-keys"><span class="no">1.1</span>Keyboard flight controls</h3>
+<p>These are the default bindings; every one can be rebound. Pitch, roll and rudder are rate-based: hold a key to deflect, release to re-centre (in the default "spring" mode).</p>
+<div class="tbl"><table>
+  <thead><tr><th>Keys</th><th>Action</th></tr></thead>
+  <tbody>
+    <tr><td><kbd>↓</kbd> or <kbd>Num 2</kbd></td><td>Pitch: pull back (nose up)</td></tr>
+    <tr><td><kbd>↑</kbd> or <kbd>Num 8</kbd></td><td>Pitch: push (nose down)</td></tr>
+    <tr><td><kbd>←</kbd> <kbd>→</kbd> or <kbd>Num 4</kbd> <kbd>Num 6</kbd></td><td>Roll (ailerons)</td></tr>
+    <tr><td><kbd>Z</kbd> <kbd>X</kbd> or <kbd>Num 0</kbd> <kbd>Num Enter</kbd></td><td>Rudder left / right; nosewheel steering on the ground</td></tr>
+    <tr><td><kbd>PgUp</kbd> <kbd>PgDn</kbd>, <kbd>=</kbd> <kbd>−</kbd>, <kbd>Num +</kbd> <kbd>Num −</kbd></td><td>Throttle up / down</td></tr>
+    <tr><td><kbd>'</kbd> / <kbd>;</kbd></td><td>Mixture richer / leaner</td></tr>
+    <tr><td><kbd>Home</kbd> / <kbd>End</kbd> or <kbd>Num 7</kbd> / <kbd>Num 1</kbd></td><td>Pitch trim nose down / nose up</td></tr>
+    <tr><td><kbd>]</kbd> or <kbd>F7</kbd> / <kbd>[</kbd> or <kbd>F6</kbd></td><td>Flaps down / up one notch (0°, 10°, 20°, 30°; electric, needs bus power)</td></tr>
+    <tr><td><kbd>B</kbd> (hold)</td><td>Both brakes</td></tr>
+    <tr><td><kbd>,</kbd> / <kbd>.</kbd> (hold)</td><td>Left / right brake (differential steering)</td></tr>
+    <tr><td><kbd>Shift</kbd>+<kbd>B</kbd></td><td>Parking brake on / off</td></tr>
+    <tr><td><kbd>M</kbd></td><td>Magnetos: OFF → L → R → BOTH</td></tr>
+    <tr><td><kbd>S</kbd> (hold)</td><td>Starter</td></tr>
+    <tr><td><kbd>Y</kbd></td><td>Mouse yoke on / off</td></tr>
+  </tbody>
+</table></div>
+<p>All other keys (views, panels, map, ATC) are in the <a href="#keys">keyboard reference</a>.</p>
+
+<h3 id="flying-mouse"><span class="no">1.2</span>Mouse yoke</h3>
+<p>Press <kbd>Y</kbd> to fly with the mouse. The mouse position is the control column (absolute, mouse offset × 1.3 = yoke deflection). Press <kbd>Y</kbd> again to release it.</p>
+
+<h3 id="flying-devices"><span class="no">1.3</span>Joystick and gamepad</h3>
+<ul>
+  <li>Connected devices are listed on the Controls page; hot-plug works.</li>
+  <li>Each action has a <strong>Bind</strong> button: move an axis or press a button to capture it, or <kbd>Esc</kbd> to cancel.</li>
+  <li>Per binding: invert, range (full, half for levers, trigger for toe brakes), deadzone, expo curve and a live value bar.</li>
+  <li><strong>Gamepad defaults:</strong> left stick roll/pitch, right stick X yaw, triggers toe brakes, LB/RB flaps, A brakes, X parking brake, Y/B views, D-pad trim and magnetos.</li>
+  <li><strong>Joystick defaults:</strong> X/Y roll/pitch, twist yaw, throttle axis.</li>
+  <li>A bound axis takes over from the keyboard; anything unbound stays on the keyboard.</li>
+  <li>Saved in <code>user://input_bindings.json</code>.</li>
+</ul>
+
+<h3 id="flying-rebind"><span class="no">1.4</span>Rebinding keyboard keys</h3>
+<ul>
+  <li>Click a key slot (up to 3 keys per action, with <kbd>Shift</kbd>, <kbd>Ctrl</kbd> or <kbd>Alt</kbd> allowed), then press the new key. <kbd>Esc</kbd> cancels; <kbd>Delete</kbd> clears the slot.</li>
+  <li>Conflicts with other actions or with fixed hotkeys show in orange.</li>
+  <li>Keys match by physical position, so the layout works on any keyboard language.</li>
+  <li>Saved in <code>user://key_bindings.json</code>.</li>
+</ul>
+
+<h3 id="flying-feel"><span class="no">1.5</span>Control feel</h3>
+<p>Start screen → Options → Flight controls:</p>
+<dl class="defs">
+  <dt>Yoke keys</dt><dd><strong>Spring</strong> (default): arrow keys and <kbd>Z</kbd>/<kbd>X</kbd> re-centre when released. <strong>Sticky</strong>: they stay where you leave them, as in FlightGear; tap the opposite key to come back, and it stops at centre.</dd>
+  <dt>Input smoothing</dt><dd>Off / <strong>light</strong> (0.05 s, default) / strong (0.12 s). A low-pass on keyboard, joystick and mouse-yoke inputs at the physics rate.</dd>
+  <dt>Auto-coordination</dt><dd>The rudder follows the aileron (rudder += 0.5 × aileron). Use it if you have no pedals.</dd>
+</dl>
+<p>The control surfaces are rate-limited as in FlightGear's c172p: full elevator travel takes 0.3 s, aileron and rudder 0.15 s.</p>
+
+<h3 id="flying-vspeeds"><span class="no">1.6</span>V-speeds</h3>
+<div class="tbl"><table>
+  <thead><tr><th>Speed</th><th class="num">KIAS</th><th>Meaning</th></tr></thead>
+  <tbody>
+    <tr><td>V<sub>S0</sub></td><td class="num">40</td><td>Stall, full flaps</td></tr>
+    <tr><td>V<sub>S1</sub></td><td class="num">48</td><td>Stall, clean</td></tr>
+    <tr><td>V<sub>R</sub></td><td class="num">55</td><td>Rotate</td></tr>
+    <tr><td>V<sub>X</sub></td><td class="num">62</td><td>Best angle of climb</td></tr>
+    <tr><td>Best glide</td><td class="num">68</td><td>About 9:1 (the model gives 8.4–8.6)</td></tr>
+    <tr><td>V<sub>Y</sub></td><td class="num">74</td><td>Best rate of climb</td></tr>
+    <tr><td>V<sub>FE</sub></td><td class="num">110 / 85</td><td>Flaps 10° / flaps beyond 10°</td></tr>
+    <tr><td>V<sub>NO</sub></td><td class="num">129</td><td>Maximum structural cruising</td></tr>
+    <tr><td>V<sub>NE</sub></td><td class="num">163</td><td>Never exceed; structure fails at 185</td></tr>
+    <tr><td>Crosswind</td><td class="num">15 kt</td><td>Maximum demonstrated</td></tr>
+  </tbody>
+</table></div>
+
+<h3 id="flying-start"><span class="no">1.7</span>Cold-and-dark start-up</h3>
+<p>Stand starts and <code>--cold</code> begin with everything off and the parking brake set. Runway and air starts have the engine running. Press <kbd>F2</kbd> to follow the POH checklists; most items tick themselves when the sim sees them done.</p>
+<ol class="steps">
+  <li><span>Parking brake set, fuel selector <strong>BOTH</strong>, fuel shutoff valve <strong>ON</strong>, avionics master <strong>OFF</strong> (switch row, bottom of the panel).</span></li>
+  <li><span>Throttle open about 1/4 inch: a short press of <kbd>PgUp</kbd>.</span></li>
+  <li><span>Mixture <strong>RICH</strong>: hold <kbd>'</kbd>.</span></li>
+  <li><span>Master switch <strong>BAT</strong> and <strong>ALT</strong> on (click them on the switch row). Beacon on.</span></li>
+  <li><span>Magnetos <strong>BOTH</strong>: press <kbd>M</kbd> until the key shows BOTH.</span></li>
+  <li><span>Hold <kbd>S</kbd> until the engine catches, then release. The starter needs battery power.</span></li>
+  <li><span>Oil pressure in the green within 30 s; avionics master on; ammeter charging; set the altimeter to QNH.</span></li>
+  <li><span>Release the parking brake with <kbd>Shift</kbd>+<kbd>B</kbd> before taxiing, or press <kbd>P</kbd> for pushback.</span></li>
+</ol>
+<p>The alternator needs more than about 1000 RPM, so at idle the ammeter shows a discharge.</p>
+
+<h3 id="flying-takeoff"><span class="no">1.8</span>Takeoff and climb</h3>
+<p>A first flight from Juhu:</p>
+<ol class="steps">
+  <li><span><kbd>PgUp</kbd> to full throttle (about 2300 RPM static).</span></li>
+  <li><span>Keep straight with <kbd>X</kbd>: P-factor and torque turn the aircraft left on the roll.</span></li>
+  <li><span>At 55 kt, hold <kbd>↓</kbd> gently to rotate.</span></li>
+  <li><span>Climb at 74 kt (V<sub>Y</sub>). Expect to hold a little right aileron and right rudder at climb power.</span></li>
+  <li><span>Trim with <kbd>Home</kbd>/<kbd>End</kbd> until the aircraft flies level hands-off, then reduce to about 2400 RPM for cruise.</span></li>
+</ol>
+<p>The Ghats are 45 km east of Juhu; Pune (VAPO) is about 120 km east-southeast.</p>
+
+<h3 id="flying-trim"><span class="no">1.9</span>Trim and the left-wing-heavy drift</h3>
+<p>Pitch trim slews at 0.15 per second while the key is held; a trim axis is also supported. There is no cockpit aileron or rudder trim: fixed rigging tabs (aileron 0.033, rudder 0.004) cancel the left roll from the solo pilot's weight and engine torque at about 100 KIAS. Slower or at climb power the aircraft rolls gently left; faster it rolls slightly right. Hands off from trim, the bank after 60 s is about −10° at 90 KIAS, 0° at 100 KIAS and +10° at 110 KIAS, which matches JSBSim's c172p.</p>
+
+<h3 id="flying-landing"><span class="no">1.10</span>Approach and landing</h3>
+<ul>
+  <li>Slow below 110 kt before flaps 10°, and below 85 kt before more. Flaps take a few seconds to travel.</li>
+  <li>On final with flaps 30°, about 61 KIAS over the threshold gives a POH-like landing. The PAPI shows two red and two white lights on a 3° path (<a href="#airports-lights">OPS 4.6</a>).</li>
+  <li>In a crosswind, crab or fly wing-low: touching down while drifting sideways more than about 6 kt damages the gear.</li>
+  <li>Flare to a gentle sink rate. Landing nose wheel first risks a prop strike.</li>
+</ul>
+<div class="tbl"><table>
+  <caption>Landing grade (debrief card after every landing)</caption>
+  <thead><tr><th>Grade</th><th>Touchdown sink rate</th></tr></thead>
+  <tbody>
+    <tr><td><span class="ok">BUTTER</span></td><td>under 120 fpm</td></tr>
+    <tr><td><span class="ok">SMOOTH</span></td><td>under 300 fpm</td></tr>
+    <tr><td>FIRM</td><td>under 600 fpm</td></tr>
+    <tr><td><span class="bad">HARD</span></td><td>under 900 fpm</td></tr>
+    <tr><td><span class="bad">DAMAGED</span></td><td>damage recorded</td></tr>
+  </tbody>
+</table></div>
+<p>The debrief also shows g, airspeed, pitch, bank, centreline offset and distance past the threshold.</p>
+
+<h3 id="flying-messages"><span class="no">1.11</span>On-screen messages and the crash card</h3>
+<ul>
+  <li><strong>Notification cards</strong> at the top centre carry failures, damage and the landing debrief. Blue is info, amber caution, red warning. Repeats merge ("×3"), at most three show at once, and they fade after a few seconds.</li>
+  <li><strong>STALL</strong> is a pulsing banner. A one-line hint at the bottom says when the engine has stopped.</li>
+  <li><strong>Crash card:</strong> after a crash a centred card dims the scene and gives the reason, the impact numbers and the damage, with buttons to Restart (<kbd>F5</kbd>), Watch replay (<kbd>R</kbd>) or start a New flight.</li>
+</ul>
+<a class="top" href="#top">Back to top</a>
+</section>
+
+<!-- ===================== OPS 2 ===================== -->
+<section id="cockpit">
+<h2><span class="no">OPS 2</span>Cockpit and instruments</h2>
+<p>The panel is a C172S steam-gauge layout drawn onto the real FlightGear c172p panel at each instrument's true position. It shows on the 3D panel in the cockpit view and as a 2D strip at the bottom of the screen in outside views.</p>
+
+<figure>
+  <div class="fig">
+  <svg viewBox="0 0 420 210" width="420" height="210" role="img" aria-labelledby="sixpack-t">
+    <title id="sixpack-t">Six-pack layout: top row airspeed, attitude, altimeter; bottom row turn coordinator, heading indicator, vertical speed</title>
+    <g>
+      <circle cx="70" cy="58" r="44" fill="var(--gauge-face)"></circle>
+      <circle cx="210" cy="58" r="44" fill="var(--gauge-face)"></circle>
+      <circle cx="350" cy="58" r="44" fill="var(--gauge-face)"></circle>
+      <circle cx="70" cy="152" r="44" fill="var(--gauge-face)"></circle>
+      <circle cx="210" cy="152" r="44" fill="var(--gauge-face)"></circle>
+      <circle cx="350" cy="152" r="44" fill="var(--gauge-face)"></circle>
+    </g>
+    <g fill="var(--gauge-mark)" font-family="JetBrains Mono, monospace" font-size="13" text-anchor="middle">
+      <text x="70" y="55">ASI</text><text x="70" y="72" font-size="9">kt</text>
+      <text x="210" y="55">AI</text><text x="210" y="72" font-size="9">vacuum</text>
+      <text x="350" y="55">ALT</text><text x="350" y="72" font-size="9">inHg</text>
+      <text x="70" y="149">TC</text><text x="70" y="166" font-size="9">electric</text>
+      <text x="210" y="149">HI</text><text x="210" y="166" font-size="9">vacuum</text>
+      <text x="350" y="149">VSI</text><text x="350" y="166" font-size="9">fpm</text>
+    </g>
+  </svg>
+  </div>
+  <figcaption>The six-pack. The attitude and heading indicators run on vacuum; the turn coordinator is electric.</figcaption>
+</figure>
+
+<h3 id="cockpit-panel"><span class="no">2.1</span>What is on the panel</h3>
+<ul>
+  <li><strong>Six-pack:</strong> airspeed, attitude, altimeter, turn coordinator, heading indicator, VSI.</li>
+  <li><strong>Tachometer.</strong></li>
+  <li><strong>Engine and fuel cluster:</strong> fuel L/R, oil temperature and pressure, EGT, fuel flow, vacuum, ammeter.</li>
+  <li><strong>Wet compass</strong> strip.</li>
+  <li><strong>Right-hand column:</strong> VOR1 (KI-208 CDI) on NAV1, VOR2/ILS (KI-209 with glideslope) on NAV2, ADF (KI-227).</li>
+  <li><strong>Radio stack:</strong> a GPS line, two KX-155 COM/NAVs, KR-87 ADF, KT-76A transponder, KI-266 DME (follows NAV1).</li>
+  <li><strong>Switch row</strong> (bottom of the panel).</li>
+</ul>
+
+<h3 id="cockpit-errors"><span class="no">2.2</span>What the instruments model</h3>
+<div class="tbl"><table>
+  <thead><tr><th>Instrument</th><th>Behaviour</th></tr></thead>
+  <tbody>
+    <tr><td>Airspeed</td><td>C172S position error (reads about 6 kt low near the stall); pitot pressure falls off at high angle of attack</td></tr>
+    <tr><td>Altimeter</td><td>Kollsman setting, slight lag; preset to QNH at start</td></tr>
+    <tr><td>VSI</td><td>About 6 s to settle after a pitch change</td></tr>
+    <tr><td>Attitude indicator</td><td>Vacuum gyro with a 3°/min erection mechanism, so small turn and acceleration errors. Spins down and wanders after a vacuum failure and shows a GYRO flag</td></tr>
+    <tr><td>Heading indicator</td><td>Drifts about 4° per 15 min; re-sync it to the compass</td></tr>
+    <tr><td>Compass</td><td>Pendulous card with northerly turning and acceleration errors, swing and overshoot</td></tr>
+    <tr><td>Turn coordinator</td><td>Electric rate gyro canted 30°, with the slip ball</td></tr>
+  </tbody>
+</table></div>
+
+<h3 id="cockpit-knobs"><span class="no">2.3</span>Clickable knobs</h3>
+<p>In the cockpit or on the 2D panel, click the left or right half of a knob, or use the mouse wheel over it. <kbd>Shift</kbd> gives bigger steps.</p>
+<div class="tbl"><table>
+  <thead><tr><th>Control</th><th>Step</th><th>Other</th></tr></thead>
+  <tbody>
+    <tr><td>Altimeter (Kollsman)</td><td>±0.01 inHg (Shift 0.10)</td><td></td></tr>
+    <tr><td>Heading indicator</td><td>±1° (Shift 10°)</td><td>Middle-click syncs it to the compass</td></tr>
+    <tr><td>VOR / ILS OBS</td><td>±1° (Shift 10°)</td><td>TO/FROM and OFF flags</td></tr>
+    <tr><td>ADF card (HDG knob)</td><td>5° (Shift 10°)</td><td></td></tr>
+    <tr><td>MAGS rotary</td><td>OFF / R / L / BOTH</td><td>Also <kbd>M</kbd></td></tr>
+    <tr><td>FUEL selector</td><td>OFF / LEFT / RIGHT / BOTH</td><td></td></tr>
+  </tbody>
+</table></div>
+
+<h3 id="cockpit-switches"><span class="no">2.4</span>Switch row</h3>
+<ul>
+  <li><strong>Electrical:</strong> BAT and ALT masters, AVN (avionics master).</li>
+  <li><strong>Lights:</strong> BCN, LAND, TAXI, NAV, STRB, and the PANEL dimmer knob.</li>
+  <li><strong>Other:</strong> PITOT HT, fuel SHUTOFF valve, ALT STAT (alternate static source).</li>
+  <li><strong>PANEL dimmer knob:</strong> click its left or right half or use the wheel, or press <kbd>L</kbd> / <kbd>Shift</kbd>+<kbd>L</kbd>. It sets the instrument post lights and the glareshield flood in 10 % steps (default 70 %).</li>
+</ul>
+
+<h3 id="cockpit-radios"><span class="no">2.5</span>Tuning the radio stack</h3>
+<div class="tbl"><table>
+  <thead><tr><th>Radio</th><th>How to tune</th><th>Step (Shift)</th></tr></thead>
+  <tbody>
+    <tr><td>COM1 / COM2</td><td>Mouse wheel over the standby frequency; click ⇄ to swap</td><td>25 kHz (1 MHz)</td></tr>
+    <tr><td>NAV1 / NAV2</td><td>Mouse wheel over the standby frequency; click ⇄ to swap</td><td>50 kHz (1 MHz)</td></tr>
+    <tr><td>ADF</td><td>Mouse wheel over the frequency</td><td>1 kHz (100 kHz)</td></tr>
+    <tr><td>Transponder</td><td>Wheel over a digit (0–7); click the mode box to cycle OFF / SBY / ON / ALT</td><td></td></tr>
+    <tr><td>DME</td><td>Follows NAV1</td><td></td></tr>
+  </tbody>
+</table></div>
+<div class="tbl"><table>
+  <caption>Default frequencies</caption>
+  <thead><tr><th>Radio</th><th>Active</th><th>Standby</th></tr></thead>
+  <tbody>
+    <tr><td>COM1</td><td class="mono">118.10</td><td class="mono">121.90</td></tr>
+    <tr><td>COM2</td><td class="mono">126.40</td><td class="mono">123.50</td></tr>
+    <tr><td>NAV1</td><td class="mono">116.60 (BBB Mumbai VOR)</td><td class="mono">113.90 (PUN Pune VOR)</td></tr>
+    <tr><td>NAV2</td><td class="mono">108.10 (IBB27)</td><td class="mono">109.30 (IPO28)</td></tr>
+    <tr><td>ADF</td><td class="mono">381 (PO Pune NDB)</td><td></td></tr>
+    <tr><td>XPDR</td><td class="mono">7000, ALT</td><td></td></tr>
+  </tbody>
+</table></div>
+<p>The radios need avionics power: BAT master and AVN on.</p>
+
+<h3 id="cockpit-gps"><span class="no">2.6</span>GPS direct-to and the moving map</h3>
+<ul>
+  <li>Press <kbd>N</kbd> for the moving map: north-up satellite imagery with airports, runways, VORs and NDBs, ILS feathers, your track and the direct-to line. The mouse wheel zooms.</li>
+  <li>Click any airport or navaid on the map to go direct. The GPS line on the radio stack then shows bearing, distance and ETE.</li>
+</ul>
+
+<h3 id="cockpit-layouts"><span class="no">2.7</span>Panel layouts</h3>
+<p>In outside views, <kbd>Tab</kbd> / <kbd>Shift</kbd>+<kbd>Tab</kbd> cycles the 2D panel. The choice is remembered.</p>
+<div class="tbl"><table>
+  <thead><tr><th>Layout</th><th>Shows</th></tr></thead>
+  <tbody>
+    <tr><td>Full</td><td>Whole panel including VORs, ADF and radio stack</td></tr>
+    <tr><td>Split</td><td>Six-pack bottom left, engine gauges right, plus radios</td></tr>
+    <tr><td>Compact</td><td>A small six-pack, plus radios</td></tr>
+    <tr><td>Minimal</td><td>ASI, AI and ALT top right</td></tr>
+    <tr><td>Off</td><td>No panel</td></tr>
+  </tbody>
+</table></div>
+<p><kbd>H</kbd> toggles the flight-data bar at the top centre: IAS, GS, ALT, AGL (below 2500 ft), VS and HDG.</p>
+
+<h3 id="cockpit-cameras"><span class="no">2.8</span>Cameras</h3>
+<p><kbd>C</kbd> / <kbd>Shift</kbd>+<kbd>C</kbd> cycles views; <kbd>1</kbd>–<kbd>8</kbd> pick one directly. Right-mouse drag looks around; <kbd>V</kbd> re-centres.</p>
+<div class="tbl"><table>
+  <thead><tr><th>Key</th><th>View</th><th>Mouse wheel</th></tr></thead>
+  <tbody>
+    <tr><td><kbd>1</kbd></td><td>Cockpit</td><td>Zoom (field of view)</td></tr>
+    <tr><td><kbd>2</kbd></td><td>Chase (default)</td><td></td></tr>
+    <tr><td><kbd>3</kbd></td><td>Orbit</td><td>Orbit distance</td></tr>
+    <tr><td><kbd>4</kbd></td><td>Free camera: <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> move, <kbd>Q</kbd>/<kbd>E</kbd> down/up, <kbd>Shift</kbd> faster</td><td>Camera speed</td></tr>
+    <tr><td><kbd>5</kbd></td><td>Tower</td><td></td></tr>
+    <tr><td><kbd>6</kbd></td><td>Wing</td><td></td></tr>
+    <tr><td><kbd>7</kbd></td><td>Tail</td><td></td></tr>
+    <tr><td><kbd>8</kbd></td><td>Fly-by</td><td></td></tr>
+  </tbody>
+</table></div>
+<a class="top" href="#top">Back to top</a>
+</section>
+
+<!-- ===================== OPS 3 ===================== -->
+<section id="navigation">
+<h2><span class="no">OPS 3</span>Navigation and ATC</h2>
+
+<h3 id="nav-reception"><span class="no">3.1</span>Radio navigation</h3>
+<ul>
+  <li>VORs, DMEs and NDBs come from OurAirports.</li>
+  <li>Range depends on altitude, and terrain line of sight is checked every 0.5 s. Flying low behind the Western Ghats loses the Pune VOR.</li>
+  <li>VOR1 on NAV1, VOR2/ILS with glideslope on NAV2; the ADF needle shows the NDB's relative bearing; the DME follows NAV1.</li>
+</ul>
+<div class="tbl"><table>
+  <caption>Navaids in the data</caption>
+  <thead><tr><th>Ident</th><th>Type</th><th class="num">Frequency</th><th>Station</th></tr></thead>
+  <tbody>
+    <tr class="group"><td colspan="4">Mumbai–Pune</td></tr>
+    <tr><td class="mono">BBB</td><td>VOR-DME</td><td class="num mono">116.60 MHz</td><td>Mumbai (VABB)</td></tr>
+    <tr><td class="mono">PUN</td><td>VOR-DME</td><td class="num mono">113.90 MHz</td><td>Pune (VAPO)</td></tr>
+    <tr><td class="mono">PO</td><td>NDB</td><td class="num mono">381 kHz</td><td>Pune (VAPO)</td></tr>
+    <tr class="group"><td colspan="4">Outer ring and corridor</td></tr>
+    <tr><td class="mono">KP</td><td>NDB</td><td class="num mono">260 kHz</td><td>Kolhapur</td></tr>
+    <tr><td class="mono">BBM</td><td>VOR-DME</td><td class="num mono">112.10 MHz</td><td>Belgaum</td></tr>
+    <tr><td class="mono">GGO</td><td>VOR-DME</td><td class="num mono">113.60 MHz</td><td>Goa</td></tr>
+    <tr><td class="mono">GO</td><td>NDB</td><td class="num mono">274 kHz</td><td>Goa</td></tr>
+    <tr><td class="mono">HB</td><td>NDB</td><td class="num mono">402 kHz</td><td>Hubli</td></tr>
+    <tr><td class="mono">MML</td><td>VOR-DME</td><td class="num mono">114.20 MHz</td><td>Mangalore</td></tr>
+    <tr><td class="mono">ML</td><td>NDB</td><td class="num mono">357 kHz</td><td>Mangalore</td></tr>
+    <tr><td class="mono">CLC</td><td>VOR-DME</td><td class="num mono">116.50 MHz</td><td>Calicut</td></tr>
+    <tr><td class="mono">CL</td><td>NDB</td><td class="num mono">303 kHz</td><td>Calicut</td></tr>
+    <tr><td class="mono">CIA</td><td>VOR-DME</td><td class="num mono">113.50 MHz</td><td>Cochin Intl</td></tr>
+    <tr><td class="mono">CIB</td><td>VOR-DME</td><td class="num mono">117.30 MHz</td><td>Cochin Intl</td></tr>
+    <tr><td class="mono">CI</td><td>NDB</td><td class="num mono">217 kHz</td><td>Cochin Intl</td></tr>
+    <tr><td class="mono">CA</td><td>NDB</td><td class="num mono">268 kHz</td><td>Cochin Intl</td></tr>
+    <tr><td class="mono">CCN</td><td>VOR-DME</td><td class="num mono">114.60 MHz</td><td>Cochin (naval)</td></tr>
+    <tr><td class="mono">CC</td><td>NDB</td><td class="num mono">325 kHz</td><td>Cochin (naval)</td></tr>
+    <tr><td class="mono">CCB</td><td>VOR-DME</td><td class="num mono">112.90 MHz</td><td>Coimbatore</td></tr>
+    <tr><td class="mono">CB</td><td>NDB</td><td class="num mono">354 kHz</td><td>Coimbatore</td></tr>
+    <tr><td class="mono">MDI</td><td>VOR-DME</td><td class="num mono">116.10 MHz</td><td>Madurai</td></tr>
+    <tr><td class="mono">MD</td><td>NDB</td><td class="num mono">400 kHz</td><td>Madurai</td></tr>
+  </tbody>
+</table></div>
+
+<h3 id="nav-ils"><span class="no">3.2</span>ILS (simulated)</h3>
+<p class="caution"><span class="label">Caution</span>OurAirports has no ILS data, so <code>tools/14_ils.py</code> generates simulated localizers and 3° glideslopes for every runway of 2000 m or more. The geometry follows the real runway, but <strong>the frequencies and idents are not real</strong>. The moving map labels them "simulated". Do not use them for real-world planning.</p>
+<div class="tbl"><table>
+  <caption>Simulated ILS, tune on NAV2</caption>
+  <thead><tr><th>Airport</th><th>Runway</th><th>Ident</th><th class="num">MHz</th></tr></thead>
+  <tbody>
+    <tr><td>VABB</td><td>27 / 09</td><td class="mono">IBB27 / IBB09</td><td class="num mono">108.10 / 108.30</td></tr>
+    <tr><td>VABB</td><td>32 / 14</td><td class="mono">IBB32 / IBB14</td><td class="num mono">108.50 / 108.70</td></tr>
+    <tr><td>VANM</td><td>08 / 26</td><td class="mono">INM08 / INM26</td><td class="num mono">108.90 / 109.10</td></tr>
+    <tr><td>VAPO</td><td>28 / 10</td><td class="mono">IPO28 / IPO10</td><td class="num mono">109.30 / 109.50</td></tr>
+    <tr><td>VOBM</td><td>26 / 08</td><td class="mono">IBM26 / IBM08</td><td class="num mono">109.70 / 109.90</td></tr>
+    <tr><td>VOSR</td><td>09 / 27</td><td class="mono">ISR09 / ISR27</td><td class="num mono">108.90 / 109.10</td></tr>
+    <tr><td>VOGA</td><td>28 / 10</td><td class="mono">IGA28 / IGA10</td><td class="num mono">110.90 / 111.10</td></tr>
+    <tr><td>VOGO</td><td>08 / 26</td><td class="mono">IGO08 / IGO26</td><td class="num mono">111.30 / 111.50</td></tr>
+    <tr><td>VOSH</td><td>08 / 26</td><td class="mono">ISH08 / ISH26</td><td class="num mono">108.50 / 108.70</td></tr>
+    <tr><td>VOML</td><td>06 / 24</td><td class="mono">IML06 / IML24</td><td class="num mono">108.10 / 108.30</td></tr>
+    <tr><td>VOKN</td><td>25 / 07</td><td class="mono">IKN25 / IKN07</td><td class="num mono">111.70 / 111.90</td></tr>
+    <tr><td>VOCL</td><td>28 / 10</td><td class="mono">ICL28 / ICL10</td><td class="num mono">110.50 / 110.70</td></tr>
+    <tr><td>VOCI</td><td>09 / 27</td><td class="mono">ICI09 / ICI27</td><td class="num mono">110.10 / 110.30</td></tr>
+  </tbody>
+</table></div>
+<p>Some frequencies repeat far apart (for example 108.10 at Mumbai and Mangaluru); reception range keeps them from overlapping.</p>
+
+<h3 id="nav-atc"><span class="no">3.3</span>Text ATC</h3>
+<p>Press <kbd>`</kbd> (backquote) to open the radio menu, then <kbd>1</kbd>–<kbd>6</kbd> to pick a call. While it is open the number keys go to the menu, not the cameras. Phraseology follows ICAO / Indian AIP style, with values from the sim: airport, into-wind runway, taxi route, wind, QNH and a squawk code.</p>
+<div class="tbl"><table>
+  <thead><tr><th>Key</th><th>Call</th><th>Tune COM1 to</th></tr></thead>
+  <tbody>
+    <tr><td><kbd>1</kbd></td><td>Listen to ATIS (runway, wind, visibility, QNH, temperature)</td><td>ATIS</td></tr>
+    <tr><td><kbd>2</kbd></td><td>Clearance delivery: VFR departure, with a squawk</td><td>Clearance / delivery or ground</td></tr>
+    <tr><td><kbd>3</kbd></td><td>Ground: taxi</td><td>Ground</td></tr>
+    <tr><td><kbd>4</kbd></td><td>Tower: departure</td><td>Tower</td></tr>
+    <tr><td><kbd>5</kbd></td><td>Inbound</td><td>Tower or approach</td></tr>
+    <tr><td><kbd>6</kbd></td><td>Final</td><td>Tower</td></tr>
+  </tbody>
+</table></div>
+<ul>
+  <li>A call is answered only when COM1's active frequency matches that facility, as in the real aircraft. If not, the log says "Nothing heard on COM1" and names the frequency to tune.</li>
+  <li>Airports without published frequencies (small fields such as Juhu) accept any COM1 frequency.</li>
+  <li>With COM1 failed or no avionics power, nothing is heard: squawk 7600 and follow lost-comms procedure.</li>
+  <li>Voice ATC (Piper TTS) is planned for milestone M9.</li>
+</ul>
+
+<h3 id="nav-checklists"><span class="no">3.4</span>Checklists</h3>
+<p><kbd>F2</kbd> opens the C172S POH checklists. <kbd>Ctrl</kbd>+<kbd>PgUp</kbd>/<kbd>PgDn</kbd> changes list and <kbd>Enter</kbd> ticks the next item. Most items tick themselves when the sim sees the switch, lever or reading in range.</p>
+<ol>
+  <li>Before Starting Engine</li>
+  <li>Starting Engine</li>
+  <li>Before Takeoff (run-up)</li>
+  <li>Normal Takeoff</li>
+  <li>Cruise</li>
+  <li>Before Landing</li>
+  <li>Normal Landing</li>
+  <li>After Landing</li>
+  <li>Securing Airplane</li>
+</ol>
+<a class="top" href="#top">Back to top</a>
+</section>
+
+<!-- ===================== OPS 4 ===================== -->
+<section id="airports">
+<h2><span class="no">OPS 4</span>Airports and ground ops</h2>
+
+<h3 id="airports-list"><span class="no">4.1</span>Airport list</h3>
+<p>Every airport in <code>runways.json</code> can be chosen on the start screen or with <code>--airport=ICAO</code>. Lengths are runway lengths from the merged OSM/OurAirports data; elevations are from OurAirports. Fields without an ICAO code use their OurAirports ident.</p>
+<div class="tbl"><table>
+  <thead><tr><th>Ident</th><th>Name</th><th class="num">Elev ft</th><th>Runways (length m)</th><th>Frequencies (MHz)</th></tr></thead>
+  <tbody>
+    <tr class="group"><td colspan="5">Mumbai–Pune region</td></tr>
+    <tr><td class="mono">VAJJ</td><td>Juhu Aerodrome (default)</td><td class="num">13</td><td class="nw">08/26 1128 · 16/34 716</td><td>none published</td></tr>
+    <tr><td class="mono">VABB</td><td>Chhatrapati Shivaji Maharaj International, Mumbai</td><td class="num">39</td><td class="nw">09/27 3470 · 14/32 2870</td><td>TWR 118.1 · GND 121.9 · CLD 121.85 · ATIS 126.4 · APP 127.9 · RDR 119.3 · ACC 120.5</td></tr>
+    <tr><td class="mono">VANM</td><td>Navi Mumbai International</td><td class="num">184</td><td class="nw">08/26 3700</td><td>none published</td></tr>
+    <tr><td class="mono">VAPO</td><td>Pune International</td><td class="num">1942</td><td class="nw">10/28 2873</td><td>TWR 123.5</td></tr>
+    <tr><td class="mono">VAAV</td><td>Aamby Valley</td><td class="num">2262</td><td class="nw">14/32 1196</td><td>none published</td></tr>
+    <tr><td class="mono">IN-0404</td><td>Hadapsar Gliding Centre</td><td class="num">1885</td><td class="nw">09/27 1501 · 10/28 986</td><td>none published</td></tr>
+    <tr><td class="mono">IN-0224</td><td>Reliance Corporate Park Heliport</td><td class="num">0</td><td class="nw">14/32 294</td><td>none published</td></tr>
+    <tr class="group"><td colspan="5">Outer ring and Konkan–Kerala corridor (north to south)</td></tr>
+    <tr><td class="mono">IN-0259</td><td>BKT Heliport</td><td class="num">0</td><td class="nw">18/36 992</td><td>none published</td></tr>
+    <tr><td class="mono">VA1M</td><td>Karad</td><td class="num">1890</td><td class="nw">10/28 1274</td><td>none published</td></tr>
+    <tr><td class="mono">VARG</td><td>Ratnagiri</td><td class="num">305</td><td class="nw">05/23 1816</td><td>none published</td></tr>
+    <tr><td class="mono">VAKP</td><td>Kolhapur</td><td class="num">1996</td><td class="nw">07/25 1782</td><td>TWR 126.9</td></tr>
+    <tr><td class="mono">VOSR</td><td>Sindhudurg</td><td class="num">203</td><td class="nw">09/27 2498</td><td>none published</td></tr>
+    <tr><td class="mono">VOBM</td><td>Belagavi</td><td class="num">2487</td><td class="nw">08/26 2297</td><td>TWR 123.5</td></tr>
+    <tr><td class="mono">VOGA</td><td>Manohar International, Goa (Mopa)</td><td class="num">552</td><td class="nw">10/28 3621</td><td>none published</td></tr>
+    <tr><td class="mono">VOGO</td><td>Goa Dabolim International</td><td class="num">150</td><td class="nw">08/26 3347</td><td>TWR 118.1 · APP 119.7 · ATIS 126.6</td></tr>
+    <tr><td class="mono">VOSH</td><td>Rashtrakavi Kuvempu, Shivamogga</td><td class="num">2017</td><td class="nw">08/26 3065</td><td>none published</td></tr>
+    <tr><td class="mono">VOML</td><td>Mangaluru International</td><td class="num">337</td><td class="nw">06/24 2458</td><td>TWR 122.1 · APP 122.1 · ACC 127.55</td></tr>
+    <tr><td class="mono">VOKN</td><td>Kannur International</td><td class="num">330</td><td class="nw">07/25 3058</td><td>none published</td></tr>
+    <tr><td class="mono">VOCL</td><td>Calicut International</td><td class="num">342</td><td class="nw">10/28 2815</td><td>TWR 122.95 · ATIS 127.0</td></tr>
+    <tr><td class="mono">VOCI</td><td>Cochin International</td><td class="num">30</td><td class="nw">09/27 3405</td><td>TWR 118.8 · GND 121.75 · APP 119.75 · ATIS 126.2</td></tr>
+    <tr><td class="mono">VOCC</td><td>INS Garuda / Willingdon Island Naval Air Station</td><td class="num">8</td><td class="nw">13/31 1416 · 17/35 1835</td><td>TWR 123.5 · APP 124.7</td></tr>
+  </tbody>
+</table></div>
+<p>Without <code>--runway</code>, the sim picks the longest runway.</p>
+
+<h3 id="airports-stands"><span class="no">4.2</span>Stands and gates</h3>
+<ul>
+  <li>Stands come from OpenStreetMap: <strong>VABB</strong> 114 stands (52 gates with jetbridges), <strong>VANM</strong> 87, <strong>VAPO</strong> 24, and generated GA parking at <strong>Juhu</strong>.</li>
+  <li>Stands have lead-in lines and stand numbers; jetbridges follow the OSM jetbridge lines; windsocks turn with the wind.</li>
+  <li>From the command line: <code>--airport=VABB --stand</code> (a jetbridge gate), <code>--stand="Bay 40"</code>, or Juhu <code>--stand=GA3</code>.</li>
+  <li>Stand starts are always cold and dark with the parking brake set.</li>
+</ul>
+
+<h3 id="airports-taxi"><span class="no">4.3</span>Taxi routing and the follow-me car</h3>
+<ul>
+  <li>Press <kbd>T</kbd> for taxi guidance to the into-wind runway. The route runs over the real OSM taxiway network, is drawn as a green line on the ground, and the instruction names the taxiways ("Taxi via A, B, hold short").</li>
+  <li>A <strong>follow-me car</strong> drives ahead along the route, waits if you fall behind, and turns off at the hold-short point.</li>
+  <li>Press <kbd>T</kbd> again to clear the route.</li>
+</ul>
+
+<h3 id="airports-pushback"><span class="no">4.4</span>Pushback</h3>
+<p>Release the parking brake, then press <kbd>P</kbd>. A Goldhofer tug pushes you back and swings the tail toward the taxiway. <kbd>P</kbd> again stops it.</p>
+
+<h3 id="airports-vehicles"><span class="no">4.5</span>Ground vehicles</h3>
+<ul>
+  <li><strong>At jetway gates:</strong> a ground power unit at the nose, a baggage tug with carts aft, and a fuel truck on some stands. The jetways are the FlightGear model laid along the OSM jetbridge.</li>
+  <li><strong>Elsewhere:</strong> fuel trucks at some GA and remote stands, apron buses, and a fire truck by the tower.</li>
+  <li>Service vehicles are parked; moving service vehicles and AI traffic are not modelled yet.</li>
+</ul>
+
+<h3 id="airports-lights"><span class="no">4.6</span>Aerodrome lighting</h3>
+<p>Lighting follows ICAO/FAA patterns and is built for each airport within 25 km. Lights are directional, fade in haze and dim by day.</p>
+<ul>
+  <li><strong>Runway:</strong> white edge lights (last 600 m yellow on instrument runways), green threshold and red end bars with wing bars, centreline lights (white, then red/white alternating 900–300 m from the end, red for the last 300 m), touchdown-zone barrettes on ILS runways.</li>
+  <li><strong>Approach:</strong> ALSF-II-style lights with sequenced flashers ("the rabbit") on ILS ends; a 420 m simple system elsewhere. By day the flashers are dimmed.</li>
+  <li><strong>PAPI</strong> on the left of each runway, visible by day too.</li>
+  <li><strong>Taxiways:</strong> blue edge and green centreline lights, with green/yellow lead-on lights.</li>
+  <li><strong>Holding points:</strong> red stop bars and flashing runway guard lights at night and when visibility is under 5 km.</li>
+  <li>Rotating green/white aerodrome beacons and apron floodlight masts.</li>
+</ul>
+<figure>
+  <div class="fig">
+  <svg viewBox="0 0 440 150" width="440" height="150" role="img" aria-labelledby="papi-t">
+    <title id="papi-t">PAPI indications from left to right: four white too high, three white one red slightly high, two white two red on path, one white three red slightly low, four red too low</title>
+    <g>
+      <rect x="6" y="18" width="80" height="26" rx="4" fill="var(--papi-case)"></rect>
+      <circle cx="20" cy="31" r="7" fill="var(--papi-white)"></circle><circle cx="38" cy="31" r="7" fill="var(--papi-white)"></circle><circle cx="56" cy="31" r="7" fill="var(--papi-white)"></circle><circle cx="74" cy="31" r="7" fill="var(--papi-white)"></circle>
+      <rect x="94" y="18" width="80" height="26" rx="4" fill="var(--papi-case)"></rect>
+      <circle cx="108" cy="31" r="7" fill="var(--papi-white)"></circle><circle cx="126" cy="31" r="7" fill="var(--papi-white)"></circle><circle cx="144" cy="31" r="7" fill="var(--papi-white)"></circle><circle cx="162" cy="31" r="7" fill="var(--papi-red)"></circle>
+      <rect x="182" y="18" width="80" height="26" rx="4" fill="var(--papi-case)"></rect>
+      <circle cx="196" cy="31" r="7" fill="var(--papi-white)"></circle><circle cx="214" cy="31" r="7" fill="var(--papi-white)"></circle><circle cx="232" cy="31" r="7" fill="var(--papi-red)"></circle><circle cx="250" cy="31" r="7" fill="var(--papi-red)"></circle>
+      <rect x="270" y="18" width="80" height="26" rx="4" fill="var(--papi-case)"></rect>
+      <circle cx="284" cy="31" r="7" fill="var(--papi-white)"></circle><circle cx="302" cy="31" r="7" fill="var(--papi-red)"></circle><circle cx="320" cy="31" r="7" fill="var(--papi-red)"></circle><circle cx="338" cy="31" r="7" fill="var(--papi-red)"></circle>
+      <rect x="358" y="18" width="80" height="26" rx="4" fill="var(--papi-case)"></rect>
+      <circle cx="372" cy="31" r="7" fill="var(--papi-red)"></circle><circle cx="390" cy="31" r="7" fill="var(--papi-red)"></circle><circle cx="408" cy="31" r="7" fill="var(--papi-red)"></circle><circle cx="426" cy="31" r="7" fill="var(--papi-red)"></circle>
+    </g>
+    <g class="svg-label" text-anchor="middle">
+      <text x="46" y="68">Too high</text>
+      <text x="134" y="68">Slightly high</text>
+      <text x="222" y="68" font-weight="600">On path 3°</text>
+      <text x="310" y="68">Slightly low</text>
+      <text x="398" y="68">Too low</text>
+    </g>
+    <g class="svg-small" text-anchor="middle">
+      <text x="46" y="86">4 white</text>
+      <text x="134" y="86">3 W · 1 R</text>
+      <text x="222" y="86">2 W · 2 R</text>
+      <text x="310" y="86">1 W · 3 R</text>
+      <text x="398" y="86">4 red</text>
+    </g>
+    <text class="svg-small" x="220" y="122" text-anchor="middle">"White over red, you're on the glide path"</text>
+  </svg>
+  </div>
+  <figcaption>Reading the PAPI. <code>--lights-debug</code> prints what the nearest PAPI shows the camera, for example <code>WWRR</code>, with the eye angle.</figcaption>
+</figure>
+
+<h3 id="airports-terminals"><span class="no">4.7</span>Landmark terminals</h3>
+<p>The passenger terminals at three airports are dedicated models built from their OSM footprints and a hand-written recipe per airport, instead of generic extruded blocks. Glass curtain walls reflect the sky and glow warm at night. Each loads when the camera comes within 20 km.</p>
+<ul>
+  <li><strong>Mumbai (VABB) T2 and T1:</strong> T2's glazed headhouse under one long roof on mushroom columns, a 40 m kerb cantilever, a lit coffered soffit and glazed piers.</li>
+  <li><strong>Pune (VAPO):</strong> the new integrated terminal with its long "verandah" and dark-basalt pointed arcade, and the old terminal.</li>
+  <li><strong>Kochi (VOCI) T3, T1 and T2:</strong> Kerala terracotta hip roofs with white gablets, cream walls, and a red fascia reading "COCHIN INTERNATIONAL AIRPORT".</li>
+</ul>
+<p>Builders: the pipeline, material kinds and per-airport sources are in <code>docs/TERMINALS.md</code>. Preview one airport without terrain:</p>
+<div class="cmd"><pre><code>~/.local/bin/godot --path game res://tests/debug_terminal.tscn -- --icao=VOCI --out=/tmp --night</code></pre><button class="copy" type="button">Copy</button></div>
+<a class="top" href="#top">Back to top</a>
+</section>
+
+<!-- ===================== OPS 5 ===================== -->
+<section id="weather">
+<h2><span class="no">OPS 5</span>Weather, time and night</h2>
+<p>Weather is set offline on the start screen, with <kbd>F10</kbd> in flight, or from the command line. There is no live weather.</p>
+
+<h3 id="weather-presets"><span class="no">5.1</span>Presets</h3>
+<div class="tbl"><table>
+  <thead><tr><th>Preset</th><th class="num">Cover</th><th class="num">Base ft AMSL</th><th class="num">Visibility</th><th class="num">Turbulence</th><th class="num">Rain</th></tr></thead>
+  <tbody>
+    <tr><td>Clear</td><td class="num">0.00</td><td class="num">6000</td><td class="num">40 km</td><td class="num">0.05</td><td class="num">0</td></tr>
+    <tr><td>Fair (default)</td><td class="num">0.30</td><td class="num">4500</td><td class="num">20 km</td><td class="num">0.15</td><td class="num">0</td></tr>
+    <tr><td>Scattered</td><td class="num">0.50</td><td class="num">3000</td><td class="num">15 km</td><td class="num">0.20</td><td class="num">0</td></tr>
+    <tr><td>Broken</td><td class="num">0.75</td><td class="num">2500</td><td class="num">10 km</td><td class="num">0.30</td><td class="num">0.12 (showers)</td></tr>
+    <tr><td>Overcast</td><td class="num">0.95</td><td class="num">1800</td><td class="num">7 km</td><td class="num">0.30</td><td class="num">0.30 (drizzle)</td></tr>
+    <tr><td>Winter haze</td><td class="num">0.05</td><td class="num">5000</td><td class="num">3 km</td><td class="num">0.05</td><td class="num">0</td></tr>
+    <tr><td>Monsoon</td><td class="num">1.00</td><td class="num">1200</td><td class="num">5 km</td><td class="num">0.55</td><td class="num">0.90 + lightning</td></tr>
+  </tbody>
+</table></div>
+<p>Default conditions: Fair, 10:00 IST on 14 February, wind 270/08, QNH 1012 hPa, 30 °C. Wind is set separately from the preset.</p>
+
+<h3 id="weather-wind"><span class="no">5.2</span>Wind, turbulence and ridge lift</h3>
+<ul>
+  <li>A logarithmic surface wind profile blends into the wind aloft, which is veered about 10° and about 1.6 × the surface speed.</li>
+  <li>Gusts and turbulence on top.</li>
+  <li><strong>Ridge lift</strong> on windward slopes: the Ghats give about 3 m/s in a 20 kt westerly. The lee side has sink and mechanical turbulence.</li>
+  <li>QNH and temperature drive density altitude and the altimeter. Pune afternoons are hot and high (VAPO is at 1942 ft).</li>
+</ul>
+
+<h3 id="weather-sky"><span class="no">5.3</span>Clouds, visibility and rain</h3>
+<ul>
+  <li><strong>Clouds</strong> are a raymarched volumetric cumulus layer at the set base and cover. You can fly under, through (fog inside) and above it. It drifts with the wind aloft and is lit by the sun, with darker bases and warm sunset tints.</li>
+  <li><strong>Visibility</strong> drives haze and fog: everything fades to the horizon colour with an extinction of 3 / visibility (5 % contrast at the visibility distance).</li>
+  <li><strong>Broken and thicker cover</strong> dims and diffuses the sun. Under Overcast there are no hard shadows or sun disc. Climb above the tops and the sun comes back.</li>
+  <li><strong>Rain</strong> falls only below the cloud tops. Streaks lean with the wind and stretch with airspeed; drops bead on the windshield when parked and streak back in flight; terrain, roofs and trees turn darker and glossier, with standing water on flat ground that dries slowly. Rain lowers visibility and sounds louder on the canopy at speed. Below 0.3 it comes and goes in showers.</li>
+  <li>Monsoon storms have occasional lightning.</li>
+</ul>
+
+<h3 id="weather-time"><span class="no">5.4</span>Sun, moon and time</h3>
+<ul>
+  <li>The sun position is real for Mumbai and Pune in IST. The default is 10:00 on 14 February; the F10 time rate speeds the clock up.</li>
+  <li>In February, 06:30 is still pre-dawn twilight; sunrise is 07:10 and sunset 18:40.</li>
+  <li>The moon has the correct position and phase for the date, with cool moonlight and a glitter path on water. <code>--day=3</code> gives a full moon.</li>
+</ul>
+
+<h3 id="weather-night"><span class="no">5.5</span>Night</h3>
+<ul>
+  <li>Stars, a warm city glow on the horizon and cloud undersides, and a night ambient level and exposure so terrain, coastlines and clouds stay readable.</li>
+  <li>Building facades get procedural windows that light up at night.</li>
+  <li><strong>Aircraft lights:</strong> red/green/white nav lights, a flashing red fin beacon and double-flash white wingtip strobes are drawn as glowing points with a minimum on-screen size, so the aircraft stays visible from the tower miles away. Small shadowless lights tint the wingtips, fin and wings around them, and a soft fill keeps the airframe readable in outside views.</li>
+  <li><strong>Landing and taxi lights</strong> are spot lights with a faint visible beam and a lit pool on the runway ahead, fading out above about 80 m AGL. In daylight only the bulbs glow.</li>
+  <li><strong>Lights at start</strong> (night or dusk, sun below 5°): nav and beacon always; strobes for air and runway starts; landing light for runway starts and air starts below 3000 ft AGL; taxi light for runway starts. Cold-and-dark and stand starts have everything off. By day only the beacon is on.</li>
+  <li><strong>Cockpit at night:</strong> the instruments are internally lit and follow the PANEL dimmer (unpowered means dark), the radio displays stay lit, and a warm glareshield flood lights the panel and yokes. The daytime look is unchanged.</li>
+  <li>Aerodrome lighting is described in <a href="#airports-lights">OPS 4.6</a>.</li>
+</ul>
+<a class="top" href="#top">Back to top</a>
+</section>
+
+<!-- ===================== OPS 6 ===================== -->
+<section id="systems">
+<h2><span class="no">OPS 6</span>Systems and failures</h2>
+
+<h3 id="systems-electrical"><span class="no">6.1</span>Electrical</h3>
+<ul>
+  <li>24 V battery (35 Ah) and 60 A alternator; BAT and ALT masters and an avionics master.</li>
+  <li>The alternator needs more than about 1000 RPM, so the ammeter shows discharge at idle.</li>
+  <li>The LOW VOLTS light comes on below 24.5 V.</li>
+  <li>The starter needs battery power; the flaps, turn coordinator and radios need bus power.</li>
+</ul>
+
+<h3 id="systems-fuel"><span class="no">6.2</span>Fuel</h3>
+<ul>
+  <li>Left and right tanks feed according to the selector (OFF / LEFT / RIGHT / BOTH), through a shutoff valve.</li>
+  <li>After starvation the engine runs about 6 s on fuel in the lines, and restarts while windmilling once fuel returns.</li>
+  <li>Fuel burn changes weight and CG.</li>
+</ul>
+
+<h3 id="systems-vacuum"><span class="no">6.3</span>Vacuum</h3>
+<p>The engine-driven vacuum pump spins the attitude and heading gyros. After a pump failure they spin down slowly and wander; the attitude indicator shows a GYRO flag.</p>
+
+<h3 id="systems-pitot"><span class="no">6.4</span>Pitot-static</h3>
+<p>A blocked pitot or static port freezes that pressure at the moment of failure, so the airspeed, altimeter and VSI read wrong the way they would in the real aircraft. The ALT STAT switch selects the alternate static source; PITOT HT is on the switch row.</p>
+
+<h3 id="systems-failures"><span class="no">6.5</span>Failure catalogue</h3>
+<p>The ids are used with <code>--fail=</code>.</p>
+<div class="tbl"><table>
+  <thead><tr><th>Id</th><th>Failure</th><th>What happens</th></tr></thead>
+  <tbody>
+    <tr class="group"><td colspan="3">Engine</td></tr>
+    <tr><td><code>engine</code></td><td>Engine failure (total)</td><td>The engine stops; glide at 68 KIAS</td></tr>
+    <tr><td><code>engine_partial</code></td><td>Partial power loss / rough running</td><td>Runs rough at about 55 % power</td></tr>
+    <tr><td><code>mag_left</code></td><td>Left magneto</td><td>Left magneto dead: RPM drop on BOTH; engine stops on L</td></tr>
+    <tr><td><code>mag_right</code></td><td>Right magneto</td><td>Right magneto dead: RPM drop on BOTH; engine stops on R</td></tr>
+    <tr class="group"><td colspan="3">Fuel</td></tr>
+    <tr><td><code>fuel_leak_left</code></td><td>Left tank leak</td><td>The left tank loses about 5 US gal per hour</td></tr>
+    <tr><td><code>fuel_leak_right</code></td><td>Right tank leak</td><td>The right tank loses about 5 US gal per hour</td></tr>
+    <tr class="group"><td colspan="3">Electrical</td></tr>
+    <tr><td><code>alternator</code></td><td>Alternator</td><td>No charging: the ammeter shows discharge and the battery drains until LOW VOLTS</td></tr>
+    <tr><td><code>battery</code></td><td>Battery (dead)</td><td>No battery: no starter, and no bus without the alternator</td></tr>
+    <tr class="group"><td colspan="3">Vacuum and gyros</td></tr>
+    <tr><td><code>vacuum_pump</code></td><td>Vacuum pump</td><td>Attitude and heading indicators spin down and wander</td></tr>
+    <tr><td><code>ai</code></td><td>Attitude indicator gyro</td><td>Seized gyro: the AI alone spins down and wanders</td></tr>
+    <tr><td><code>hi</code></td><td>Heading indicator gyro</td><td>Seized gyro: the HI alone spins down and wanders</td></tr>
+    <tr><td><code>tc</code></td><td>Turn coordinator</td><td>Turn coordinator loses power and stops indicating</td></tr>
+    <tr class="group"><td colspan="3">Pitot-static</td></tr>
+    <tr><td><code>pitot_blocked</code></td><td>Pitot tube blocked</td><td>Pitot pressure frozen: the ASI reacts to altitude changes like an altimeter</td></tr>
+    <tr><td><code>static_blocked</code></td><td>Static port blocked</td><td>Static pressure frozen: altimeter and VSI stick, ASI misreads with altitude</td></tr>
+    <tr class="group"><td colspan="3">Flight controls</td></tr>
+    <tr><td><code>flaps</code></td><td>Flaps jammed</td><td>Flaps stay where they are</td></tr>
+    <tr><td><code>trim</code></td><td>Elevator trim jammed</td><td>Trim stays where it was</td></tr>
+    <tr><td><code>brake_left</code></td><td>Left brake</td><td>No left braking: the aircraft pulls right under braking</td></tr>
+    <tr><td><code>brake_right</code></td><td>Right brake</td><td>No right braking: the aircraft pulls left under braking</td></tr>
+    <tr class="group"><td colspan="3">Avionics</td></tr>
+    <tr><td><code>com1</code></td><td>COM1 radio</td><td>COM1 dead; ATC hears nothing</td></tr>
+    <tr><td><code>com2</code></td><td>COM2 radio</td><td>COM2 dead</td></tr>
+    <tr><td><code>nav1</code></td><td>NAV1 receiver</td><td>VOR1 flags OFF</td></tr>
+    <tr><td><code>nav2</code></td><td>NAV2 receiver (ILS)</td><td>VOR2/ILS flags OFF</td></tr>
+    <tr><td><code>adf</code></td><td>ADF receiver</td><td>No ADF bearing</td></tr>
+    <tr><td><code>dme</code></td><td>DME</td><td>No DME distance</td></tr>
+    <tr><td><code>xpdr</code></td><td>Transponder</td><td>Transponder display dark</td></tr>
+    <tr><td><code>gps</code></td><td>GPS</td><td>No GPS direct-to readout</td></tr>
+  </tbody>
+</table></div>
+
+<h3 id="systems-triggers"><span class="no">6.6</span>Triggers and random failures</h3>
+<div class="tbl"><table>
+  <thead><tr><th>Trigger</th><th>Fires</th><th>Command line</th></tr></thead>
+  <tbody>
+    <tr><td>At start</td><td>Immediately</td><td><code>--fail=vacuum_pump,mag_left</code></td></tr>
+    <tr><td>After time</td><td>N minutes after start</td><td><code>--fail=engine@5</code></td></tr>
+    <tr><td>Above altitude</td><td>Climbing through N ft AGL</td><td>start screen only</td></tr>
+    <tr><td>Above airspeed</td><td>Above N kt</td><td>start screen only</td></tr>
+    <tr><td>Random</td><td>Count, window and systems chosen on the start screen; hidden from you</td><td><code>--random-failures</code> (one, 2–30 min, any system)</td></tr>
+  </tbody>
+</table></div>
+
+<h3 id="systems-f9"><span class="no">6.7</span>The F9 failures panel</h3>
+<p>In flight, <kbd>F9</kbd> shows every system as OK, FAILED or armed. Fail or repair any of them live, and see how many random failures are still pending.</p>
+<a class="top" href="#top">Back to top</a>
+</section>
+
+<!-- ===================== OPS 7 ===================== -->
+<section id="realism">
+<h2><span class="no">OPS 7</span>Realism</h2>
+
+<h3 id="realism-fdm"><span class="no">7.1</span>The flight model</h3>
+<ul>
+  <li>A 6-DOF model in GDScript, running at a fixed 120 Hz, that evaluates JSBSim's c172p aerodynamic tables.</li>
+  <li>free-sim's own Lycoming IO-360 (180 hp) engine, propeller and spring-damper gear.</li>
+  <li>The propeller gets 17 % more thrust at low advance ratio than JSBSim's prop, so takeoff and climb match the C172S POH.</li>
+  <li>The airborne start is trimmed at calibrated airspeed for the real weather and wind.</li>
+</ul>
+<div class="tbl"><table>
+  <caption>POH test cards (2550 lb, sea level, ISA)</caption>
+  <thead><tr><th>Card</th><th class="num">Model</th><th class="num">POH</th></tr></thead>
+  <tbody>
+    <tr><td>Static RPM, full throttle</td><td class="num">2300</td><td class="num">2300–2420</td></tr>
+    <tr><td>Magneto drop at run-up</td><td class="num">~90 RPM</td><td class="num">50–150</td></tr>
+    <tr><td>Takeoff ground roll, flaps 10</td><td class="num">~865 ft</td><td class="num">960 ft</td></tr>
+    <tr><td>Climb at V<sub>Y</sub> (74 KIAS)</td><td class="num">~670 fpm</td><td class="num">730 fpm</td></tr>
+    <tr><td>Cruise, 75 % power, 6000 ft</td><td class="num">~126 KTAS</td><td class="num">122 KTAS</td></tr>
+    <tr><td>Stall, clean / flaps 30</td><td class="num">53.6 / 47.6 KCAS</td><td class="num">53 / 48 KCAS</td></tr>
+    <tr><td>Glide ratio, engine off</td><td class="num">8.6</td><td class="num">~9</td></tr>
+    <tr><td>Landing ground roll, flaps 30, full braking</td><td class="num">~610 ft</td><td class="num">575 ft</td></tr>
+    <tr><td>Hands-off after trimming</td><td class="num">±33 ft / 60 s</td><td class="num">stable</td></tr>
+  </tbody>
+</table></div>
+
+<h3 id="realism-compare"><span class="no">7.2</span>Compared with JSBSim and FlightGear</h3>
+<p><code>tools/18_compare_fdm.py</code> flies 11 scripted manoeuvres in free-sim's FDM and in standalone JSBSim c172p, with the same pilot laws, load (180 lb pilot, 100 lb fuel per tank) and rigging. Default solo load, ISA, no wind. "Diff" is free-sim versus JSBSim.</p>
+<div class="tbl"><table>
+  <thead><tr><th>Manoeuvre</th><th>Metric</th><th class="num">free-sim</th><th class="num">JSBSim</th><th class="num">Diff</th></tr></thead>
+  <tbody>
+    <tr><td>Cruise trim, 1500 ft, 100 KIAS</td><td>pitch / trim / RPM / hp</td><td class="num">0.40° / −0.19 / 2159 / 81</td><td class="num">0.38° / −0.19 / 2186 / 85</td><td class="num">+3 % / 0 / −1 % / −5 %</td></tr>
+    <tr><td>Hands off from that trim</td><td>bank at 10 s / 60 s</td><td class="num">1.4° / 5.3°</td><td class="num">1.2° / 4.1°</td><td class="num">small</td></tr>
+    <tr><td>Takeoff, flaps 0</td><td>liftoff distance / KCAS</td><td class="num">747 ft / 57.4</td><td class="num">882 ft / 57.3</td><td class="num">−15 % / 0</td></tr>
+    <tr><td></td><td>distance to 50 ft</td><td class="num">1628 ft</td><td class="num">1887 ft</td><td class="num">−14 %</td></tr>
+    <tr><td>Climb at 74 KIAS, full power</td><td>rate of climb</td><td class="num">1160 fpm</td><td class="num">991 fpm</td><td class="num">+17 %</td></tr>
+    <tr><td>Aileron step 0.5</td><td>peak roll rate / time to 30°</td><td class="num">31.2°/s / 1.14 s</td><td class="num">31.3°/s / 1.14 s</td><td class="num">0 / 0</td></tr>
+    <tr><td>Elevator doublet</td><td>peak q / phugoid period / damping</td><td class="num">12.7°/s / 25.3 s / 0.13</td><td class="num">12.8°/s / 25.3 s / 0.11</td><td class="num">−1 % / 0 / +13 %</td></tr>
+    <tr><td>Rudder doublet</td><td>dutch roll period / damping / peak β</td><td class="num">2.72 s / 0.19 / 12.7°</td><td class="num">2.73 s / 0.19 / 12.9°</td><td class="num">0 / +3 % / −1 %</td></tr>
+    <tr><td>Stall, idle, clean</td><td>min KCAS / max α / height lost</td><td class="num">47.8 / 17.5° / 460 ft</td><td class="num">47.6 / 17.8° / 444 ft</td><td class="num">0 / −2 % / +4 %</td></tr>
+    <tr><td>Stall, idle, flaps 30</td><td>min KCAS / max α</td><td class="num">43.7 / 15.0°</td><td class="num">43.5 / 15.5°</td><td class="num">0 / −3 %</td></tr>
+    <tr><td>Glide at 68 KIAS</td><td>sink / glide ratio</td><td class="num">840 fpm / 8.4</td><td class="num">827 fpm / 8.5</td><td class="num">+2 % / −2 %</td></tr>
+    <tr><td>Landing, 50 ft at 61 KIAS, flaps 30</td><td>air distance / touchdown KCAS / ground roll</td><td class="num">921 ft / 51.4 / 436 ft</td><td class="num">932 ft / 50.8 / 476 ft</td><td class="num">−1 % / +1 % / −8 %</td></tr>
+    <tr><td>Crosswind takeoff, 10 kt from right</td><td>liftoff distance / max lateral deviation</td><td class="num">748 ft / 4 ft</td><td class="num">887 ft / 30 ft</td><td class="num">−16 % / −86 %</td></tr>
+  </tbody>
+</table></div>
+<p>The aerodynamics match within a few percent. The differences come from three places:</p>
+<ul>
+  <li><strong>Takeoff and climb:</strong> the deliberate propeller boost. With it, free-sim matches the POH cards; JSBSim with a true 180 hp engine climbs and accelerates more slowly than the POH.</li>
+  <li><strong>Crosswind ground roll:</strong> JSBSim's tyre model weathervanes more on the nose wheel; free-sim's gear holds heading with the same input. A real C172 sits between the two.</li>
+  <li><strong>Cruise throttle:</strong> the two engine models map throttle to manifold pressure differently (0.55 versus 0.75 for the same power).</li>
+</ul>
+<p>Controls also follow FlightGear's c172p: the same actuator rate limits, an optional auto-coordination factor of 0.5, and electric flap travel of 2 s / 1 s / 1 s per notch. The full write-up is in <code>docs/FDM-VS-FLIGHTGEAR.md</code>; a wider feature comparison is in <code>docs/FREE-SIM-VS-FLIGHTGEAR.md</code>.</p>
+
+<h3 id="realism-damage"><span class="no">7.3</span>Damage model</h3>
+<p>Thresholds come from the C172S POH and FAR 23.</p>
+<div class="tbl"><table>
+  <thead><tr><th>Event</th><th>Threshold</th><th>Result</th></tr></thead>
+  <tbody>
+    <tr><td>Hard landing</td><td>main-wheel sink rate above ~590 fpm</td><td>Airframe damaged, needs inspection</td></tr>
+    <tr><td>Gear collapse</td><td>above ~900 fpm (nose wheel ~510 fpm), or gear load beyond design limit</td><td>Gear collapses, airframe drops</td></tr>
+    <tr><td>Prop strike</td><td>propeller tip touches the ground</td><td>Engine destroyed; above ~25 kt the aircraft noses over (crash)</td></tr>
+    <tr><td>Wingtip strike</td><td>above 10 kt (ground loop)</td><td>Crash</td></tr>
+    <tr><td>Tail strike</td><td>tail skid touches (about 10° nose-up with gear intact)</td><td>Airframe damaged</td></tr>
+    <tr><td>Side drift at touchdown</td><td>more than ~6 kt / more than ~10 kt</td><td>Gear damaged / gear folds (ground loop)</td></tr>
+    <tr><td>Ditching, trees, buildings</td><td>touching water; flying into trees or OSM buildings (checked at nose, wingtips, tail, fuselage)</td><td>Crash</td></tr>
+    <tr><td>Overspeed</td><td>more than 2 s above V<sub>NE</sub> 163 KIAS; 185 KIAS</td><td>Airframe damaged; structural failure</td></tr>
+    <tr><td>Flap overspeed</td><td>2 s above V<sub>FE</sub> (110 kt at 10°, 85 kt beyond)</td><td>Flaps damaged and jammed</td></tr>
+    <tr><td>Load factor</td><td>beyond +3.8 / −1.52 g; 1.5 × those values</td><td>Overstress; airframe breaks</td></tr>
+  </tbody>
+</table></div>
+<p>Not modelled yet: tyre bursts, engine damage from over-temperature or over-speed, collisions with ground vehicles, bird strikes.</p>
+
+<h3 id="realism-wb"><span class="no">7.4</span>Weight and balance</h3>
+<p>The CG envelope comes from the C172S POH (section 2 limits, section 6 chart), plotted in inches aft of the datum (front face of the firewall) against weight in lb. The loads you set change the mass, CG and inertia in the flight model. With only the pilot aboard, the CG sits slightly left of centre (180 lb pilot 14 in left), which together with engine torque gives the slow left roll described in <a href="#flying-trim">OPS 1.9</a>.</p>
+<a class="top" href="#top">Back to top</a>
+</section>
+
+<!-- ===================== OPS 8 ===================== -->
+<section id="saving">
+<h2><span class="no">OPS 8</span>Saving, replay and recording</h2>
+
+<h3 id="saving-saves"><span class="no">8.1</span>Saved flights</h3>
+<ul>
+  <li><kbd>F11</kbd> quick-saves; <kbd>Shift</kbd>+<kbd>F11</kbd> quick-loads. <kbd>Esc</kbd> → Save flight / Load flight for named saves.</li>
+  <li>A save keeps everything: position, motion, engine state, fuel, damage, switches, radios, failures, weather and time.</li>
+  <li>Saves live in <code>user://saves/</code> and appear on the start screen's Saved flights page.</li>
+</ul>
+
+<h3 id="saving-replay"><span class="no">8.2</span>Instant replay</h3>
+<p>Press <kbd>R</kbd> to replay up to the last 10 minutes from any camera.</p>
+<div class="tbl"><table>
+  <thead><tr><th>Key</th><th>Action</th></tr></thead>
+  <tbody>
+    <tr><td><kbd>Space</kbd></td><td>Play / pause</td></tr>
+    <tr><td><kbd>←</kbd> / <kbd>→</kbd></td><td>Seek −5 s / +5 s</td></tr>
+    <tr><td><kbd>[</kbd> / <kbd>]</kbd></td><td>Slower / faster (0.25× to 4×)</td></tr>
+    <tr><td>Timeline bar</td><td>Drag to scrub</td></tr>
+    <tr><td>Take control</td><td>Resume flying from the replayed moment, with its exact speed and attitude</td></tr>
+    <tr><td>Exit replay</td><td>Return to where you were</td></tr>
+  </tbody>
+</table></div>
+
+<h3 id="saving-recording"><span class="no">8.3</span>Recording video</h3>
+<ul>
+  <li>Turn it on with the start screen's Recording page, <code>--record</code>, or <kbd>F8</kbd> in flight. A red <strong>● REC</strong> shows time and file size.</li>
+  <li><strong>Format:</strong> <code>free-sim_&lt;date&gt;_&lt;time&gt;.mkv</code>, MJPEG video plus 16-bit PCM sound, written by the game itself. Plays in VLC and mpv and imports into video editors.</li>
+  <li><strong>Size:</strong> about 5 MB/s at 720p30. Choose 720p, 1080p or native, at 24, 30 or 60 fps.</li>
+  <li><strong>MP4:</strong> if <code>ffmpeg</code> is installed, the file is converted to a much smaller H.264 + AAC MP4 when recording stops.</li>
+  <li><strong>Crash-safe:</strong> the file is written as a stream, so it stays playable even if the game is killed.</li>
+  <li><strong>Cost:</strong> frames are read back from the GPU asynchronously and encoded on worker threads; frame rate is barely affected (42 FPS with or without recording on the dev machine).</li>
+  <li><strong>Where:</strong> <code>recordings/</code> in the game folder by default, or any folder you choose. Read-only installs (AppImage, .app) fall back to <code>~/.local/share/godot/app_userdata/free-sim/recordings</code>.</li>
+</ul>
+<a class="top" href="#top">Back to top</a>
+</section>
+
+<!-- ===================== OPS 9 ===================== -->
+<section id="graphics">
+<h2><span class="no">OPS 9</span>Graphics and performance</h2>
+<p>Choose a preset with <kbd>F10</kbd>, on the Options page, or with <code>--quality=</code>. The default is High.</p>
+<div class="tbl"><table>
+  <caption>Presets (FPS measured on a Radeon 780M integrated GPU)</caption>
+  <thead><tr><th>Preset</th><th class="num">FPS</th><th>Render scale</th><th>Shadows</th><th>Buildings / trees</th><th class="num">Cloud steps</th></tr></thead>
+  <tbody>
+    <tr><td>Low</td><td class="num">~69</td><td>70 % + FSR</td><td>off</td><td>4 km / 1.2 km</td><td class="num">10</td></tr>
+    <tr><td>Medium</td><td class="num">~62</td><td>85 % + FSR</td><td>150 m</td><td>6 km / 1.8 km</td><td class="num">16</td></tr>
+    <tr><td>High</td><td class="num">~51</td><td>100 % + MSAA 2×</td><td>300 m</td><td>9 km / 2.2 km</td><td class="num">24</td></tr>
+    <tr><td>Ultra</td><td class="num">~45</td><td>100 % + MSAA 4×</td><td>600 m</td><td>12 km / 3 km</td><td class="num">40</td></tr>
+  </tbody>
+</table></div>
+<h4>Renderer</h4>
+<p>Mobile is the default renderer and the fastest on integrated GPUs. Forward+ (<kbd>F10</kbd> → Renderer, then restart; or launch with <code>--rendering-method forward_plus</code>) adds SSAO and TAA on Ultra.</p>
+<h4>What scales</h4>
+<ul>
+  <li>3D buildings stream within up to 9 km and hide above 2500 ft AGL.</li>
+  <li>Trees are generated within about 2 km and hidden above 1500 m AGL.</li>
+  <li>Rain streak count follows the preset.</li>
+</ul>
+<h4>Tips</h4>
+<ul>
+  <li><kbd>F3</kbd> shows the performance overlay.</li>
+  <li>Lower <code>lod_k</code> on the Terrain node in <code>world/flight.tscn</code> (default 1.6), or turn off <code>shadow_enabled</code> on the Sun.</li>
+  <li>To find where frame time goes, run the <code>debug_perf.tscn</code> scene (<a href="#dev-debug">DEV 2.5</a>).</li>
+</ul>
+<a class="top" href="#top">Back to top</a>
+</section>
+
+<p class="part-head">Part DEV · Builders and contributors</p>
+
+<!-- ===================== DEV 1 ===================== -->
+<section id="world-data">
+<h2><span class="no">DEV 1</span>World data and pipeline</h2>
+
+<h3 id="data-sources"><span class="no">1.1</span>Sources</h3>
+<div class="tbl"><table>
+  <thead><tr><th>Data</th><th>Source</th><th>Licence</th></tr></thead>
+  <tbody>
+    <tr><td>Elevation, 30 m</td><td>Copernicus GLO-30 DEM (AWS Open Data)</td><td>Copernicus, free with attribution</td></tr>
+    <tr><td>Elevation, 90 m (outer ring)</td><td>Copernicus GLO-90 DEM</td><td>Copernicus, free with attribution</td></tr>
+    <tr><td>Imagery</td><td>Sentinel-2 cloudless 2024 by EOX (s2maps.eu); 10 m detailed, 20 m corridor, 80 m outer</td><td>CC BY-NC-SA 4.0</td></tr>
+    <tr><td>Runways, taxiways, roads, buildings, water, stands</td><td>OpenStreetMap via Geofabrik (western and southern zones); Overpass API for Kochi terminals</td><td>ODbL 1.0</td></tr>
+    <tr><td>Airports, runway ends, frequencies, navaids</td><td>OurAirports</td><td>Public domain</td></tr>
+    <tr><td>Aerodynamics, engine, propeller</td><td>JSBSim c172p, engIO360C, prop_75in2f</td><td>LGPL-2.1</td></tr>
+  </tbody>
+</table></div>
+
+<h3 id="data-frame"><span class="no">1.2</span>World frame and regions</h3>
+<ul>
+  <li>A local Transverse Mercator projection centred at 18.75N 73.40E (near Lonavala), so map metres are game ENU metres (x east, y north). Juhu is at about (−59540, 38628), VABB (−55997, 37576), VAPO (54856, −18505).</li>
+  <li><strong>mumbai_pune</strong> writes <code>terrain/meta.json</code> (levels 0–4; step 12 replaces 3 and up). <strong>konkan_kerala</strong> writes <code>terrain/meta_konkan_kerala.json</code> (levels 0–2). Corridor tiles bordering Mumbai–Pune are stitched to their edges.</li>
+  <li>Steps 02, 03 and 11 take <code>--region mumbai_pune|konkan_kerala|all</code> and <code>--workers N</code>.</li>
+  <li>Region and tile constants live in <code>tools/common.py</code>.</li>
+</ul>
+
+<h3 id="data-pipeline"><span class="no">1.3</span>Pipeline steps</h3>
+<p><code>./run.sh</code> runs the steps in this order: <span class="mono">05 04 02 03 06 09 11 12 17 09 13 14 15 16 10</span>. Step 09 runs twice because 17 changes the terrain it reads.</p>
+<div class="tbl"><table>
+  <thead><tr><th>Step</th><th>Output and purpose</th></tr></thead>
+  <tbody>
+    <tr><td class="mono">01b</td><td><code>01b_fetch_imagery.sh</code>: Sentinel-2 cloudless imagery, reprojected to the world frame (20–40 min, ~0.5 GB)</td></tr>
+    <tr><td class="mono">01c</td><td><code>01c_fetch_outer_imagery.sh</code>: outer-ring imagery at 80 m (~15 min; resumes on re-run)</td></tr>
+    <tr><td class="mono">01d</td><td><code>01d_fetch_corridor.py all</code>: corridor GLO-30 + GLO-90, 20 m / 80 m imagery, southern-zone OSM (~40 min, resumable)</td></tr>
+    <tr><td class="mono">02</td><td>Heightmap tiles with runways flattened → <code>terrain/h/</code></td></tr>
+    <tr><td class="mono">03</td><td>BC1 <code>.dds</code> imagery tiles → <code>terrain/img/</code> (skips existing tiles)</td></tr>
+    <tr><td class="mono">04</td><td>OSM extract: runways, roads, water, buildings → <code>osm/</code> (~6.5 min)</td></tr>
+    <tr><td class="mono">05</td><td>Airports and navaids → <code>airports.json</code>, <code>navaids.json</code></td></tr>
+    <tr><td class="mono">06</td><td>JSBSim to JSON → <code>game/aircraft/c172/c172_aero.json</code>, <code>c172_config.json</code> (committed)</td></tr>
+    <tr><td class="mono">07</td><td>Preview mosaics (<code>07_preview.py quicklook</code>, or a level and box)</td></tr>
+    <tr><td class="mono">08</td><td>Optional: standalone JSBSim climb numbers</td></tr>
+    <tr><td class="mono">09</td><td>Merged runways and taxiways → <code>runways.json</code></td></tr>
+    <tr><td class="mono">10</td><td>3D building meshes and collision → <code>buildings/</code> (~7 min, 207 MB + 79 MB)</td></tr>
+    <tr><td class="mono">11</td><td>Land-class masks: water and tree density → <code>terrain/lc/</code></td></tr>
+    <tr><td class="mono">12</td><td>Outer terrain levels 3–6 over ~980 × 1475 km to Kochi (~7 min)</td></tr>
+    <tr><td class="mono">13</td><td>Airport ops: stands, gates, jetbridges, hold points, taxi graph → <code>airport_ops.json</code></td></tr>
+    <tr><td class="mono">14</td><td>Simulated ILS for runways ≥ 2000 m → <code>ils.json</code></td></tr>
+    <tr><td class="mono">15</td><td>Terminal footprints → <code>terminals/&lt;ICAO&gt;.json</code></td></tr>
+    <tr><td class="mono">16</td><td>Landmark terminal models → <code>terminals/&lt;ICAO&gt;.glb</code>, <code>landmarks.json</code></td></tr>
+    <tr><td class="mono">17</td><td>Airport fixups in place: levelled sites (VANM, VOKN, VOSR), smoothed taxiway ground, no water on paving, no trees inside airports. Re-runnable</td></tr>
+    <tr><td class="mono">18</td><td>Optional: FDM comparison against JSBSim → plots and <code>metrics.md</code> in <code>/tmp/fdm_compare</code></td></tr>
+  </tbody>
+</table></div>
+
+<h3 id="data-rebuild"><span class="no">1.4</span>Rebuilding</h3>
+<div class="cmd"><pre><code>./run.sh --force-step=10 --setup-only     <span class="c"># re-run one step and its dependants</span>
+PY=tools/.venv/bin/python
+$PY tools/07_preview.py quicklook          <span class="c"># mosaic every region at level 2</span>
+$PY tools/07_preview.py 0 -62000 35000 -52000 41000   <span class="c"># zoom into the Mumbai airports</span></code></pre><button class="copy" type="button">Copy</button></div>
+<ul>
+  <li><code>data/processed/</code> can be deleted at any time; the scripts regenerate it.</li>
+  <li>Step 03 skips existing tiles: delete <code>terrain/img/</code> (or the corridor's <code>img/{1,2}/</code> tiles) to rebuild imagery.</li>
+  <li>After a fresh step 09, re-run 02, 03 and 11 for the corridor, which flatten from <code>runways.json</code>.</li>
+  <li>Aircraft and vehicle models are committed as <code>.glb</code>. Regenerate them only if needed with <code>blender -b --factory-startup --python tools/blender/convert_c172p.py</code> (and <code>convert_c172p_interior.py</code>, <code>make_ground_vehicles.py</code>).</li>
+</ul>
+<a class="top" href="#top">Back to top</a>
+</section>
+
+<!-- ===================== DEV 2 ===================== -->
+<section id="developers">
+<h2><span class="no">DEV 2</span>For developers</h2>
+
+<h3 id="dev-arch"><span class="no">2.1</span>Architecture</h3>
+<ul>
+  <li><strong>Property tree:</strong> all sim state lives in a flat <code>Props</code> autoload with paths like <code>fdm/cas_mps</code>, <code>systems/electrical/bus_volts</code>, <code>controls/com1/freq_mhz</code> or <code>failures/vacuum_pump</code>. Modules talk only through properties, which keeps them small and independent.</li>
+  <li><strong>FDM at 120 Hz</strong> in <code>_physics_process</code>, decoupled from rendering. Rendering interpolates the state (in 64-bit) every frame.</li>
+  <li><strong>Floating origin:</strong> the <code>FloatingOrigin</code> autoload shifts the world every 5 km to keep the camera near (0, 0, 0). Render position = <code>Vector3(e − ox, up, −(n − oy))</code>.</li>
+  <li><strong>Terrain:</strong> a quadtree of streamed heightmap tiles with LOD selection, geomorphing and LRU eviction.</li>
+  <li><strong>SI units</strong> inside; conversion only at instruments and UI (<code>core/units.gd</code>).</li>
+  <li><strong>Aircraft as data:</strong> behaviour lives in JSON under <code>game/aircraft/c172/</code>, not in code.</li>
+</ul>
+<div class="tbl"><table>
+  <caption>Module layout (game/)</caption>
+  <thead><tr><th>Folder</th><th>Contents</th></tr></thead>
+  <tbody>
+    <tr><td><code>core/</code></td><td>Autoloads (floating origin, props, session), geo (lat/lon ↔ ENU), units, paths, key and input bindings, saved situations, MKV writer</td></tr>
+    <tr><td><code>fdm/</code></td><td>Aero (JSBSim tables), engine, propeller, gear, atmosphere</td></tr>
+    <tr><td><code>systems/</code></td><td>Electrical, fuel, vacuum, pitot-static, failures, replay</td></tr>
+    <tr><td><code>instruments/</code></td><td>Air-data, gyro, compass and engine-gauge models</td></tr>
+    <tr><td><code>avionics/</code></td><td>NAV/COM, VOR/ILS/DME, ADF, GPS, nav database</td></tr>
+    <tr><td><code>world/</code></td><td>Flight scene, terrain, weather, sky and time, clouds, runway lights, airports, terminals, trees</td></tr>
+    <tr><td><code>aircraft/c172/</code></td><td>aircraft.json, aero and config JSON, checklists, models, sounds, lighting</td></tr>
+    <tr><td><code>input/</code></td><td>Keyboard controls, free camera</td></tr>
+    <tr><td><code>ui/</code></td><td>HUD, cameras, panel and gauges, start screen (<code>ui/menu</code>), map, ATC, checklists, failures, saves, replay bar, recorder</td></tr>
+    <tr><td><code>tests/</code></td><td>Headless test runner and suites, debug scenes, e2e scenes</td></tr>
+  </tbody>
+</table></div>
+
+<h3 id="dev-conventions"><span class="no">2.2</span>Conventions</h3>
+<ul>
+  <li>Files under 300 lines, one responsibility each.</li>
+  <li><code>snake_case</code> files and functions, <code>PascalCase</code> <code>class_name</code>.</li>
+  <li>Heavy data work is Python in <code>tools/</code>, run locally (venv in <code>tools/.venv</code>).</li>
+  <li>Every new sound or asset is added to <code>CREDITS.md</code> (and <code>sounds/SOURCES.md</code>) when it is added. Release builds use real recordings only.</li>
+  <li>Keep <code>docs/USAGE.md</code> current with each milestone.</li>
+</ul>
+
+<h3 id="dev-tests"><span class="no">2.3</span>Tests</h3>
+<div class="cmd"><pre><code>cd game
+~/.local/bin/godot --headless --path . res://tests/run_tests.tscn               <span class="c"># all tests</span>
+~/.local/bin/godot --headless --path . res://tests/run_tests.tscn -- --only=fdm  <span class="c"># tests named test_fdm*</span></code></pre><button class="copy" type="button">Copy</button></div>
+<p>The runner prints PASS/FAIL per test and exits non-zero on failure. Ignore "ObjectDB instances leaked" warnings at exit. Suites include:</p>
+<div class="tbl"><table>
+  <thead><tr><th>Suite</th><th>Covers</th></tr></thead>
+  <tbody>
+    <tr><td><code>test_core.gd</code></td><td>Geo projection, floating origin, terrain heights, runway flatness</td></tr>
+    <tr><td><code>test_fdm_cards.gd</code></td><td>POH performance test cards</td></tr>
+    <tr><td><code>test_flight.gd</code></td><td>Takeoff from Juhu on the real terrain</td></tr>
+    <tr><td><code>test_instruments.gd</code></td><td>Altimeter, ASI, VSI lag, vacuum-failure drift, compass turning error</td></tr>
+    <tr><td><code>test_systems.gd</code></td><td>Alternator failure, fuel starvation and restart, wind profile, ridge lift</td></tr>
+    <tr><td><code>test_landing.gd</code></td><td>Normal landing and POH roll; hard landing, prop strike, ditching, Vne, overstress, flap overspeed</td></tr>
+    <tr><td>also</td><td><code>test_failures</code>, <code>test_nav</code>, <code>test_input</code>, <code>test_replay</code>, <code>test_situation</code>, <code>test_weight_balance</code>, <code>test_weather_visuals</code>, <code>test_airport_lights</code>, <code>test_aircraft_lights</code>, <code>test_terrain_regions</code></td></tr>
+  </tbody>
+</table></div>
+
+<h3 id="dev-e2e"><span class="no">2.4</span>End-to-end sweep</h3>
+<p><code>tools/e2e.sh</code> runs the unit tests, then drives the real game through the start screen, every airport start, views, time of day, weather, failures, nav, panels, save/load, replay, recording, performance and reference screenshots. It needs a display (windows open briefly).</p>
+<div class="cmd"><pre><code>tools/e2e.sh run1               <span class="c"># full sweep</span>
+tools/e2e.sh dbg rwy_VABB       <span class="c"># only jobs matching a filter</span>
+E2E_JOBS=3 tools/e2e.sh run2    <span class="c"># parallel game instances</span></code></pre><button class="copy" type="button">Copy</button></div>
+<p>Output goes to <code>/tmp/e2e/&lt;run&gt;/</code>, with a report at <code>/tmp/e2e/report.md</code> and reference screenshots in <code>/tmp/e2e/ref</code> (made on the first run).</p>
+
+<h3 id="dev-debug"><span class="no">2.5</span>Debug scenes</h3>
+<p>Run them with <code>~/.local/bin/godot --path game res://tests/&lt;scene&gt;.tscn -- [options]</code>.</p>
+<div class="tbl"><table>
+  <thead><tr><th>Scene</th><th>Use</th></tr></thead>
+  <tbody>
+    <tr><td><code>debug_perf.tscn</code></td><td>Logs every frame (GPU, physics, pipeline compiles, per-node time) and prints the worst frames: <code>-- --airport=VABB --runway=27 --air=1000 --quality=high --log=/tmp/f.csv --dur=60</code>. <code>--burst=/dir@20x10 --freeze</code> saves frames with sim time stopped</td></tr>
+    <tr><td><code>debug_origin.tscn</code></td><td>Largest per-frame jump at the 5 km origin shift: <code>-- --airport=VABB --runway=27 --air=1500 --dur=150</code></td></tr>
+    <tr><td><code>debug_view.tscn</code></td><td>Fixed-spot screenshot or fly-through: <code>-- --eye=e,n,alt --at=e,n,alt --wait=12 --out=/tmp/v.png</code>, add <code>--to=e,n,alt --frames=N</code></td></tr>
+    <tr><td><code>debug_handsoff.tscn</code></td><td>Hands-off and stutter probe: <code>-- --airport=VAPO --air=1500</code></td></tr>
+    <tr><td><code>debug_terminal.tscn</code></td><td>Landmark terminal renders: <code>-- --icao=VOCI --out=/tmp [--night]</code></td></tr>
+    <tr><td>others</td><td><code>debug_collision</code>, <code>debug_controls</code>, <code>debug_menu</code>, <code>debug_options</code>, <code>debug_panel</code>, <code>debug_pushback</code>, <code>debug_replay</code>, <code>debug_situation</code>, <code>debug_stand</code>, <code>debug_taxi</code>, <code>debug_turntable</code>, <code>debug_vehicles</code></td></tr>
+  </tbody>
+</table></div>
+<h4>Terrain viewer</h4>
+<p>A free camera without an aircraft: <code>res://world/terrain_viewer.tscn -- --at=-15000,-20000,1400 --heading=70 --pitch=-12</code> (world metres, altitude AMSL). Right-mouse look, <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> move, <kbd>E</kbd>/<kbd>Q</kbd> up/down, <kbd>Shift</kbd> ×10, <kbd>Ctrl</kbd> ×0.1, wheel changes speed, <kbd>G</kbd> drops to 50 m AGL, <kbd>R</kbd> resets, <kbd>F3</kbd> overlay.</p>
+
+<h3 id="dev-aircraft"><span class="no">2.6</span>Aircraft data and tuning</h3>
+<p>The start screen lists every <code>game/aircraft/&lt;id&gt;/aircraft.json</code>. The C172 folder shows what an aircraft carries:</p>
+<dl class="defs">
+  <dt><code>aircraft.json</code></dt><dd><code>id</code>, <code>name</code>, <code>category</code>, <code>description</code>, <code>model_credit</code>, <code>specs</code> (rows shown on the Aircraft page), <code>mtow_kg</code>, <code>empty_kg</code>, <code>pilot_kg</code>, <code>max_baggage_kg</code>, <code>tank_gal</code>, <code>cg_envelope</code> (POH points, datum notes)</dd>
+  <dt><code>c172_config.json</code></dt><dd>Mass, inertia, gear springs and friction, surface limits, flap timing, engine and propeller. <code>propeller.ct_factor_vs_j</code> and <code>cp_factor</code> are the main performance knobs; <code>controls.full_travel_s</code> sets actuator rates</dd>
+  <dt><code>c172_aero.json</code></dt><dd>Aerodynamic coefficient tables and constants from JSBSim</dd>
+  <dt><code>checklists.json</code></dt><dd>Lists of items; an item with <code>prop</code> and <code>eq</code> or <code>range</code> ticks itself</dd>
+</dl>
+<p>Both aero and config files are regenerated by <code>tools/06_jsbsim_to_json.py</code>, so put permanent tuning there. Re-run the test cards and <code>tools/18_compare_fdm.py</code> after any change. The flight model currently loads the C172 data; a second aircraft (an A320-class airliner) is a later milestone.</p>
+<h4>Your own 3D model</h4>
+<ol>
+  <li>Model in metres with −Z forward, +Y up, origin at the C172's CG (about 1.0 m aft of the JSBSim datum; see <code>mass.empty_cg_m</code>). Export glTF to <code>exterior.glb</code> and <code>cockpit.glb</code>.</li>
+  <li>Name animated parts <code>elevator</code>, <code>rudder</code>, <code>aileron_L</code>, <code>aileron_R</code>, <code>flap_L</code>, <code>flap_R</code>, <code>prop</code>, with pivots on their hinge lines.</li>
+  <li>Leave a flat panel face with 0–1 UVs whose material albedo is the panel SubViewport texture, so the gauges and knobs keep working.</li>
+</ol>
+<a class="top" href="#top">Back to top</a>
+</section>
+
+<p class="part-head">Part REF · Reference</p>
+
+<!-- ===================== REF 1 ===================== -->
+<section id="cli">
+<h2><span class="no">REF 1</span>Command-line reference</h2>
+<p>Game options go after <code>--</code> when calling Godot or a package (<code>godot --path game -- --airport=VABB</code>), and directly after <code>./run.sh</code>. Any flight option skips the start screen; <code>--quality</code> and <code>--menu</code> alone do not.</p>
+<div class="tbl"><table>
+  <thead><tr><th>Option</th><th>Meaning</th></tr></thead>
+  <tbody>
+    <tr class="group"><td colspan="2">Start position</td></tr>
+    <tr><td><code>--airport=ICAO</code></td><td>Any airport in <code>runways.json</code>; default VAJJ</td></tr>
+    <tr><td><code>--runway=NN</code></td><td>Runway end, e.g. <code>08</code>, <code>27</code>; default the longest runway</td></tr>
+    <tr><td><code>--air[=ft]</code></td><td>Airborne on final at that height above the field (default 1500)</td></tr>
+    <tr><td><code>--air-nm=N</code></td><td>With <code>--air</code>: distance out on final in nm (default 5)</td></tr>
+    <tr><td><code>--stand[=REF]</code></td><td>Parked at a stand, cold and dark; default a jetbridge gate. E.g. <code>--stand="Bay 40"</code>, <code>--stand=GA3</code></td></tr>
+    <tr><td><code>--cold</code></td><td>Cold and dark: everything off, parking brake set</td></tr>
+    <tr class="group"><td colspan="2">Weather and time</td></tr>
+    <tr><td><code>--weather=NAME</code></td><td>Preset: clear, fair, scattered, broken, overcast, winter_haze, monsoon (case-insensitive)</td></tr>
+    <tr><td><code>--tod=h</code></td><td>Local time (IST) in hours, e.g. <code>7.2</code>, <code>18.7</code>, <code>21</code></td></tr>
+    <tr><td><code>--day=N</code></td><td>Day of the year (default 45 = 14 Feb): sun times and moon phase</td></tr>
+    <tr><td><code>--wind=DDD/SS[GNN]</code></td><td>Surface wind, e.g. <code>270/15G25</code>; wind aloft is set stronger and veered</td></tr>
+    <tr><td><code>--vis=m</code></td><td>Visibility in metres (between showers)</td></tr>
+    <tr><td><code>--rain=R</code></td><td>Rain 0–1; put it after <code>--weather</code> to override the preset</td></tr>
+    <tr><td><code>--clouds=C@ft</code></td><td>Cover 0–1 at a base in ft AMSL, e.g. <code>0.6@3500</code></td></tr>
+    <tr class="group"><td colspan="2">Failures</td></tr>
+    <tr><td><code>--fail=ID[,ID…]</code></td><td>Failures at start, ids from <a href="#systems-failures">OPS 6.5</a></td></tr>
+    <tr><td><code>--fail=ID@min</code></td><td>Failure after N minutes</td></tr>
+    <tr><td><code>--random-failures</code></td><td>One random failure 2–30 min after start, any system</td></tr>
+    <tr class="group"><td colspan="2">Display and session</td></tr>
+    <tr><td><code>--view=NAME</code></td><td>cockpit, chase (default), orbit, free, tower, wing, tail, flyby</td></tr>
+    <tr><td><code>--quality=PRESET</code></td><td>low, medium, high, ultra (otherwise the saved one)</td></tr>
+    <tr><td><code>--rendering-method forward_plus</code></td><td>Godot option: use Forward+ (needed on read-only installs)</td></tr>
+    <tr><td><code>--menu</code></td><td>Open the start screen pre-filled with these options</td></tr>
+    <tr><td><code>--record</code></td><td>Record the session (video and sound)</td></tr>
+    <tr><td><code>--clean</code></td><td>Hide all UI (screenshots)</td></tr>
+    <tr class="group"><td colspan="2">Testing and debugging</td></tr>
+    <tr><td><code>--shot=file.png</code></td><td>Save a screenshot and quit</td></tr>
+    <tr><td><code>--time=s</code></td><td>With <code>--shot</code>: fly hands-off that many seconds first</td></tr>
+    <tr><td><code>--lights-debug</code></td><td>Print aerodrome-light build times and the nearest PAPI reading</td></tr>
+  </tbody>
+</table></div>
+<div class="cmd"><pre><code>godot --path game -- --airport=VABB --runway=27 --air=2000 --weather=monsoon --tod=18.7
+godot --path game -- --airport=VAPO --stand --tod=21 --day=3
+godot --path game -- --airport=VAJJ --fail=vacuum_pump@10 --random-failures --menu</code></pre><button class="copy" type="button">Copy</button></div>
+<p><code>run.sh</code>'s own options are in <a href="#install-quick">GEN 2.1</a>.</p>
+<a class="top" href="#top">Back to top</a>
+</section>
+
+<!-- ===================== REF 2 ===================== -->
+<section id="keys">
+<h2><span class="no">REF 2</span>Keyboard reference</h2>
+<p>Rebindable flight controls are marked R. <kbd>F1</kbd> shows a key-help card in flight.</p>
+<div class="tbl"><table>
+  <thead><tr><th>Key</th><th>Action</th><th></th></tr></thead>
+  <tbody>
+    <tr class="group"><td colspan="3">Flight controls</td></tr>
+    <tr><td><kbd>↓</kbd> / <kbd>↑</kbd> · <kbd>Num 2</kbd> / <kbd>Num 8</kbd></td><td>Pitch up (pull) / down (push)</td><td>R</td></tr>
+    <tr><td><kbd>←</kbd> / <kbd>→</kbd> · <kbd>Num 4</kbd> / <kbd>Num 6</kbd></td><td>Roll left / right</td><td>R</td></tr>
+    <tr><td><kbd>Z</kbd> / <kbd>X</kbd> · <kbd>Num 0</kbd> / <kbd>Num Enter</kbd></td><td>Rudder left / right</td><td>R</td></tr>
+    <tr><td><kbd>PgUp</kbd> / <kbd>PgDn</kbd> · <kbd>=</kbd> / <kbd>−</kbd> · <kbd>Num +</kbd> / <kbd>Num −</kbd></td><td>Throttle up / down</td><td>R</td></tr>
+    <tr><td><kbd>'</kbd> / <kbd>;</kbd></td><td>Mixture richer / leaner</td><td>R</td></tr>
+    <tr><td><kbd>Home</kbd> / <kbd>End</kbd> · <kbd>Num 7</kbd> / <kbd>Num 1</kbd></td><td>Trim nose down / nose up</td><td>R</td></tr>
+    <tr><td><kbd>]</kbd> <kbd>F7</kbd> / <kbd>[</kbd> <kbd>F6</kbd></td><td>Flaps down / up</td><td>R</td></tr>
+    <tr><td><kbd>B</kbd></td><td>Both brakes (hold)</td><td>R</td></tr>
+    <tr><td><kbd>,</kbd> / <kbd>.</kbd></td><td>Left / right brake (hold)</td><td>R</td></tr>
+    <tr><td><kbd>Shift</kbd>+<kbd>B</kbd></td><td>Parking brake</td><td>R</td></tr>
+    <tr><td><kbd>M</kbd></td><td>Magnetos cycle</td><td>R</td></tr>
+    <tr><td><kbd>S</kbd></td><td>Starter (hold)</td><td>R</td></tr>
+    <tr><td><kbd>Y</kbd></td><td>Mouse yoke</td><td>R</td></tr>
+    <tr class="group"><td colspan="3">Views and panels</td></tr>
+    <tr><td><kbd>C</kbd> / <kbd>Shift</kbd>+<kbd>C</kbd></td><td>Next / previous camera</td><td></td></tr>
+    <tr><td><kbd>1</kbd>–<kbd>8</kbd></td><td>Cockpit, chase, orbit, free, tower, wing, tail, fly-by</td><td></td></tr>
+    <tr><td><kbd>V</kbd></td><td>Re-centre view</td><td></td></tr>
+    <tr><td>Right-drag · wheel</td><td>Look around · zoom / distance / speed</td><td></td></tr>
+    <tr><td><kbd>Tab</kbd> / <kbd>Shift</kbd>+<kbd>Tab</kbd></td><td>2D panel layout</td><td></td></tr>
+    <tr><td><kbd>L</kbd> / <kbd>Shift</kbd>+<kbd>L</kbd></td><td>PANEL dimmer brighter / dimmer (10 % steps)</td><td></td></tr>
+    <tr><td><kbd>N</kbd></td><td>Moving map</td><td></td></tr>
+    <tr><td><kbd>H</kbd></td><td>Flight-data bar</td><td></td></tr>
+    <tr><td><kbd>F1</kbd></td><td>Key-help card</td><td></td></tr>
+    <tr><td><kbd>F3</kbd></td><td>Performance overlay</td><td></td></tr>
+    <tr class="group"><td colspan="3">Operations</td></tr>
+    <tr><td><kbd>T</kbd></td><td>Taxi route (again to clear)</td><td></td></tr>
+    <tr><td><kbd>P</kbd></td><td>Pushback (again to stop)</td><td></td></tr>
+    <tr><td><kbd>`</kbd> then <kbd>1</kbd>–<kbd>6</kbd></td><td>Radio (ATC) menu and calls</td><td></td></tr>
+    <tr><td><kbd>F2</kbd></td><td>Checklists; <kbd>Ctrl</kbd>+<kbd>PgUp</kbd>/<kbd>PgDn</kbd> change list, <kbd>Enter</kbd> ticks</td><td></td></tr>
+    <tr><td><kbd>F9</kbd></td><td>Failures panel</td><td></td></tr>
+    <tr><td><kbd>F10</kbd></td><td>Settings: graphics, renderer, time, weather, failures</td><td></td></tr>
+    <tr><td><kbd>J</kbd></td><td>Controls panel (joystick, gamepad, keys)</td><td></td></tr>
+    <tr class="group"><td colspan="3">Session</td></tr>
+    <tr><td><kbd>F11</kbd> / <kbd>Shift</kbd>+<kbd>F11</kbd></td><td>Quick-save / quick-load</td><td></td></tr>
+    <tr><td><kbd>R</kbd></td><td>Instant replay (<kbd>Space</kbd>, <kbd>←</kbd>/<kbd>→</kbd>, <kbd>[</kbd>/<kbd>]</kbd> inside)</td><td></td></tr>
+    <tr><td><kbd>F8</kbd></td><td>Start / stop recording</td><td></td></tr>
+    <tr><td><kbd>F5</kbd></td><td>Reset to the start position</td><td></td></tr>
+    <tr><td><kbd>F12</kbd></td><td>Credits and licences</td><td></td></tr>
+    <tr><td><kbd>Esc</kbd></td><td>Pause menu: resume, restart, failures, settings, save / load, new flight, quit</td><td></td></tr>
+    <tr class="group"><td colspan="3">Start screen</td></tr>
+    <tr><td><kbd>1</kbd>–<kbd>8</kbd></td><td>Switch page</td><td></td></tr>
+    <tr><td><kbd>Ctrl</kbd>+<kbd>Enter</kbd></td><td>Fly</td><td></td></tr>
+  </tbody>
+</table></div>
+<a class="top" href="#top">Back to top</a>
+</section>
+
+<!-- ===================== REF 3 ===================== -->
+<section id="credits">
+<h2><span class="no">REF 3</span>Credits and licences</h2>
+<p>free-sim's code is <strong>GPL-2.0-or-later</strong>. Third-party material keeps its own licence. The full list is in <code>CREDITS.md</code> and <code>docs/LICENSING.md</code> in the repository, and in the game on <kbd>F12</kbd>.</p>
+<div class="tbl"><table>
+  <thead><tr><th>Component</th><th>By</th><th>Licence</th></tr></thead>
+  <tbody>
+    <tr><td>C172 3D model, cockpit, textures</td><td>FlightGear c172p team (originally David Megginson)</td><td>GPL-2.0-or-later</td></tr>
+    <tr><td>Flight-model data</td><td>JSBSim Team and contributors</td><td>LGPL-2.1 (used under GPL-2.0+)</td></tr>
+    <tr><td>Tug, fire truck, jetway, bus</td><td>FlightGear fgdata contributors</td><td>GPL-2.0</td></tr>
+    <tr><td>Fuel truck, GPU, baggage tug and carts, follow-me car</td><td>free-sim contributors (Blender scripts)</td><td>GPL-2.0-or-later</td></tr>
+    <tr><td>Sounds</td><td>JLWSound, DrMinky, datasoundsample, coltures (CC0); Morsule, algefaen (CC-BY); c172p team and fgdata (GPL)</td><td>Per file in <code>sounds/SOURCES.md</code></td></tr>
+    <tr><td>Godot Engine 4.7</td><td>Juan Linietsky, Ariel Manzur and contributors</td><td>MIT</td></tr>
+    <tr><td>Satellite imagery</td><td>Sentinel-2 cloudless by EOX IT Services (modified Copernicus Sentinel data 2024)</td><td>CC BY-NC-SA 4.0</td></tr>
+    <tr><td>Elevation</td><td>Copernicus GLO-30 / GLO-90 (DLR, Airbus DS; EU and ESA)</td><td>Copernicus, free with attribution</td></tr>
+    <tr><td>Map features</td><td>© OpenStreetMap contributors</td><td>ODbL 1.0</td></tr>
+    <tr><td>Airports and navaids</td><td>OurAirports</td><td>Public domain</td></tr>
+  </tbody>
+</table></div>
+<p class="caution"><span class="label">Non-commercial data</span>The imagery is CC BY-NC-SA 4.0, so any data pack or package that contains it may not be sold or shipped in paid or ad-supported stores. The derived imagery tiles carry the same licence, and OSM-derived files are offered under ODbL. Generated map data is never committed to git. A commercial build would need the 2016 s2cloudless layer (CC BY 4.0) or raw Copernicus Sentinel-2 data instead.</p>
+<p>Every release package contains <code>LICENSE</code>, <code>CREDITS.md</code>, <code>README.md</code>, <code>docs/</code>, the original c172p sources in <code>third_party/</code>, Godot's licence texts in <code>licenses/</code> and <code>data/DATA-LICENSES.txt</code>, and a source archive of the exact commit is built alongside. The attribution line for imagery, elevation and OSM data is always visible in the sim.</p>
+<p>Cessna and Skyhawk are trademarks of Textron Aviation Inc. FlightGear, Microsoft Flight Simulator and Real Flight Simulator are named only factually. free-sim is not affiliated with or endorsed by any of them.</p>
+<a class="top" href="#top">Back to top</a>
+</section>
+
+<!-- ===================== REF 4 ===================== -->
+<section id="faq">
+<h2><span class="no">REF 4</span>FAQ and troubleshooting</h2>
+<div class="tbl"><table>
+  <thead><tr><th>Symptom</th><th>Fix</th></tr></thead>
+  <tbody>
+    <tr><td><code>godot: command not found</code></td><td>Use <code>~/.local/bin/godot</code>, or add <code>~/.local/bin</code> to <code>PATH</code></td></tr>
+    <tr><td><code>missing data file: …/terrain/meta.json</code></td><td>Build the data: <code>./run.sh --setup-only</code></td></tr>
+    <tr><td>Terrain is flat green-grey</td><td>Imagery tiles are missing: run <code>01b_fetch_imagery.sh</code>, then <code>03_imagery_tiles.py</code></td></tr>
+    <tr><td><code>01b_fetch_imagery.sh</code> fails with HTTP errors</td><td>Re-run it; GDAL retries each tile 5 times and the EOX server sometimes rate-limits</td></tr>
+    <tr><td>Aircraft spawns in the wrong place or with no runway</td><td>Run <code>tools/09_runways.py</code> to write <code>runways.json</code></td></tr>
+    <tr><td>Low FPS</td><td>Check <kbd>F3</kbd>; pick a lower preset; lower <code>lod_k</code> or disable sun shadows (<a href="#graphics">OPS 9</a>)</td></tr>
+    <tr><td>Stutter</td><td>Profile with <code>debug_perf.tscn</code> (<a href="#dev-debug">DEV 2.5</a>)</td></tr>
+    <tr><td>No sound</td><td>Godot uses PulseAudio / PipeWire; check the system output device and the Options page volumes</td></tr>
+    <tr><td>Renderer toggle has no effect (AppImage, Flatpak)</td><td>Launch with <code>--rendering-method forward_plus</code></td></tr>
+    <tr><td>macOS says the app is damaged or unverified</td><td>Right-click → Open, or remove the quarantine attribute (<a href="#install-packages">GEN 2.3</a>)</td></tr>
+  </tbody>
+</table></div>
+
+<h4>The engine won't start</h4>
+<p>Check BAT on, mixture rich (<kbd>'</kbd>), throttle cracked, magnetos BOTH, fuel selector not OFF and shutoff valve on, then hold <kbd>S</kbd>. A dead battery or a battery failure means no starter.</p>
+<h4>The aircraft keeps rolling left</h4>
+<p>That is the real C172 flown solo: pilot weight and engine torque. It is neutral at about 100 KIAS in level flight; at climb power hold a little right aileron and rudder (<a href="#flying-trim">OPS 1.9</a>).</p>
+<h4>ATC doesn't answer</h4>
+<p>COM1's active frequency must match the facility you call (tune the standby, then click ⇄), and the avionics must be powered. Small fields accept any frequency.</p>
+<h4>I lost the Pune VOR</h4>
+<p>Reception checks terrain line of sight; climb or move clear of the Ghats.</p>
+<h4>Is the ILS real?</h4>
+<p>No. The localizer and glideslope geometry follow real runways, but frequencies and idents are generated (<a href="#nav-ils">OPS 3.2</a>).</p>
+<h4>Can I fly online or with live weather?</h4>
+<p>No. free-sim is offline by design: no multiplayer, live traffic or live weather.</p>
+<h4>Where are my settings and saves?</h4>
+<p>In Godot's user folder (<code>user://</code>, on Linux <code>~/.local/share/godot/app_userdata/free-sim/</code>): <code>last_flight.json</code>, <code>key_bindings.json</code>, <code>input_bindings.json</code>, <code>graphics.cfg</code>, <code>audio.cfg</code>, <code>options.cfg</code> and <code>saves/</code>.</p>
+<h4>What's next?</h4>
+<p>The Konkan–Kerala corridor (phase R) is flyable. Later milestones: a KAP 140 autopilot and voice ATC (M9), an iPhone/iPad port, and an A320-class airliner.</p>
+<a class="top" href="#top">Back to top</a>
+</section>
+
+<footer>free-sim Handbook · built from the repository at commit 924456f · GPL-2.0-or-later · imagery CC BY-NC-SA 4.0 EOX · © OpenStreetMap contributors · Copernicus DEM</footer>
+</main>
+</div>
+
+<script>
+(function () {
+  var input = document.getElementById("toc-filter");
+  var toc = document.getElementById("toc");
+  var empty = document.getElementById("toc-empty");
+  var items = Array.prototype.slice.call(toc.querySelectorAll("li"));
+
+  function filter() {
+    var q = input.value.trim().toLowerCase();
+    var shown = 0;
+    var lastPart = null, partHasHit = false;
+    function closePart() { if (lastPart) lastPart.hidden = q !== "" && !partHasHit; }
+    items.forEach(function (li) {
+      if (li.classList.contains("part")) { closePart(); lastPart = li; partHasHit = false; return; }
+      var a = li.querySelector("a");
+      var text = (a.textContent + " " + (a.getAttribute("data-k") || "")).toLowerCase();
+      var hit = q === "" || q.split(/\s+/).every(function (w) { return text.indexOf(w) !== -1; });
+      li.hidden = !hit;
+      if (hit) { shown++; partHasHit = true; }
+    });
+    closePart();
+    empty.hidden = shown !== 0;
+  }
+  input.addEventListener("input", filter);
+
+  var details = document.getElementById("toc-wrap");
+  var mq = window.matchMedia("(max-width: 860px)");
+  function sync() { details.open = !mq.matches; }
+  sync();
+  if (mq.addEventListener) { mq.addEventListener("change", sync); }
+  toc.addEventListener("click", function (e) {
+    if (e.target.closest("a") && mq.matches) { details.open = false; }
+  });
+
+  document.querySelectorAll(".copy").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      var code = btn.parentElement.querySelector("code");
+      var text = code.innerText.split("\n").map(function (l) { return l.replace(/\s+#.*$/, ""); }).join("\n").trim();
+      function done(label) { btn.textContent = label; setTimeout(function () { btn.textContent = "Copy"; }, 1600); }
+      function fallback() {
+        var r = document.createRange();
+        r.selectNodeContents(code);
+        var s = window.getSelection();
+        s.removeAllRanges();
+        s.addRange(r);
+        done("Selected");
+      }
+      try {
+        navigator.clipboard.writeText(text).then(function () { done("Copied"); }, fallback);
+      } catch (err) { fallback(); }
+    });
+  });
+
+  var links = {};
+  toc.querySelectorAll("a").forEach(function (a) { links[a.getAttribute("href").slice(1)] = a; });
+  if ("IntersectionObserver" in window) {
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (en) {
+        if (en.isIntersecting && links[en.target.id]) {
+          Object.keys(links).forEach(function (k) { links[k].removeAttribute("aria-current"); });
+          links[en.target.id].setAttribute("aria-current", "true");
+        }
+      });
+    }, { rootMargin: "0px 0px -70% 0px" });
+    document.querySelectorAll("main > section").forEach(function (s) { io.observe(s); });
+  }
+})();
+</script>

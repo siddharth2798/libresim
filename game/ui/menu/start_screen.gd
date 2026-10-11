@@ -113,13 +113,22 @@ func _top_bar() -> Control:
 	sub.add_theme_font_size_override("font_size", 18)
 	sub.size_flags_horizontal = SIZE_EXPAND_FILL
 	hb.add_child(sub)
-	for item in [["Credits", func(): _press(KEY_F12)], ["Quit", func(): get_tree().quit()]]:
+	for item in [["Handbook", _open_handbook], ["Credits", func(): _press(KEY_F12)], ["Quit", func(): get_tree().quit()]]:
 		var b := Button.new()
 		b.text = item[0]
 		b.custom_minimum_size = Vector2(100, 40)
 		b.pressed.connect(item[1])
 		hb.add_child(b)
 	return hb
+
+
+## Opens the HTML handbook (docs/site/index.html) in the system browser.
+func _open_handbook() -> void:
+	var path := Paths.docs_dir().path_join("docs/site/index.html")
+	if FileAccess.file_exists(path):
+		OS.shell_open("file://" + path)
+	else:
+		push_warning("Handbook not found: " + path)
 
 
 func _bottom_bar() -> Control:

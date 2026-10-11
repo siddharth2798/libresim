@@ -29,6 +29,7 @@ stage_docs() {  # $1 = destination folder
 	cp "$ROOT/LICENSE" "$ROOT/CREDITS.md" "$ROOT/README.md" "$1/"
 	mkdir -p "$1/docs" "$1/licenses"
 	cp "$ROOT/docs/USAGE.md" "$ROOT/docs/LICENSING.md" "$1/docs/"
+	cp -r "$ROOT/docs/site" "$1/docs/"
 	cp -r "$ROOT/third_party" "$1/"
 	cp "$ROOT/packaging/licenses/"* "$1/licenses/"
 }

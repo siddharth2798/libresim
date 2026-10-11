@@ -336,7 +336,7 @@ cd game
 - **Pune:** the long "verandah" with a dark-basalt pointed arcade.
 - **Kochi:** Kerala terracotta hip roofs with white gablets, cream walls, and a red fascia with "COCHIN INTERNATIONAL AIRPORT".
 - Glass curtain walls reflect the sky and glow warm at night.
-- Kochi becomes flyable with phase R. Until then, preview it with `godot --path game res://tests/debug_terminal.tscn -- --icao=VOCI --out=/tmp`.
+- Kochi is flyable (phase R corridor). To preview a terminal alone, use `godot --path game res://tests/debug_terminal.tscn -- --icao=VOCI --out=/tmp`.
 - Details and sources are in [TERMINALS.md](TERMINALS.md).
 
 **At the airport:** jetbridges, stand lead-in lines with stand numbers, and windsocks that turn with the wind.
@@ -347,7 +347,7 @@ cd game
 - **Pushback:** uses a Goldhofer tug.
 - **Follow-me car:** when you request taxi (T), it drives ahead of you along the route, waits if you fall behind, and turns off at the hold-short point.
 
-**Not yet:** stop bars, moving service vehicles, AI traffic and voice ATC (M9).
+**Not yet:** moving service vehicles, AI traffic and voice ATC (M9).
 
 ### Beyond the detailed region
 
@@ -487,7 +487,7 @@ Default frequencies are COM1 118.10/121.90, NAV1 116.60/113.90, NAV2 108.10/109.
 - **Failures:** 26 failures with schedules and random failures. See "Start screen" above, and F9 in flight.
 
 **Realism notes:**
-- On runway and air starts the engine is running. Stand starts and `--cold` are cold & dark. To start the engine: BAT on, mixture rich (;), throttle cracked, magnetos BOTH (M), then hold S.
+- On runway and air starts the engine is running. Stand starts and `--cold` are cold & dark. To start the engine: BAT on, mixture rich ('), throttle cracked, magnetos BOTH (M), then hold S.
 - With only the pilot aboard (the default load) the CG sits slightly left, and engine torque also rolls the aircraft left. Fixed aileron/rudder tabs (`controls.aileron_rigging` 0.033, `rudder_rigging` 0.004) cancel this at about 100 KIAS in level flight. Slower or at climb power it rolls gently left (hold a little right aileron and right rudder); faster it rolls slightly right. Hands off from trim, the bank after 60 s is about −10° at 90 KIAS, 0° at 100 KIAS and +10° at 110 KIAS. JSBSim's c172p behaves the same way: its spiral mode is nearly neutral. See `docs/FDM-VS-FLIGHTGEAR.md`.
 - The aircraft turns left on the takeoff roll (P-factor and torque), so use right rudder (X).
 - **Sound** uses real recordings throughout:
