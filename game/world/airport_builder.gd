@@ -4,7 +4,7 @@ extends Node3D
 ## (tools/09_runways.py). Each surface is a strip mesh anchored at its first
 ## point and re-positioned when the floating origin shifts.
 
-const STEP := 40.0  # metres between cross-sections (follows the terrain)
+const STEP := 20.0  # metres between cross-sections (follows the 30 m terrain lattice closely)
 const LIFT := 0.12
 
 var terrain: TerrainQuadtree

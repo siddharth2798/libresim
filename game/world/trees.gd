@@ -3,14 +3,15 @@ extends Node3D
 ## Forests from the land-class mask (tools/11_landclass.py, 1..200 = tree density).
 ## The world is split into CHUNK-metre cells; cells within radius of the camera get
 ## a MultiMesh of crossed-quad trees, placed deterministically (same trees every time).
-## Generation runs on the main thread with a per-frame budget (it reads the terrain
-## height cache, which is not thread-safe). Hidden above HIDE_AGL.
+## Generation runs on worker threads (TreeSampler reads the data files itself); the main
+## thread only uploads finished buffers, BUDGET per frame. Hidden above HIDE_AGL.
 
 const CHUNK := 480.0
 var radius := 2200.0  # graphics presets
 const HIDE_AGL := 1500.0
 const PX := 10.0  # land-class pixel size (m)
-const BUDGET := 2  # chunks generated per frame
+const BUDGET := 2  # finished chunks turned into MultiMeshes per frame
+const MAX_IN_FLIGHT := 4  # chunks generating on worker threads
 
 @export var density_scale := 1.0  # graphics presets scale this
 
@@ -20,6 +21,11 @@ var _queue: Array[Vector2i] = []
 var _mesh: ArrayMesh
 var _mat := ShaderMaterial.new()
 var _timer := 0.0
+var _sampler: TreeSampler
+var _mutex := Mutex.new()
+var _done: Array = []  # [chunk key, PackedFloat32Array] from workers
+var _in_flight := 0
+var _flying := {}  # chunk key -> WorkerThreadPool task id while generating
 
 
 func _ready() -> void:
@@ -46,11 +52,18 @@ func _process(dt: float) -> void:
 	visible = Props.get_f("fdm/agl_m", 0.0) < HIDE_AGL or not Props.has("fdm/agl_m")
 	if terrain == null or not visible:
 		return
-	for i in BUDGET:
-		if _queue.is_empty():
-			break
+	_mutex.lock()
+	var done := _done.slice(0, BUDGET)
+	_done = _done.slice(BUDGET)
+	_mutex.unlock()
+	for d in done:
+		_in_flight -= 1
+		WorkerThreadPool.wait_for_task_completion(_flying[d[0]])  # finished: just releases it
+		_flying.erase(d[0])
+		_finish_chunk(d[0], d[1])
+	while _in_flight < MAX_IN_FLIGHT and not _queue.is_empty():
 		var k: Vector2i = _queue.pop_front()
-		if _chunks.has(k) and _chunks[k] == null:
+		if _chunks.has(k) and _chunks[k] == null and not _flying.has(k):
 			_build(k)
 	_timer -= dt
 	if _timer > 0.0:
@@ -81,46 +94,48 @@ func _process(dt: float) -> void:
 
 
 func _hash(x: int, y: int, k: int) -> float:
-	return float(posmod((x * 73856093) ^ (y * 19349663) ^ (k * 83492791), 100003)) / 100003.0
+	return TreeSampler.hash3(x, y, k)
 
 
+## Main thread: look up the chunk's land-class source tile, then generate on a worker.
 func _build(k: Vector2i) -> void:
-	var cache := terrain.cache
-	var x0 := k.x * CHUNK
-	var y0 := k.y * CHUNK
-	var n := int(CHUNK / PX)
-	var xf: Array[Transform3D] = []
-	var cd: Array[Color] = []
-	for j in n:
-		for i in n:
-			var e := x0 + (i + 0.5) * PX
-			var no := y0 + (j + 0.5) * PX
-			var lc := cache.landclass_at(e, no)
-			if lc < 0:
-				_queue.append(k)  # mask not loaded yet: retry later
-				return
-			if lc == 0 or lc == 255:
-				continue
-			var gi := int(e / PX)
-			var gj := int(no / PX)
-			if _hash(gi, gj, 1) > lc / 200.0 * 0.8 * density_scale:
-				continue
-			var px := e + (_hash(gi, gj, 2) - 0.5) * PX * 0.8
-			var py := no + (_hash(gi, gj, 3) - 0.5) * PX * 0.8
-			var h := cache.height_at(px, py)
-			var height := lerpf(6.0, 15.0, _hash(gi, gj, 4))
-			var width := height * lerpf(0.55, 0.85, _hash(gi, gj, 5))
-			var b := Basis(Vector3.UP, _hash(gi, gj, 6) * TAU).scaled(Vector3(width, height, width))
-			xf.append(Transform3D(b, Vector3(px - x0, h - 0.3, -(py - y0))))
-			cd.append(Color(_hash(gi, gj, 7), _hash(gi, gj, 8), _hash(gi, gj, 9), _hash(gi, gj, 10)))
+	if _sampler == null:
+		_sampler = TreeSampler.new(terrain.cache)
+	var tm := terrain.cache.tmeta
+	var src := tm.tex_source(0, floori(k.x * CHUNK / tm.tile_size_m), floori(k.y * CHUNK / tm.tile_size_m), TerrainMeta.HAS_LC)
+	if src == TerrainMeta.NONE:
+		_finish_chunk(k, PackedFloat32Array())
+		return
+	_in_flight += 1
+	_flying[k] = WorkerThreadPool.add_task(_work.bind(k, src, tm.level_size(src.x), density_scale))
+
+
+## Worker thread.
+func _work(k: Vector2i, src: Vector3i, src_size: float, density: float) -> void:
+	var buf := _sampler.build(k.x * CHUNK, k.y * CHUNK, CHUNK, PX, src, src_size, density)
+	_mutex.lock()
+	_done.append([k, buf])
+	_mutex.unlock()
+
+
+## Every WorkerThreadPool task must be waited for; never free the node under a running task.
+func _exit_tree() -> void:
+	for id in _flying.values():
+		WorkerThreadPool.wait_for_task_completion(id)
+	_flying.clear()
+
+
+## Main thread: turn a finished worker buffer into a MultiMeshInstance3D (one buffer upload).
+func _finish_chunk(k: Vector2i, buf: PackedFloat32Array) -> void:
+	if not _chunks.has(k) or _chunks[k] != null:
+		return  # dropped (out of range) while generating
 	var mm := MultiMesh.new()
 	mm.transform_format = MultiMesh.TRANSFORM_3D
 	mm.use_custom_data = true
 	mm.mesh = _mesh
-	mm.instance_count = xf.size()
-	for i in xf.size():
-		mm.set_instance_transform(i, xf[i])
-		mm.set_instance_custom_data(i, cd[i])
+	mm.instance_count = buf.size() / 16
+	if buf.size() > 0:
+		mm.buffer = buf
 	var mi := MultiMeshInstance3D.new()
 	mi.multimesh = mm
 	mi.material_override = _mat
