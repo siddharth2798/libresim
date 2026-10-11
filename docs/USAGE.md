@@ -174,9 +174,9 @@ Running the game opens the **start screen**. Your last setup is remembered (`use
    - Every `game/aircraft/<id>/aircraft.json` is listed (for now, the Cessna 172S) with its specifications.
    - Set fuel per tank and the front-seat, rear-seat and baggage loads. The takeoff weight is checked against MTOW. Payload changes the mass, CG and performance in the flight model.
 3. **Weather & time:**
-   - **Weather presets:** Clear, Fair, Scattered, Broken, Overcast, Winter haze, Monsoon.
-   - **Custom sliders:** cloud cover, cloud base, visibility, turbulence, QNH, temperature.
-   - **Time of day:** presets or a slider, plus the clock rate and the month.
+   - **Weather presets:** Clear, Fair, Scattered, Broken (passing showers), Overcast (drizzle), Winter haze, Monsoon (heavy rain under a low deck, occasional lightning).
+   - **Custom sliders:** cloud cover, cloud base, visibility, rain, turbulence, QNH, temperature.
+   - **Time of day:** presets or a slider, plus the clock rate and the month. **Dawn** and **Dusk** are the real sunrise and sunset for the chosen month (mid-February: 07:10 and 18:40 IST; June: about 06:00 and 19:15).
    - **Wind:** presets, direction, speed and gusts, plus a "90° crosswind" button. A live head/crosswind readout covers the chosen runway and turns red above the C172's 15 kt demonstrated crosswind or with a tailwind.
 4. **Failures:**
    - Any of 26 failures can be scheduled with a trigger: **at start**, **after N min**, **climbing through N ft AGL** or **above N kt**.
@@ -263,9 +263,11 @@ cd game
 | `--cold` | cold and dark: everything off, parking brake set (do the "Before Starting Engine" and "Starting Engine" checklists) |
 | `--view=NAME` | initial camera: cockpit, chase, orbit, free, tower, wing, tail or flyby (default chase) |
 | `--quality=low\|medium\|high\|ultra` | graphics preset (otherwise the one saved from F10) |
-| `--tod=h` | local time (IST), e.g. `--tod=6.5` sunrise, `--tod=18.6` sunset, `--tod=21` night |
+| `--tod=h` | local time (IST), e.g. `--tod=7.2` sunrise and `--tod=18.7` sunset in mid-February, `--tod=21` night (06:30 in February is still pre-dawn twilight) |
+| `--day=N` | day of the year (default 45 = 14 Feb): sun times and moon phase (e.g. `--day=3` full moon) |
 | `--wind=DDD/SS[GNN]` | surface wind, e.g. `--wind=270/15G25` (wind aloft is set a bit stronger and veered) |
-| `--vis=m` | visibility in metres |
+| `--vis=m` | visibility in metres (between showers; rain lowers it further) |
+| `--rain=R` | rain 0–1 (after `--weather` to override the preset); below 0.3 it comes and goes in showers |
 | `--clouds=C@ft` | cloud cover 0–1 at a base in ft AMSL, e.g. `--clouds=0.6@3500` |
 | `--weather=NAME` | weather preset: clear, fair, scattered, broken, overcast, monsoon |
 | `--fail=ID[,ID…]` / `--fail=ID@min` | failures at start / after N minutes, e.g. `--fail=vacuum_pump,mag_left` (ids as in `game/systems/failure_catalog.gd`) |
@@ -470,14 +472,18 @@ Default frequencies are COM1 118.10/121.90, NAV1 116.60/113.90, NAV2 108.10/109.
   - **Wind:** logarithmic surface profile blending into the wind aloft, plus gusts and turbulence.
   - **Terrain effects:** ridge lift on windward slopes (the Ghats give about 3 m/s in a 20 kt westerly) and sink plus mechanical turbulence on the lee side.
   - **Atmosphere:** QNH and temperature affect density altitude and the altimeter. The Kollsman window is preset to QNH at start.
-- **Sky:** clouds are a cumulus layer that drifts with the wind aloft. Visibility drives haze and fog.
+- **Sky:** clouds are a cumulus layer that drifts with the wind aloft. Visibility drives haze and fog: everything fades to the horizon colour with an extinction of 3 / visibility (5 % contrast at the visibility distance), so low visibility merges terrain, cloud base and sky.
+- **Cloud cover and rain** (`world/weather_visuals.gd`, `world/weather_fx.gd`):
+  - Broken and thicker cover dims and diffuses the sun: under Overcast there are no hard shadows or sun disc, the light is flat and grey, the sky and cloud base turn grey and the undersides darken. Climb above the tops and the sun is back.
+  - Rain falls only below the cloud tops: streaks around the camera lean with the wind and stretch with airspeed (count set by the graphics preset), drops bead on the windshield when parked and run back and streak with airspeed, terrain, roofs and trees get darker and glossier with standing water on flat ground (they dry slowly after rain), rain lowers visibility, and rain on the canopy is heard louder at speed. Monsoon storms have occasional lightning flashes.
+- **Night:** a real moon (position and phase for the date, cool moonlight and a glitter path on water), stars, a warm city glow on the horizon and cloud undersides, and a night ambient level and exposure so terrain, coastlines and clouds stay readable.
 - **Time of day:** real sun position for Mumbai/Pune (IST). Default 10:00 on 14 February. The F10 time rate can speed it up.
 - **Night:** ICAO/FAA aerodrome lighting, built per airport within 25 km: runway edge lights (white, last 600 m yellow on instrument runways), green threshold / red end bars with wing bars, centreline lights (white, red/white alternating 900-300 m, red last 300 m) and touchdown-zone barrettes on ILS runways, ALSF-II-style approach lights with sequenced flashers ("the rabbit") on ILS ends and a 420 m simple system elsewhere, a PAPI on the left of each runway (2 red + 2 white on a 3 degree path, visible by day too), blue taxiway edge and green centreline lights with green/yellow lead-on lights, red stop bars and flashing runway guard lights at holding points (night and visibility under 5 km), rotating green/white aerodrome beacons, and apron floodlight masts. Lights are directional, fade in haze and dim by day. The aircraft has nav, beacon, strobe, taxi and landing lights.
 - **Failures:** 26 failures with schedules and random failures. See "Start screen" above, and F9 in flight.
 
 **Realism notes:**
 - On runway and air starts the engine is running. Stand starts and `--cold` are cold & dark. To start the engine: BAT on, mixture rich (;), throttle cracked, magnetos BOTH (M), then hold S.
-- With only the pilot aboard (the default load) the CG sits slightly left, and engine torque also rolls the aircraft left. Fixed aileron/rudder tabs (`controls.aileron_rigging` 0.035, `rudder_rigging` 0.005) cancel this at about 95 KIAS in level flight. Slower or at climb power it rolls gently left (hold a little right aileron and right rudder); faster it rolls slightly right. Hands off at 90 KIAS it takes about 15 s to reach 2° of bank. See `docs/FDM-VS-FLIGHTGEAR.md`.
+- With only the pilot aboard (the default load) the CG sits slightly left, and engine torque also rolls the aircraft left. Fixed aileron/rudder tabs (`controls.aileron_rigging` 0.033, `rudder_rigging` 0.004) cancel this at about 100 KIAS in level flight. Slower or at climb power it rolls gently left (hold a little right aileron and right rudder); faster it rolls slightly right. Hands off from trim, the bank after 60 s is about −10° at 90 KIAS, 0° at 100 KIAS and +10° at 110 KIAS. JSBSim's c172p behaves the same way: its spiral mode is nearly neutral. See `docs/FDM-VS-FLIGHTGEAR.md`.
 - The aircraft turns left on the takeoff roll (P-factor and torque), so use right rudder (X).
 - **Sound** uses real recordings throughout:
   - the C172 engine (start, crank, idle, run and cut, pitched by RPM)

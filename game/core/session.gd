@@ -13,7 +13,7 @@ const DEFAULT := {
 	"weather": "Fair", "time_h": 10.0, "time_rate": 1.0, "day_of_year": 45.0,
 	"wind_dir_deg": 270.0, "wind_kt": 8.0, "gust_kt": 0.0, "turbulence": 0.15,
 	"visibility_m": 20000.0, "cloud_cover": 0.3, "cloud_base_ft": 4500.0,
-	"qnh_hpa": 1012.0, "temp_c": 30.0,
+	"qnh_hpa": 1012.0, "temp_c": 30.0, "precip": 0.0,
 	"failures": {},  # id -> [mode index (FailureCatalog.MODES), value]
 	"random": {"enabled": false, "count": 1, "from_min": 2.0, "to_min": 30.0,
 		"categories": ["Engine", "Fuel", "Electrical", "Vacuum & gyros", "Pitot-static", "Flight controls", "Avionics"]},
@@ -21,17 +21,18 @@ const DEFAULT := {
 	"record": false, "record_dir": "", "record_height": 720, "record_fps": 30, "record_mp4": true,  # tell the pilot when a failure happens (off = find out yourself)
 }
 ## Weather presets: name -> weather/* values (wind is chosen separately).
+## precip: rain 0..1 (below 0.3 it comes and goes in showers; visibility_m is between showers).
 const WEATHER := {
-	"Clear": {"cloud_cover": 0.0, "cloud_base_ft": 6000.0, "visibility_m": 40000.0, "turbulence": 0.05},
-	"Fair": {"cloud_cover": 0.3, "cloud_base_ft": 4500.0, "visibility_m": 20000.0, "turbulence": 0.15},
-	"Scattered": {"cloud_cover": 0.5, "cloud_base_ft": 3000.0, "visibility_m": 15000.0, "turbulence": 0.2},
-	"Broken": {"cloud_cover": 0.75, "cloud_base_ft": 2500.0, "visibility_m": 10000.0, "turbulence": 0.3},
-	"Overcast": {"cloud_cover": 0.95, "cloud_base_ft": 1800.0, "visibility_m": 7000.0, "turbulence": 0.3},
-	"Winter haze": {"cloud_cover": 0.05, "cloud_base_ft": 5000.0, "visibility_m": 3000.0, "turbulence": 0.05},
-	"Monsoon": {"cloud_cover": 1.0, "cloud_base_ft": 1200.0, "visibility_m": 3500.0, "turbulence": 0.55},
+	"Clear": {"cloud_cover": 0.0, "cloud_base_ft": 6000.0, "visibility_m": 40000.0, "turbulence": 0.05, "precip": 0.0},
+	"Fair": {"cloud_cover": 0.3, "cloud_base_ft": 4500.0, "visibility_m": 20000.0, "turbulence": 0.15, "precip": 0.0},
+	"Scattered": {"cloud_cover": 0.5, "cloud_base_ft": 3000.0, "visibility_m": 15000.0, "turbulence": 0.2, "precip": 0.0},
+	"Broken": {"cloud_cover": 0.75, "cloud_base_ft": 2500.0, "visibility_m": 10000.0, "turbulence": 0.3, "precip": 0.12},
+	"Overcast": {"cloud_cover": 0.95, "cloud_base_ft": 1800.0, "visibility_m": 7000.0, "turbulence": 0.3, "precip": 0.3},
+	"Winter haze": {"cloud_cover": 0.05, "cloud_base_ft": 5000.0, "visibility_m": 3000.0, "turbulence": 0.05, "precip": 0.0},
+	"Monsoon": {"cloud_cover": 1.0, "cloud_base_ft": 1200.0, "visibility_m": 5000.0, "turbulence": 0.55, "precip": 0.9},
 }
 const WEATHER_KEYS := ["wind_dir_deg", "wind_kt", "gust_kt", "turbulence", "visibility_m",
-	"cloud_cover", "cloud_base_ft", "qnh_hpa", "temp_c", "time_h", "time_rate", "day_of_year"]
+	"cloud_cover", "cloud_base_ft", "qnh_hpa", "temp_c", "time_h", "time_rate", "day_of_year", "precip"]
 
 var setup := {}
 var skip_menu := false  # flight options were given on the command line
@@ -88,7 +89,9 @@ func _parse_cmdline() -> void:
 				setup.stand = v
 			"cold": setup.cold = true
 			"tod": setup.time_h = float(v)
+			"day": setup.day_of_year = float(v)  # day of the year (moon phase, sun times)
 			"vis": setup.visibility_m = float(v)
+			"rain": setup.precip = clampf(float(v), 0.0, 1.0)  # --rain=0..1
 			"wind": _wind(v)
 			"clouds": _clouds(v)
 			"weather":

@@ -18,8 +18,10 @@ uniform vec3 sun_dir = vec3(0.3, 0.8, 0.2);  // render frame, towards the sun
 uniform vec3 sun_color : source_color = vec3(1.0, 0.97, 0.92);
 uniform vec3 ambient : source_color = vec3(0.5, 0.56, 0.66);
 uniform int steps = 24;
+uniform float base_dark = 0.0;  // thick decks: darker, greyer undersides (light used up above)
 uniform float max_dist = 25000.0;
 global uniform vec3 fog_color;
+global uniform float haze_density;
 
 void vertex() {
 	POSITION = vec4(VERTEX.xy * 2.0, 1.0, 1.0);  // QuadMesh 1x1 -> full screen
@@ -69,7 +71,7 @@ void fragment() {
 			float h = (p.z - cloud_base) / cloud_thick;
 			float occl = density(p + sun_enu * 300.0);
 			float lit = exp(-occl * 2.2) * (0.4 + 0.6 * h);
-			vec3 c = mix(ambient, sun_color, lit);
+			vec3 c = mix(ambient, sun_color, lit) * (1.0 - base_dark * (1.0 - h) * (1.0 - h));
 			float a = 1.0 - exp(-d * dt * 0.006);
 			light += trans * a * c;
 			trans *= 1.0 - a;
@@ -77,7 +79,8 @@ void fragment() {
 		}
 		t += dt;
 	}
-	float haze = 1.0 - exp(-t0 / 22000.0);
-	ALBEDO = mix(light / max(1.0 - trans, 1e-3), fog_color, haze * 0.7);
-	ALPHA = (1.0 - trans) * (1.0 - haze * 0.5);
+	// aerial perspective to the cloud entry point, from the visibility (at least a faint blue haze)
+	float haze = 1.0 - exp(-t0 * max(haze_density, 1.0 / 22000.0));
+	ALBEDO = mix(light / max(1.0 - trans, 1e-3), fog_color, haze);
+	ALPHA = (1.0 - trans) * (1.0 - haze * 0.35);
 }

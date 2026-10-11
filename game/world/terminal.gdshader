@@ -5,10 +5,11 @@ shader_type spatial;
 //   1 solid panels (cladding joints)          2 metal roof (standing seams)
 //   3 clay-tile roof (Kerala, tile rows)      4 plain concrete / columns
 //   5 coffered soffit (canopy underside, downlights at night)
-render_mode cull_disabled;
+render_mode cull_disabled, fog_disabled;
 
 global uniform vec3 fog_color;
 global uniform float haze_density;
+global uniform float wetness;
 global uniform vec2 pattern_origin;  // origin mod ~50 km (float32-safe)
 global uniform vec3 sky_top_color;
 
@@ -79,9 +80,11 @@ void fragment() {
 		float spot = 1.0 - smoothstep(0.05, 0.12, length(f - 0.5));
 		emit = vec3(1.0, 0.92, 0.78) * spot * night * 0.8;
 	}
+	col *= mix(1.0, 0.8, wetness);
 	float haze = 1.0 - exp(-v_dist * haze_density);
-	ALBEDO = mix(col, fog_color, haze * 0.75);
-	EMISSION = emit * (1.0 - haze * 0.5);
-	ROUGHNESS = rough;
+	ALBEDO = col * (1.0 - haze);
+	EMISSION = emit * (1.0 - haze * 0.5) + fog_color * haze;
+	ROUGHNESS = mix(rough, rough * 0.5, wetness);
+	SPECULAR = 0.5 * (1.0 - haze);
 	METALLIC = metal;
 }

@@ -8,13 +8,13 @@ extends Node
 
 const PRESETS := {
 	"low": {"scale": 0.7, "fsr": true, "msaa": 0, "fxaa": true, "shadow": 0.0, "glow": false,
-		"lod_k": 1.2, "bld": 4000.0, "trees": 1200.0, "tree_density": 0.5, "clouds": 10, "ssao": false, "taa": false},
+		"lod_k": 1.2, "bld": 4000.0, "trees": 1200.0, "tree_density": 0.5, "clouds": 10, "rain": 1500, "ssao": false, "taa": false},
 	"medium": {"scale": 0.85, "fsr": true, "msaa": 0, "fxaa": true, "shadow": 150.0, "glow": true,
-		"lod_k": 1.4, "bld": 6000.0, "trees": 1800.0, "tree_density": 0.8, "clouds": 16, "ssao": false, "taa": false},
+		"lod_k": 1.4, "bld": 6000.0, "trees": 1800.0, "tree_density": 0.8, "clouds": 16, "rain": 3000, "ssao": false, "taa": false},
 	"high": {"scale": 1.0, "fsr": false, "msaa": 1, "fxaa": false, "shadow": 300.0, "glow": true,
-		"lod_k": 1.6, "bld": 9000.0, "trees": 2200.0, "tree_density": 1.0, "clouds": 24, "ssao": false, "taa": false},
+		"lod_k": 1.6, "bld": 9000.0, "trees": 2200.0, "tree_density": 1.0, "clouds": 24, "rain": 5000, "ssao": false, "taa": false},
 	"ultra": {"scale": 1.0, "fsr": false, "msaa": 2, "fxaa": false, "shadow": 600.0, "glow": true,
-		"lod_k": 2.0, "bld": 12000.0, "trees": 3000.0, "tree_density": 1.2, "clouds": 40, "ssao": true, "taa": true},
+		"lod_k": 2.0, "bld": 12000.0, "trees": 3000.0, "tree_density": 1.2, "clouds": 40, "rain": 8000, "ssao": true, "taa": true},
 }
 const ORDER := ["low", "medium", "high", "ultra"]
 const CFG := "user://graphics.cfg"
@@ -86,6 +86,9 @@ func apply_to_scene(root: Node) -> void:
 	if tr:
 		tr.radius = s.trees
 		tr.density_scale = s.tree_density
+	var fx := root.get_node_or_null("SkyTime/WeatherFx")
+	if fx:
+		fx.set_rain_max(s.rain)  # rain streaks at full rain
 	var cam := vp.get_camera_3d()
 	if cam and cam.get_node_or_null("CloudLayer"):
 		cam.get_node("CloudLayer").steps = s.clouds

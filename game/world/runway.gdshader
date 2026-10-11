@@ -14,10 +14,15 @@ uniform vec3 asphalt : source_color = vec3(0.17, 0.17, 0.18);
 uniform vec3 paint : source_color = vec3(0.92, 0.92, 0.9);
 uniform vec3 taxi_paint : source_color = vec3(0.95, 0.75, 0.15);
 uniform float lod_lift = 0.0007;
+global uniform vec3 fog_color;
+global uniform float haze_density;
+global uniform float wetness;
+varying float v_dist;
 
 void vertex() {
 	VERTEX.y += length((MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz - CAMERA_POSITION_WORLD) * lod_lift;
 	vec4 vp = MODELVIEW_MATRIX * vec4(VERTEX, 1.0);
+	v_dist = length(vp.xyz);
 	vp.xyz *= 0.9985;
 	POSITION = PROJECTION_MATRIX * vp;
 }
@@ -57,7 +62,10 @@ void fragment() {
 		col = mix(col, taxi_paint, m);
 		m = 0.0;
 	}
-	ALBEDO = mix(col, paint, m * 0.9);
-	ROUGHNESS = 0.85;
-	SPECULAR = 0.2;
+	col = mix(col, paint, m * 0.9) * mix(1.0, 0.65, wetness);  // wet tarmac darkens
+	float haze = 1.0 - exp(-v_dist * haze_density);
+	ALBEDO = col * (1.0 - haze);
+	EMISSION = fog_color * haze;
+	ROUGHNESS = mix(0.85, 0.25, wetness);
+	SPECULAR = mix(0.2, 0.5, wetness) * (1.0 - haze);
 }

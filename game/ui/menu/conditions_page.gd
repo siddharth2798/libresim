@@ -5,12 +5,14 @@ extends HBoxContainer
 signal changed
 
 const MONTHS := ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
-const TIMES := [["Dawn", 6.25], ["Morning", 9.0], ["Noon", 12.5], ["Afternoon", 15.5], ["Dusk", 18.6], ["Night", 21.5]]
+## Dawn / Dusk (-1 / -2) follow the real sunrise / sunset for the chosen month (WeatherVisuals.sun_rise_set).
+const TIMES := [["Dawn", -1.0], ["Morning", 9.0], ["Noon", 12.5], ["Afternoon", 15.5], ["Dusk", -2.0], ["Night", 21.5]]
 const WINDS := [["Calm", 0, 0, 0.05], ["Light", 6, 0, 0.1], ["Moderate", 14, 20, 0.3], ["Strong", 22, 32, 0.55]]
 const SLIDERS := {  # key: [label, min, max, step, format]
 	"cloud_cover": ["Cloud cover", 0.0, 1.0, 0.05, "%d %%"],
 	"cloud_base_ft": ["Cloud base (AMSL)", 800.0, 12000.0, 100.0, "%d ft"],
 	"visibility_m": ["Visibility", 800.0, 40000.0, 200.0, "%.1f km"],
+	"precip": ["Rain", 0.0, 1.0, 0.05, "%d %%"],
 	"turbulence": ["Turbulence", 0.0, 1.0, 0.05, "%d %%"],
 	"qnh_hpa": ["QNH", 990.0, 1035.0, 1.0, "%d hPa"],
 	"temp_c": ["Temperature (sea level)", 5.0, 45.0, 1.0, "%d °C"],
@@ -49,9 +51,9 @@ func _ready() -> void:
 			_sync())
 		grid.add_child(b)
 		_preset_btns[n] = b
-	for k in ["cloud_cover", "cloud_base_ft", "visibility_m", "turbulence", "qnh_hpa", "temp_c"]:
+	for k in ["cloud_cover", "cloud_base_ft", "visibility_m", "precip", "turbulence", "qnh_hpa", "temp_c"]:
 		_slider(weather, k, true)
-	weather.add_child(MenuTheme.note("Monsoon = low overcast, poor visibility and gusty south-westerlies (rain is not drawn yet). Winter haze = Mumbai's smoggy Dec–Feb mornings."))
+	weather.add_child(MenuTheme.note("Rain: Broken = passing showers, Overcast = drizzle, Monsoon = heavy rain under a low deck with gusty south-westerlies (and the odd lightning flash). Winter haze = Mumbai's smoggy Dec–Feb mornings."))
 	var time := _column("Time & date")
 	var tg := GridContainer.new()
 	tg.columns = 3
@@ -60,7 +62,7 @@ func _ready() -> void:
 		var b := Button.new()
 		b.text = t[0]
 		b.size_flags_horizontal = SIZE_EXPAND_FILL
-		b.pressed.connect(func(): _put("time_h", t[1]))
+		b.pressed.connect(func(): _put("time_h", preset_time(t[1], float(Session.setup.day_of_year))))
 		tg.add_child(b)
 	_slider(time, "time_h", false)
 	_slider(time, "time_rate", false)
@@ -105,6 +107,14 @@ func _ready() -> void:
 	wind.add_child(MenuTheme.note("Surface wind follows a log profile into the wind aloft (veered 10°, ~1.6x). Wind over the Ghats gives ridge lift on the windward side and sink + turbulence in the lee. C172S max demonstrated crosswind: 15 kt."))
 	visibility_changed.connect(func(): if visible: _sync())
 	_sync()
+
+
+## Time for a TIMES entry: Dawn = sunrise, Dusk = sunset (to the nearest 5 min) for the date.
+static func preset_time(h: float, day: float) -> float:
+	if h >= 0.0:
+		return h
+	var rs := WeatherVisuals.sun_rise_set(day)
+	return snappedf(rs.x if h == -1.0 else rs.y, 1.0 / 12.0)
 
 
 func _column(title: String) -> VBoxContainer:
@@ -162,7 +172,7 @@ func _sync() -> void:
 		var f: String = SLIDERS[k][4]
 		match k:
 			"time_h": _val[k].text = "%02d:%02d" % [int(x), int(fmod(x, 1.0) * 60.0)]
-			"cloud_cover", "turbulence": _val[k].text = f % int(x * 100.0)
+			"cloud_cover", "turbulence", "precip": _val[k].text = f % int(x * 100.0)
 			"visibility_m": _val[k].text = f % (x / 1000.0)
 			_: _val[k].text = f % int(x)
 	for n in _preset_btns:

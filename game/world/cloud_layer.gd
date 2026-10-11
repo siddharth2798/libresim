@@ -49,7 +49,7 @@ static func _noise(size: int, freq: float, octaves: int, seed: int) -> NoiseText
 
 
 ## Called by SkyTime each frame.
-func update_layer(cam_world: Vector3, base_m: float, cov: float, dr: Vector2, sun_dir: Vector3, sun_col: Color, amb: Color) -> void:
+func update_layer(cam_world: Vector3, base_m: float, cov: float, dr: Vector2, sun_dir: Vector3, sun_col: Color, amb: Color, base_dark := 0.0) -> void:
 	base = base_m
 	cover = cov
 	drift = dr
@@ -62,6 +62,7 @@ func update_layer(cam_world: Vector3, base_m: float, cov: float, dr: Vector2, su
 	_mat.set_shader_parameter("sun_color", sun_col)
 	_mat.set_shader_parameter("ambient", amb)
 	_mat.set_shader_parameter("steps", steps)
+	_mat.set_shader_parameter("base_dark", base_dark)
 
 
 static func _sample(img: Image, uv: Vector2) -> float:

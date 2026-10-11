@@ -18,10 +18,16 @@ uniform float h_scale = 0.1;
 uniform float h_offset = -100.0;
 uniform float tile_n = 256.0;
 uniform float skirt_depth = 30.0;
+// geomorph: vertices blend toward the parent node's (2x coarser) surface between
+// these camera distances, so LOD splits/merges don't pop (TerrainQuadtree)
+uniform vec2 morph_range = vec2(1e12, 2e12);
+global uniform vec3 terrain_eye;    // camera, render space (same in shadow passes)
 global uniform vec3 fog_color;      // set by SkyTime (visibility / time of day)
 global uniform float haze_density;
 global uniform vec2 pattern_origin; // FloatingOrigin.pattern_origin(): origin mod ~50 km (float32-safe)
 global uniform vec3 sky_top_color;
+global uniform float wetness;       // WeatherFx: wet ground after rain
+global uniform float precip;        // WeatherFx: local rain rate
 uniform sampler2D lc_tex : filter_linear, repeat_disable;  // land class: 255 = water
 
 varying float v_dist;
@@ -36,6 +42,16 @@ void vertex() {
 	ivec2 g = ivec2(round(UV * 64.0));
 	ivec2 t = texel_off + g * texel_step;
 	float h = h_at(t);
+	vec3 wp0 = (MODEL_MATRIX * vec4(UV.x * tile_size, h, -UV.y * tile_size, 1.0)).xyz;
+	float morph = clamp((distance(wp0, terrain_eye) - morph_range.x) / (morph_range.y - morph_range.x), 0.0, 1.0);
+	ivec2 odd = g % 2;
+	if (morph > 0.0 && odd != ivec2(0)) {
+		// parent surface: midpoint of the parent edge (or of its triangle diagonal,
+		// which runs from (i+1, j) to (i, j+1) in TerrainMesh) through this vertex
+		int s = texel_step;
+		ivec2 a = odd.x * odd.y == 1 ? ivec2(s, -s) : (odd.x == 1 ? ivec2(s, 0) : ivec2(0, s));
+		h = mix(h, 0.5 * (h_at(t + a) + h_at(t - a)), morph);
+	}
 	float sp = tile_size / (64.0 * float(texel_step)); // metres per texel
 	float dx = (h_at(t + ivec2(1, 0)) - h_at(t - ivec2(1, 0))) / (2.0 * sp);
 	float dn = (h_at(t + ivec2(0, 1)) - h_at(t - ivec2(0, 1))) / (2.0 * sp);
@@ -85,11 +101,24 @@ void fragment() {
 		vec3 wcol = mix(mix(deep, shallow, 0.4), sky, clamp(fres * 0.75 + 0.04, 0.0, 0.85));
 		col = mix(col, wcol, water);
 		NORMAL = normalize(mix(NORMAL, nv, water));
-		rough = mix(rough, 0.06, water);
+		rough = mix(rough, 0.06 + 0.14 * precip, water);  // rain roughens the surface
 		spec = mix(spec, 0.6, water);
 	}
+	// wet ground: darker, glossier, with standing water on flat ground
+	float wet = wetness * (1.0 - water);
+	if (wet > 0.0) {
+		float flat_ground = smoothstep(0.985, 0.998, dot(NORMAL, (VIEW_MATRIX * vec4(0.0, 1.0, 0.0, 0.0)).xyz));
+		float puddle = smoothstep(0.62, 0.8, vnoise(v_en * 0.05) * 0.7 + vnoise(v_en * 0.31) * 0.3) * flat_ground * wet;
+		col *= mix(1.0, 0.6, wet);
+		col = mix(col, col * 0.7, puddle);
+		rough = mix(rough, 0.5, wet);
+		rough = mix(rough, 0.08, puddle);
+		spec = mix(spec, 0.35, wet);
+	}
+	// aerial perspective: surface light extinguished, horizon-coloured in-scatter added
 	float haze = 1.0 - exp(-v_dist * haze_density);
-	ALBEDO = mix(col, fog_color, haze * 0.75);
+	ALBEDO = col * (1.0 - haze);
+	EMISSION = fog_color * haze;
 	ROUGHNESS = rough;
-	SPECULAR = spec;
+	SPECULAR = spec * (1.0 - haze);
 }

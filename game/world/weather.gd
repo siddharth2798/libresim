@@ -3,14 +3,14 @@ extends Node
 ## Offline weather. Settings live in Props "weather/*" (UI edits them):
 ##   wind_dir_deg (from, true), wind_kt (surface, 10 m), aloft_dir_deg, aloft_kt (above ~1500 m AGL),
 ##   gust_kt (peak), turbulence (0..1), visibility_m, cloud_base_ft (AMSL), cloud_cover (0..1),
-##   qnh_hpa, temp_c (sea level).
+##   qnh_hpa, temp_c (sea level), precip (rain 0..1; drawn by WeatherFx).
 ## Each physics tick publishes environment/wind_ned (incl. gusts, Dryden-style
 ## turbulence and terrain-induced ridge lift / lee sink), qnh_pa, delta_t.
 
 const DEFAULTS := {
 	"wind_dir_deg": 270.0, "wind_kt": 8.0, "aloft_dir_deg": 280.0, "aloft_kt": 15.0,
 	"gust_kt": 0.0, "turbulence": 0.15, "visibility_m": 20000.0,
-	"cloud_base_ft": 4500.0, "cloud_cover": 0.3, "qnh_hpa": 1012.0, "temp_c": 30.0,
+	"cloud_base_ft": 4500.0, "cloud_cover": 0.3, "qnh_hpa": 1012.0, "temp_c": 30.0, "precip": 0.0,
 }
 const Z0 := 0.15  # surface roughness (m)
 const TURB_L := 250.0  # turbulence length scale (m)

@@ -3,7 +3,8 @@ extends Node
 ## Real recorded C172 sounds (aircraft/c172/sounds, see SOURCES.md) driven by Props.
 ## Loops: engine idle/run (volume & pitch from RPM, mappings after the c172p
 ## sound config), starter crank, gyro spin, wind (airspeed), tyre roll + rumble
-## (ground speed), stall horn, flap motor, trim wheel, avionics fan, rain.
+## (ground speed), stall horn, flap motor, trim wheel, avionics fan, rain (environment/precip;
+## on the windshield it drums harder with airspeed).
 ## One-shots: engine catch / cut, touchdown squeal, switch clicks, levers.
 ## Cockpit view hears everything; outside views hear the engine louder and no clicks.
 
@@ -21,13 +22,13 @@ const WATCH := ["controls/electrical/master_bat", "controls/electrical/master_al
 
 const BUS := {"engine-idle": "Engine", "engine": "Engine", "engine-crank": "Engine", "engine-start": "Engine",
 	"engine-cut": "Engine", "wind1": "Environment", "tires-rolling-asphalt": "Environment", "rumble": "Environment",
-	"rain": "Environment", "squeal": "Environment"}  # everything else: Cockpit (see core/audio_settings.gd)
+	"rain": "Environment", "rain-windshield": "Environment", "squeal": "Environment"}  # everything else: Cockpit (see core/audio_settings.gd)
 
 
 func _ready() -> void:
 	AudioSettings.apply()
 	for n in ["engine-idle", "engine", "engine-crank", "gyro", "wind1", "tires-rolling-asphalt", "rumble",
-			"stall2", "flaps-motor", "trim", "avionics-400Hz", "rain"]:
+			"stall2", "flaps-motor", "trim", "avionics-400Hz", "rain", "rain-windshield"]:
 		_loops[n] = _player(n, true)
 	for n in ["engine-start", "engine-cut", "squeal", "click", "click2", "double-click", "lever", "keys", "flaps-click"]:
 		_shots[n] = _player(n, false)
@@ -105,8 +106,11 @@ func _process(dt: float) -> void:
 	_trim_t = 0.25 if absf(trim - _trim_prev) > 1e-5 else _trim_t - dt
 	_trim_prev = trim
 	_loop("trim", 0.8 if _trim_t > 0.0 and cockpit else 0.0)
-	var rain := Props.get_f("weather/rain")
-	_loop("rain", rain * 0.6)
+	# rain on the canopy: local rain rate (WeatherFx), drumming harder with airspeed
+	var rain := Props.get_f("environment/precip")
+	var drum := clampf(0.45 + kt / 160.0, 0.45, 1.1)
+	_loop("rain", rain * (0.35 if cockpit else 0.55))
+	_loop("rain-windshield", rain * drum * (0.7 if cockpit else 0.15), 0.9 + clampf(kt / 400.0, 0.0, 0.3))
 	# switch clicks and levers (cockpit)
 	for k in WATCH:
 		var v := Props.get_b(k)

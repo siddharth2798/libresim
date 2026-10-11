@@ -1,11 +1,12 @@
 shader_type spatial;
-render_mode cull_disabled;
+render_mode cull_disabled, fog_disabled;
 // Tree impostor on two crossed quads (origin at the trunk base, unit size).
 // INSTANCE_CUSTOM: r,g,b colour variation, a = shape seed. Canopy is drawn
 // procedurally (alpha scissor) with a fake spherical normal for soft lighting.
 
 global uniform vec3 fog_color;
 global uniform float haze_density;
+global uniform float wetness;
 
 varying vec3 v_tint;
 varying float v_seed;
@@ -44,9 +45,11 @@ void fragment() {
 	// fake round normal for the canopy (view space)
 	vec3 nrm = normalize(vec3(c.x, c.y * 0.8 + 0.4, 0.6));
 	NORMAL = canopy >= 0.0 ? normalize(mix(NORMAL, (VIEW_MATRIX * vec4(nrm.x, nrm.y, nrm.z, 0.0)).xyz, 0.6)) : NORMAL;
+	col *= mix(1.0, 0.8, wetness);
 	float haze = 1.0 - exp(-v_dist * haze_density);
-	ALBEDO = mix(col, fog_color, haze * 0.75);
-	ROUGHNESS = 0.9;
-	SPECULAR = 0.05;
+	ALBEDO = col * (1.0 - haze);
+	EMISSION = fog_color * haze;
+	ROUGHNESS = mix(0.9, 0.55, wetness);
+	SPECULAR = mix(0.05, 0.25, wetness) * (1.0 - haze);
 	BACKLIGHT = vec3(0.15, 0.2, 0.05);
 }

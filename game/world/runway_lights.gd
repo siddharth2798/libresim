@@ -152,7 +152,7 @@ func _process(dt: float) -> void:
 	var cam := get_viewport().get_camera_3d()
 	if cam == null or terrain == null:
 		return
-	var lv := levels(Props.get_f("environment/sun_elev_deg", 30.0), Props.get_f("weather/visibility_m", 20000.0))
+	var lv := levels(Props.get_f("environment/sun_elev_deg", 30.0), Props.get_f("environment/visibility_m", Props.get_f("weather/visibility_m", 20000.0)))
 	for g in lv:
 		mats[g].set_shader_parameter("level", lv[g])
 	var w := FloatingOrigin.to_world(cam.global_position)
