@@ -295,6 +295,7 @@ cd game
 | M | Cycle magnetos OFF → L → R → BOTH |
 | S (hold) | Starter |
 | Y | Toggle mouse yoke (mouse position = control column) |
+| L / Shift+L | PANEL light dimmer brighter / dimmer (instrument post lights + glareshield flood, 10 % steps; also the PANEL knob in the switch row) |
 | C / Shift+C, or 1–8 | Camera: 1 cockpit, 2 chase, 3 orbit, 4 free camera (WASD to move, Q/E down/up, right-drag to look, Shift for speed, wheel to set speed), 5 tower, 6 wing, 7 tail, 8 fly-by |
 | Tab / Shift+Tab | 2D panel layout in outside views: Full, Split (six-pack bottom-left, engine gauges right), Compact (small six-pack), Minimal (ASI, AI, ALT top-right), Off. Remembered between sessions |
 | Right-mouse drag | Look around (cockpit, orbit, free, wing, tail). Mouse wheel: cockpit zoom (field of view), orbit distance, free-camera speed |
@@ -454,7 +455,10 @@ Default frequencies are COM1 118.10/121.90, NAV1 116.60/113.90, NAV2 108.10/109.
 
 **Switch panel** (the bottom row of the instrument panel; click to toggle):
 - **Electrical:** BAT and ALT masters, AVN (avionics).
-- **Lights:** BCN, LAND, TAXI, NAV, STRB.
+- **Lights:** BCN, LAND, TAXI, NAV, STRB, and the PANEL dimmer knob (click left/right half or wheel, or L / Shift+L).
+- **Aircraft lights at night:** red/green/white nav lights, a flashing red fin beacon and white wingtip strobes (double flash) are drawn as glowing points with a minimum on-screen size, so the aircraft stays visible from the tower miles away; small shadowless lights tint the wingtips, fin and wings around them. Landing and taxi lights are spot lights with a faint visible beam and a lit pool on the runway ahead (fading out above ~80 m AGL). A soft fill keeps the airframe readable in outside views. All of this is off in daylight (the bulbs still glow).
+- **Lights at start (night or dusk, sun below 5°):** nav + beacon always; strobes for air and runway starts; landing light for runway starts and air starts below 3000 ft AGL; taxi light for runway starts. Cold & dark and stand starts: everything off. By day: beacon only.
+- **Cockpit at night:** the instruments are internally lit and follow the PANEL dimmer (default 70 %; unpowered = dark), the radio displays stay lit, and a warm glareshield flood lights the panel and yokes. Daytime look is unchanged.
 - **Other switches:** PITOT HT; fuel SHUTOFF valve; ALT STAT (alternate static source).
 - **Rotary selectors** (click left/right half, or mouse wheel):
   - MAGS: OFF/R/L/BOTH

@@ -26,7 +26,6 @@ var _t := 0.0
 
 
 func build(s: Callable) -> void:
-	if OS.get_environment("NOLIGHTS") != "": return  # TEMP-AB
 	_nav.append(_point(s.call(Vector3(1.1, -5.5, 1.5)), RED, 1.0, 2.6, Vector3(0.25, 0.1, 0)))
 	_nav.append(_point(s.call(Vector3(1.1, 5.5, 1.5)), GREEN, 1.0, 2.6, Vector3(-0.25, 0.1, 0)))
 	_nav.append(_point(s.call(Vector3(6.6, 0.0, 0.7)), WHITE, 0.9, 1.8, Vector3(0, 0.15, 0.1)))
@@ -156,7 +155,6 @@ func _drive(pt: Array, on: float, bulb_e: float, halo_lv: float, omni_e: float) 
 
 
 func _process(dt: float) -> void:
-	if OS.get_environment("NOLIGHTS") != "": return  # TEMP-AB
 	_t += dt
 	var night := LightLogic.night_factor(Props.get_f("environment/sun_elev_deg", 30.0))
 	var pw := Props.get_b("systems/electrical/powered", true)
