@@ -255,8 +255,13 @@
     "time_s": 1.0
    }
   ],
-  "aileron_rigging": 0.029,
-  "rudder_rigging": 0.0
+  "aileron_rigging": 0.035,
+  "rudder_rigging": 0.005,
+  "full_travel_s": {
+   "pitch": 0.3,
+   "roll": 0.15,
+   "yaw": 0.15
+  }
  },
  "engine": {
   "type": "piston",

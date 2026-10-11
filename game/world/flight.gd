@@ -2,7 +2,7 @@ extends Node3D
 ## Main flight scene. Started from the start screen (ui/menu) with the setup in the
 ## Session autoload, or directly with command-line options (after "--"):
 ##   --airport=VAJJ --runway=08   start on a runway (default VAJJ, first runway)
-##   --air=<alt_ft>               start airborne on the runway's extended centreline, 5 nm out
+##   --air=<alt_ft> [--air-nm=5]  start airborne on the runway's extended centreline, 5 nm out
 ##   --stand[=REF]                start parked at a stand/gate, cold & dark (e.g. --stand="Bay 40"); default: a jetbridge gate
 ##   --cold                       cold & dark (everything off, parking brake set)
 ##   --shot=<png>                 screenshot after 6 s and quit (testing)
@@ -98,7 +98,7 @@ func _reset() -> void:
 	if _air_ft > 0.0:
 		var back := Vector2(sin(deg_to_rad(hdg)), cos(deg_to_rad(hdg))) * -_air_nm * 1852.0
 		var q := p + back
-		fdm_node.place_airborne(q.x, q.y, terrain.height_at(p.x, p.y) + _air_ft * 0.3048, hdg, 90.0)
+		fdm_node.place_airborne(q.x, q.y, terrain.height_at(p.x, p.y) + _air_ft * 0.3048, hdg, 90.0, $Weather.wind_at(_air_ft * 0.3048))
 	elif _stand_ref != "":
 		var st: Dictionary = $AirportOps.find_stand(_apt, "" if _stand_ref == "*" else _stand_ref)
 		if not st.is_empty():

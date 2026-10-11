@@ -7,10 +7,11 @@ class_name Trim
 static func _accel(f: FDM, x: Vector3, tas: float, hdg: float, base: Array) -> Vector3:
 	f.pos_n = base[0]; f.pos_e = base[1]; f.pos_d = base[2]
 	f.q = FDM.euler_to_quat(0.0, x.x, hdg)  # gamma = 0 -> theta = alpha
-	f.v_b = Vector3(tas * cos(x.x), 0.0, tas * sin(x.x))
+	f.v_b = _v_body(f, tas, x.x)
 	f.w_b = Vector3.ZERO
 	f.fcs.pitch_trim = x.y
 	f.fcs.pitch = 0.0
+	f.fcs.settle()
 	f.engine.throttle = x.z
 	f._alpha_prev = x.x
 	# settle propeller RPM for this throttle/airspeed
@@ -49,6 +50,11 @@ static func trim_level(f: FDM, tas: float) -> void:
 	_accel(f, x, tas, hdg, base)  # leave the aircraft in the trimmed state
 	f.pos_n = base[0]; f.pos_e = base[1]; f.pos_d = base[2]
 	f.q = FDM.euler_to_quat(0.0, x.x, hdg)
-	f.v_b = Vector3(tas * cos(x.x), 0.0, tas * sin(x.x))
+	f.v_b = _v_body(f, tas, x.x)
 	f.w_b = Vector3.ZERO
 	f.time = 0.0
+
+
+## Body velocity over the ground for air-relative TAS at alpha (no sideslip; crabs into wind).
+static func _v_body(f: FDM, tas: float, alpha: float) -> Vector3:
+	return Vector3(tas * cos(alpha), 0.0, tas * sin(alpha)) + Basis(f.q).transposed() * f.wind_ned

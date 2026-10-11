@@ -5,6 +5,8 @@ extends Node
 ## "engine/*"). Rendering reads interpolated pose via render_transform().
 
 const SUBSTEPS := 2
+const SMOOTHING_TAU := {"off": 0.0, "light": 0.05, "strong": 0.12}  # s, UserOptions control_smoothing
+const AUTO_COORD := 0.5  # rudder per unit aileron (FlightGear auto-coordination-factor)
 
 @export var terrain_path: NodePath
 @export var trees_path: NodePath
@@ -13,9 +15,10 @@ const SUBSTEPS := 2
 var fdm: FDM
 var paused := false
 var replaying := false  # replay (systems/replay.gd) drives the state; physics holds
-var _prev_pos := Vector3.ZERO  # ENU at previous physics tick
+var _prev_pos := PackedFloat64Array([0.0, 0.0, 0.0])  # ENU at previous tick (64-bit: Vector3 is float32)
 var _prev_q := Quaternion.IDENTITY
 var _terrain: TerrainQuadtree
+var _input_snap := true  # next control read jumps straight to the inputs (no smoothing)
 
 
 func _ready() -> void:
@@ -56,40 +59,55 @@ func place_on_ground(east: float, north: float, heading_deg: float) -> void:
 	_snap()
 
 
-func place_airborne(east: float, north: float, alt: float, heading_deg: float, kias: float) -> void:
+## Trimmed level flight at kias through the air mass (wind_ned: NED m/s at that height),
+## in the current weather (weather/qnh_hpa, weather/temp_c), so the start is in trim.
+func place_airborne(east: float, north: float, alt: float, heading_deg: float, kias: float, wind_ned := Vector3.ZERO) -> void:
 	fdm.damage.reset()
 	fdm.gear = GearGround.new(fdm.cfg)
 	fdm.engine.failed = false
+	fdm.atmo.qnh_pa = Props.get_f("weather/qnh_hpa", 1013.25) * 100.0
+	fdm.atmo.delta_t = Props.get_f("weather/temp_c", 15.0) - 15.0
+	fdm.wind_ned = wind_ned
 	fdm.set_airborne(north, east, alt, deg_to_rad(heading_deg), kias * 0.514444)
 	fdm.prop.rpm = 2300.0
-	fdm.trim_level(kias * 0.514444)
+	fdm.trim_level_cas(kias * 0.514444)
 	Props.set_v("controls/throttle", fdm.engine.throttle)
 	Props.set_v("controls/pitch_trim", fdm.fcs.pitch_trim)
 	_snap()
 
 
 func _snap() -> void:
-	_prev_pos = position_enu()
+	_prev_pos = PackedFloat64Array([fdm.pos_e, fdm.pos_n, -fdm.pos_d])
 	_prev_q = fdm.q
+	_input_snap = true
 
 
 func _physics_process(delta: float) -> void:
 	if paused or replaying or fdm.damage.crashed:
 		return
-	_prev_pos = position_enu()
+	_prev_pos = PackedFloat64Array([fdm.pos_e, fdm.pos_n, -fdm.pos_d])
 	_prev_q = fdm.q
-	_read_controls()
+	_read_controls(delta)
 	var dt := delta / SUBSTEPS
 	for i in SUBSTEPS:
 		fdm.step(dt)
 	_publish()
 
 
-func _read_controls() -> void:
+func _read_controls(dt: float) -> void:
 	var c := fdm.fcs
-	c.pitch = Props.get_f("controls/pitch")
-	c.roll = Props.get_f("controls/roll")
-	c.yaw = Props.get_f("controls/yaw")
+	# Pilot inputs arrive at frame rate (keyboard ramps, joystick noise, mouse jitter):
+	# a first-order low-pass at the physics rate smooths the steps before the FCS.
+	var tau: float = SMOOTHING_TAU.get(UserOptions.get_v("control_smoothing"), 0.05)
+	var k := 1.0 if _input_snap or tau <= 0.0 else 1.0 - exp(-dt / tau)
+	_input_snap = false
+	var roll := Props.get_f("controls/roll")
+	var yaw := Props.get_f("controls/yaw")
+	if UserOptions.get_v("auto_coordination"):  # FlightGear-style: rudder follows aileron
+		yaw = clampf(yaw + AUTO_COORD * roll, -1.0, 1.0)
+	c.pitch = lerpf(c.pitch, Props.get_f("controls/pitch"), k)
+	c.roll = lerpf(c.roll, roll, k)
+	c.yaw = lerpf(c.yaw, yaw, k)
 	if not Props.get_b("failures/trim"):  # jammed trim stays where it was
 		c.pitch_trim = Props.get_f("controls/pitch_trim")
 	c.flap_cmd = Props.get_v("controls/flaps", 0)
@@ -172,9 +190,13 @@ func _publish() -> void:
 ## Pose interpolated between physics ticks, in render space.
 func render_transform() -> Transform3D:
 	var a := Engine.get_physics_interpolation_fraction()
-	var p := _prev_pos.lerp(position_enu(), a)
+	# interpolate and shift to render space in 64-bit; a float32 Vector3 of ENU
+	# would quantise to 6 cm ~1000 km from the world origin (visible jitter)
+	var e := lerpf(_prev_pos[0], fdm.pos_e, a)
+	var n := lerpf(_prev_pos[1], fdm.pos_n, a)
+	var u := lerpf(_prev_pos[2], -fdm.pos_d, a)
 	var q := _prev_q.slerp(fdm.q, a)
-	return Transform3D(ned_to_render_basis(q), FloatingOrigin.to_render(p))
+	return Transform3D(ned_to_render_basis(q), FloatingOrigin.to_render_d(e, n, u))
 
 
 ## Body->NED quaternion to a Godot basis whose -Z is the nose, +Y the canopy, +X the right wing.

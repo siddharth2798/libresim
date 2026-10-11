@@ -88,18 +88,31 @@ func velocity_ned() -> Vector3:
 	return Basis(q) * v_b
 
 
-## Start airborne, wings level, at a given true airspeed along the heading.
+## Start airborne, wings level, at a given true airspeed through the air mass
+## (wind_ned is added, so the start is not a sudden gust when there is wind).
 func set_airborne(n: float, e: float, alt: float, heading: float, tas: float, pitch := 0.03) -> void:
 	pos_n = n; pos_e = e; pos_d = -alt
 	q = euler_to_quat(0.0, pitch, heading)
-	v_b = Vector3(tas * cos(pitch), 0.0, tas * sin(pitch))
+	v_b = Vector3(tas * cos(pitch), 0.0, tas * sin(pitch)) + Basis(q).transposed() * wind_ned
 	w_b = Vector3.ZERO
 	_alpha_prev = pitch
+	fcs.settle()
 
 
 ## Trim for steady level flight at the current position/heading (see trim.gd).
 func trim_level(tas: float) -> void:
 	Trim.trim_level(self, tas)
+
+
+## Trim for level flight at a calibrated airspeed (iterates TAS; atmosphere and wind as set).
+func trim_level_cas(cas_target: float) -> void:
+	var tas := cas_target
+	for i in 3:
+		trim_level(tas)
+		step(1e-4)
+		tas *= cas_target / maxf(cas, 1.0)
+		set_airborne(pos_n, pos_e, -pos_d, euler().z, tas)
+	trim_level(tas)
 
 
 ## Start at rest on the ground in the natural sitting attitude (all wheels touching).
@@ -119,6 +132,7 @@ func set_on_ground(n: float, e: float, heading: float) -> void:
 	pos_d = -ground_height.call(n, e) - low + 0.005
 	v_b = Vector3.ZERO
 	w_b = Vector3.ZERO
+	fcs.settle()
 
 
 func step(dt: float) -> void:

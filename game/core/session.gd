@@ -82,6 +82,7 @@ func _parse_cmdline() -> void:
 			"air":
 				setup.start = "air"
 				setup.air_ft = float(v) if v != "" else 1500.0
+			"air-nm": setup.air_nm = float(v)  # distance out on final for --air
 			"stand":
 				setup.start = "stand"
 				setup.stand = v

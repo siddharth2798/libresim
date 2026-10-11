@@ -65,6 +65,21 @@ func _ready() -> void:
 		UserOptions.set_v("hud_at_start", on)
 		changed.emit())
 	right.add_child(hud)
+	left.add_child(MenuTheme.heading("Flight controls"))
+	var cg := GridContainer.new()
+	cg.columns = 2
+	cg.add_theme_constant_override("h_separation", 16)
+	left.add_child(cg)
+	_unit_row(cg, "Yoke keys", "keyboard_mode")
+	_unit_row(cg, "Input smoothing", "control_smoothing")
+	var ac := CheckBox.new()
+	ac.text = "Auto-coordination (rudder follows aileron)"
+	ac.button_pressed = bool(UserOptions.get_v("auto_coordination"))
+	ac.toggled.connect(func(on):
+		UserOptions.set_v("auto_coordination", on)
+		changed.emit())
+	left.add_child(ac)
+	left.add_child(MenuTheme.note("Spring: arrow keys re-centre when released. Sticky: they stay where you leave them, like FlightGear (tap the opposite key to return to centre)."))
 
 
 func _bus_row(parent: Control, bus: String) -> void:

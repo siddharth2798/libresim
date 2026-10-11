@@ -15,7 +15,7 @@ Session="*res://core/session.gd"
 [display]
 window/size/viewport_width=1280
 window/size/viewport_height=720
-window/vsync/vsync_mode=0
+window/vsync/vsync_mode=1
 
 [physics]
 common/physics_ticks_per_second=120

@@ -1,8 +1,10 @@
 class_name KeyboardControls
 extends Node
 ## Keyboard (and optional mouse-yoke) pilot input -> Props "controls/*".
-## Primary controls are rate-based: holding a key moves the surface, releasing
-## springs it back to centre. Throttle/mixture/trim move while held and stay put.
+## Primary controls are rate-based: holding a key moves the surface; on release it
+## springs back to centre (UserOptions keyboard_mode "spring", default) or stays put
+## ("sticky", FlightGear style: tap the opposite key to come back, it stops at centre).
+## Throttle/mixture/trim move while held and stay put. FdmNode low-passes the result.
 ## Keys come from core/key_bindings.gd (defaults: docs/USAGE.md key map).
 
 const RATE := 1.6          # stick travel per second while held
@@ -18,6 +20,7 @@ var parking_brake := false
 var keys := {}  # KeyBindings table (core/key_bindings.gd), reloaded on input/bindings_rev
 var _shifted := {}
 var _keys_rev := -1
+var _detent := {}  # sticky mode: axis -> true while held at the centre detent
 
 
 func _ready() -> void:
@@ -70,6 +73,25 @@ static func _rate(cur: float, input: float, dt: float) -> float:
 	return move_toward(cur, 0.0, SPRING * dt)
 
 
+## Sticky (FlightGear) keys: move while held, stay on release; crossing centre stops
+## there until the key is pressed again, so a tap on the opposite key re-centres.
+func _sticky(axis: String, cur: float, input: float, dt: float) -> float:
+	if input == 0.0:
+		_detent.erase(axis)
+		return cur
+	if _detent.has(axis):
+		return 0.0
+	var v := clampf(cur + input * RATE * dt, -1.0, 1.0)
+	if cur != 0.0 and signf(v) != signf(cur):
+		_detent[axis] = true
+		return 0.0
+	return v
+
+
+func _move(axis: String, cur: float, input: float, dt: float) -> float:
+	return _sticky(axis, cur, input, dt) if UserOptions.get_v("keyboard_mode") == "sticky" else _rate(cur, input, dt)
+
+
 func _process(dt: float) -> void:
 	if int(Props.get_v("input/bindings_rev", 0)) != _keys_rev:
 		_load_keys()
@@ -79,9 +101,9 @@ func _process(dt: float) -> void:
 		roll = clampf(m.x * 1.3, -1.0, 1.0)
 		pitch = clampf(m.y * 1.3, -1.0, 1.0)  # mouse down = pull back
 	else:
-		pitch = _rate(pitch, _axis("pitch_down", "pitch_up"), dt)
-		roll = _rate(roll, _axis("roll_left", "roll_right"), dt)
-	yaw = _rate(yaw, _axis("yaw_left", "yaw_right"), dt)
+		pitch = _move("pitch", pitch, _axis("pitch_down", "pitch_up"), dt)
+		roll = _move("roll", roll, _axis("roll_left", "roll_right"), dt)
+	yaw = _move("yaw", yaw, _axis("yaw_left", "yaw_right"), dt)
 	_put("pitch", pitch)
 	_put("roll", roll)
 	_put("yaw", yaw)

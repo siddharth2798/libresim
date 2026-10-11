@@ -110,7 +110,7 @@ func _process(dt: float) -> void:
 			back.y = 0.0
 			back = back.normalized() if back.length() > 0.1 else Vector3.BACK
 			var target := t.origin + back * 16.0 + Vector3.UP * 4.0
-			_chase_pos = _chase_pos.lerp(target, clampf(dt * 4.0, 0.0, 1.0))
+			_chase_pos = _chase_pos.lerp(target, 1.0 - exp(-4.0 * dt))  # frame-rate independent follow
 			if _chase_pos.distance_to(target) > 60.0:
 				_chase_pos = target
 			look_at_from_position(_chase_pos, t.origin + Vector3.UP)

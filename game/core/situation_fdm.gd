@@ -11,7 +11,7 @@ const ENGINE_KEYS := ["throttle", "mixture", "magnetos", "starter", "fuel_ok", "
 	"running", "map_pa", "fuel_flow_kgs", "power_w", "egt_k", "cht_k", "oil_temp_k", "oil_press_pa", "torque"]
 const PROP_KEYS := ["rpm", "thrust", "torque", "v_induced", "advance_ratio"]
 const FCS_KEYS := ["pitch", "roll", "yaw", "pitch_trim", "flap_cmd", "flaps_powered", "flap_motor_running",
-	"elevator", "aileron", "rudder", "flap_deg"]
+	"elevator", "aileron", "rudder", "flap_deg", "act_pitch", "act_roll", "act_yaw"]
 const FDM_KEYS := ["pos_n", "pos_e", "pos_d", "feed_left", "feed_right", "fuel_available", "leak_left_kgs",
 	"leak_right_kgs", "time", "alpha", "beta", "vt", "cas", "qbar", "mach", "agl", "load_factor",
 	"flight_load_factor", "_alpha_prev", "_alphadot"]
