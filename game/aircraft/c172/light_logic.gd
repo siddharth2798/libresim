@@ -65,7 +65,7 @@ static func nav_sector(which: int, az_deg: float, spill := 0.25) -> float:
 ## Gauge brightness multiplier of the unshaded 3D panel: 1 in daylight; at night the
 ## internal lighting follows the PANEL dimmer (a dark panel stays faintly legible).
 static func panel_brightness(dim: float, night: float, powered: bool) -> float:
-	var lit := 0.14 + (0.95 * clampf(dim, 0.0, 1.0) if powered else 0.0)
+	var lit := 0.12 + (0.9 * clampf(dim, 0.0, 1.0) if powered else 0.0)
 	return lerpf(1.0, minf(lit, 1.0), night)
 
 
@@ -78,7 +78,7 @@ static func display_brightness(dim: float, night: float, powered: bool) -> float
 
 ## Glareshield flood energy (cabin), 0 in daylight.
 static func flood_energy(dim: float, night: float, powered: bool) -> float:
-	return 0.9 * clampf(dim, 0.0, 1.0) * night if powered else 0.0
+	return 0.45 * clampf(dim, 0.0, 1.0) * night if powered else 0.0
 
 
 ## Sun elevation (deg) now, from the time of day (environment/sun_elev_deg is only

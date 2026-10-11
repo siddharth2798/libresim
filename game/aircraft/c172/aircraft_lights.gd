@@ -132,7 +132,7 @@ func _lamp(p: Vector3, energy: float, rng: float, angle: float, beam_len: float,
 	pt[2].queue_free()  # the spot itself does the lighting
 	var pool := LandingPool.new()
 	var wide := angle > 20.0
-	pool.setup(3.0 if wide else 8.0, 35.0 if wide else 90.0, 26.0 if wide else 16.0, 0.3 if wide else 0.35, p.x)
+	pool.setup(3.0 if wide else 8.0, 35.0 if wide else 90.0, 26.0 if wide else 16.0, 0.16 if wide else 0.24, p.x)
 	add_child(pool)
 	return [l, pt[1], bm, pt[0], beam, pool]
 
