@@ -16,6 +16,11 @@ var mode := Mode.CHASE
 var _look := Vector2.ZERO
 var _dist := 18.0
 var _fov_cockpit := 70.0
+## Cockpit focus zoom (Ctrl+click an item / wheel toward the cursor): eased targets and the
+## view to return to on a second Ctrl+click.
+var _look_goal := Vector2.ZERO
+var _fov_goal := 70.0
+var _focus_back := []  # [look, fov] while focused
 var _chase_pos := Vector3.ZERO
 var _eye := Vector3.ZERO
 var _free_enu := Vector3.ZERO
@@ -55,6 +60,9 @@ func set_mode(m: int) -> void:
 		_look = Vector2(r.y, r.x)
 	elif mode == Mode.FLYBY:
 		_place_flyby(FloatingOrigin.to_world(aircraft.global_position))
+	_look_goal = _look  # focus-zoom targets follow the new view
+	_fov_goal = _fov_cockpit
+	_focus_back = []
 	Props.set_v("view/free_cam", mode == Mode.FREE)
 	Props.set_v("view/mode", NAMES[mode])
 	_label.text = "%s view" % String(NAMES[mode]).capitalize()
@@ -68,6 +76,10 @@ func _place_flyby(w: Vector3) -> void:
 
 
 func _unhandled_input(e: InputEvent) -> void:
+	if mode == Mode.COCKPIT and e is InputEventMouseButton and e.pressed and e.button_index == MOUSE_BUTTON_LEFT and e.ctrl_pressed:
+		_focus_toggle(e.position)
+		get_viewport().set_input_as_handled()
+		return
 	if mode == Mode.COCKPIT and e is InputEventMouseButton and e.button_index in [MOUSE_BUTTON_LEFT, MOUSE_BUTTON_MIDDLE]:
 		if aircraft.cockpit.forward_mouse(e, self):
 			get_viewport().set_input_as_handled()
@@ -80,13 +92,20 @@ func _unhandled_input(e: InputEvent) -> void:
 		elif e.keycode == KEY_V:
 			_look = Vector2.ZERO
 			_fov_cockpit = 70.0
+			_look_goal = _look
+			_fov_goal = _fov_cockpit
+			_focus_back = []
 	elif e is InputEventMouseMotion and Input.is_mouse_button_pressed(MOUSE_BUTTON_RIGHT):
-		_look += Vector2(-e.relative.x, -e.relative.y) * 0.004
+		_look += Vector2(-e.relative.x, -e.relative.y) * 0.004 * (_fov_cockpit / 70.0 if mode == Mode.COCKPIT else 1.0)
 		_look.y = clampf(_look.y, -1.45, 1.45)
+		_look_goal = _look
 	elif e is InputEventMouseButton and e.pressed and e.button_index in [MOUSE_BUTTON_WHEEL_UP, MOUSE_BUTTON_WHEEL_DOWN]:
 		var up: bool = e.button_index == MOUSE_BUTTON_WHEEL_UP
 		match mode:
-			Mode.COCKPIT: _fov_cockpit = clampf(_fov_cockpit + (-4.0 if up else 4.0), 25.0, 95.0)
+			Mode.COCKPIT:  # zoom toward whatever is under the cursor
+				_fov_goal = clampf(_fov_goal * (0.85 if up else 1.18), 12.0, 95.0)
+				if up:
+					_look_goal = _look_goal.lerp(_look_at_screen(e.position), 0.25)
 			Mode.ORBIT: _dist = clampf(_dist / 1.15 if up else _dist * 1.15, 6.0, 600.0)
 			Mode.FREE: _free_speed = clampf(_free_speed * (1.25 if up else 0.8), 2.0, 3000.0)
 
@@ -100,6 +119,10 @@ func _process(dt: float) -> void:
 	var w := FloatingOrigin.to_world(t.origin)
 	match mode:
 		Mode.COCKPIT:
+			var k := 1.0 - exp(-10.0 * dt)  # ease toward the focus targets
+			_fov_cockpit = lerpf(_fov_cockpit, _fov_goal, k)
+			if not Input.is_mouse_button_pressed(MOUSE_BUTTON_RIGHT):
+				_look = _look.lerp(_look_goal, k)
 			fov = _fov_cockpit
 			global_transform = Transform3D(t.basis * Basis.from_euler(Vector3(_look.y - 0.12, _look.x, 0.0)), t * _eye)
 		Mode.CHASE:
@@ -161,3 +184,21 @@ func _nearest_tower(w: Vector3) -> Vector3:
 			bd = d
 			best = a.enu + Vector3(150.0, 150.0, 30.0)  # ~200 m off the airport reference point, 30 m up
 	return best
+
+
+## Cockpit look angles (yaw, pitch incl. the default -0.12 tilt) that put screen point p centre.
+func _look_at_screen(p: Vector2) -> Vector2:
+	var d: Vector3 = aircraft.transform.basis.inverse() * project_ray_normal(p)
+	return Vector2(atan2(-d.x, -d.z), clampf(asin(clampf(d.y, -1.0, 1.0)) + 0.12, -1.45, 1.45))
+
+
+## Ctrl+click: zoom in on the item under the cursor; Ctrl+click again returns to the old view.
+func _focus_toggle(p: Vector2) -> void:
+	if _focus_back.is_empty():
+		_focus_back = [_look_goal, _fov_goal]
+		_look_goal = _look_at_screen(p)
+		_fov_goal = 18.0
+	else:
+		_look_goal = _focus_back[0]
+		_fov_goal = _focus_back[1]
+		_focus_back = []
