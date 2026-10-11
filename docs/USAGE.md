@@ -292,6 +292,7 @@ cd game
 | B (hold) | Both brakes |
 | , / . (hold) | Left / right brake (differential steering) |
 | Shift+B | Toggle parking brake |
+| Ctrl+click (cockpit view) | Zoom in on the instrument / switch under the cursor; Ctrl+click again or V to return. The mouse wheel zooms toward the cursor |
 | Shift+M / Shift+V | Master switch (BAT + ALT) / avionics master |
 | Shift+F / Ctrl+F | Fuel selector cycle / fuel shutoff valve |
 | Ctrl+B / N / S / L / T / H | Beacon / nav / strobes / landing / taxi light / pitot heat |

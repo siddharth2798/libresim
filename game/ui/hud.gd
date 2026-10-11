@@ -64,7 +64,7 @@ func _help_card() -> PanelContainer:
 			["M · S", "magnetos · starter", "Y", "mouse yoke"], ["C · 1–8", "views", "Tab", "panel layout"],
 			["N", "map", "`", "radio / ATC"], ["T · P", "taxi route · pushback", "F2", "checklists"],
 			["F9 · F10", "failures · settings", "R · F8", "replay · record"], ["F11", "quick-save", "J", "controls"],
-			["H", "flight-data bar", "Esc", "pause menu"], ["L · Shift+L", "panel lights + / −", "F1", "this help"], ["Shift+M · Shift+V", "master · avionics", "Shift+F · Ctrl+F", "fuel selector · shutoff"], ["Ctrl+B N S L T", "beacon nav strobe land taxi", "Ctrl+H", "pitot heat"]]:
+			["H", "flight-data bar", "Esc", "pause menu"], ["L · Shift+L", "panel lights + / −", "F1", "this help"], ["Shift+M · Shift+V", "master · avionics", "Shift+F · Ctrl+F", "fuel selector · shutoff"], ["Ctrl+B N S L T", "beacon nav strobe land taxi", "Ctrl+H", "pitot heat"], ["Ctrl+click", "zoom on cockpit item", "wheel", "zoom to cursor"]]:
 		for i in 4:
 			var l := Label.new()
 			l.text = row[i]
