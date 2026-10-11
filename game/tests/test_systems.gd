@@ -115,3 +115,22 @@ func test_sys_wind_and_ridge_lift() -> String:
 	if best < 1.0 or best > 6.5:
 		return "ridge lift %.1f m/s not in a plausible 1-6 m/s range" % best
 	return ""
+
+
+func test_sys_starter_engages_on_battery() -> String:
+	_reset_props()
+	Props.set_v("controls/electrical/master_alt", false)
+	var el := Electrical.new()
+	el._ready()
+	el.soc = 0.8
+	Props.set_v("engine/rpm", 0.0)
+	Props.set_v("controls/starter", true)
+	for i in 30:
+		el._physics_process(DT)
+	var ok := Props.get_b("systems/electrical/starter_ok")
+	var v := Props.get_f("systems/electrical/bus_volts")
+	Props.set_v("controls/starter", false)
+	Props.set_v("controls/electrical/master_alt", true)
+	el.free()
+	print("    cranking on battery (SOC 80 %%): bus %.1f V, starter %s" % [v, ok])
+	return "" if ok else "starter does not engage on a healthy battery (bus %.1f V)" % v

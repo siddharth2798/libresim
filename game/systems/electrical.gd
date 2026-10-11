@@ -54,7 +54,7 @@ func _physics_process(dt: float) -> void:
 			bat_amps = minf((1.0 - soc) * 40.0 + 0.5, alt_avail - load)  # charging
 		else:
 			bat_amps = -(load - alt_avail)
-			volts = bat_v - 0.05 * absf(bat_amps)  # internal resistance + wiring
+			volts = bat_v - 0.05 * absf(bat_amps)  # internal resistance + wiring (cranking ~150 A sags to ~17-18 V)
 		soc = clampf(soc + bat_amps * dt / 3600.0 / BAT_CAPACITY_AH, 0.0, 1.0)
 		if soc <= 0.0:
 			volts = 0.0
@@ -69,4 +69,4 @@ func _physics_process(dt: float) -> void:
 	Props.set_v("systems/electrical/gauges_powered", powered)
 	Props.set_v("systems/electrical/tc_powered", powered)
 	Props.set_v("systems/electrical/flaps_powered", powered)
-	Props.set_v("systems/electrical/starter_ok", bat_on and volts > 18.0)
+	Props.set_v("systems/electrical/starter_ok", bat_on and volts > 15.0)  # starter contactor drops out below ~15 V (flat battery)

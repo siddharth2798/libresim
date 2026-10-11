@@ -91,7 +91,10 @@ func _parse_cmdline() -> void:
 			"vis": setup.visibility_m = float(v)
 			"wind": _wind(v)
 			"clouds": _clouds(v)
-			"weather": apply_weather_preset(v.capitalize())
+			"weather":
+				for n in WEATHER:  # case-insensitive: "winter haze", "MONSOON"
+					if n.to_lower() == v.to_lower().replace("_", " "):
+						apply_weather_preset(n)
 			"fail":  # --fail=engine,vacuum_pump (at start) or engine@5 (after 5 min)
 				for f in v.split(","):
 					var p := f.split("@")

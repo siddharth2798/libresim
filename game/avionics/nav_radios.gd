@@ -48,6 +48,7 @@ func _line_of_sight(key: String, a: Vector3, b: Vector3, refresh: bool) -> bool:
 		return _los[key]
 	var ok := true
 	if terrain:
+		a.z = maxf(a.z, terrain.height_at(a.x, a.y) + 10.0)  # antenna above ground (navaids often lack elevations)
 		var n := 24
 		for k in range(1, n):
 			var t := float(k) / n
