@@ -219,6 +219,13 @@ Running the game opens the **start screen**. Your last setup is remembered (`use
    - Graphics preset.
    - Units preference (stored for later; the C172 panel stays in ft, kt and inHg).
    - Whether the HUD is shown at start.
+
+**On-screen messages:**
+- **Notification cards** at the top-centre carry everything the sim tells you: failures, damage, and the landing debrief (grade, sink rate, g and centreline offset).
+  - Colours: blue for info, amber for caution, red for warning.
+  - Repeats merge into one card ("×3"), at most 3 cards show at once, and they fade after a few seconds.
+- **Banners and hints:** STALL is a pulsing banner. A one-line hint at the bottom says when the engine has stopped.
+- **Crash card:** after a crash, a centred card dims the scene. It gives the reason, the impact numbers and the damage, with buttons to Restart (F5), Watch replay (R) or start a New flight.
    - Saved in `user://audio.cfg` and `user://options.cfg`.
 8. **Saved flights:** saved situations with a thumbnail, airport, altitude and IAS. "Fly from this save" resumes exactly there.
 
@@ -293,7 +300,7 @@ cd game
 | P | Pushback (parking brake off): tug pushes you back and swings the tail toward the taxiway. P again stops |
 | ` (backquote) | Radio menu, then 1–6: ATIS, clearance, ground (taxi), tower departure, inbound, final |
 | F2 | Checklists (C172S POH, preflight → securing); Ctrl+PgUp/PgDn change list, Enter ticks the next item; most items tick themselves |
-| H / F1 / F3 | Toggle HUD / key help / performance overlay |
+| H / F1 / F3 | Flight-data bar (IAS, GS, ALT, AGL near the ground, VS, HDG; top-centre) / key-help card / developer performance overlay (off by default) |
 | F12 | Credits and licences |
 | F10 | Settings: graphics preset and renderer, time of day and time rate, wind and gusts, wind aloft, turbulence, visibility, clouds, QNH, temperature, failures |
 | Esc | Pause |

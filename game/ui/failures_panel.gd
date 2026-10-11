@@ -1,13 +1,11 @@
 extends PanelContainer
 ## F9: in-flight failures. Every system's state (OK / FAILED / armed trigger), with
 ## Fail / Repair buttons, how many random failures are still pending (not which), and
-## "Repair all". Also shows a short on-screen notice when a failure trips (if the
-## flight setup has notifications on).
+## "Repair all". Failure notices are cards from ui/notifications.gd.
 
 var manager: FailureManager
 var _rows := {}  # id -> [status Label, Button]
 var _footer: Label
-var _toast: Label
 var _acc := 0.0
 
 
@@ -61,15 +59,6 @@ func _ready() -> void:
 	rep.text = "Repair all"
 	rep.pressed.connect(func(): FailureCatalog.clear_all())
 	hb.add_child(rep)
-	_toast = Label.new()
-	_toast.add_theme_font_size_override("font_size", 24)
-	_toast.add_theme_color_override("font_color", Color(1.0, 0.65, 0.2))
-	_toast.add_theme_color_override("font_outline_color", Color.BLACK)
-	_toast.add_theme_constant_override("outline_size", 6)
-	_toast.set_anchors_preset(PRESET_CENTER_TOP)
-	_toast.position = Vector2(-200, 80)
-	_toast.mouse_filter = MOUSE_FILTER_IGNORE
-	add_sibling.call_deferred(_toast)
 
 
 func _toggle(id: String) -> void:
@@ -86,9 +75,6 @@ func _unhandled_key_input(e: InputEvent) -> void:
 
 
 func _process(dt: float) -> void:
-	var t := int(Props.get_v("failures/event_t", -100000))
-	var ev: String = str(Props.get_v("failures/event", ""))
-	_toast.text = ev if ev != "" and Time.get_ticks_msec() - t < 8000 else ""
 	_acc += dt
 	if visible and _acc > 0.25:
 		_acc = 0.0

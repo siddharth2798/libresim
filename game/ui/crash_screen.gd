@@ -1,40 +1,131 @@
+class_name CrashScreen
 extends Control
-## Landing debrief toast after each touchdown, damage warnings, and the crash screen.
-## Reads Props "damage/*" (Damage via FdmNode). F5 restarts (handled by flight.gd).
+## Crash card: dims the scene and shows one clean, centred card with what happened,
+## the impact numbers and what to do next (Restart · Watch replay · New flight).
+## Non-fatal damage, landing debriefs and failures go to the Notifications stack
+## (ui/notifications.gd), created here as a child so the scene needs no extra node.
 
-var airports: AirportBuilder
-var _toast: Label
-var _toast_t := 0.0
-var _crash: Label
-var _seen_td := {}
-var _events_seen := 0
+var airports: AirportBuilder:
+	set(v):
+		airports = v
+		if _notes:
+			_notes.airports = v
+var _notes: Notifications
+var _dim: ColorRect
+var _card: PanelContainer
+var _title: Label
+var _reason: Label
+var _stats: Label
+var _details: Label
+var _shown := false
 
 
 func _ready() -> void:
-	set_anchors_preset(PRESET_FULL_RECT)
+	set_anchors_and_offsets_preset(PRESET_FULL_RECT)
 	mouse_filter = MOUSE_FILTER_IGNORE
-	_toast = _label(18, Color(1, 1, 1))
-	_toast.set_anchors_preset(PRESET_CENTER_TOP)
-	_toast.position = Vector2(-330, 70)
-	_toast.custom_minimum_size = Vector2(660, 0)
-	_toast.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_crash = _label(26, Color(1, 0.3, 0.25))
-	_crash.set_anchors_preset(PRESET_CENTER)
-	_crash.position = Vector2(-380, -120)
-	_crash.custom_minimum_size = Vector2(760, 0)
-	_crash.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_crash.visible = false
+	_notes = Notifications.new()
+	_notes.airports = airports
+	add_child(_notes)
+	_dim = ColorRect.new()
+	_dim.color = Color(0, 0, 0, 0.45)
+	_dim.set_anchors_preset(PRESET_FULL_RECT)
+	_dim.mouse_filter = MOUSE_FILTER_STOP
+	add_child(_dim)
+	_card = PanelContainer.new()
+	var st := Notifications.card_style(Notifications.COLORS[Notifications.WARNING])
+	st.border_width_left = 0
+	st.border_width_top = 4
+	st.content_margin_left = 28
+	st.content_margin_right = 28
+	st.content_margin_top = 20
+	st.content_margin_bottom = 20
+	st.bg_color = Color(0.06, 0.07, 0.09, 0.94)
+	_card.add_theme_stylebox_override("panel", st)
+	_card.custom_minimum_size = Vector2(520, 0)
+	add_child(Notifications.centered(_card, PRESET_FULL_RECT, 0))
+	var vb := VBoxContainer.new()
+	vb.add_theme_constant_override("separation", 10)
+	_card.add_child(vb)
+	_title = _label(vb, 30, Notifications.COLORS[Notifications.WARNING])
+	_title.text = "CRASHED"
+	_reason = _label(vb, 19, Color.WHITE)
+	_stats = _label(vb, 15, Color(0.75, 0.8, 0.85))
+	_details = _label(vb, 14, Color(1.0, 0.8, 0.55))
+	var hb := HBoxContainer.new()
+	hb.add_theme_constant_override("separation", 10)
+	hb.alignment = BoxContainer.ALIGNMENT_CENTER
+	vb.add_child(hb)
+	for b in [["Restart  (F5)", _restart], ["Watch replay  (R)", _replay], ["New flight", _new_flight]]:
+		var btn := Button.new()
+		btn.text = b[0]
+		btn.custom_minimum_size = Vector2(150, 40)
+		btn.pressed.connect(b[1])
+		hb.add_child(btn)
+	_set_shown(false)
 
 
-func _label(fs: int, col: Color) -> Label:
+func _label(parent: Control, fs: int, col: Color) -> Label:
 	var l := Label.new()
 	l.add_theme_font_size_override("font_size", fs)
 	l.add_theme_color_override("font_color", col)
-	l.add_theme_color_override("font_outline_color", Color.BLACK)
-	l.add_theme_constant_override("outline_size", 6)
-	l.autowrap_mode = TextServer.AUTOWRAP_WORD
-	add_child(l)
+	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	l.custom_minimum_size = Vector2(464, 0)
+	parent.add_child(l)
 	return l
+
+
+func _set_shown(on: bool) -> void:
+	_shown = on
+	_dim.visible = on
+	_card.visible = on
+
+
+func _process(_dt: float) -> void:
+	var crashed := Props.get_b("damage/crashed") and not Props.get_b("replay/active")
+	if crashed and not _shown:
+		_fill()
+	if crashed != _shown:
+		_set_shown(crashed)
+
+
+func _fill() -> void:
+	var reason := str(Props.get_v("damage/reason", "")).strip_edges()
+	_reason.text = reason.substr(0, 1).to_upper() + reason.substr(1) if reason != "" else "The aircraft was destroyed."
+	_stats.text = "%.0f KIAS  ·  %+.0f fpm  ·  %.1f g" % [Units.mps_to_kt(Props.get_f("fdm/cas_mps")),
+		Units.mps_to_fpm(Props.get_f("fdm/vs_mps")), Props.get_f("fdm/load_factor")]
+	var seen := {}
+	var lines := []
+	for e in Props.get_v("damage/events", []):
+		var s := str(e)
+		if s.begins_with("CRASH") or seen.has(s):
+			continue
+		seen[s] = true
+		lines.append("• " + s)
+	_details.text = "\n".join(lines.slice(maxi(lines.size() - 4, 0)))
+	_details.visible = not lines.is_empty()
+
+
+func _press(key: Key) -> void:
+	var e := InputEventKey.new()
+	e.keycode = key
+	e.pressed = true
+	Input.parse_input_event(e)
+
+
+func _restart() -> void:
+	_press(KEY_F5)
+
+
+func _replay() -> void:
+	var r := get_tree().current_scene.get_node_or_null("Replay")
+	if r:
+		r.start_replay(30.0)
+
+
+func _new_flight() -> void:
+	Session.skip_menu = false
+	get_tree().change_scene_to_file("res://ui/menu/start_screen.tscn")
 
 
 static func grade(fpm: float, g: float) -> String:
@@ -49,13 +140,13 @@ static func grade(fpm: float, g: float) -> String:
 	return "DAMAGED"
 
 
-## Distance (m) from the nearest runway centreline and along-track from its threshold.
-func _runway_offsets(n: float, e: float) -> Array:
-	if airports == null or airports.data == null:
+## [distance from centreline m, along-track from threshold m, airport, ident, width] or [].
+static func runway_offsets(ab: AirportBuilder, n: float, e: float) -> Array:
+	if ab == null or ab.data == null:
 		return []
 	var best := []
 	var bd := INF
-	for r in airports.data.runways:
+	for r in ab.data.runways:
 		var a := Vector2(r.ends[0].x, r.ends[0].y)
 		var b := Vector2(r.ends[1].x, r.ends[1].y)
 		var u := (b - a).normalized()
@@ -68,30 +159,3 @@ func _runway_offsets(n: float, e: float) -> Array:
 			bd = cross
 			best = [cross, along, r.airport, r.ends[0].ident, float(r.width)]
 	return best
-
-
-func _process(dt: float) -> void:
-	var crashed := Props.get_b("damage/crashed")
-	_crash.visible = crashed
-	if crashed:
-		var ev: Array = Props.get_v("damage/events", [])
-		_crash.text = "CRASHED — %s\n\n%s\n\nPress F5 to try again" % [Props.get_v("damage/reason", ""), "\n".join(ev.slice(maxi(ev.size() - 4, 0)))]
-	var td: Dictionary = Props.get_v("damage/last_touchdown", {})
-	if not td.is_empty() and td.get("air_time", 0.0) > 8.0 and not _seen_td.has(td.n):
-		_seen_td[td.n] = true
-		var off := _runway_offsets(td.n, td.e)
-		var where := "off runway!"
-		if not off.is_empty():
-			where = "%.1f m %s of centreline, %.0f m past the %s threshold" % [off[0], "off" if off[0] > off[4] * 0.5 else "", off[1], off[3]]
-			if off[0] > off[4] * 0.5:
-				where = "OFF THE RUNWAY EDGE (%.0f m from centreline)" % off[0]
-		_toast.text = "Touchdown: %s\n%.0f fpm  ·  %.2f g  ·  %.0f KIAS  ·  pitch %.0f°  bank %.0f°\n%s" % [
-			grade(td.sink_fpm, td.g), td.sink_fpm, td.g, td.kias, td.pitch_deg, td.bank_deg, where]
-		_toast_t = 9.0
-	var events: Array = Props.get_v("damage/events", [])
-	if events.size() > _events_seen and not crashed:
-		_toast.text = (_toast.text + "\n" if _toast_t > 0.0 else "") + str(events[-1])
-		_toast_t = 7.0
-	_events_seen = events.size()
-	_toast_t -= dt
-	_toast.visible = _toast_t > 0.0

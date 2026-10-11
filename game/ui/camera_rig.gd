@@ -39,13 +39,11 @@ func setup(model: C172Model) -> void:
 		for a in data:
 			airports.append({"icao": a.icao if a.icao != "" else a.ident, "enu": Vector3(a.x, a.y, a.elev_m)})
 	_label = Label.new()
-	_label.add_theme_font_size_override("font_size", 18)
-	_label.add_theme_color_override("font_outline_color", Color.BLACK)
-	_label.add_theme_constant_override("outline_size", 5)
-	_label.position = Vector2(560, 8)
+	_label.add_theme_font_size_override("font_size", 15)
+	_label.add_theme_stylebox_override("normal", Notifications.card_style(Notifications.COLORS[0]))
 	var layer := CanvasLayer.new()
 	add_child(layer)
-	layer.add_child(_label)
+	layer.add_child(Notifications.centered(_label, Control.PRESET_BOTTOM_WIDE, -76))  # brief pill above the hint line
 
 
 func set_mode(m: int) -> void:
@@ -59,7 +57,7 @@ func set_mode(m: int) -> void:
 		_place_flyby(FloatingOrigin.to_world(aircraft.global_position))
 	Props.set_v("view/free_cam", mode == Mode.FREE)
 	Props.set_v("view/mode", NAMES[mode])
-	_label.text = "View: %s  (C / 1-8)" % NAMES[mode]
+	_label.text = "%s view" % String(NAMES[mode]).capitalize()
 	_label_t = 2.5
 
 

@@ -38,15 +38,14 @@ func setup(o: AirportOps, ab: AirportBuilder, fn: FdmNode, t: TerrainQuadtree, u
 	_mat.emission_enabled = true
 	_mat.emission = Color(0.2, 1.0, 0.35)
 	_label = Label.new()
-	_label.add_theme_font_size_override("font_size", 18)
-	_label.add_theme_color_override("font_color", Color(0.6, 1.0, 0.6))
-	_label.add_theme_color_override("font_outline_color", Color.BLACK)
-	_label.add_theme_constant_override("outline_size", 5)
-	_label.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
-	_label.position = Vector2(-300, -300)
-	_label.custom_minimum_size = Vector2(600, 0)
+	_label.add_theme_font_size_override("font_size", 16)
+	_label.add_theme_color_override("font_color", Color(0.7, 1.0, 0.7))
+	_label.add_theme_stylebox_override("normal", Notifications.card_style(Color(0.3, 0.9, 0.45)))
 	_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	ui.add_child(_label)
+	_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_label.custom_minimum_size = Vector2(520, 0)
+	_label.visible = false
+	ui.add_child(Notifications.centered(_label, Control.PRESET_TOP_WIDE, 300))  # taxi / pushback instructions under the notices
 	FloatingOrigin.shifted.connect(func(d: Vector3):
 		if _line:
 			_line.position += d)
@@ -135,6 +134,7 @@ func clear_route() -> void:
 		_line.queue_free()
 		_line = null
 	_label.text = ""
+	_label.visible = _label.text != ""
 
 
 func _draw_route() -> void:
@@ -170,6 +170,7 @@ func _draw_route() -> void:
 
 func _say(t: String) -> void:
 	_label.text = t
+	_label.visible = _label.text != ""
 
 
 func _process(_dt: float) -> void:

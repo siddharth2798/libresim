@@ -6,6 +6,7 @@ var _terrain: TerrainQuadtree
 
 
 func _ready() -> void:
+	visible = false  # developer overlay: F3
 	_terrain = get_node_or_null(terrain_path)
 	add_theme_color_override("font_outline_color", Color.BLACK)
 	add_theme_constant_override("outline_size", 4)
