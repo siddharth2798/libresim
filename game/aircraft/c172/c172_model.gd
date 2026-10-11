@@ -34,6 +34,7 @@ func build(node: FdmNode) -> void:
 		_build_glb()
 	else:
 		_build_boxes()
+	AircraftLights.tag_exterior(self)  # exterior on its own render layer for its lights
 	var e: Array = node.fdm.cfg.metrics.eyepoint_m
 	cockpit = Cockpit.new()
 	add_child(cockpit)
@@ -53,17 +54,22 @@ func _build_glb() -> void:
 		var pv := inst.find_child("pivot_" + n, true, false) as Node3D
 		if pv:
 			_pivots[n] = [pv, pv.transform.basis]
-	fix_glass(inst)
+	fix_glass(inst, true)
 
 
 ## FlightGear glass uses an effect shader; make it a clear, slightly reflective pane.
-static func fix_glass(root: Node) -> void:
+## rain: draw rain drops / streaks on it (aircraft/c172/windshield_rain.gdshader, outer skin only).
+static func fix_glass(root: Node, rain := false) -> void:
 	var glass := StandardMaterial3D.new()
 	glass.albedo_color = Color(0.85, 0.92, 0.95, 0.1)
 	glass.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	glass.roughness = 0.05
 	glass.metallic_specular = 0.9
 	glass.cull_mode = BaseMaterial3D.CULL_DISABLED
+	if rain:
+		var drops := ShaderMaterial.new()
+		drops.shader = preload("res://aircraft/c172/windshield_rain.gdshader")
+		glass.next_pass = drops
 	for mi in root.find_children("*", "MeshInstance3D", true, false):
 		var m := (mi as MeshInstance3D).mesh
 		for i in m.get_surface_count():

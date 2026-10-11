@@ -11,6 +11,7 @@ var terrain: TerrainQuadtree
 var data: Dictionary
 var _items: Array = []  # [MeshInstance3D, anchor ENU Vector3]
 var _shader := preload("res://world/runway.gdshader")
+var _taxi_shader := preload("res://world/taxiway.gdshader")  # fades out when a few px wide
 
 
 func build(t: TerrainQuadtree) -> void:
@@ -79,7 +80,7 @@ func _strip(pts: Array, width: float, is_runway: bool, length: float) -> void:
 	var mesh := ArrayMesh.new()
 	mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arr)
 	var mat := ShaderMaterial.new()
-	mat.shader = _shader
+	mat.shader = _shader if is_runway else _taxi_shader
 	mat.set_shader_parameter("is_runway", is_runway)
 	mat.set_shader_parameter("length_m", along if length <= 0.0 else length)
 	mat.set_shader_parameter("width_m", width)

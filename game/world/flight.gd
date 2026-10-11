@@ -9,7 +9,7 @@ extends Node3D
 ##   --time=<s>                   with --shot: fly that many seconds hands-off first
 ##   --view=cockpit|chase|orbit|free|tower|wing|tail|flyby   initial camera (default chase)
 ##   --quality=low|medium|high|ultra   graphics preset (saved from the F10 menu otherwise)
-##   --tod=19.5 --wind=270/15G25 --vis=3000 --clouds=0.6@3000   time (IST h) and weather
+##   --tod=19.5 --day=45 --wind=270/15G25 --vis=3000 --clouds=0.6@3000 --rain=0.5   time (IST h), day of year, weather
 ##   --weather=clear|fair|scattered|broken|overcast|monsoon   weather preset
 ##   --fail=engine,vacuum_pump | --fail=engine@5   failures at start / after N min
 ##   --random-failures            random failures (defaults: 1 in 2-30 min, any system)
@@ -118,8 +118,11 @@ func _reset() -> void:
 	Props.set_v("controls/flaps", 0)
 	for k in ["master_bat", "master_alt", "avionics"]:
 		Props.set_v("controls/electrical/" + k, true)
-	Props.set_v("controls/lights/beacon", true)
-	Props.set_v("controls/lights/nav", Props.get_f("environment/sun_elev_deg", 30.0) < 5.0)
+	var kind := "air" if _air_ft > 0.0 else ("stand" if _stand_ref != "" else "runway")
+	var ls := LightLogic.start_state(kind, LightLogic.sun_elev_now(), _air_ft,
+		(_cold or _stand_ref != "") and _air_ft <= 0.0)
+	for k in ls:
+		Props.set_v("controls/lights/" + k, ls[k])
 	Props.set_v("controls/fuel/selector", 3)
 	Props.set_v("controls/fuel/shutoff", false)
 	# altimeter set to the current QNH, as after a pre-flight check

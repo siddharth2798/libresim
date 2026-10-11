@@ -43,16 +43,49 @@ def ident(hdg):
     return f"{n or 36:02d}"
 
 
+def drop_shadow_runways(merged, max_offset=300.0, max_angle_deg=5.0):
+    """OSM sometimes tags a parallel taxiway or an old strip as aeroway=runway (e.g. VOGO: an
+    unnamed 1289 m "08/26" 145 m south of the real runway). Drop a runway that has no published
+    designator (no "nn/nn" ref) and lies parallel to, within max_offset m of, and alongside a
+    longer runway. Returns (kept [(p0, p1, w, refs)], dropped [(p0, p1, w)])."""
+    keep, drop = [], []
+    for i, (p0, p1, w, refs) in enumerate(merged):
+        L = np.hypot(*(p1 - p0))
+        u = (p1 - p0) / L
+        shadow = False
+        for j, (q0, q1, _, _) in enumerate(merged):
+            M = np.hypot(*(q1 - q0))
+            if j == i or refs or M <= L:
+                continue
+            v = (q1 - q0) / M
+            if abs(float(u @ v)) < math.cos(math.radians(max_angle_deg)):
+                continue
+            mid = (p0 + p1) / 2 - q0
+            along = float(mid @ v)
+            if abs(float(mid[0] * v[1] - mid[1] * v[0])) < max_offset and -L / 2 < along < M + L / 2:
+                shadow = True
+                break
+        (drop if shadow else keep).append((p0, p1, w) if shadow else (p0, p1, w, refs))
+    for p0, p1, w in drop:
+        print(f"dropped runway-tagged parallel strip {np.hypot(*(p1 - p0)):.0f} m at ({p0[0]:.0f}, {p0[1]:.0f})")
+    return keep, drop
+
+
 def main():
     h = load_heights()
     osm = json.loads((c.OUT / "osm" / "aeroways.json").read_text())
     airports = json.loads((c.OUT / "airports.json").read_text())
     rwy_lines = [l for l in osm["lines"] if l["kind"] == "runway"]
     runways = []
+    merged = []
     for p0, p1, w in flatten.merge_runways(rwy_lines):
         mid = (p0 + p1) / 2
         refs = [l["ref"] for l in rwy_lines if "/" in l["ref"] and
                 min(math.hypot(x - mid[0], y - mid[1]) for x, y in l["pts"]) < np.hypot(*(p1 - p0)) / 2 + 50]
+        merged.append((p0, p1, w, refs))
+    merged, shadows = drop_shadow_runways(merged)
+    for p0, p1, w, refs in merged:
+        mid = (p0 + p1) / 2
         ap = min(airports, key=lambda a: math.hypot(a["x"] - mid[0], a["y"] - mid[1]))
         ends = []
         for a, b in ((p0, p1), (p1, p0)):
@@ -68,6 +101,9 @@ def main():
         runways.append({"airport": ap["icao"] or ap["ident"], "width": w,
                         "length": round(float(np.hypot(*(p1 - p0))), 1), "ends": ends})
     taxiways = []
+    for p0, p1, w in shadows:  # mis-tagged parallel taxiways: keep them paved, as taxiways
+        taxiways.append({"width": min(w, 23.0), "pts": [[round(float(x), 1), round(float(y), 1), round(h(x, y), 2)]
+                                                         for x, y in (p0, p1)]})
     for l in osm["lines"]:
         if l["kind"] == "taxiway":
             taxiways.append({"width": flatten._width(l["width"], TAXI_W),

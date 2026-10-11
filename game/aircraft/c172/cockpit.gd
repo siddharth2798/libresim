@@ -58,6 +58,10 @@ func build(model: C172Model, fallback_eye: Vector3) -> void:
 	else:
 		_build_placeholder(fallback_eye)
 		eye = fallback_eye
+	var lighting := CockpitLighting.new()
+	add_child(lighting)
+	var rects := InstrumentPanel.rects()
+	lighting.setup(_quads, [rects.get("radios")] if interior else [], eye)
 
 
 func _add_quad(pos: Vector3, size: Vector2, r: Rect2, b: Basis) -> void:

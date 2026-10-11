@@ -23,7 +23,8 @@ var levels: Array = []  # TerrainMeta.levels (merged base + regions)
 
 var _h := {}  # Vector3i -> {state, htex, used}
 var _t := {}  # Vector3i -> {state, itex, lctex, lcimg, used}   (texture source tiles)
-var _tiles := {}  # Vector3i -> composite {htex, itex, lctex, img_src, lc_src}
+var _tiles := {}  # Vector3i -> composite {htex, itex, lctex, img_src, lc_src, used, ents}
+var _tasks := {}  # Vector4i(kind, level, tx, ty) -> WorkerThreadPool task id
 var _done: Array = []  # [kind, key, Image a, Image b]
 var _mutex := Mutex.new()
 var _cpu_heights := {}  # Vector2i(tx,ty) of level 0 -> PackedByteArray
@@ -61,6 +62,12 @@ func min_max(level: int, tx: int, ty: int) -> Vector2:
 ## (possibly borrowed) textures are ready; otherwise starts loading and returns {}.
 func get_tile(level: int, tx: int, ty: int) -> Dictionary:
 	var key := Vector3i(level, tx, ty)
+	var c = _tiles.get(key)
+	if c != null:  # fast path: ready composite; keep its entries alive
+		c.used = _frame
+		for e in c.ents:
+			e.used = _frame
+		return c
 	var isrc := tmeta.tex_source(level, tx, ty, TerrainMeta.HAS_IMG)
 	var lsrc := tmeta.tex_source(level, tx, ty, TerrainMeta.HAS_LC)
 	var h = _request(_h, key, 0)
@@ -68,12 +75,14 @@ func get_tile(level: int, tx: int, ty: int) -> Dictionary:
 	var tl = _request(_t, lsrc, 1) if lsrc != NONE else null
 	if h.state != 1 or (ti != null and ti.state != 1) or (tl != null and tl.state != 1):
 		return {}
-	var c = _tiles.get(key)
-	if c == null:
-		c = {"htex": h.htex, "itex": ti.itex if ti != null and ti.itex else _fallback_img,
-			"lctex": tl.lctex if tl != null and tl.lctex else _fallback_lc,
-			"img_src": isrc, "lc_src": lsrc}
-		_tiles[key] = c
+	var ents := [h]
+	for e in [ti, tl]:
+		if e != null:
+			ents.append(e)
+	c = {"htex": h.htex, "itex": ti.itex if ti != null and ti.itex else _fallback_img,
+		"lctex": tl.lctex if tl != null and tl.lctex else _fallback_lc,
+		"img_src": isrc, "lc_src": lsrc, "used": _frame, "ents": ents}
+	_tiles[key] = c
 	return c
 
 
@@ -82,10 +91,8 @@ func _request(store: Dictionary, key: Vector3i, kind: int) -> Dictionary:
 	if e == null:
 		e = {"state": 0, "used": _frame}
 		store[key] = e
-		if kind == 0:
-			WorkerThreadPool.add_task(_load_h.bind(key))
-		else:
-			WorkerThreadPool.add_task(_load_t.bind(key, tmeta.flags(key.x, key.y, key.z)))
+		var job := _load_h.bind(key) if kind == 0 else _load_t.bind(key, tmeta.flags(key.x, key.y, key.z))
+		_tasks[Vector4i(kind, key.x, key.y, key.z)] = WorkerThreadPool.add_task(job)
 	e.used = _frame
 	return e
 
@@ -128,8 +135,8 @@ func _finish(item: Array) -> void:
 	_mutex.unlock()
 
 
-## Call once per frame from the main thread.
-func process() -> void:
+## Call once per frame from the main thread. Returns the number of tiles uploaded.
+func process() -> int:
 	_frame += 1
 	_mutex.lock()
 	var n := mini(_done.size(), MAX_UPLOADS_PER_FRAME)
@@ -138,9 +145,11 @@ func process() -> void:
 	_mutex.unlock()
 	for item in batch:
 		var key: Vector3i = item[1]
+		var tk := Vector4i(item[0], key.x, key.y, key.z)
+		if _tasks.has(tk):
+			WorkerThreadPool.wait_for_task_completion(_tasks[tk])  # finished: releases it
+			_tasks.erase(tk)
 		var e = (_h if item[0] == 0 else _t).get(key)
-		if e == null:
-			continue
 		if item[0] == 0:
 			e.htex = ImageTexture.create_from_image(item[2])
 		else:
@@ -149,25 +158,29 @@ func process() -> void:
 			e.lcimg = item[3]  # CPU copy for landclass_at()
 		e.state = 1
 	if _frame % 60 == 0:
-		if _h.size() > MAX_ENTRIES:
-			_evict(_h)
-		if _t.size() > MAX_ENTRIES:
-			_evict(_t)
-		if _tiles.size() > MAX_ENTRIES:
-			_tiles.clear()  # composites are rebuilt on demand from the entries
+		for store in [_h, _t, _tiles]:
+			if store.size() > MAX_ENTRIES:
+				_evict(store)
+	return batch.size()
 
 
+## Drops the least recently used ready entries not touched for 120 frames.
+## Composites (_tiles) hold their own texture refs, so dropping an entry
+## under a live composite is safe; the composite touches its entries anyway.
 func _evict(store: Dictionary) -> void:
 	var keys := store.keys()
 	keys.sort_custom(func(a, b): return store[a].used < store[b].used)
 	for i in range(store.size() - MAX_ENTRIES * 3 / 4):
 		var e = store[keys[i]]
-		if e.state == 1 and _frame - e.used > 120:
+		if e.get("state", 1) == 1 and _frame - e.used > 120:
 			store.erase(keys[i])
-			if store == _h:
-				_tiles.erase(keys[i])
-			else:
-				_tiles.clear()  # some composite may reference this texture tile
+
+
+## Blocks until every queued load has finished (call before the cache is freed).
+func wait_all() -> void:
+	for id in _tasks.values():
+		WorkerThreadPool.wait_for_task_completion(id)
+	_tasks.clear()
 
 
 static func _cap(d: Dictionary) -> void:

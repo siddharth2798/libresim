@@ -18,8 +18,9 @@ STAMPS=data/.stamps
 LOG=data/run.log
 
 # ---------------------------------------------------------------- pipeline table
-# Order as documented in docs/USAGE.md section 3 (10 runs again after 16).
-PIPELINE=(05 04 02 03 06 09 10 11 12 13 14 15 16 10)
+# Order as documented in docs/USAGE.md section 3. 17 patches the terrain tiles of 02/11/12 in
+# place, so it runs after 12; 09 then runs again (runway heights) before 14 and 10.
+PIPELINE=(05 04 02 03 06 09 11 12 17 09 13 14 15 16 10)
 # OUT: first entry is the sentinel used when no stamp exists yet (a dir means "a file in it").
 # IN : files/globs whose change makes the step stale (script + raw data + helper modules).
 # DEP: upstream steps; if one ran this session (or its stamp is newer), this step re-runs.
@@ -34,13 +35,15 @@ OUT[03]="data/processed/terrain/img/0"
 IN[03]="tools/03_imagery_tiles.py tools/bc1.py data/raw/imagery/s2.tif data/raw/imagery/s2_outer.tif";  DEP[03]="02"
 OUT[06]="game/aircraft/c172/c172_aero.json game/aircraft/c172/c172_config.json"   # committed; only if missing
 OUT[09]="data/processed/runways.json"
-IN[09]="tools/09_runways.py tools/flatten.py";  DEP[09]="02 04 05"
+IN[09]="tools/09_runways.py tools/flatten.py";  DEP[09]="02 04 05 17"
 OUT[10]="data/processed/buildings"
-IN[10]="tools/10_buildings.py data/raw/imagery/s2.tif";  DEP[10]="02 04 16"
+IN[10]="tools/10_buildings.py data/raw/imagery/s2.tif";  DEP[10]="02 04 16 17"
 OUT[11]="data/processed/terrain/lc/0"
 IN[11]="tools/11_landclass.py data/raw/imagery/s2.tif";  DEP[11]="02 03 04"
 OUT[12]="data/processed/terrain/h/6 data/processed/terrain/img/6 data/processed/terrain/lc/6"
 IN[12]="tools/12_outer.py tools/bc1.py data/raw/imagery/s2_outer.tif";  DEP[12]="02 03 11"
+OUT[17]="data/processed/terrain/fixups.json"   # airport fixups: levelled sites, taxiway ground, no water/trees on airfields
+IN[17]="tools/17_airport_fixups.py tools/airport_fixups_io.py";  DEP[17]="02 04 05 11 12"  # not 09: it re-runs after 17
 OUT[13]="data/processed/airport_ops.json"
 IN[13]="tools/13_airport_ops.py";  DEP[13]="04 05"
 OUT[14]="data/processed/ils.json"
@@ -64,6 +67,7 @@ step_13() { $PY tools/13_airport_ops.py; }
 step_14() { $PY tools/14_ils.py; }
 step_15() { $PY tools/15_terminals.py; }
 step_16() { $PY tools/16_terminal_models.py; }
+step_17() { $PY tools/17_airport_fixups.py; }
 
 # Raw data (section 2 of docs/USAGE.md)
 DEM30_TILES="N18_00_E072_00 N18_00_E073_00 N18_00_E074_00 N19_00_E072_00 N19_00_E073_00 N19_00_E074_00"
@@ -298,7 +302,7 @@ run_step() {
   CUR="pipeline step $s"; note "run   $s: $reason"
   timed "step $s" "step_$s"
   mkdir -p $STAMPS; touch "$STAMPS/$s.done"
-  unset "FORCE[$s]"   # --force-step forces it once (10 appears twice)
+  unset "FORCE[$s]"   # --force-step forces it once (09 appears twice)
 }
 
 # ---------------------------------------------------------------- main

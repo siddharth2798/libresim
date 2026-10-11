@@ -9,7 +9,7 @@ extends Node
 const PRESETS := {
 	"low": {"scale": 0.7, "fsr": true, "msaa": 0, "fxaa": true, "shadow": 0.0, "glow": false,
 		"lod_k": 1.2, "bld": 4000.0, "trees": 1200.0, "tree_density": 0.5, "clouds": 10, "rain": 1500, "ssao": false, "taa": false},
-	"medium": {"scale": 0.85, "fsr": true, "msaa": 0, "fxaa": true, "shadow": 150.0, "glow": true,
+	"medium": {"scale": 0.85, "fsr": true, "msaa": 1, "fxaa": true, "shadow": 150.0, "glow": true,
 		"lod_k": 1.4, "bld": 6000.0, "trees": 1800.0, "tree_density": 0.8, "clouds": 16, "rain": 3000, "ssao": false, "taa": false},
 	"high": {"scale": 1.0, "fsr": false, "msaa": 1, "fxaa": false, "shadow": 300.0, "glow": true,
 		"lod_k": 1.6, "bld": 9000.0, "trees": 2200.0, "tree_density": 1.0, "clouds": 24, "rain": 5000, "ssao": false, "taa": false},

@@ -7,10 +7,20 @@ extends Node3D
 ## have separate sources: a tile without imagery / land class (region packs)
 ## borrows its nearest ancestor's, so each node gets one sub-rect per source.
 ## A node only splits once all its children's textures are loaded (no holes).
+##
+## Cost: node records (bounds, height source, children) are memoised per key, and
+## the tree is only re-walked when the camera moved > RESELECT_M, a tile finished
+## uploading, or RESELECT_S passed. Anti-popping: split at d < size*lod_k, merge
+## only at d > size*lod_k*HYSTERESIS; the shader geomorphs each node toward its
+## parent's geometry over [MORPH_START, 1] x the parent's split distance.
 
 const MIN_LEVEL := -2
 const SKIRT_FRAC := 0.004
 const MAX_VIRTUAL := 2
+const HYSTERESIS := 1.15
+const RESELECT_M := 25.0
+const RESELECT_S := 0.5
+const MORPH_START := 0.6  # x parent split distance; must be > HYSTERESIS / 2
 
 @export var lod_k := 1.6
 @export var camera_path: NodePath
@@ -23,67 +33,99 @@ var _pool: Array[MeshInstance3D] = []
 var _cam_enu := Vector3.ZERO
 var visible_nodes := 0
 var _roots: Array[Vector3i] = []
+var _recs := {}  # Vector3i -> [x0, y0, x1, y1, min_h, max_h, size, src, children|null, can_split]
+var _split := {}  # Vector3i -> true: nodes split at the last selection (hysteresis)
+var _last_sel := Vector3(INF, INF, INF)
+var _since := INF
+var _is_root := {}
 
 
 func _ready() -> void:
 	cache = TerrainTileCache.new()
 	_mesh = TerrainMesh.build()
 	_roots = cache.tmeta.roots()
+	for r in _roots:
+		_is_root[r] = true
+	FloatingOrigin.shifted.connect(_on_origin_shifted)
+
+
+func _exit_tree() -> void:
+	if cache:
+		cache.wait_all()
 
 
 func height_at(east: float, north: float) -> float:
 	return cache.height_at(east, north)
 
 
-func _process(_dt: float) -> void:
+func _process(dt: float) -> void:
 	var cam := get_viewport().get_camera_3d()
 	if cam == null:
 		return
 	_cam_enu = FloatingOrigin.to_world(cam.global_position)
-	cache.process()
+	RenderingServer.global_shader_parameter_set("terrain_eye", cam.global_position)
+	var uploads := cache.process()
+	_since += dt
+	if uploads == 0 and _since < RESELECT_S and _cam_enu.distance_to(_last_sel) < RESELECT_M:
+		return
+	_since = 0.0
+	_last_sel = _cam_enu
 	var wanted: Array[Vector3i] = []
+	var split := {}
 	for r in _roots:
-		_select(r.x, r.y, r.z, wanted)
+		if _ready_tile(r):
+			_select(r, wanted, split)
+	_split = split
 	_apply(wanted)
 
 
-## The data tile a node takes heights from: itself if it exists, else the nearest
-## ancestor (virtual levels below 0, or nodes past the data edge).
-func _source(level: int, tx: int, ty: int) -> Vector3i:
-	var s := cache.tmeta.height_source(level, tx, ty)
-	return s if s != TerrainMeta.NONE else _roots[0]
+func _rec(k: Vector3i) -> Array:
+	var r = _recs.get(k)
+	if r != null:
+		return r
+	var size := cache.level_size(k.x)
+	var s := cache.tmeta.height_source(k.x, k.y, k.z)
+	if s == TerrainMeta.NONE:
+		s = _roots[0]
+	var mm := cache.min_max(s.x, s.y, s.z)
+	# stop at MAX_VIRTUAL levels below the data tile (native resolution for level 0)
+	var can := k.x > MIN_LEVEL and s.x - k.x < MAX_VIRTUAL
+	r = [k.y * size, k.z * size, (k.y + 1) * size, (k.z + 1) * size, mm.x, mm.y, size, s, null, can]
+	_recs[k] = r
+	return r
 
 
-func _ready_tile(level: int, tx: int, ty: int) -> bool:
-	var s := _source(level, tx, ty)
+func _children(k: Vector3i, r: Array) -> Array:
+	if r[8] == null:
+		r[8] = [Vector3i(k.x - 1, k.y * 2, k.z * 2), Vector3i(k.x - 1, k.y * 2 + 1, k.z * 2),
+			Vector3i(k.x - 1, k.y * 2, k.z * 2 + 1), Vector3i(k.x - 1, k.y * 2 + 1, k.z * 2 + 1)]
+	return r[8]
+
+
+func _ready_tile(k: Vector3i) -> bool:
+	var s: Vector3i = _rec(k)[7]
 	return not cache.get_tile(s.x, s.y, s.z).is_empty()
 
 
-func _select(level: int, tx: int, ty: int, out: Array[Vector3i]) -> void:
-	if not _ready_tile(level, tx, ty):
-		return
-	var size := cache.level_size(level)
-	var s := _source(level, tx, ty)
-	var mm := cache.min_max(s.x, s.y, s.z)
-	var x0 := tx * size
-	var y0 := ty * size
-	var dx := maxf(maxf(x0 - _cam_enu.x, _cam_enu.x - (x0 + size)), 0.0)
-	var dy := maxf(maxf(y0 - _cam_enu.y, _cam_enu.y - (y0 + size)), 0.0)
-	var dz := maxf(maxf(mm.x - _cam_enu.z, _cam_enu.z - mm.y), 0.0)
-	var dist := sqrt(dx * dx + dy * dy + dz * dz)
-	# Stop at MAX_VIRTUAL levels below the data tile (native resolution for level 0).
-	if level > MIN_LEVEL and s.x - level < MAX_VIRTUAL and dist < size * lod_k:
-		var children: Array[Vector3i] = []
-		var ok := true
-		for c in [Vector2i(0, 0), Vector2i(1, 0), Vector2i(0, 1), Vector2i(1, 1)]:
-			var k := Vector3i(level - 1, tx * 2 + c.x, ty * 2 + c.y)
-			children.append(k)
-			ok = _ready_tile(k.x, k.y, k.z) and ok  # request all, even after a miss
-		if ok:
-			for k in children:
-				_select(k.x, k.y, k.z, out)
-			return
-	out.append(Vector3i(level, tx, ty))
+## k is known to be ready (checked by the caller).
+func _select(k: Vector3i, out: Array[Vector3i], split: Dictionary) -> void:
+	var r := _rec(k)
+	if r[9]:
+		var dx := maxf(maxf(r[0] - _cam_enu.x, _cam_enu.x - r[2]), 0.0)
+		var dy := maxf(maxf(r[1] - _cam_enu.y, _cam_enu.y - r[3]), 0.0)
+		var dz := maxf(maxf(r[4] - _cam_enu.z, _cam_enu.z - r[5]), 0.0)
+		var limit: float = r[6] * lod_k * (HYSTERESIS if _split.has(k) else 1.0)
+		if dx * dx + dy * dy + dz * dz < limit * limit:
+			var kids := _children(k, r)
+			var ok := true
+			for c in kids:
+				ok = _ready_tile(c) and ok  # request all, even after a miss
+			if ok:
+				split[k] = true
+				for c in kids:
+					_select(c, out, split)
+				return
+	out.append(k)
 
 
 func _apply(wanted: Array[Vector3i]) -> void:
@@ -97,13 +139,21 @@ func _apply(wanted: Array[Vector3i]) -> void:
 			_pool.append(mi)
 			_active.erase(k)
 	for k in wanted:
-		var mi: MeshInstance3D = _active.get(k)
-		if mi == null:
-			mi = _make_instance(k)
+		if not _active.has(k):
+			var mi := _make_instance(k)
 			_active[k] = mi
-		var size := cache.level_size(k.x)
-		mi.position = FloatingOrigin.to_render(Vector3(k.y * size, k.z * size, 0.0))
+			_place(k, mi)
 	visible_nodes = wanted.size()
+
+
+func _place(k: Vector3i, mi: MeshInstance3D) -> void:
+	var r := _rec(k)
+	mi.position = FloatingOrigin.to_render_d(r[0], r[1], 0.0)
+
+
+func _on_origin_shifted(_d: Vector3) -> void:
+	for k in _active:
+		_place(k, _active[k])
 
 
 func _make_instance(k: Vector3i) -> MeshInstance3D:
@@ -117,18 +167,23 @@ func _make_instance(k: Vector3i) -> MeshInstance3D:
 	else:
 		mi = _pool.pop_back()
 	mi.visible = true
-	var level := k.x
-	var size := cache.level_size(level)
-	var s := _source(level, k.y, k.z)
+	var r := _rec(k)
+	var size: float = r[6]
+	var s: Vector3i = r[7]
 	var t: Dictionary = cache.get_tile(s.x, s.y, s.z)
-	var d := s.x - level  # how many virtual levels below the source tile
-	var span := 1 << d
+	var span := 1 << (s.x - k.x)  # 2^(virtual levels below the source tile)
 	var sub := Vector2i(k.y - s.y * span, k.z - s.z * span)
 	var per := cache.tile_n / span  # source heightmap texels covered by this node
 	var ir := TerrainMeta.sub_rect(k, t.img_src)  # imagery may come from a coarser tile
 	var lr := TerrainMeta.sub_rect(k, t.lc_src)
-	var mm := cache.min_max(s.x, s.y, s.z)
 	var skirt := maxf(size * SKIRT_FRAC, 10.0)
+	# geomorph toward the parent over the tail of the parent's split range
+	# (vertex distance >= box distance, so a node is fully morphed whenever its
+	# parent splits or merges); roots have no parent
+	var par_split := 2.0 * size * lod_k
+	var morph := Vector2(par_split * MORPH_START, par_split)
+	if _is_root.has(k):
+		morph = Vector2(1e12, 2e12)
 	var m: ShaderMaterial = mi.material_override
 	m.set_shader_parameter("height_tex", t.htex)
 	m.set_shader_parameter("img_tex", t.itex)
@@ -144,5 +199,6 @@ func _make_instance(k: Vector3i) -> MeshInstance3D:
 	m.set_shader_parameter("h_offset", cache.h_offset)
 	m.set_shader_parameter("tile_n", float(cache.tile_n))
 	m.set_shader_parameter("skirt_depth", skirt)
-	mi.custom_aabb = AABB(Vector3(0, mm.x - skirt, -size), Vector3(size, mm.y - mm.x + skirt, size))
+	m.set_shader_parameter("morph_range", morph)
+	mi.custom_aabb = AABB(Vector3(0, r[4] - skirt, -size), Vector3(size, r[5] - r[4] + skirt, size))
 	return mi
