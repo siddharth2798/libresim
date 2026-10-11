@@ -143,7 +143,7 @@ func _reposition() -> void:
 static func levels(sun_deg: float, vis_m: float) -> Dictionary:
 	var night := clampf((5.0 - sun_deg) / 9.0, 0.0, 1.0)
 	var on := maxf(night, clampf((6000.0 - vis_m) / 2000.0, 0.0, 1.0))
-	return {"rwy": lerpf(0.1, 1.0, on), "app": lerpf(0.3, 1.0, on), "flash": 1.0,
+	return {"rwy": lerpf(0.1, 1.0, on), "app": lerpf(0.3, 1.0, on), "flash": lerpf(0.35, 1.0, on),
 		"taxi": on, "stop": on, "papi": 1.0, "beacon": on,
 		"flood": clampf((2.0 - sun_deg) / 6.0, 0.0, 1.0), "pool": clampf((0.0 - sun_deg) / 6.0, 0.0, 1.0)}
 

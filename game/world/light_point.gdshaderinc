@@ -62,6 +62,7 @@ void vertex() {
 	float px_m = dist * 2.0 / (abs(PROJECTION_MATRIX[1][1]) * VIEWPORT_SIZE.y);  // metres per pixel (P11 < 0: y flip)
 	float sz = clamp(min_px * px_m, base_m, max_m) * COLOR.a;
 	sz *= 1.0 + 0.8 * (1.0 - trans);  // scattering halo in haze
+	sz *= mix(0.45, 1.0, level);  // by day (low level) lights are small points, not glare blobs
 	if (e < 0.004) sz = 0.0;  // degenerate quad: nothing rasterised
 	v_col = vec4(col, e);
 	v_fog = 1.0 - trans;
