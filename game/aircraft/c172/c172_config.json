@@ -96,7 +96,7 @@
    "dynamic_friction": 0.5,
    "rolling_friction": 0.02,
    "spring_n_per_m": 26269.02522,
-   "damping_n_s_per_m": 8756.34174,
+   "damping_n_s_per_m": 1751.268348,
    "max_steer_deg": 10.0,
    "brake_group": "NONE"
   },
@@ -112,7 +112,7 @@
    "dynamic_friction": 0.5,
    "rolling_friction": 0.02,
    "spring_n_per_m": 78807.07566,
-   "damping_n_s_per_m": 23350.24464,
+   "damping_n_s_per_m": 4670.048928,
    "max_steer_deg": 0.0,
    "brake_group": "LEFT"
   },
@@ -128,7 +128,7 @@
    "dynamic_friction": 0.5,
    "rolling_friction": 0.02,
    "spring_n_per_m": 78807.07566,
-   "damping_n_s_per_m": 23350.24464,
+   "damping_n_s_per_m": 4670.048928,
    "max_steer_deg": 0.0,
    "brake_group": "RIGHT"
   },
@@ -255,8 +255,8 @@
     "time_s": 1.0
    }
   ],
-  "aileron_rigging": 0.035,
-  "rudder_rigging": 0.005,
+  "aileron_rigging": 0.033,
+  "rudder_rigging": 0.004,
   "full_travel_s": {
    "pitch": 0.3,
    "roll": 0.15,

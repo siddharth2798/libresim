@@ -15,6 +15,7 @@ SRC = c.RAW / "jsbsim" / "src"
 DST = c.ROOT / "game" / "aircraft" / "c172"
 IN, FT, LB, SLUGFT2 = 0.0254, 0.3048, 0.45359237, 1.35581795
 LBF_FT, LBF_FT_S = 14.5939029, 14.5939029  # lbf/ft -> N/m ; lbf*s/ft -> N*s/m
+GEAR_DAMPING = 0.2  # wheel damping scale vs JSBSim c172p (see config())
 OPS = {"product", "sum", "difference", "quotient", "abs", "min", "max"}
 
 
@@ -79,7 +80,10 @@ def config(root):
             "static_friction": txt(ct, "static_friction"), "dynamic_friction": txt(ct, "dynamic_friction"),
             "rolling_friction": txt(ct, "rolling_friction", 0.0),
             "spring_n_per_m": txt(ct, "spring_coeff") * LBF_FT,
-            "damping_n_s_per_m": txt(ct, "damping_coeff") * LBF_FT_S,
+            # JSBSim's c172p wheels are ~2x critically damped: a 300 fpm touchdown spikes to ~4 g and
+            # trips the gear-overload check. Spring-steel legs + tyres are lightly damped: scale the
+            # wheels to ~0.4 of critical (GEAR_DAMPING); gear_ground.gd also ramps damping in over 3 cm.
+            "damping_n_s_per_m": txt(ct, "damping_coeff") * LBF_FT_S * (GEAR_DAMPING if ct.get("type") == "BOGEY" else 1.0),
             "max_steer_deg": txt(ct, "max_steer", 0.0), "brake_group": txt(ct, "brake_group", "NONE", str),
         })
     tanks = [{"pos_m": loc(t.find("location")), "capacity_kg": txt(t, "capacity") * LB,
@@ -108,9 +112,10 @@ def config(root):
         "gear": gear,
         "tanks": tanks, "unusable_fuel_kg": 1.5 * 2.72,
         # rigging = fixed ground-adjustable trim tabs (normalised, + = right roll / right pedal), set so
-        # 95 KIAS level is hands-off neutral with the default solo pilot (180 lb left seat + engine torque).
+        # 100 KIAS level (middle of 90-110 KIAS cruise) is hands-off neutral with the default solo pilot
+        # (180 lb left seat + engine torque).
         # Solved with zero roll/yaw acceleration at trim; see docs/FDM-VS-FLIGHTGEAR.md.
-        "controls": {"surfaces": surf, "flaps": flaps, "aileron_rigging": 0.035, "rudder_rigging": 0.005,
+        "controls": {"surfaces": surf, "flaps": flaps, "aileron_rigging": 0.033, "rudder_rigging": 0.004,
                      # actuator rate limits: full -1..1 travel time, FlightGear c172p FCS <kinematic>
                      "full_travel_s": {"pitch": 0.3, "roll": 0.15, "yaw": 0.15}},
         "engine": {"type": "piston", "maxhp": txt(eng, "maxhp"), "displacement_in3": txt(eng, "displacement"),

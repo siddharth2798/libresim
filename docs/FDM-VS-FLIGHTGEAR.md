@@ -23,7 +23,7 @@ tools/.venv/bin/python tools/18_compare_fdm.py   # plots + metrics.md in /tmp/fd
 | Surface actuators | **New:** rate limits from c172p's FCS: elevator 0.30 s, aileron 0.15 s and rudder 0.15 s for full −1..1 travel | c172p-team `<kinematic>` filters with the same times. Stock JSBSim c172p has none |
 | Auto-coordination | **New option** (off by default): rudder += 0.5 × aileron | Option (off by default), factor 0.5 |
 | Pitch trim | Keys/buttons slew at 0.15/s; trim axis supported | Slews at TRIM_RATE 0.045/s × speed |
-| Aileron/rudder trim | Fixed rigging tabs: aileron 0.035, rudder 0.005 (no cockpit control) | c172p sets aileron-trim 0.022 and rudder-trim 0.02 (it uses a different aero model) |
+| Aileron/rudder trim | Fixed rigging tabs: aileron 0.033, rudder 0.004 (no cockpit control) | c172p sets aileron-trim 0.022 and rudder-trim 0.02 (it uses a different aero model) |
 | Brakes | Keys are on/off (B both, `,` `.` per side), with a parking brake; joystick brake axes | `applyBrakes` ramps to full in 0.5 s |
 | Flaps | Detents 0/10/20/30, electric travel 2 s / 1 s / 1 s, needs the bus | Same `<kinematic>` traverse |
 
@@ -80,7 +80,7 @@ So our roll physics already matched JSBSim and FlightGear:
 - `FDM.set_airborne` and `Trim` now treat airspeed as relative to the air mass (they add `wind_ned`).
 - New `FDM.trim_level_cas()` trims at a calibrated airspeed.
 - `FdmNode.place_airborne(…, wind_ned)` uses the current weather (QNH, temperature) and the wind at the start height (`flight.gd` passes `$Weather.wind_at`).
-- The rigging was re-solved for zero roll and yaw acceleration at about 95 KIAS level with the solo pilot: aileron **0.035**, rudder **0.005** (was 0.029 / 0). The required rigging is 0.038 / 0.006 at 90 KIAS, 0.033 / 0.004 at 100 KIAS, 0.029 / 0.002 at 110 KIAS, and 0.081 / 0.029 at Vy with full power. So in a climb you still hold right aileron and right rudder, as in the real aircraft.
+- The rigging was re-solved for zero roll and yaw acceleration at about 100 KIAS level with the solo pilot, the middle of 90–110 KIAS cruise: aileron **0.033**, rudder **0.004** (was 0.029 / 0). The required rigging is 0.038 / 0.006 at 90 KIAS, 0.033 / 0.004 at 100 KIAS, 0.029 / 0.002 at 110 KIAS, and 0.081 / 0.029 at Vy with full power. So in a climb you still hold right aileron and right rudder, as in the real aircraft.
 - After the fixes, in-game hands off (90 KIAS, default weather with turbulence): −2.3° at 15 s and −6° at 60 s, with pitch and speed steady. That is a slow left-wing-heavy drift, as the real C172 shows solo.
 - The attitude indicator shows about 60 % of the actual bank during that slow drift (gyro erection model). It is not a cause of the tilt.
 
@@ -100,3 +100,40 @@ So our roll physics already matched JSBSim and FlightGear:
 - `tools/fdm_compare_metrics.py`: metrics and plots.
 - `game/tests/fdm_compare.gd`: our side.
 - `game/tests/debug_handsoff.gd`: an in-game hands-off and stutter probe. Run it with `godot --headless --path game res://tests/debug_handsoff.tscn -- --airport=VAPO --air=1500`.
+
+## Follow-up: speed sensitivity, landing gear, climb
+
+**Hands-off versus speed** (3000 ft, ISA+15, calm, solo, bank and heading change after 60 s):
+
+| Rigging | 90 KIAS | 100 KIAS | 110 KIAS |
+|---|---|---|---|
+| Ours, 0.035 / 0.005 | −5.6° / −39° | +5.8° / +35° | +15.5° / +85° |
+| JSBSim c172p, 0.035 / 0.005 | −6.8° / −47° | +4.3° / +27° | +12.7° / +74° |
+| JSBSim c172p, stock (no rigging) | −55° | −51° | −50° |
+| Ours, **0.033 / 0.004** (chosen) | −9.6° / −67° | +1.0° / +6° | +9.8° / +55° |
+
+- A fixed tab balances the rolling moment at only one speed. The tab's moment grows with dynamic pressure, while the pilot's weight and the engine torque stay roughly constant.
+- The JSBSim c172p's spiral mode is nearly neutral at these angles of attack (Clr rises steeply with α), so a small leftover moment turns into a steady bank.
+- Our model reproduces JSBSim. The chosen rigging is neutral at 100 KIAS and keeps 90–110 KIAS within about ±10°.
+
+**Landing gear:**
+- JSBSim's c172p wheels are about twice critically damped (main 23 350 N·s/m), so the damper force jumps to c·v at first contact. A 290 fpm touchdown spiked to 3.8–5.5 g, and over about 500 fpm it tripped the 3×-weight gear overload, which collapsed the gear. Once the airframe had dropped, the tail skid chattered and logged "Tail strike" about 160 times.
+- Fixes:
+  - Wheel damping is now 0.2× JSBSim, about 0.4 of critical (`GEAR_DAMPING` in tools/06).
+  - Damping builds up over the first 3 cm of compression (`gear_ground.gd` `DAMP_RAMP`).
+  - A contact must be clear of the ground for 0.5 s before it counts as a new touchdown or strike (`damage.gd` `REARM_S`).
+- Drop tests at an 8° flare attitude, peak g with the wing still lifting (main leg force / weight):
+
+| Touchdown | Before | After |
+|---|---|---|
+| 150 fpm | 1.7 g (0.9) | 1.2 g (0.5) |
+| 290 fpm | 3.8 g (1.6) | 2.4 g (0.75) |
+| 600 fpm | 8.4 g (3.7, gear overloaded and collapsed) | 4.5 g (1.7, no damage) |
+| 900 fpm | 22 g | 6.6 g, hard landing |
+
+- The tail skid touches at about 10° of nose-up pitch with the gear intact (3.3 m aft of and 0.6 m above the main wheels). The nose wheel touches first below about 3.5° of pitch.
+
+**Climb:**
+- Default solo load (1880 lb), ISA+15, sea level, full throttle: 834 / 953 / 1102 / 1188 / 1139 fpm at 62 / 68 / 74 / 84 / 94 KIAS.
+- The POH gives 710 fpm at 2550 lb and 20 °C. Scaled to 1880 lb with the C172 drag polar (CD0 0.031, k 0.058), we expect about 1100–1150 fpm. Ours is within 6 %.
+- At gross weight the test card gives 663 fpm against the POH's 730 (−9 %). So the propeller boost was left alone.

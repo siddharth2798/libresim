@@ -8,6 +8,8 @@ extends RefCounted
 
 const V_SAT_LONG := 0.25  # m/s, friction ramps linearly below this (avoids jitter)
 const V_SAT_LAT := 0.12
+const DAMP_RAMP := 0.03  # m: damping builds up over the first 3 cm of compression (tyre + leg), so
+                         # first contact is not an instant c*v force step
 const BRAKE_MU := 0.45  # effective max braking friction, dry asphalt (tyre + anti-skid-free brakes)
 
 var contacts: Array = []  # {name, wheel, pos_struct, k, c, mu_s, mu_d, mu_roll, steer, brake}
@@ -51,7 +53,7 @@ func compute(mb: MassBalance, r_bn: Basis, pos_ned: Vector3, v_b: Vector3, w_b: 
 		if c.wheel:
 			wow = true
 		var v_c := r_bn * (v_b + w_b.cross(r_b))  # contact point velocity, NED
-		var n := maxf(c.k * depth + c.c * v_c.z, 0.0)
+		var n := maxf(c.k * depth + c.c * v_c.z * minf(depth / DAMP_RAMP, 1.0), 0.0)
 		info[c.name] = {"depth": depth, "vz": v_c.z, "force": n, "n": p.x, "e": p.y}
 		# wheel heading in the horizontal plane
 		var fwd := r_bn * Vector3(1, 0, 0)

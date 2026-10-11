@@ -30,6 +30,8 @@ const VFE_FULL := 85.0 * KT
 const N_POS := 3.8
 const N_NEG := -1.52
 const PROP_RADIUS := 0.95
+const REARM_S := 0.5  # a contact must be off the ground this long before it counts as a new touch
+                      # (debounces touchdown / tail-strike events while a skid or wheel chatters)
 ## Propeller hub (JSBSim structural m): spinner centre of the c172p 3D model, which gives
 ## the real C172's ~11 in (0.28 m) static prop clearance. (JSBSim's thruster point is not the hub.)
 const PROP_HUB := Vector3(-0.88, 0.0, 0.926)
@@ -44,6 +46,7 @@ var structure_damaged := false
 var hard_landings := 0
 var last_touchdown := {}  # stats of the latest touchdown (for the debrief)
 var _was_touching := {}
+var _clear_t := {}  # contact name -> seconds off the ground (absent = never touched)
 var _overspeed_t := 0.0
 var _flap_t := 0.0
 var _air_time := 0.0
@@ -60,6 +63,7 @@ func reset() -> void:
 	hard_landings = 0
 	last_touchdown = {}
 	_was_touching.clear()
+	_clear_t.clear()
 
 
 func _event(msg: String) -> void:
@@ -87,10 +91,12 @@ func update(f: FDM, dt: float, contact_info: Dictionary, surface: Callable) -> v
 			any_touch = true
 		var vz: float = info.get("vz", 0.0)  # contact point vertical speed, NED (+ = down)
 		var force: float = info.get("force", 0.0)
-		var first: bool = touching and not _was_touching.get(c.name, false)
+		var first: bool = touching and not _was_touching.get(c.name, false) and _clear_t.get(c.name, INF) >= REARM_S
 		_was_touching[c.name] = touching
 		if not touching:
+			_clear_t[c.name] = _clear_t.get(c.name, INF) + dt
 			continue
+		_clear_t[c.name] = 0.0
 		if surface.call(info.get("n", 0.0), info.get("e", 0.0)) == 255:
 			_crash("ditched in water")
 			return
