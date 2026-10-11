@@ -667,7 +667,7 @@ flatpak run org.freesim.FreeSim</code></pre><button class="copy" type="button">C
   <li><span>Parking brake set, fuel selector <strong>BOTH</strong>, fuel shutoff valve <strong>ON</strong>, avionics master <strong>OFF</strong> (switch row, bottom of the panel).</span></li>
   <li><span>Throttle open about 1/4 inch: a short press of <kbd>PgUp</kbd>.</span></li>
   <li><span>Mixture <strong>RICH</strong>: hold <kbd>'</kbd>.</span></li>
-  <li><span>Master switch <strong>BAT</strong> and <strong>ALT</strong> on (click them on the switch row). Beacon on.</span></li>
+  <li><span>Master switch <strong>BAT</strong> and <strong>ALT</strong> on: <kbd>Shift</kbd>+<kbd>M</kbd> or click them on the switch row. Beacon on: <kbd>Ctrl</kbd>+<kbd>B</kbd>.</span></li>
   <li><span>Magnetos <strong>BOTH</strong>: press <kbd>M</kbd> until the key shows BOTH.</span></li>
   <li><span>Hold <kbd>S</kbd> until the engine catches, then release. The starter needs battery power.</span></li>
   <li><span>Oil pressure in the green within 30 s; avionics master on; ammeter charging; set the altimeter to QNH.</span></li>
@@ -1601,6 +1601,12 @@ godot --path game -- --airport=VAJJ --fail=vacuum_pump@10 --random-failures --me
     <tr><td><kbd>M</kbd></td><td>Magnetos cycle</td><td>R</td></tr>
     <tr><td><kbd>S</kbd></td><td>Starter (hold)</td><td>R</td></tr>
     <tr><td><kbd>Y</kbd></td><td>Mouse yoke</td><td>R</td></tr>
+    <tr class="group"><td colspan="3">Switch row (cold-and-dark start without the mouse)</td></tr>
+    <tr><td><kbd>Shift</kbd>+<kbd>M</kbd></td><td>Master switch (BAT + ALT)</td><td>R</td></tr>
+    <tr><td><kbd>Shift</kbd>+<kbd>V</kbd></td><td>Avionics master</td><td>R</td></tr>
+    <tr><td><kbd>Shift</kbd>+<kbd>F</kbd> · <kbd>Ctrl</kbd>+<kbd>F</kbd></td><td>Fuel selector cycle · fuel shutoff valve</td><td>R</td></tr>
+    <tr><td><kbd>Ctrl</kbd>+<kbd>B</kbd> / <kbd>N</kbd> / <kbd>S</kbd> / <kbd>L</kbd> / <kbd>T</kbd></td><td>Beacon / nav / strobes / landing / taxi light</td><td>R</td></tr>
+    <tr><td><kbd>Ctrl</kbd>+<kbd>H</kbd></td><td>Pitot heat</td><td>R</td></tr>
     <tr class="group"><td colspan="3">Views and panels</td></tr>
     <tr><td><kbd>C</kbd> / <kbd>Shift</kbd>+<kbd>C</kbd></td><td>Next / previous camera</td><td></td></tr>
     <tr><td><kbd>1</kbd>–<kbd>8</kbd></td><td>Cockpit, chase, orbit, free, tower, wing, tail, fly-by</td><td></td></tr>

@@ -292,6 +292,9 @@ cd game
 | B (hold) | Both brakes |
 | , / . (hold) | Left / right brake (differential steering) |
 | Shift+B | Toggle parking brake |
+| Shift+M / Shift+V | Master switch (BAT + ALT) / avionics master |
+| Shift+F / Ctrl+F | Fuel selector cycle / fuel shutoff valve |
+| Ctrl+B / N / S / L / T / H | Beacon / nav / strobes / landing / taxi light / pitot heat |
 | M | Cycle magnetos OFF → L → R → BOTH |
 | S (hold) | Starter |
 | Y | Toggle mouse yoke (mouse position = control column) |

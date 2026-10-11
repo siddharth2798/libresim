@@ -158,7 +158,7 @@ func _poll_sources() -> void:
 			continue  # the crash card shows it
 		var parts := e.split(" — ", true, 1)
 		var lvl := WARNING if e.to_lower().contains("collapsed") or e.to_lower().contains("damaged") else CAUTION
-		post(parts[0], parts[1] if parts.size() > 1 else "", lvl, "dmg:" + parts[0])
+		post(parts[0], parts[1] if parts.size() > 1 else "", lvl, "dmg:" + parts[0].get_slice(":", 0))  # one card per kind (numbers differ)
 	_events_seen = events.size()
 	var tell := bool(Session.setup.get("notify", true))  # off = find out from the instruments
 	for id in FailureCatalog.all_ids():

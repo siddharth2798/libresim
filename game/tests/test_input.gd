@@ -176,8 +176,8 @@ func test_input_keys_defaults_match_old() -> String:
 		"magnetos_next": [KEY_M], "mouse_yoke": [KEY_Y], "parking_brake": [KEY_B],
 	}
 	var d := KeyBindings.defaults()
-	if d.size() != old.size() or d.size() != (KeyBindings.HELD + KeyBindings.PRESS).size():
-		return "default action count %d, want %d" % [d.size(), old.size()]
+	if d.size() != (KeyBindings.HELD + KeyBindings.PRESS).size() or not d.has_all(old.keys()):
+		return "default action count %d, want %d incl. the %d original actions" % [d.size(), (KeyBindings.HELD + KeyBindings.PRESS).size(), old.size()]
 	for a in old:
 		var got: Array = d[a].map(func(s): return int(s.key))
 		if got != old[a]:

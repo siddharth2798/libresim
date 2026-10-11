@@ -66,6 +66,9 @@ func reset() -> void:
 	_clear_t.clear()
 
 
+var _last_hard_t := -INF  # sim time of the last hard-landing / side-load event
+var _last_side_t := -INF
+
 func _event(msg: String) -> void:
 	events.append(msg)
 
@@ -108,14 +111,16 @@ func update(f: FDM, dt: float, contact_info: Dictionary, surface: Callable) -> v
 			if first and not is_nose and drift > SIDE_COLLAPSE:
 				_fail_gear(c, "%s gear folded: touched down drifting sideways at %.0f kt (side load)" % [c.name.to_lower().replace("_", " "), drift / KT])
 				continue
-			if first and not is_nose and drift > SIDE_DAMAGE:
+			if first and not is_nose and drift > SIDE_DAMAGE and f.time - _last_side_t > 1.0:
+				_last_side_t = f.time
 				structure_damaged = true
 				_event("Side-load landing: drifting %.0f kt at touchdown — gear damaged (use a crab/wing-low correction)" % (drift / KT))
 			if first:
 				_touchdown(f, c.name, vz)
 				if vz > limit_v:
 					_fail_gear(c, "%s gear collapsed (%.0f fpm at touchdown)" % [c.name.to_lower().replace("_", " "), vz * 196.85])
-				elif vz > HARD and not is_nose:
+				elif vz > HARD and not is_nose and f.time - _last_hard_t > 1.0:  # one per touchdown, not per wheel
+					_last_hard_t = f.time
 					hard_landings += 1
 					structure_damaged = true
 					_event("Hard landing: %.0f fpm — gear inspection required" % (vz * 196.85))

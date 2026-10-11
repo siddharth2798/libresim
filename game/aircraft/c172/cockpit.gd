@@ -108,8 +108,7 @@ func _process(dt: float) -> void:
 	_acc += dt
 	if _acc >= REFRESH:
 		_acc = 0.0
-		var cam := get_viewport().get_camera_3d()
-		if cam and cam.global_position.distance_to(global_position) < 4.0:
+		if str(Props.get_v("view/mode", "")) == "Cockpit":  # the 3D panel is only seen from inside
 			panel_ui.refresh()
 			viewport.render_target_update_mode = SubViewport.UPDATE_ONCE
 

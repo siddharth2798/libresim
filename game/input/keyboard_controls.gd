@@ -49,6 +49,15 @@ func _unhandled_key_input(e: InputEvent) -> void:
 		Props.set_v("controls/magnetos", (int(Props.get_v("controls/magnetos", 3)) + 1) % 4)
 	if e.keycode == KEY_L and not e.ctrl_pressed and not e.alt_pressed:  # PANEL light dimmer (fixed hotkey)
 		Props.set_v("controls/lights/panel", LightLogic.step_panel(Props.get_f("controls/lights/panel"), -1 if e.shift_pressed else 1))
+	if _on(e, "master"):  # BAT and ALT together, as pilots usually switch them
+		var on := not Props.get_b("controls/electrical/master_bat")
+		Props.set_v("controls/electrical/master_bat", on)
+		Props.set_v("controls/electrical/master_alt", on)
+	if _on(e, "fuel_selector"):  # OFF, LEFT, RIGHT, BOTH
+		Props.set_v("controls/fuel/selector", (int(Props.get_v("controls/fuel/selector", 3)) + 1) % 4)
+	for a in KeyBindings.SWITCHES:
+		if _on(e, a):
+			Props.set_v(KeyBindings.SWITCHES[a], not Props.get_b(KeyBindings.SWITCHES[a]))
 	if _on(e, "parking_brake"):
 		parking_brake = not Props.get_b("controls/parking_brake")
 		Props.set_v("controls/parking_brake", parking_brake)

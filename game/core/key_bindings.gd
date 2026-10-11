@@ -13,7 +13,14 @@ const SLOTS := 3
 const HELD := ["pitch_down", "pitch_up", "roll_left", "roll_right", "yaw_left", "yaw_right",
 	"throttle_up", "throttle_down", "mixture_rich", "mixture_lean", "trim_down", "trim_up",
 	"brakes", "brake_left", "brake_right", "starter"]
-const PRESS := ["flaps_down", "flaps_up", "parking_brake", "magnetos_next", "mouse_yoke"]
+const PRESS := ["flaps_down", "flaps_up", "parking_brake", "magnetos_next", "mouse_yoke",
+	"master", "avionics", "fuel_selector", "fuel_shutoff", "beacon", "nav_lights", "strobes",
+	"landing_light", "taxi_light", "pitot_heat"]
+## Switch-row toggles: action -> Props path (fuel_selector cycles OFF/L/R/BOTH instead).
+const SWITCHES := {"avionics": "controls/electrical/avionics", "fuel_shutoff": "controls/fuel/shutoff",
+	"beacon": "controls/lights/beacon", "nav_lights": "controls/lights/nav", "strobes": "controls/lights/strobe",
+	"landing_light": "controls/lights/landing", "taxi_light": "controls/lights/taxi",
+	"pitot_heat": "controls/electrical/pitot_heat"}
 const LABELS := {
 	"pitch_down": "Pitch: push (nose down)", "pitch_up": "Pitch: pull (nose up)",
 	"roll_left": "Roll left", "roll_right": "Roll right", "yaw_left": "Rudder left", "yaw_right": "Rudder right",
@@ -22,6 +29,9 @@ const LABELS := {
 	"brakes": "Both brakes (hold)", "brake_left": "Left brake (hold)", "brake_right": "Right brake (hold)",
 	"starter": "Starter (hold)", "flaps_down": "Flaps down one notch", "flaps_up": "Flaps up one notch",
 	"parking_brake": "Parking brake toggle", "magnetos_next": "Magnetos cycle", "mouse_yoke": "Mouse yoke toggle",
+	"master": "Master switch (BAT + ALT)", "avionics": "Avionics master", "fuel_selector": "Fuel selector cycle",
+	"fuel_shutoff": "Fuel shutoff valve", "beacon": "Beacon", "nav_lights": "Nav lights", "strobes": "Strobes",
+	"landing_light": "Landing light", "taxi_light": "Taxi light", "pitot_heat": "Pitot heat",
 }
 ## Other in-flight hotkeys (not rebindable here): a binding on one of these is a conflict.
 const RESERVED := {
@@ -56,6 +66,17 @@ static func defaults() -> Dictionary:
 	for a in k:
 		t[a] = k[a].map(func(c): return spec(c))
 	t.parking_brake = [spec(KEY_B, true)]
+	# switch row (cold & dark start-up without the mouse)
+	t.master = [spec(KEY_M, true)]
+	t.avionics = [spec(KEY_V, true)]
+	t.fuel_selector = [spec(KEY_F, true)]
+	t.fuel_shutoff = [spec(KEY_F, false, true)]
+	t.beacon = [spec(KEY_B, false, true)]
+	t.nav_lights = [spec(KEY_N, false, true)]
+	t.strobes = [spec(KEY_S, false, true)]
+	t.landing_light = [spec(KEY_L, false, true)]
+	t.taxi_light = [spec(KEY_T, false, true)]
+	t.pitot_heat = [spec(KEY_H, false, true)]
 	return t
 
 
