@@ -11,6 +11,7 @@ extends RefCounted
 const MAX_UPLOADS_PER_FRAME := 6
 const TILE_SIZE_DEFAULT := 7680.0  # level-0 tile size (tools/common.py TILE_SIZE)
 const MAX_ENTRIES := 400  # per kind (heights, textures)
+const EVICT_MS := 3000
 const MAX_CPU := 160  # CPU-side height / land-class tiles kept for queries
 const IMG_N := 768
 const NONE := TerrainMeta.NONE
@@ -29,6 +30,7 @@ var _done: Array = []  # [kind, key, Image a, Image b]
 var _mutex := Mutex.new()
 var _cpu_heights := {}  # Vector2i(tx,ty) of level 0 -> PackedByteArray
 var _frame := 0
+var _now := 0  # ms, stamped once per process(); entry 'used' times use it
 var _fallback_img: ImageTexture
 var _fallback_lc: ImageTexture
 
@@ -64,9 +66,9 @@ func get_tile(level: int, tx: int, ty: int) -> Dictionary:
 	var key := Vector3i(level, tx, ty)
 	var c = _tiles.get(key)
 	if c != null:  # fast path: ready composite; keep its entries alive
-		c.used = _frame
+		c.used = _now
 		for e in c.ents:
-			e.used = _frame
+			e.used = _now
 		return c
 	var isrc := tmeta.tex_source(level, tx, ty, TerrainMeta.HAS_IMG)
 	var lsrc := tmeta.tex_source(level, tx, ty, TerrainMeta.HAS_LC)
@@ -81,7 +83,7 @@ func get_tile(level: int, tx: int, ty: int) -> Dictionary:
 			ents.append(e)
 	c = {"htex": h.htex, "itex": ti.itex if ti != null and ti.itex else _fallback_img,
 		"lctex": tl.lctex if tl != null and tl.lctex else _fallback_lc,
-		"img_src": isrc, "lc_src": lsrc, "used": _frame, "ents": ents}
+		"img_src": isrc, "lc_src": lsrc, "used": _now, "ents": ents}
 	_tiles[key] = c
 	return c
 
@@ -89,11 +91,11 @@ func get_tile(level: int, tx: int, ty: int) -> Dictionary:
 func _request(store: Dictionary, key: Vector3i, kind: int) -> Dictionary:
 	var e = store.get(key)
 	if e == null:
-		e = {"state": 0, "used": _frame}
+		e = {"state": 0, "used": _now}
 		store[key] = e
 		var job := _load_h.bind(key) if kind == 0 else _load_t.bind(key, tmeta.flags(key.x, key.y, key.z))
 		_tasks[Vector4i(kind, key.x, key.y, key.z)] = WorkerThreadPool.add_task(job)
-	e.used = _frame
+	e.used = _now
 	return e
 
 
@@ -138,6 +140,7 @@ func _finish(item: Array) -> void:
 ## Call once per frame from the main thread. Returns the number of tiles uploaded.
 func process() -> int:
 	_frame += 1
+	_now = Time.get_ticks_msec()
 	_mutex.lock()
 	var n := mini(_done.size(), MAX_UPLOADS_PER_FRAME)
 	var batch := _done.slice(0, n)
@@ -164,7 +167,8 @@ func process() -> int:
 	return batch.size()
 
 
-## Drops the least recently used ready entries not touched for 120 frames.
+## Drops the least recently used ready entries not touched for EVICT_MS
+## (time, not frames: the quadtree only re-walks every RESELECT_S at most).
 ## Composites (_tiles) hold their own texture refs, so dropping an entry
 ## under a live composite is safe; the composite touches its entries anyway.
 func _evict(store: Dictionary) -> void:
@@ -172,7 +176,7 @@ func _evict(store: Dictionary) -> void:
 	keys.sort_custom(func(a, b): return store[a].used < store[b].used)
 	for i in range(store.size() - MAX_ENTRIES * 3 / 4):
 		var e = store[keys[i]]
-		if e.get("state", 1) == 1 and _frame - e.used > 120:
+		if e.get("state", 1) == 1 and _now - e.used > EVICT_MS:
 			store.erase(keys[i])
 
 

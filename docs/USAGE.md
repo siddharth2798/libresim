@@ -119,9 +119,10 @@ $PY tools/13_airport_ops.py        # -> data/processed/airport_ops.json: stands,
 $PY tools/14_ils.py                # -> data/processed/ils.json: SIMULATED ILS for runways >= 2000 m (after 09)
 $PY tools/15_terminals.py          # -> data/processed/terminals/<ICAO>.json: terminal footprints (VABB, VAPO; VOCI via Overpass, cached) ~70 s
 $PY tools/16_terminal_models.py    # -> terminals/<ICAO>.glb landmark terminal models + landmarks.json; then re-run 10_buildings.py
-$PY tools/17_airport_fixups.py     # patches terrain h/lc levels 0-2 in place (after 02, 09, 11, 12): Navi Mumbai platform levelled
-                                   #   to 8 m + no water/trees, taxiway ground smoothed, no water on paving, no trees inside airports.
-                                   #   Re-runnable (reverts + re-applies). Then re-run 09, 14 and 10.
+$PY tools/17_airport_fixups.py     # patches terrain h/lc levels 0-2 in place, both regions (after 02, 09, 11, 12): levelled
+                                   #   sites (VANM 8 m, VOKN, VOSR) without water/trees, taxiway ground smoothed, no water on
+                                   #   paving, no trees inside airports. Re-runnable (reverts + re-applies). Then re-run 09, 14, 10
+                                   #   (./run.sh orders this: ... 11 12 17 09 13 14 15 16 10).
 
 # Aircraft 3D models (FlightGear c172p, GPL), already committed as .glb; only needed to regenerate:
 blender -b --factory-startup --python tools/blender/convert_c172p.py            # exterior.glb
@@ -676,6 +677,7 @@ docs/USAGE.md this file
 | `01b_fetch_imagery.sh` fails partway with HTTP errors | Re-run it; GDAL retries each tile 5 times. The EOX server sometimes rate-limits |
 | Low FPS | Check the F3 overlay. Lower `lod_k` on the Terrain node in `world/flight.tscn` (default 1.6), or turn off `shadow_enabled` on the Sun |
 | Stutter / where does the frame time go? | `godot --path game res://tests/debug_perf.tscn -- --airport=VABB --runway=27 --air=1000 --quality=high --log=/tmp/f.csv --dur=60` logs every frame (GPU, physics, pipeline compiles, per-node `_process` time) and prints the worst frames and top consumers |
+| Jump at the 5 km origin shift? | `res://tests/debug_origin.tscn -- --airport=VABB --runway=27 --air=1500 --dur=150` prints the largest per-frame world-space move of the camera, aircraft and static scenery, split into normal and shift frames (static must be 0) |
 | Flicker / scenery check at a fixed spot | `res://tests/debug_view.tscn -- --eye=e,n,alt --at=e,n,alt --wait=12 --out=/tmp/v.png` (free camera, world metres); add `--to=e,n,alt --frames=N` to save a fly-through frame by frame. `debug_perf.tscn ... --burst=/dir@20x10 --freeze` saves 10 frames with sim time stopped (any change = instability) |
 | Aircraft spawns in the wrong place / no runway | Run `tools/09_runways.py` (it writes `data/processed/runways.json`) |
 | No sound | Godot uses PulseAudio/PipeWire; check the system output device |

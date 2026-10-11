@@ -31,7 +31,7 @@ func _ready() -> void:
 	s.process_priority = 100000
 	s.cb = _sample
 	add_child(s)
-	FloatingOrigin.shifted.connect(func(_d): _shift_frames.append(_frame))
+	FloatingOrigin.shifted.connect(func(_d): _shift_frames.append(_frame + 1))  # sampled at this frame's end
 
 
 func _first_child(path: String) -> Node3D:
@@ -51,9 +51,10 @@ func _sample() -> void:
 	var cur := {"camera": w.call(f.get_node("Camera")), "aircraft": w.call(f.get_node("Aircraft"))}
 	# statics: remember the node so the same instance is tracked across frames
 	for p in ["Terrain", "Airports", "Trees", "Buildings"]:
-		var key := "static:" + p
+		var key: String = "static:" + p
 		if not _last.has(key + "#node") or not is_instance_valid(_last[key + "#node"]):
 			_last[key + "#node"] = _first_child(p)
+			_last.erase(key)  # a different instance: no movement to compare
 		var n: Node3D = _last[key + "#node"]
 		cur[key] = w.call(n) if n and n.is_inside_tree() else Vector3.INF
 	var shifted := _shift_frames.has(_frame)
@@ -61,7 +62,7 @@ func _sample() -> void:
 		if _last.has(k) and cur[k] != Vector3.INF and _last[k] != Vector3.INF:
 			var d: float = (cur[k] - _last[k]).length()
 			var tag := "shift" if shifted else "normal"
-			var wk := "%s/%s" % [k, tag]
+			var wk: String = "%s/%s" % [k, tag]
 			_worst[wk] = maxf(_worst.get(wk, 0.0), d)
 		_last[k] = cur[k]
 	if t >= dur:

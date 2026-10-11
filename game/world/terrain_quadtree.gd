@@ -20,6 +20,7 @@ const MAX_VIRTUAL := 2
 const HYSTERESIS := 1.15
 const RESELECT_M := 25.0
 const RESELECT_S := 0.5
+const MAX_RECS := 40000
 const MORPH_START := 0.6  # x parent split distance; must be > HYSTERESIS / 2
 
 @export var lod_k := 1.6
@@ -70,6 +71,8 @@ func _process(dt: float) -> void:
 		return
 	_since = 0.0
 	_last_sel = _cam_enu
+	if _recs.size() > MAX_RECS:
+		_recs.clear()  # memo only; rebuilt on demand
 	var wanted: Array[Vector3i] = []
 	var split := {}
 	for r in _roots:

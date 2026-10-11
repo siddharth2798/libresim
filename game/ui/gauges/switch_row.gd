@@ -1,9 +1,10 @@
 extends Control
 ## Lower switch panel: rocker switches (click to toggle) and rotary selectors
-## (click left/right half, or wheel). Each item maps to a Props path.
+## (click left/right half, or wheel). Each item maps to a Props path. PANEL is the
+## instrument-light dimmer knob (0..1, also L / Shift+L).
 
 const ITEMS := [
-	# [label, prop, kind ("sw" toggle | "rot" rotary), options for rot]
+	# [label, prop, kind ("sw" toggle | "rot" rotary | "dim" 0..1 knob), options for rot]
 	["BAT", "controls/electrical/master_bat", "sw", []],
 	["ALT", "controls/electrical/master_alt", "sw", []],
 	["AVN", "controls/electrical/avionics", "sw", []],
@@ -12,6 +13,7 @@ const ITEMS := [
 	["TAXI", "controls/lights/taxi", "sw", []],
 	["NAV", "controls/lights/nav", "sw", []],
 	["STRB", "controls/lights/strobe", "sw", []],
+	["PANEL", "controls/lights/panel", "dim", []],
 	["PITOT HT", "controls/electrical/pitot_heat", "sw", []],
 	["MAGS", "controls/magnetos", "rot", ["OFF", "R", "L", "BOTH"]],
 	["FUEL", "controls/fuel/selector", "rot", ["OFF", "LEFT", "RIGHT", "BOTH"]],
@@ -51,6 +53,15 @@ func _draw() -> void:
 			draw_rect(sw, Color(0.05, 0.05, 0.05))
 			var half := Rect2(sw.position + (Vector2(0, 0) if on else Vector2(0, 15)), Vector2(18, 15))
 			draw_rect(half, Color(0.85, 0.85, 0.8) if not it[0] in ["BAT", "ALT"] else Color(0.85, 0.2, 0.15))
+		elif it[2] == "dim":
+			var v := Props.get_f(it[1])
+			var kc := c + Vector2(0, -4)
+			draw_arc(kc, 14, PI * 0.75, PI * 2.25, 24, Color(0.3, 0.3, 0.3), 2)
+			draw_arc(kc, 14, PI * 0.75, PI * (0.75 + 1.5 * v), 24, Color(1, 0.85, 0.4), 2)
+			draw_circle(kc, 10, Color(0.05, 0.05, 0.05))
+			var a := PI * (0.75 + 1.5 * v)
+			draw_line(kc, kc + Vector2(cos(a), sin(a)) * 9, Color.WHITE, 2)
+			_text(c + Vector2(0, 22), "%d%%" % roundi(v * 100.0), 10, Color(1, 0.85, 0.4))
 		else:
 			var idx := _rot_index(it)
 			var opts: Array = it[3]
@@ -80,6 +91,13 @@ func _gui_input(e: InputEvent) -> void:
 			Props.set_v(it[1], not Props.get_b(it[1]))
 		return
 	var d := 0
+	if it[2] == "dim":
+		match e.button_index:
+			MOUSE_BUTTON_LEFT: d = -1 if e.position.x < _cell(i).get_center().x else 1
+			MOUSE_BUTTON_WHEEL_UP: d = 1
+			MOUSE_BUTTON_WHEEL_DOWN: d = -1
+		Props.set_v(it[1], LightLogic.step_panel(Props.get_f(it[1]), d))
+		return
 	match e.button_index:
 		MOUSE_BUTTON_LEFT: d = -1 if e.position.x < _cell(i).get_center().x else 1
 		MOUSE_BUTTON_WHEEL_UP: d = 1

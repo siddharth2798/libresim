@@ -88,3 +88,8 @@ static func sun_elev_now() -> float:
 		return Props.get_f("environment/sun_elev_deg", 30.0)
 	var sp := SkyTime.sun_position(Props.get_f("weather/time_h"), Props.get_f("weather/day_of_year", 45.0))
 	return rad_to_deg(sp.x)
+
+
+## PANEL dimmer knob step (L / Shift+L, switch-row knob): 0.1 per click, clamped 0..1.
+static func step_panel(cur: float, dir: int) -> float:
+	return clampf(snappedf(cur + 0.1 * dir, 0.1), 0.0, 1.0)

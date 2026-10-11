@@ -47,6 +47,8 @@ func _unhandled_key_input(e: InputEvent) -> void:
 		Props.set_v("controls/mouse_yoke", mouse_yoke)
 	if _on(e, "magnetos_next"):
 		Props.set_v("controls/magnetos", (int(Props.get_v("controls/magnetos", 3)) + 1) % 4)
+	if e.keycode == KEY_L and not e.ctrl_pressed and not e.alt_pressed:  # PANEL light dimmer (fixed hotkey)
+		Props.set_v("controls/lights/panel", LightLogic.step_panel(Props.get_f("controls/lights/panel"), -1 if e.shift_pressed else 1))
 	if _on(e, "parking_brake"):
 		parking_brake = not Props.get_b("controls/parking_brake")
 		Props.set_v("controls/parking_brake", parking_brake)
