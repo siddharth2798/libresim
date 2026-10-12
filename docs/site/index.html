@@ -709,7 +709,15 @@ flatpak run org.freesim.FreeSim</code></pre><button class="copy" type="button">C
 </table></div>
 <p>The debrief also shows g, airspeed, pitch, bank, centreline offset and distance past the threshold.</p>
 
-<h3 id="flying-messages"><span class="no">1.11</span>On-screen messages and the crash card</h3>
+<h3 id="flying-callouts"><span class="no">1.11</span>Training callouts (optional)</h3>
+<p>A real C172 has no automatic callouts, so they are off by default. Press <kbd>K</kbd> in flight, or tick "Training callouts" on the Options page, to hear and see what an instructor would say. "Speak them" uses your system's text-to-speech voice if it has one; otherwise the calls show as large text above the hint line.</p>
+<ul>
+  <li><strong>Takeoff:</strong> Airspeed alive (40 kt), Rotate (55 kt), Positive rate.</li>
+  <li><strong>Approach:</strong> Five hundred, One hundred, Fifty, Thirty, Twenty, Ten (feet above ground, once each, only while descending).</li>
+  <li><strong>Cautions:</strong> Sink rate (over 1000 fpm below 500 ft), Low airspeed (under 54 kt below 400 ft), Bank angle (over 35° below 500 ft).</li>
+</ul>
+
+<h3 id="flying-messages"><span class="no">1.12</span>On-screen messages and the crash card</h3>
 <ul>
   <li><strong>Notification cards</strong> at the top centre carry failures, damage and the landing debrief. Blue is info, amber caution, red warning. Repeats merge ("×3"), at most three show at once, and they fade after a few seconds.</li>
   <li><strong>STALL</strong> is a pulsing banner. A one-line hint at the bottom says when the engine has stopped.</li>
@@ -1616,6 +1624,7 @@ godot --path game -- --airport=VAJJ --fail=vacuum_pump@10 --random-failures --me
     <tr><td><kbd>L</kbd> / <kbd>Shift</kbd>+<kbd>L</kbd></td><td>PANEL dimmer brighter / dimmer (10 % steps)</td><td></td></tr>
     <tr><td><kbd>N</kbd></td><td>Moving map</td><td></td></tr>
     <tr><td><kbd>H</kbd></td><td>Flight-data bar</td><td></td></tr>
+    <tr><td><kbd>K</kbd></td><td>Training callouts on / off</td><td></td></tr>
     <tr><td><kbd>F1</kbd></td><td>Key-help card</td><td></td></tr>
     <tr><td><kbd>F3</kbd></td><td>Performance overlay</td><td></td></tr>
     <tr class="group"><td colspan="3">Operations</td></tr>

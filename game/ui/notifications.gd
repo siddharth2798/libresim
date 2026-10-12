@@ -32,6 +32,7 @@ func _ready() -> void:
 	_stack.mouse_filter = MOUSE_FILTER_IGNORE
 	add_child(centered(_stack, PRESET_TOP_WIDE, 72))
 	_stall = _banner("STALL", COLORS[WARNING])
+	add_child(Callouts.new())
 	_hint = Label.new()
 	_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_hint.add_theme_font_size_override("font_size", 15)

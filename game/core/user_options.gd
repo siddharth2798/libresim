@@ -12,6 +12,8 @@ const DEFAULTS := {
 	"keyboard_mode": "spring",  # spring: yoke keys re-centre on release | sticky: stay put (FlightGear)
 	"control_smoothing": "light",  # low-pass on pilot inputs before the FDM (fdm_node.gd)
 	"auto_coordination": false,  # rudder follows aileron (for keyboard / no-pedal pilots)
+	"callouts": false,  # optional training callouts (ui/callouts.gd), K toggles in flight
+	"callouts_voice": false,  # say them with the OS text-to-speech voice, if the system has one
 }
 const CHOICES := {
 	"alt_unit": ["ft", "m"],

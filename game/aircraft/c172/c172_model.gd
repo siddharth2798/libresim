@@ -55,10 +55,30 @@ func _build_glb() -> void:
 		if pv:
 			_pivots[n] = [pv, pv.transform.basis]
 	fix_glass(inst, true)
+	lift_tyres(inst)
 
 
 ## FlightGear glass uses an effect shader; make it a clear, slightly reflective pane.
 ## rain: draw rain drops / streaks on it (aircraft/c172/windshield_rain.gdshader, outer skin only).
+## Tyres are black rubber: against dark asphalt at night they vanish. A faint constant
+## glow (a few percent, invisible in daylight) keeps them a readable dark grey, and the
+## taxi / landing lights and the aircraft fill light do the rest.
+static func lift_tyres(root: Node) -> void:
+	for mi in root.find_children("*", "MeshInstance3D", true, false):
+		var m := mi as MeshInstance3D
+		if m.mesh == null:
+			continue
+		for i in m.mesh.get_surface_count():
+			var mat := m.mesh.surface_get_material(i)
+			if mat is BaseMaterial3D and mat.resource_name == "wheel_mat":
+				var d := (mat as BaseMaterial3D).duplicate() as BaseMaterial3D
+				d.emission_enabled = true
+				d.emission = Color(0.2, 0.2, 0.215)
+				d.emission_energy_multiplier = 1.0
+				d.roughness = 0.55
+				m.set_surface_override_material(i, d)
+
+
 static func fix_glass(root: Node, rain := false) -> void:
 	var glass := StandardMaterial3D.new()
 	glass.albedo_color = Color(0.85, 0.92, 0.95, 0.1)

@@ -328,6 +328,10 @@ cd game
 - Start **cold and dark** if you want: the C172 needs the real start procedure (master, mixture rich, throttle cracked, magnetos BOTH, starter).
 
 **On the ground:**
+- **Training callouts (optional, off by default):** a real C172 has none, but an instructor would call them. Turn them on with **K** in flight or on the Options page ("Speak them" uses your system's text-to-speech voice if it has one).
+  - **Takeoff:** *Airspeed alive* (40 kt), *Rotate* (55 kt), *Positive rate*.
+  - **Approach:** *Five hundred*, *One hundred*, *Fifty*, *Thirty*, *Twenty*, *Ten* (feet above ground, once each, only while descending).
+  - **Cautions:** *Sink rate*, *Low airspeed* and *Bank angle* near the ground.
 - **Touchdown effects:** a landing puffs tyre smoke from each main wheel (more at higher speed and sink rate) and leaves a rubber mark on the runway that follows how hard you landed: a butter landing (under ~80 fpm) leaves nothing, a smooth one a faint scuff, a firm one a clear dark mark, a hard one a long heavy streak. Each mark is irregular (dark spin-up smudge, patchy trail), and up to 40 are kept per session.
 - **Pushback** with a tug.
 - **Taxi guidance:** the route is computed over the real OSM taxiway network, and the instruction names the taxiways ("via A, B").

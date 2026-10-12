@@ -65,6 +65,22 @@ func _ready() -> void:
 		UserOptions.set_v("hud_at_start", on)
 		changed.emit())
 	right.add_child(hud)
+	right.add_child(MenuTheme.heading("Training callouts"))
+	var co := CheckBox.new()
+	co.text = "Training callouts (K toggles in flight)"
+	co.button_pressed = bool(UserOptions.get_v("callouts"))
+	co.toggled.connect(func(on):
+		UserOptions.set_v("callouts", on)
+		changed.emit())
+	right.add_child(co)
+	var cv := CheckBox.new()
+	cv.text = "Speak them (system voice)"
+	cv.button_pressed = bool(UserOptions.get_v("callouts_voice"))
+	cv.toggled.connect(func(on):
+		UserOptions.set_v("callouts_voice", on)
+		changed.emit())
+	right.add_child(cv)
+	right.add_child(MenuTheme.note("Airspeed alive, Rotate, Positive rate; 500 / 100 / 50 / 30 / 20 / 10 ft on the approach; sink rate, low airspeed and bank angle warnings. Off by default: a real C172 has none."))
 	left.add_child(MenuTheme.heading("Flight controls"))
 	var cg := GridContainer.new()
 	cg.columns = 2

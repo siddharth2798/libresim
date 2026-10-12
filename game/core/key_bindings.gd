@@ -41,7 +41,7 @@ const RESERVED := {
 	KEY_TAB: "panel layout", KEY_QUOTELEFT: "radio menu", KEY_ESCAPE: "pause", KEY_F1: "key help",
 	KEY_F2: "checklists", KEY_F3: "perf overlay", KEY_F5: "reset", KEY_F8: "recording",
 	KEY_F9: "failures", KEY_F10: "settings", KEY_F11: "saved flights", KEY_F12: "credits",
-	KEY_R: "instant replay", KEY_L: "panel light (Shift: dimmer)",
+	KEY_R: "instant replay", KEY_L: "panel light (Shift: dimmer)", KEY_K: "training callouts",
 }
 
 
