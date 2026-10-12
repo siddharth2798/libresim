@@ -1,6 +1,6 @@
-# free-sim: setup, running and usage
+# libresim: setup, running and usage
 
-This guide covers how to install, build the map data, and run free-sim, a local Cessna 172 flight simulator for the Mumbai–Pune region. Design and roadmap are in `PLAN.md`; the coding conventions are in `CLAUDE.md`.
+This guide covers how to install, build the map data, and run libresim, a local Cessna 172 flight simulator for the Mumbai–Pune region. Design and roadmap are in `PLAN.md`; the coding conventions are in `CLAUDE.md`.
 
 ## Quick start: `./run.sh`
 
@@ -163,7 +163,10 @@ On first run, Godot imports the project (a few seconds). The data is read from `
 
 ### Start screen (flight setup)
 
-Running the game opens the **start screen**. Your last setup is remembered (`user://last_flight.json`). Keys 1–8 switch pages, and Ctrl+Enter flies.
+Running the game opens the **start screen** (the libresim logo shows first as the splash).
+- **Guided flow:** a stepper at the top shows Airport → Aircraft → Weather → Failures → Fly. The current step is highlighted, finished steps get a tick, and every pill is clickable. **Next: <step> ▶** moves on, **◀ Back** returns, and on the last step the filled button is **FLY ▶** (FLY works from any step). Page Up / Page Down also step through.
+- **Left list:** FREE FLIGHT (the four steps), LEARN (Training), MORE (Recording, Controls, Options, Saved flights).
+- **Training:** see below. Your last setup is remembered (`user://last_flight.json`). Keys 1–8 switch pages, and Ctrl+Enter flies.
 
 1. **Airport & start:**
    - Pick an airport from the searchable list. A north-up diagram shows its runways, taxiways and stands, with an arrow at your start point.
@@ -198,9 +201,9 @@ Running the game opens the **start screen**. Your last setup is remembered (`use
 
 5. **Recording:**
    - Tick "Record this flight" to record the whole session, **picture and sound**.
-   - Files go to `recordings/` in the game folder by default, or to any folder you choose. Read-only installs (AppImage, .app) fall back to `~/.local/share/godot/app_userdata/free-sim/recordings`.
+   - Files go to `recordings/` in the game folder by default, or to any folder you choose. Read-only installs (AppImage, .app) fall back to `~/.local/share/godot/app_userdata/libresim/recordings`.
    - Choose 720p, 1080p or native resolution, at 24, 30 or 60 fps.
-   - **Format:** files are named `free-sim_<date>_<time>.mkv` (MJPEG video plus 16-bit PCM sound), written by the game itself, so no extra software is needed. They play in VLC and mpv and import into video editors.
+   - **Format:** files are named `libresim_<date>_<time>.mkv` (MJPEG video plus 16-bit PCM sound), written by the game itself, so no extra software is needed. They play in VLC and mpv and import into video editors.
    - **Size:** about 5 MB/s at 720p30.
    - **MP4:** if `ffmpeg` is installed, the file is converted to a much smaller MP4 (H.264 + AAC) when the recording stops.
    - **Crash-safe:** the file is written as a stream, so it stays playable even if the game is killed.
@@ -231,6 +234,24 @@ Running the game opens the **start screen**. Your last setup is remembered (`use
 8. **Saved flights:** saved situations with a thumbnail, airport, altitude and IAS. "Fly from this save" resumes exactly there.
 
 The **Aircraft** page also shows a **weight & balance chart**: the C172S normal and utility CG envelopes, with the takeoff and landing points (landing assumes 5 gal per tank). It turns red when overweight or out of CG limits. The flight model flies the CG you load: an aft CG makes the pitch light and less stable.
+
+**Training mode** (Training page, or `--lesson=takeoff|cruise|landing[,full|light|off]`):
+
+Three short, separate lessons at Pune in calm, clear weather. Your free-flight setup is not changed.
+
+| Lesson | You practise |
+|---|---|
+| **Takeoff** | Full power, staying on the centreline, rotating at 55 kt, climbing at Vy (74 kt), reaching 500 ft |
+| **Cruise** | Level flight, cruise power, trim, a 90° turn, a 500 ft climb and descent |
+| **Landing** | Slowing down, flaps, the 3° glide path and centreline, the threshold, the flare, touchdown and roll-out |
+
+- **A lesson card** (left) lists the steps, shows the current instruction and a hint, and ticks steps off as you complete them.
+- **Live gauges** show your value against the target and tolerance (green inside, amber near, red far).
+- **3D markers:** a dashed line down the runway centreline, glide-path rings on the approach (cyan = ahead, yellow = next, green = flown, red = missed), an aim-point box on the runway, and a beacon to turn toward in the cruise lesson.
+- **Coach messages** (and optional system-voice speech) warn you: "Drifting off the centreline", "Rotate now!", "High. Reduce power, lower the nose", and so on. Training callouts are always on during a lesson.
+- **Help level:** *Full guidance* (all of the above), *Hints only* (card, hints, callouts) or *Minimal* (step list only, like a check ride).
+- **Result:** 1–3 stars from the graded numbers (centreline error, rotation speed, climb speed, sink rate at touchdown, touchdown point, and so on), with **Try again**, **Next lesson**, **Keep flying** and **Menu**. Your best stars are remembered (`user://training.json`).
+- Lessons are data in `game/training/lessons.json`: steps, conditions, gauges and grades.
 
 **In flight:**
 - **Esc** opens the pause menu: resume, restart, failures, settings, new flight (back to this screen) or quit.
@@ -583,10 +604,10 @@ mv tpl/templates/* export_templates/4.7.2.stable/ && rm -rf tpl *.tpz
 
 | File | Size | For |
 |---|---|---|
-| `free-sim-<v>-linux-x86_64.tar.gz` | ~450 MB | Any 64-bit Linux distro: extract and run `free-sim/free-sim.sh` |
-| `free-sim-<v>-x86_64.AppImage` | ~440 MB | Any Linux distro, single file: `chmod +x` and run it |
-| `free-sim-<v>-macos-universal.zip` | ~480 MB | macOS 11+ (Intel and Apple Silicon): unzip, move `free-sim.app` to Applications |
-| `free-sim-<v>-source.tar.gz` | ~65 MB | GPL corresponding source of that build |
+| `libresim-<v>-linux-x86_64.tar.gz` | ~450 MB | Any 64-bit Linux distro: extract and run `libresim/libresim.sh` |
+| `libresim-<v>-x86_64.AppImage` | ~440 MB | Any Linux distro, single file: `chmod +x` and run it |
+| `libresim-<v>-macos-universal.zip` | ~480 MB | macOS 11+ (Intel and Apple Silicon): unzip, move `libresim.app` to Applications |
+| `libresim-<v>-source.tar.gz` | ~65 MB | GPL corresponding source of that build |
 
 **Flatpak** (wraps the Linux tar.gz):
 
@@ -598,17 +619,17 @@ flatpak run org.freesim.FreeSim
 
 **macOS notes:**
 - The build is ad-hoc signed with `rcodesign`, which runs on Linux, but **not notarised**.
-- On the first launch, right-click the app → Open. Alternatively, run `xattr -dr com.apple.quarantine /Applications/free-sim.app`.
+- On the first launch, right-click the app → Open. Alternatively, run `xattr -dr com.apple.quarantine /Applications/libresim.app`.
 - For public distribution, sign with an Apple Developer ID and notarise. Both `rcodesign` and Xcode can do this, with a paid Apple Developer account.
 - The macOS build was produced and checked for structure on Linux (universal binary, data in `Contents/Resources`, valid signature). It hasn't been run on a Mac yet.
 
-**Command-line options** work the same in every package: `./free-sim.sh -- --airport=VABB --stand`. The AppImage takes them directly: `free-sim.AppImage -- --stand`.
+**Command-line options** work the same in every package: `./libresim.sh -- --airport=VABB --stand`. The AppImage takes them directly: `libresim.AppImage -- --stand`.
 
 **Read-only installs** (AppImage, Flatpak): the F10 → Renderer toggle can't write `override.cfg`. Start with `--rendering-method forward_plus` instead.
 
 ## 5. Aircraft models and 3D scenery
 
-**The aircraft** is the FlightGear c172p model and cockpit (GPL-2.0-or-later, c172p team), converted by the Blender scripts in `tools/blender/`. The original sources are vendored in `third_party/c172p/`. The live free-sim gauges are drawn onto the real panel at each instrument's true position. If the `.glb` files are missing, the sim falls back to the box placeholder.
+**The aircraft** is the FlightGear c172p model and cockpit (GPL-2.0-or-later, c172p team), converted by the Blender scripts in `tools/blender/`. The original sources are vendored in `third_party/c172p/`. The live libresim gauges are drawn onto the real panel at each instrument's true position. If the `.glb` files are missing, the sim falls back to the box placeholder.
 
 **3D buildings:**
 - Built from 578k OSM footprints, with heights from OSM tags or a synthetic estimate by footprint size.

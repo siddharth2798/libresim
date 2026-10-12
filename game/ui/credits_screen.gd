@@ -39,7 +39,7 @@ func _ready() -> void:
 
 func _load_text() -> String:
 	var path := Paths.docs_dir().path_join("CREDITS.md")
-	var t := "free-sim — Credits & licences   (F12 / Esc to close)\n\n"
+	var t := "libresim — Credits & licences   (F12 / Esc to close)\n\n"
 	var f := FileAccess.open(path, FileAccess.READ)
 	t += f.get_as_text() if f else "CREDITS.md not found next to the game.\n"
 	t += "\n\n==== Godot Engine licence ====\n\n" + Engine.get_license_text()

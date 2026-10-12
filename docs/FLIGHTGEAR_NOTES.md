@@ -15,7 +15,7 @@
 - **Local/private use:** no obligations.
 - **Distributing with c172p assets:**
   - Ship their source (`.ac` and XML, plus our converted files) and the GPL text and credits, and note our modifications.
-  - Simplest route: license free-sim as GPL-2.0-or-later, or ship the GPL assets as a separate pack.
+  - Simplest route: license libresim as GPL-2.0-or-later, or ship the GPL assets as a separate pack.
 - **Imagery:** s2cloudless 2024 is CC BY-NC-SA, so the bundle can't be sold. The 2016 layer (CC BY) is the alternative if commercial use is ever wanted.
 
 ## FlightGear roadmap (stable 2024.1.x; next major release has no date)
@@ -27,7 +27,7 @@
   - Qt6 launcher and Canvas GUI
 - **No visible work on:** new ATC, CPDLC, Vulkan, or a multiplayer overhaul.
 
-## Where free-sim can get there first
+## Where libresim can get there first
 1. Photoreal satellite terrain out of the box (we already have it).
 2. Offline neural-TTS ATC with Mumbai/Pune phraseology (Piper).
 3. First-class VR through Godot OpenXR.

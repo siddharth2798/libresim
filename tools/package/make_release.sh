@@ -2,10 +2,10 @@
 # Build release packages from the current checkout + generated data.
 #   tools/package/make_release.sh [version]        (default version: 0.1.0-dev)
 # Produces in build/:
-#   free-sim-<v>-linux-x86_64.tar.gz      binary + .pck + data/ + licences (any distro)
-#   free-sim-<v>-x86_64.AppImage          single-file Linux app (needs appimagetool, auto-downloaded)
-#   free-sim-<v>-macos-universal.zip      .app with data in Contents/Resources (ad-hoc signed)
-#   free-sim-<v>-source.tar.gz            exact source of this build (GPL corresponding source)
+#   libresim-<v>-linux-x86_64.tar.gz      binary + .pck + data/ + licences (any distro)
+#   libresim-<v>-x86_64.AppImage          single-file Linux app (needs appimagetool, auto-downloaded)
+#   libresim-<v>-macos-universal.zip      .app with data in Contents/Resources (ad-hoc signed)
+#   libresim-<v>-source.tar.gz            exact source of this build (GPL corresponding source)
 # Flatpak: see packaging/flatpak/ (builds from the tar.gz).
 set -euo pipefail
 cd "$(dirname "$0")/../.."
@@ -14,7 +14,7 @@ V="${1:-0.1.0-dev}"
 GODOT="${GODOT:-$HOME/.local/bin/godot}"
 B="$ROOT/build"
 DATA="$ROOT/data/processed"
-rm -rf "$B" && mkdir -p "$B/linux/free-sim" "$B/macos"
+rm -rf "$B" && mkdir -p "$B/linux/libresim" "$B/macos"
 
 # 1. runtime data subset (no intermediate OSM files the game doesn't read)
 stage_data() {  # $1 = destination data dir
@@ -35,11 +35,11 @@ stage_docs() {  # $1 = destination folder
 }
 
 # 2. Linux
-"$GODOT" --headless --path game --export-release "Linux" "$B/linux/free-sim/free-sim.x86_64"
-stage_data "$B/linux/free-sim/data"
-stage_docs "$B/linux/free-sim"
-cp packaging/linux/free-sim.sh packaging/linux/free-sim.desktop packaging/linux/free-sim.png "$B/linux/free-sim/"
-tar -C "$B/linux" -czf "$B/free-sim-$V-linux-x86_64.tar.gz" free-sim
+"$GODOT" --headless --path game --export-release "Linux" "$B/linux/libresim/libresim.x86_64"
+stage_data "$B/linux/libresim/data"
+stage_docs "$B/linux/libresim"
+cp packaging/linux/libresim.sh packaging/linux/libresim.desktop packaging/linux/libresim.png "$B/linux/libresim/"
+tar -C "$B/linux" -czf "$B/libresim-$V-linux-x86_64.tar.gz" libresim
 
 # 3. AppImage
 AIT="$ROOT/data/raw/tools/appimagetool-x86_64.AppImage"
@@ -48,14 +48,14 @@ if [ ! -x "$AIT" ]; then
 	curl -sSfL -o "$AIT" https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage
 	chmod +x "$AIT"
 fi
-APPDIR="$B/linux/free-sim.AppDir"
-cp -r "$B/linux/free-sim" "$APPDIR"
+APPDIR="$B/linux/libresim.AppDir"
+cp -r "$B/linux/libresim" "$APPDIR"
 cp packaging/linux/AppRun "$APPDIR/AppRun" && chmod +x "$APPDIR/AppRun"
-ARCH=x86_64 "$AIT" --appimage-extract-and-run "$APPDIR" "$B/free-sim-$V-x86_64.AppImage" >/dev/null
+ARCH=x86_64 "$AIT" --appimage-extract-and-run "$APPDIR" "$B/libresim-$V-x86_64.AppImage" >/dev/null
 
 # 4. macOS (universal .app; data + docs inside Contents/Resources)
-"$GODOT" --headless --path game --export-release "macOS" "$B/macos/free-sim.zip"
-(cd "$B/macos" && unzip -q free-sim.zip && rm free-sim.zip)
+"$GODOT" --headless --path game --export-release "macOS" "$B/macos/libresim.zip"
+(cd "$B/macos" && unzip -q libresim.zip && rm libresim.zip)
 APP=$(ls -d "$B/macos/"*.app | head -1)
 stage_data "$APP/Contents/Resources/data"
 stage_docs "$APP/Contents/Resources"
@@ -68,9 +68,9 @@ if [ ! -x "$RCS" ]; then
 		| tar -xz -C "$(dirname "$RCS")" --strip-components=1 --wildcards '*/rcodesign'
 fi
 "$RCS" sign "$APP" >/dev/null
-(cd "$B/macos" && zip -qry "$B/free-sim-$V-macos-universal.zip" "$(basename "$APP")")
+(cd "$B/macos" && zip -qry "$B/libresim-$V-macos-universal.zip" "$(basename "$APP")")
 
 # 5. corresponding source
-git archive --format=tar.gz --prefix="free-sim-$V/" -o "$B/free-sim-$V-source.tar.gz" HEAD
+git archive --format=tar.gz --prefix="libresim-$V/" -o "$B/libresim-$V-source.tar.gz" HEAD
 
 ls -lh "$B"/*.tar.gz "$B"/*.AppImage "$B"/*.zip

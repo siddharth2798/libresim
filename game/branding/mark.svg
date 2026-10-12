@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+<defs>
+  <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0" stop-color="#1b1464"/><stop offset="0.34" stop-color="#5b2a96"/>
+    <stop offset="0.56" stop-color="#c8327f"/><stop offset="0.76" stop-color="#ff6a3d"/>
+    <stop offset="0.9" stop-color="#ffa21f"/><stop offset="1" stop-color="#ffd54a"/>
+  </linearGradient>
+  <radialGradient id="sun" cx="0.5" cy="0.5" r="0.5">
+    <stop offset="0" stop-color="#fffbe0"/><stop offset="0.55" stop-color="#ffd23f"/>
+    <stop offset="1" stop-color="#ff9a2e" stop-opacity="0.0"/>
+  </radialGradient>
+  <linearGradient id="far" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#5a3aa8"/><stop offset="1" stop-color="#2b2380"/></linearGradient>
+  <linearGradient id="mid" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#20c4b0"/><stop offset="1" stop-color="#0f6a8a"/></linearGradient>
+  <linearGradient id="near" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0f5a63"/><stop offset="1" stop-color="#082a48"/></linearGradient>
+  <linearGradient id="ring" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0" stop-color="#ffd54a"/><stop offset="0.5" stop-color="#ff4f87"/><stop offset="1" stop-color="#6a5cff"/>
+  </linearGradient>
+  <linearGradient id="trail" x1="0" y1="1" x2="1" y2="0">
+    <stop offset="0" stop-color="#ffffff" stop-opacity="0"/><stop offset="1" stop-color="#ffffff" stop-opacity="0.95"/>
+  </linearGradient>
+  <linearGradient id="plane" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#dfe9ff"/></linearGradient>
+  <clipPath id="disc"><circle cx="256" cy="256" r="238"/></clipPath>
+</defs>
+<circle cx="256" cy="256" r="244" fill="#0c0f2b"/>
+<g clip-path="url(#disc)">
+  <rect width="512" height="512" fill="url(#sky)"/>
+  <circle cx="120" cy="70" r="2.2" fill="#fff" opacity="0.9"/><circle cx="190" cy="42" r="1.6" fill="#fff" opacity="0.7"/><circle cx="330" cy="58" r="2.0" fill="#fff" opacity="0.8"/><circle cx="392" cy="96" r="1.5" fill="#fff" opacity="0.7"/><circle cx="88" cy="128" r="1.4" fill="#fff" opacity="0.6"/><circle cx="430" cy="150" r="1.8" fill="#fff" opacity="0.6"/><circle cx="250" cy="90" r="1.3" fill="#fff" opacity="0.5"/>
+  <circle cx="250" cy="334" r="150" fill="url(#sun)" opacity="0.55"/>
+  <circle cx="250" cy="338" r="84" fill="url(#sun)"/>
+  <path d="M0 338 L52 304 L100 330 L160 282 L222 326 L286 296 L346 330 L410 290 L470 326 L512 306 L512 512 L0 512 Z" fill="url(#far)"/>
+  <path d="M0 338 L52 304 L100 330 L160 282 L222 326 L286 296 L346 330 L410 290 L470 326 L512 306" fill="none" stroke="#ffc46a" stroke-width="2.5" opacity="0.7"/>
+  <path d="M0 384 L64 346 L134 380 L212 332 L282 382 L352 350 L432 388 L512 356 L512 512 L0 512 Z" fill="url(#mid)"/>
+  <path d="M0 432 L84 398 L168 432 L258 392 L350 436 L440 404 L512 430 L512 512 L0 512 Z" fill="url(#near)"/>
+  <path d="M20 286 C110 292 190 262 262 232 C300 216 330 208 352 198" fill="none" stroke="url(#trail)" stroke-width="9" stroke-linecap="round"/>
+  
+<g transform="translate(318 214) rotate(-17) scale(1.28)">
+  <path d="M-84 -6 L-96 -40 L-72 -40 L-50 -12 Z" fill="url(#plane)"/>
+  <ellipse cx="-80" cy="-3" rx="24" ry="4.6" fill="url(#plane)"/>
+  <path d="M-86 -6 L-52 -13 L30 -17 C54 -17 72 -9 76 0 C72 9 54 15 30 15 L-52 7 L-86 -2 Z" fill="url(#plane)"/>
+  <path d="M-60 2 L62 4 C68 5 72 3 74 1 L72 6 C56 13 30 13 20 13 L-52 6 Z" fill="#36c8ff"/>
+  <path d="M-14 -17 L34 -17 L60 -48 L10 -48 Z" fill="#ffffff"/>
+  <path d="M-14 -17 L34 -17 L60 -48 L56 -48 L30 -19 Z" fill="#cfe0ff"/>
+  <rect x="14" y="-12" width="22" height="9" rx="3" fill="#2a2f7a"/>
+  <path d="M8 8 L30 -16" stroke="#e8f0ff" stroke-width="3" stroke-linecap="round" fill="none"/>
+  <ellipse cx="78" cy="0" rx="3" ry="27" fill="#ffffff" opacity="0.45"/>
+  <circle cx="76" cy="0" r="4" fill="#ff4f87"/>
+</g>
+</g>
+<circle cx="256" cy="256" r="238" fill="none" stroke="#ffffff" stroke-width="5" opacity="0.92"/>
+<circle cx="256" cy="256" r="249" fill="none" stroke="url(#ring)" stroke-width="9"/></svg>

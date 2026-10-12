@@ -1,7 +1,7 @@
 class_name SessionRecorder
 extends Label
 ## Session recording: the whole flight, picture + sound, to
-## <folder>/free-sim_<date>_<time>.mkv (MJPEG + PCM, see core/mkv_writer.gd).
+## <folder>/libresim_<date>_<time>.mkv (MJPEG + PCM, see core/mkv_writer.gd).
 ## Enabled on the start screen (Session.setup.record*); F8 starts / stops in flight.
 ## Frames are read back on the main thread and JPEG-encoded on worker threads; sound is
 ## tapped from the Master bus with an AudioEffectCapture. If ffmpeg is installed the
@@ -54,7 +54,7 @@ func start() -> void:
 	var dir: String = Session.setup.get("record_dir", "")
 	dir = dir if dir != "" else default_dir()
 	DirAccess.make_dir_recursive_absolute(dir)
-	path = dir.path_join("free-sim_%s.mkv" % Time.get_datetime_string_from_system().replace(":", "-").replace("T", "_"))
+	path = dir.path_join("libresim_%s.mkv" % Time.get_datetime_string_from_system().replace(":", "-").replace("T", "_"))
 	var vs := get_viewport().get_visible_rect().size
 	var h := int(Session.setup.get("record_height", 720))
 	_size = Vector2i(vs) if h <= 0 or h >= int(vs.y) else Vector2i(int(vs.x * h / vs.y) & ~1, h)

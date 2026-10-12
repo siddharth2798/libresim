@@ -226,7 +226,7 @@ Both are built in the same style but lower: glass to 5 m, cream to 9 m, and tile
   footprints. They are produced databases under the ODbL and need the same attribution.
   They are **not committed**: `data/processed` is gitignored, and anyone can regenerate
   them with the commands in §1.
-- The recipes, geometry code and shader are free-sim code (GPL-2.0-or-later). No
+- The recipes, geometry code and shader are libresim code (GPL-2.0-or-later). No
   third-party models or textures are used.
 - The architectural facts in §3 come from the public sources listed below. No images or
   drawings were copied.

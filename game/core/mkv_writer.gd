@@ -22,7 +22,7 @@ func open(path: String, width: int, height: int, mix_rate: float) -> bool:
 		+ _el(0x4282, "matroska".to_ascii_buffer()) + _el(0x4287, _uint(4)) + _el(0x4285, _uint(2))
 	_write(_el(0x1A45DFA3, ebml))
 	_write(_id(0x18538067) + PackedByteArray(UNKNOWN_SIZE))  # Segment, open-ended
-	var info := _el(0x2AD7B1, _uint(1000000)) + _el(0x4D80, "free-sim".to_ascii_buffer()) + _el(0x5741, "free-sim".to_ascii_buffer())
+	var info := _el(0x2AD7B1, _uint(1000000)) + _el(0x4D80, "libresim".to_ascii_buffer()) + _el(0x5741, "libresim".to_ascii_buffer())
 	_write(_el(0x1549A966, info))
 	var video := _el(0xD7, _uint(1)) + _el(0x73C5, _uint(1)) + _el(0x83, _uint(1)) + _el(0x9C, _uint(0)) \
 		+ _el(0x86, "V_MJPEG".to_ascii_buffer()) + _el(0xE0, _el(0xB0, _uint(width)) + _el(0xBA, _uint(height)))

@@ -1,4 +1,4 @@
-# "free-sim": Plan for a Lightweight, Realistic Flight Simulator (Mumbai–Pune, Cessna 172)
+# "libresim": Plan for a Lightweight, Realistic Flight Simulator (Mumbai–Pune, Cessna 172)
 
 ## Platform: runs locally, not in a browser
 - **Primary target: a native desktop app on Pop!_OS (Linux).** Godot exports a single Linux executable plus a `.pck` data file. You launch it like any app: no browser, no internet, no server. This gives the best performance on an integrated GPU, full Vulkan, joystick support, and fast disk streaming of the ~600 MB of map data.
@@ -14,7 +14,7 @@ Goal: a realistic desktop flight simulator in the style of MSFS and Real Flight 
 - **Main aircraft**: Cessna 172 (C172S), built as realistically as the budget allows.
 - **Low Claude-credit use**: most heavy work (data processing, 3D art) runs as local scripts or in free GUI tools, not inside Claude conversations.
 
-The working directory `/home/siddharth/Documents/tech-projects` has no existing project, so this is a greenfield build in `tech-projects/free-sim/`.
+The working directory `/home/siddharth/Documents/tech-projects` has no existing project, so this is a greenfield build in `tech-projects/libresim/`.
 
 ---
 
@@ -83,7 +83,7 @@ The working directory `/home/siddharth/Documents/tech-projects` has no existing 
 ## 4. Architecture
 
 ```
-free-sim/
+libresim/
   CLAUDE.md                 # conventions + module map (keeps Claude sessions cheap)
   tools/                    # offline Python/GDAL pipeline (run locally, never in Godot)
     01_fetch_notes.md       # manual download links/steps
@@ -289,6 +289,6 @@ free-sim/
 ---
 
 ## 12. Immediate next steps after approval
-1. Create `free-sim/` with the folder skeleton, `CLAUDE.md` and `tools/01_fetch_notes.md`. The fetch notes list exact download pages for Copernicus DEM, s2cloudless, Geofabrik, OurAirports and JSBSim c172p.
+1. Create `libresim/` with the folder skeleton, `CLAUDE.md` and `tools/01_fetch_notes.md`. The fetch notes list exact download pages for Copernicus DEM, s2cloudless, Geofabrik, OurAirports and JSBSim c172p.
 2. Install Godot 4 (latest stable), Blender, QGIS/GDAL, Python 3 plus rasterio/numpy/osmium, and JSBSim (pip `jsbsim`).
 3. Start M1 (data pipeline) in a fresh session.

@@ -1,8 +1,8 @@
 [Desktop Entry]
 Type=Application
-Name=free-sim
+Name=libresim
 Comment=Cessna 172 flight simulator — Mumbai to Pune
-Exec=free-sim.sh
-Icon=free-sim
+Exec=libresim.sh
+Icon=libresim
 Categories=Game;Simulation;
 Terminal=false

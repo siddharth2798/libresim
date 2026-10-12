@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# free-sim one-shot setup + launch. Idempotent: each step runs only when needed.
+# libresim one-shot setup + launch. Idempotent: each step runs only when needed.
 #   ./run.sh [options] [--] [game args...]      e.g. ./run.sh --airport=VABB --stand
 # See ./run.sh --help. Log: data/run.log. Stamps: data/.stamps/<step>.done
 set -Eeuo pipefail
@@ -79,7 +79,7 @@ OURAIRPORTS="airports runways navaids airport-frequencies"
 usage() { cat <<'EOF'
 Usage: ./run.sh [options] [--] [game args...]
 
-Builds everything free-sim needs (system tools, Python venv, raw data, data
+Builds everything libresim needs (system tools, Python venv, raw data, data
 pipeline, Godot import) and then launches the game. Each step is skipped when
 its outputs are already up to date, so a second run starts the game in seconds.
 

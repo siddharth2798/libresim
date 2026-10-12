@@ -1,6 +1,6 @@
 class_name Paths
 ## Locations of processed data. During development the data lives next to the
-## project (free-sim/data/processed); an exported build will ship it beside the binary.
+## project (libresim/data/processed); an exported build will ship it beside the binary.
 
 static func data_dir() -> String:
 	var env := OS.get_environment("FREESIM_DATA")  # Flatpak / custom installs
@@ -9,7 +9,7 @@ static func data_dir() -> String:
 	if OS.has_feature("editor"):
 		return ProjectSettings.globalize_path("res://").path_join("../data/processed").simplify_path()
 	var exe_dir := OS.get_executable_path().get_base_dir()
-	if OS.has_feature("macos"):  # free-sim.app/Contents/MacOS/free-sim -> Contents/Resources/data
+	if OS.has_feature("macos"):  # libresim.app/Contents/MacOS/libresim -> Contents/Resources/data
 		return exe_dir.path_join("../Resources/data").simplify_path()
 	return exe_dir.path_join("data")
 

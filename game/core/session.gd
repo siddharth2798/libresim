@@ -50,6 +50,7 @@ var clean := false  # hide all UI (for promo shots)
 
 
 func _ready() -> void:
+	LegacyMigrate.run()  # settings and saves from the free-sim days
 	setup = DEFAULT.duplicate(true)
 	_load()
 	_parse_cmdline()

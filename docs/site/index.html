@@ -1,4 +1,4 @@
-<title>free-sim Handbook</title>
+<title>libresim Handbook</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:ital,wght@0,400;0,500;0,600;1,400&amp;family=Barlow+Condensed:wght@500;600;700&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap">
@@ -190,6 +190,9 @@ main { min-width: 0; padding-block: 1.5rem 0; }
   padding-block: 0.4rem;
 }
 h1, h2, h3, h4 { font-family: var(--font-display); text-wrap: balance; line-height: 1.15; }
+.brandrow { display: flex; align-items: center; gap: 1rem; margin: 1.4rem 0 0.4rem; }
+.brandrow svg { flex: none; width: 72px; height: 72px; }
+.brandrow h1 { margin: 0; }
 h1 { font-size: clamp(2.3rem, 6vw, 3.4rem); font-weight: 700; letter-spacing: 0.01em; margin: 1.4rem 0 0.4rem; }
 .lead { font-size: 1.18rem; color: var(--muted); margin: 0 0 1.25rem; max-width: 62ch; }
 .facts {
@@ -357,7 +360,7 @@ footer { margin-top: 3rem; padding-top: 0.6rem; border-top: 1px solid var(--rule
   <details id="toc-wrap" open>
     <summary>Contents</summary>
     <div class="toc-body">
-      <p class="rail-brand">free-sim Handbook</p>
+      <p class="rail-brand">libresim Handbook</p>
       <label for="toc-filter">Filter contents</label>
       <input type="search" id="toc-filter" placeholder="e.g. ILS, pushback, F9" autocomplete="off">
       <ol class="toc" id="toc">
@@ -365,6 +368,7 @@ footer { margin-top: 3rem; padding-top: 0.6rem; border-top: 1px solid var(--rule
         <li><a href="#overview" data-k="about region aircraft highlights c172 mumbai pune kochi"><span class="no">GEN 1</span><span>Overview</span></a></li>
         <li><a href="#install" data-k="install run.sh requirements linux macos appimage flatpak tar.gz windows data size godot"><span class="no">GEN 2</span><span>Install and run</span></a></li>
         <li><a href="#start-screen" data-k="start screen menu airport stand runway air payload weight balance weather failures random recording controls options saves"><span class="no">GEN 3</span><span>Start screen</span></a></li>
+        <li><a href="#training" data-k="training lessons takeoff cruise landing learn practise markers rings gauges stars assist"><span class="no">GEN 4</span><span>Training mode</span></a></li>
         <li class="part">OPS · Flight operations</li>
         <li><a href="#flying" data-k="controls keyboard mouse yoke joystick gamepad rebind control feel cold dark start engine takeoff landing trim grade crash v-speeds"><span class="no">OPS 1</span><span>Flying the C172</span></a></li>
         <li><a href="#cockpit" data-k="panel six-pack instruments engine gauges switches radio stack com nav adf xpdr transponder dme cdi gps moving map panel layouts tab cameras views"><span class="no">OPS 2</span><span>Cockpit and instruments</span></a></li>
@@ -390,9 +394,58 @@ footer { margin-top: 3rem; padding-top: 0.6rem; border-top: 1px solid var(--rule
 </aside>
 
 <main>
-<div class="masthead"><span>FREE-SIM · PILOT AND BUILDER HANDBOOK</span><span>AMDT 924456f · 11 OCT 2026</span></div>
-<h1>free-sim Handbook</h1>
-<p class="lead">free-sim is a free, open-source desktop flight simulator of the Cessna 172S over Mumbai, Pune and the Western Ghats, with a coastal corridor running south to Kochi. This handbook covers flying it first, then building and changing it.</p>
+<div class="masthead"><span>LIBRESIM · PILOT AND BUILDER HANDBOOK</span><span>AMDT 924456f · 11 OCT 2026</span></div>
+<div class="brandrow"><svg xmlns="http://www.w3.org/2000/svg" width="72" height="72" role="img" aria-label="libresim logo" viewBox="0 0 512 512">
+<defs>
+  <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0" stop-color="#1b1464"/><stop offset="0.34" stop-color="#5b2a96"/>
+    <stop offset="0.56" stop-color="#c8327f"/><stop offset="0.76" stop-color="#ff6a3d"/>
+    <stop offset="0.9" stop-color="#ffa21f"/><stop offset="1" stop-color="#ffd54a"/>
+  </linearGradient>
+  <radialGradient id="sun" cx="0.5" cy="0.5" r="0.5">
+    <stop offset="0" stop-color="#fffbe0"/><stop offset="0.55" stop-color="#ffd23f"/>
+    <stop offset="1" stop-color="#ff9a2e" stop-opacity="0.0"/>
+  </radialGradient>
+  <linearGradient id="far" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#5a3aa8"/><stop offset="1" stop-color="#2b2380"/></linearGradient>
+  <linearGradient id="mid" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#20c4b0"/><stop offset="1" stop-color="#0f6a8a"/></linearGradient>
+  <linearGradient id="near" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0f5a63"/><stop offset="1" stop-color="#082a48"/></linearGradient>
+  <linearGradient id="ring" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0" stop-color="#ffd54a"/><stop offset="0.5" stop-color="#ff4f87"/><stop offset="1" stop-color="#6a5cff"/>
+  </linearGradient>
+  <linearGradient id="trail" x1="0" y1="1" x2="1" y2="0">
+    <stop offset="0" stop-color="#ffffff" stop-opacity="0"/><stop offset="1" stop-color="#ffffff" stop-opacity="0.95"/>
+  </linearGradient>
+  <linearGradient id="plane" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#dfe9ff"/></linearGradient>
+  <clipPath id="disc"><circle cx="256" cy="256" r="238"/></clipPath>
+</defs>
+<circle cx="256" cy="256" r="244" fill="#0c0f2b"/>
+<g clip-path="url(#disc)">
+  <rect width="512" height="512" fill="url(#sky)"/>
+  <circle cx="120" cy="70" r="2.2" fill="#fff" opacity="0.9"/><circle cx="190" cy="42" r="1.6" fill="#fff" opacity="0.7"/><circle cx="330" cy="58" r="2.0" fill="#fff" opacity="0.8"/><circle cx="392" cy="96" r="1.5" fill="#fff" opacity="0.7"/><circle cx="88" cy="128" r="1.4" fill="#fff" opacity="0.6"/><circle cx="430" cy="150" r="1.8" fill="#fff" opacity="0.6"/><circle cx="250" cy="90" r="1.3" fill="#fff" opacity="0.5"/>
+  <circle cx="250" cy="334" r="150" fill="url(#sun)" opacity="0.55"/>
+  <circle cx="250" cy="338" r="84" fill="url(#sun)"/>
+  <path d="M0 338 L52 304 L100 330 L160 282 L222 326 L286 296 L346 330 L410 290 L470 326 L512 306 L512 512 L0 512 Z" fill="url(#far)"/>
+  <path d="M0 338 L52 304 L100 330 L160 282 L222 326 L286 296 L346 330 L410 290 L470 326 L512 306" fill="none" stroke="#ffc46a" stroke-width="2.5" opacity="0.7"/>
+  <path d="M0 384 L64 346 L134 380 L212 332 L282 382 L352 350 L432 388 L512 356 L512 512 L0 512 Z" fill="url(#mid)"/>
+  <path d="M0 432 L84 398 L168 432 L258 392 L350 436 L440 404 L512 430 L512 512 L0 512 Z" fill="url(#near)"/>
+  <path d="M20 286 C110 292 190 262 262 232 C300 216 330 208 352 198" fill="none" stroke="url(#trail)" stroke-width="9" stroke-linecap="round"/>
+  
+<g transform="translate(318 214) rotate(-17) scale(1.28)">
+  <path d="M-84 -6 L-96 -40 L-72 -40 L-50 -12 Z" fill="url(#plane)"/>
+  <ellipse cx="-80" cy="-3" rx="24" ry="4.6" fill="url(#plane)"/>
+  <path d="M-86 -6 L-52 -13 L30 -17 C54 -17 72 -9 76 0 C72 9 54 15 30 15 L-52 7 L-86 -2 Z" fill="url(#plane)"/>
+  <path d="M-60 2 L62 4 C68 5 72 3 74 1 L72 6 C56 13 30 13 20 13 L-52 6 Z" fill="#36c8ff"/>
+  <path d="M-14 -17 L34 -17 L60 -48 L10 -48 Z" fill="#ffffff"/>
+  <path d="M-14 -17 L34 -17 L60 -48 L56 -48 L30 -19 Z" fill="#cfe0ff"/>
+  <rect x="14" y="-12" width="22" height="9" rx="3" fill="#2a2f7a"/>
+  <path d="M8 8 L30 -16" stroke="#e8f0ff" stroke-width="3" stroke-linecap="round" fill="none"/>
+  <ellipse cx="78" cy="0" rx="3" ry="27" fill="#ffffff" opacity="0.45"/>
+  <circle cx="76" cy="0" r="4" fill="#ff4f87"/>
+</g>
+</g>
+<circle cx="256" cy="256" r="238" fill="none" stroke="#ffffff" stroke-width="5" opacity="0.92"/>
+<circle cx="256" cy="256" r="249" fill="none" stroke="url(#ring)" stroke-width="9"/></svg><h1>libresim Handbook</h1></div>
+<p class="lead">libresim is a free, open-source desktop flight simulator of the Cessna 172S over Mumbai, Pune and the Western Ghats, with a coastal corridor running south to Kochi. This handbook covers flying it first, then building and changing it.</p>
 <dl class="facts">
   <div><dt>Aircraft</dt><dd>Cessna 172S, IO-360 180 hp</dd></div>
   <div><dt>Region</dt><dd>Mumbai–Pune + Konkan–Kerala</dd></div>
@@ -408,7 +461,7 @@ footer { margin-top: 3rem; padding-top: 0.6rem; border-top: 1px solid var(--rule
 <!-- ===================== GEN 1 ===================== -->
 <section id="overview">
 <h2><span class="no">GEN 1</span>Overview</h2>
-<p>free-sim is a local, offline flight simulator built around one aircraft and one region, done in depth. It runs as a native desktop program on Linux, with a macOS build also produced. There are no accounts, servers or online services.</p>
+<p>libresim is a local, offline flight simulator built around one aircraft and one region, done in depth. It runs as a native desktop program on Linux, with a macOS build also produced. There are no accounts, servers or online services.</p>
 
 <h3 id="overview-region"><span class="no">1.1</span>The region</h3>
 <ul>
@@ -419,7 +472,7 @@ footer { margin-top: 3rem; padding-top: 0.6rem; border-top: 1px solid var(--rule
 </ul>
 
 <h3 id="overview-aircraft"><span class="no">1.2</span>The aircraft</h3>
-<p>The Cessna 172S Skyhawk SP: the FlightGear c172p 3D model and cockpit, flown by a JSBSim-derived six-degree-of-freedom flight model with free-sim's own engine, propeller and gear code. Headless test cards check it against the C172S Pilot's Operating Handbook (POH).</p>
+<p>The Cessna 172S Skyhawk SP: the FlightGear c172p 3D model and cockpit, flown by a JSBSim-derived six-degree-of-freedom flight model with libresim's own engine, propeller and gear code. Headless test cards check it against the C172S Pilot's Operating Handbook (POH).</p>
 <div class="tbl"><table>
   <caption>C172S data as shown on the Aircraft page</caption>
   <thead><tr><th>Item</th><th>Value</th></tr></thead>
@@ -455,7 +508,7 @@ footer { margin-top: 3rem; padding-top: 0.6rem; border-top: 1px solid var(--rule
 
 <h3 id="install-quick"><span class="no">2.1</span>Quick start from source</h3>
 <p>One script checks prerequisites, downloads the raw data, builds the game data and opens the game:</p>
-<div class="cmd"><pre><code>git clone &lt;repository&gt; free-sim &amp;&amp; cd free-sim
+<div class="cmd"><pre><code>git clone &lt;repository&gt; libresim &amp;&amp; cd libresim
 ./run.sh</code></pre><button class="copy" type="button">Copy</button></div>
 <ul>
   <li>The first run takes about 1–2 hours, mostly downloads. Each step runs only when its outputs are missing or older than its scripts or inputs (stamps live in <code>data/.stamps/</code>), so later runs start the game in seconds.</li>
@@ -506,10 +559,10 @@ footer { margin-top: 3rem; padding-top: 0.6rem; border-top: 1px solid var(--rule
   <caption>Outputs in build/</caption>
   <thead><tr><th>File</th><th class="num">Size</th><th>For</th></tr></thead>
   <tbody>
-    <tr><td><code>free-sim-&lt;v&gt;-linux-x86_64.tar.gz</code></td><td class="num">~450 MB</td><td>Any 64-bit Linux: extract and run <code>free-sim/free-sim.sh</code></td></tr>
-    <tr><td><code>free-sim-&lt;v&gt;-x86_64.AppImage</code></td><td class="num">~440 MB</td><td>Any Linux, single file: <code>chmod +x</code> and run</td></tr>
-    <tr><td><code>free-sim-&lt;v&gt;-macos-universal.zip</code></td><td class="num">~480 MB</td><td>macOS 11+, Intel and Apple Silicon: move <code>free-sim.app</code> to Applications</td></tr>
-    <tr><td><code>free-sim-&lt;v&gt;-source.tar.gz</code></td><td class="num">~65 MB</td><td>GPL corresponding source of that build</td></tr>
+    <tr><td><code>libresim-&lt;v&gt;-linux-x86_64.tar.gz</code></td><td class="num">~450 MB</td><td>Any 64-bit Linux: extract and run <code>libresim/libresim.sh</code></td></tr>
+    <tr><td><code>libresim-&lt;v&gt;-x86_64.AppImage</code></td><td class="num">~440 MB</td><td>Any Linux, single file: <code>chmod +x</code> and run</td></tr>
+    <tr><td><code>libresim-&lt;v&gt;-macos-universal.zip</code></td><td class="num">~480 MB</td><td>macOS 11+, Intel and Apple Silicon: move <code>libresim.app</code> to Applications</td></tr>
+    <tr><td><code>libresim-&lt;v&gt;-source.tar.gz</code></td><td class="num">~65 MB</td><td>GPL corresponding source of that build</td></tr>
   </tbody>
 </table></div>
 <h4>Flatpak</h4>
@@ -518,17 +571,17 @@ flatpak run org.flatpak.Builder --user --install --force-clean build/flatpak pac
 flatpak run org.freesim.FreeSim</code></pre><button class="copy" type="button">Copy</button></div>
 <h4>macOS first launch</h4>
 <p>The build is ad-hoc signed but not notarised. Right-click the app and choose Open the first time, or run:</p>
-<div class="cmd"><pre><code>xattr -dr com.apple.quarantine /Applications/free-sim.app</code></pre><button class="copy" type="button">Copy</button></div>
+<div class="cmd"><pre><code>xattr -dr com.apple.quarantine /Applications/libresim.app</code></pre><button class="copy" type="button">Copy</button></div>
 <p class="caution"><span class="label">Caution</span>The macOS build has been checked for structure on Linux (universal binary, data in <code>Contents/Resources</code>, valid signature) but has not yet been run on a Mac.</p>
 <h4>Options in packaged builds</h4>
-<p>Command-line options work the same in every package: <code>./free-sim.sh -- --airport=VABB --stand</code>. The AppImage takes them directly: <code>free-sim.AppImage -- --stand</code>. On read-only installs (AppImage, Flatpak) the F10 renderer toggle cannot write <code>override.cfg</code>; start with <code>--rendering-method forward_plus</code> instead.</p>
+<p>Command-line options work the same in every package: <code>./libresim.sh -- --airport=VABB --stand</code>. The AppImage takes them directly: <code>libresim.AppImage -- --stand</code>. On read-only installs (AppImage, Flatpak) the F10 renderer toggle cannot write <code>override.cfg</code>; start with <code>--rendering-method forward_plus</code> instead.</p>
 <a class="top" href="#top">Back to top</a>
 </section>
 
 <!-- ===================== GEN 3 ===================== -->
 <section id="start-screen">
 <h2><span class="no">GEN 3</span>Start screen</h2>
-<p>Running the game opens the start screen. It remembers your last setup (<code>user://last_flight.json</code>). Keys <kbd>1</kbd>–<kbd>8</kbd> switch pages and <kbd>Ctrl</kbd>+<kbd>Enter</kbd> flies. A summary line at the bottom shows the whole setup, for example <span class="mono">VAJJ · runway (longest) · Fair · 10:00 IST · wind 270/8 · 0 failure(s)</span>.</p>
+<p>Running the game opens the start screen, after the libresim splash. A stepper at the top shows <strong>Airport → Aircraft → Weather → Failures → Fly</strong>: the current step is highlighted, finished steps get a tick, and every pill is clickable. <strong>Next: &lt;step&gt; ▶</strong> moves on, <strong>◀ Back</strong> returns, and on the last step the filled button is <strong>FLY ▶</strong> (FLY works from any step). The left list adds <strong>Training</strong> and the extras (Recording, Controls, Options, Saved flights). It remembers your last setup (<code>user://last_flight.json</code>). Keys <kbd>1</kbd>–<kbd>8</kbd> switch pages and <kbd>Ctrl</kbd>+<kbd>Enter</kbd> flies. A summary line at the bottom shows the whole setup, for example <span class="mono">VAJJ · runway (longest) · Fair · 10:00 IST · wind 270/8 · 0 failure(s)</span>.</p>
 
 <h3 id="ss-airport"><span class="no">3.1</span>Airport and start position</h3>
 <ul>
@@ -581,6 +634,39 @@ flatpak run org.freesim.FreeSim</code></pre><button class="copy" type="button">C
 <h3 id="ss-saves"><span class="no">3.8</span>Saved flights</h3>
 <p>Saved situations with a thumbnail, airport, altitude and IAS. "Fly from this save" resumes exactly there.</p>
 <p class="note"><span class="label">Note</span>Command-line flight options skip the start screen and start from the defaults, not from your last setup. Add <code>--menu</code> to open the start screen pre-filled with them instead.</p>
+<a class="top" href="#top">Back to top</a>
+</section>
+
+<!-- ===================== GEN 4 ===================== -->
+<section id="training">
+<h2><span class="no">GEN 4</span>Training mode</h2>
+<p>Three short, separate lessons teach the basics. Open <strong>Training</strong> on the start screen (or run <code>--lesson=takeoff</code>, <code>cruise</code> or <code>landing</code>, optionally followed by <code>,full</code>, <code>,light</code> or <code>,off</code>). Lessons start at Pune in calm, clear weather, and your free-flight setup is not changed.</p>
+<div class="tbl"><table>
+  <thead><tr><th>Lesson</th><th>You practise</th></tr></thead>
+  <tbody>
+    <tr><td>Takeoff</td><td>Full power, staying on the centreline, rotating at 55 kt, climbing at V<sub>Y</sub> (74 kt), reaching 500 ft</td></tr>
+    <tr><td>Cruise</td><td>Level flight, cruise power, trim, a 90° turn, a 500 ft climb and a 500 ft descent</td></tr>
+    <tr><td>Landing</td><td>Slowing down, flaps, the 3° glide path and centreline, the threshold, the flare, touchdown and roll-out</td></tr>
+  </tbody>
+</table></div>
+<h3 id="training-help"><span class="no">4.1</span>What helps you</h3>
+<ul>
+  <li><strong>The lesson card</strong> (left) lists the steps, shows the current instruction and a hint, and ticks steps off as you complete them.</li>
+  <li><strong>Live gauges</strong> show your value against the target and its tolerance: green inside, amber near, red far.</li>
+  <li><strong>3D markers:</strong> a dashed line down the runway centreline; glide-path rings on the approach (cyan ahead, yellow next, green flown, red missed); an aim-point box on the runway; a beacon to turn toward in the cruise lesson.</li>
+  <li><strong>Coach messages</strong> warn you as you go: "Drifting off the centreline", "Rotate now!", "High. Reduce power, lower the nose". If "Speak them" is on, your system's voice says them too. Training callouts (<a href="#flying-callouts">OPS 1.11</a>) are always on during a lesson.</li>
+</ul>
+<h3 id="training-assist"><span class="no">4.2</span>How much help</h3>
+<div class="tbl"><table>
+  <thead><tr><th>Level</th><th>What you get</th></tr></thead>
+  <tbody>
+    <tr><td>Full guidance</td><td>Step card, hints, live gauges, 3D markers and callouts</td></tr>
+    <tr><td>Hints only</td><td>Step card, hints and callouts; no gauges or markers</td></tr>
+    <tr><td>Minimal</td><td>Just the step list, graded at the end, like a check ride</td></tr>
+  </tbody>
+</table></div>
+<h3 id="training-result"><span class="no">4.3</span>Results</h3>
+<p>When the last step is done, a card shows 1–3 stars and each graded number (for example centreline error, rotation speed, climb speed, sink rate at touchdown, touchdown point and roll-out straightness) marked Good, OK or Needs work. Choose <strong>Try again</strong>, <strong>Next lesson</strong>, <strong>Keep flying</strong> or <strong>Menu</strong>. Your best stars are remembered. Lessons are data (<code>game/training/lessons.json</code>): steps, conditions, gauges and grades, so you can add your own.</p>
 <a class="top" href="#top">Back to top</a>
 </section>
 
@@ -1232,7 +1318,7 @@ flatpak run org.freesim.FreeSim</code></pre><button class="copy" type="button">C
 <h3 id="realism-fdm"><span class="no">7.1</span>The flight model</h3>
 <ul>
   <li>A 6-DOF model in GDScript, running at a fixed 120 Hz, that evaluates JSBSim's c172p aerodynamic tables.</li>
-  <li>free-sim's own Lycoming IO-360 (180 hp) engine, propeller and spring-damper gear.</li>
+  <li>libresim's own Lycoming IO-360 (180 hp) engine, propeller and spring-damper gear.</li>
   <li>The propeller gets 17 % more thrust at low advance ratio than JSBSim's prop, so takeoff and climb match the C172S POH.</li>
   <li>The airborne start is trimmed at calibrated airspeed for the real weather and wind.</li>
 </ul>
@@ -1253,9 +1339,9 @@ flatpak run org.freesim.FreeSim</code></pre><button class="copy" type="button">C
 </table></div>
 
 <h3 id="realism-compare"><span class="no">7.2</span>Compared with JSBSim and FlightGear</h3>
-<p><code>tools/18_compare_fdm.py</code> flies 11 scripted manoeuvres in free-sim's FDM and in standalone JSBSim c172p, with the same pilot laws, load (180 lb pilot, 100 lb fuel per tank) and rigging. Default solo load, ISA, no wind. "Diff" is free-sim versus JSBSim.</p>
+<p><code>tools/18_compare_fdm.py</code> flies 11 scripted manoeuvres in libresim's FDM and in standalone JSBSim c172p, with the same pilot laws, load (180 lb pilot, 100 lb fuel per tank) and rigging. Default solo load, ISA, no wind. "Diff" is libresim versus JSBSim.</p>
 <div class="tbl"><table>
-  <thead><tr><th>Manoeuvre</th><th>Metric</th><th class="num">free-sim</th><th class="num">JSBSim</th><th class="num">Diff</th></tr></thead>
+  <thead><tr><th>Manoeuvre</th><th>Metric</th><th class="num">libresim</th><th class="num">JSBSim</th><th class="num">Diff</th></tr></thead>
   <tbody>
     <tr><td>Cruise trim, 1500 ft, 100 KIAS</td><td>pitch / trim / RPM / hp</td><td class="num">0.40° / −0.19 / 2159 / 81</td><td class="num">0.38° / −0.19 / 2186 / 85</td><td class="num">+3 % / 0 / −1 % / −5 %</td></tr>
     <tr><td>Hands off from that trim</td><td>bank at 10 s / 60 s</td><td class="num">1.4° / 5.3°</td><td class="num">1.2° / 4.1°</td><td class="num">small</td></tr>
@@ -1274,11 +1360,11 @@ flatpak run org.freesim.FreeSim</code></pre><button class="copy" type="button">C
 </table></div>
 <p>The aerodynamics match within a few percent. The differences come from three places:</p>
 <ul>
-  <li><strong>Takeoff and climb:</strong> the deliberate propeller boost. With it, free-sim matches the POH cards; JSBSim with a true 180 hp engine climbs and accelerates more slowly than the POH.</li>
-  <li><strong>Crosswind ground roll:</strong> JSBSim's tyre model weathervanes more on the nose wheel; free-sim's gear holds heading with the same input. A real C172 sits between the two.</li>
+  <li><strong>Takeoff and climb:</strong> the deliberate propeller boost. With it, libresim matches the POH cards; JSBSim with a true 180 hp engine climbs and accelerates more slowly than the POH.</li>
+  <li><strong>Crosswind ground roll:</strong> JSBSim's tyre model weathervanes more on the nose wheel; libresim's gear holds heading with the same input. A real C172 sits between the two.</li>
   <li><strong>Cruise throttle:</strong> the two engine models map throttle to manifold pressure differently (0.55 versus 0.75 for the same power).</li>
 </ul>
-<p>Controls also follow FlightGear's c172p: the same actuator rate limits, an optional auto-coordination factor of 0.5, and electric flap travel of 2 s / 1 s / 1 s per notch. The full write-up is in <code>docs/FDM-VS-FLIGHTGEAR.md</code>; a wider feature comparison is in <code>docs/FREE-SIM-VS-FLIGHTGEAR.md</code>.</p>
+<p>Controls also follow FlightGear's c172p: the same actuator rate limits, an optional auto-coordination factor of 0.5, and electric flap travel of 2 s / 1 s / 1 s per notch. The full write-up is in <code>docs/FDM-VS-FLIGHTGEAR.md</code>; a wider feature comparison is in <code>docs/LIBRESIM-VS-FLIGHTGEAR.md</code>.</p>
 
 <h3 id="realism-damage"><span class="no">7.3</span>Damage model</h3>
 <p>Thresholds come from the C172S POH and FAR 23.</p>
@@ -1332,12 +1418,12 @@ flatpak run org.freesim.FreeSim</code></pre><button class="copy" type="button">C
 <h3 id="saving-recording"><span class="no">8.3</span>Recording video</h3>
 <ul>
   <li>Turn it on with the start screen's Recording page, <code>--record</code>, or <kbd>F8</kbd> in flight. A red <strong>● REC</strong> shows time and file size.</li>
-  <li><strong>Format:</strong> <code>free-sim_&lt;date&gt;_&lt;time&gt;.mkv</code>, MJPEG video plus 16-bit PCM sound, written by the game itself. Plays in VLC and mpv and imports into video editors.</li>
+  <li><strong>Format:</strong> <code>libresim_&lt;date&gt;_&lt;time&gt;.mkv</code>, MJPEG video plus 16-bit PCM sound, written by the game itself. Plays in VLC and mpv and imports into video editors.</li>
   <li><strong>Size:</strong> about 5 MB/s at 720p30. Choose 720p, 1080p or native, at 24, 30 or 60 fps.</li>
   <li><strong>MP4:</strong> if <code>ffmpeg</code> is installed, the file is converted to a much smaller H.264 + AAC MP4 when recording stops.</li>
   <li><strong>Crash-safe:</strong> the file is written as a stream, so it stays playable even if the game is killed.</li>
   <li><strong>Cost:</strong> frames are read back from the GPU asynchronously and encoded on worker threads; frame rate is barely affected (42 FPS with or without recording on the dev machine).</li>
-  <li><strong>Where:</strong> <code>recordings/</code> in the game folder by default, or any folder you choose. Read-only installs (AppImage, .app) fall back to <code>~/.local/share/godot/app_userdata/free-sim/recordings</code>.</li>
+  <li><strong>Where:</strong> <code>recordings/</code> in the game folder by default, or any folder you choose. Read-only installs (AppImage, .app) fall back to <code>~/.local/share/godot/app_userdata/libresim/recordings</code>.</li>
 </ul>
 <a class="top" href="#top">Back to top</a>
 </section>
@@ -1653,14 +1739,14 @@ godot --path game -- --airport=VAJJ --fail=vacuum_pump@10 --random-failures --me
 <!-- ===================== REF 3 ===================== -->
 <section id="credits">
 <h2><span class="no">REF 3</span>Credits and licences</h2>
-<p>free-sim's code is <strong>GPL-2.0-or-later</strong>. Third-party material keeps its own licence. The full list is in <code>CREDITS.md</code> and <code>docs/LICENSING.md</code> in the repository, and in the game on <kbd>F12</kbd>.</p>
+<p>libresim's code is <strong>GPL-2.0-or-later</strong>. Third-party material keeps its own licence. The full list is in <code>CREDITS.md</code> and <code>docs/LICENSING.md</code> in the repository, and in the game on <kbd>F12</kbd>.</p>
 <div class="tbl"><table>
   <thead><tr><th>Component</th><th>By</th><th>Licence</th></tr></thead>
   <tbody>
     <tr><td>C172 3D model, cockpit, textures</td><td>FlightGear c172p team (originally David Megginson)</td><td>GPL-2.0-or-later</td></tr>
     <tr><td>Flight-model data</td><td>JSBSim Team and contributors</td><td>LGPL-2.1 (used under GPL-2.0+)</td></tr>
     <tr><td>Tug, fire truck, jetway, bus</td><td>FlightGear fgdata contributors</td><td>GPL-2.0</td></tr>
-    <tr><td>Fuel truck, GPU, baggage tug and carts, follow-me car</td><td>free-sim contributors (Blender scripts)</td><td>GPL-2.0-or-later</td></tr>
+    <tr><td>Fuel truck, GPU, baggage tug and carts, follow-me car</td><td>libresim contributors (Blender scripts)</td><td>GPL-2.0-or-later</td></tr>
     <tr><td>Sounds</td><td>JLWSound, DrMinky, datasoundsample, coltures (CC0); Morsule, algefaen (CC-BY); c172p team and fgdata (GPL)</td><td>Per file in <code>sounds/SOURCES.md</code></td></tr>
     <tr><td>Godot Engine 4.7</td><td>Juan Linietsky, Ariel Manzur and contributors</td><td>MIT</td></tr>
     <tr><td>Satellite imagery</td><td>Sentinel-2 cloudless by EOX IT Services (modified Copernicus Sentinel data 2024)</td><td>CC BY-NC-SA 4.0</td></tr>
@@ -1671,7 +1757,7 @@ godot --path game -- --airport=VAJJ --fail=vacuum_pump@10 --random-failures --me
 </table></div>
 <p class="caution"><span class="label">Non-commercial data</span>The imagery is CC BY-NC-SA 4.0, so any data pack or package that contains it may not be sold or shipped in paid or ad-supported stores. The derived imagery tiles carry the same licence, and OSM-derived files are offered under ODbL. Generated map data is never committed to git. A commercial build would need the 2016 s2cloudless layer (CC BY 4.0) or raw Copernicus Sentinel-2 data instead.</p>
 <p>Every release package contains <code>LICENSE</code>, <code>CREDITS.md</code>, <code>README.md</code>, <code>docs/</code>, the original c172p sources in <code>third_party/</code>, Godot's licence texts in <code>licenses/</code> and <code>data/DATA-LICENSES.txt</code>, and a source archive of the exact commit is built alongside. The attribution line for imagery, elevation and OSM data is always visible in the sim.</p>
-<p>Cessna and Skyhawk are trademarks of Textron Aviation Inc. FlightGear, Microsoft Flight Simulator and Real Flight Simulator are named only factually. free-sim is not affiliated with or endorsed by any of them.</p>
+<p>Cessna and Skyhawk are trademarks of Textron Aviation Inc. FlightGear, Microsoft Flight Simulator and Real Flight Simulator are named only factually. libresim is not affiliated with or endorsed by any of them.</p>
 <a class="top" href="#top">Back to top</a>
 </section>
 
@@ -1705,15 +1791,15 @@ godot --path game -- --airport=VAJJ --fail=vacuum_pump@10 --random-failures --me
 <h4>Is the ILS real?</h4>
 <p>No. The localizer and glideslope geometry follow real runways, but frequencies and idents are generated (<a href="#nav-ils">OPS 3.2</a>).</p>
 <h4>Can I fly online or with live weather?</h4>
-<p>No. free-sim is offline by design: no multiplayer, live traffic or live weather.</p>
+<p>No. libresim is offline by design: no multiplayer, live traffic or live weather.</p>
 <h4>Where are my settings and saves?</h4>
-<p>In Godot's user folder (<code>user://</code>, on Linux <code>~/.local/share/godot/app_userdata/free-sim/</code>): <code>last_flight.json</code>, <code>key_bindings.json</code>, <code>input_bindings.json</code>, <code>graphics.cfg</code>, <code>audio.cfg</code>, <code>options.cfg</code> and <code>saves/</code>.</p>
+<p>In Godot's user folder (<code>user://</code>, on Linux <code>~/.local/share/godot/app_userdata/libresim/</code>): <code>last_flight.json</code>, <code>key_bindings.json</code>, <code>input_bindings.json</code>, <code>graphics.cfg</code>, <code>audio.cfg</code>, <code>options.cfg</code> and <code>saves/</code>.</p>
 <h4>What's next?</h4>
 <p>The Konkan–Kerala corridor (phase R) is flyable. Later milestones: a KAP 140 autopilot and voice ATC (M9), an iPhone/iPad port, and an A320-class airliner.</p>
 <a class="top" href="#top">Back to top</a>
 </section>
 
-<footer>free-sim Handbook · built from the repository at commit 924456f · GPL-2.0-or-later · imagery CC BY-NC-SA 4.0 EOX · © OpenStreetMap contributors · Copernicus DEM</footer>
+<footer>libresim Handbook · built from the repository at commit 924456f · GPL-2.0-or-later · imagery CC BY-NC-SA 4.0 EOX · © OpenStreetMap contributors · Copernicus DEM</footer>
 </main>
 </div>
 

@@ -1,4 +1,4 @@
-free-sim data pack: licences of the generated map data in this folder
+libresim data pack: licences of the generated map data in this folder
 
 terrain/img/     Satellite imagery tiles derived from Sentinel-2 cloudless (https://s2maps.eu)
                  by EOX IT Services GmbH (contains modified Copernicus Sentinel data 2024).

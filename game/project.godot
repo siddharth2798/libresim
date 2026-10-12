@@ -2,9 +2,14 @@
 config_version=5
 
 [application]
-config/name="free-sim"
+config/name="libresim"
 run/main_scene="res://ui/menu/start_screen.tscn"
 config/features=PackedStringArray("4.7", "Mobile")
+config/icon="res://branding/icon.png"
+boot_splash/bg_color=Color(0.024, 0.031, 0.094, 1)
+boot_splash/image="res://branding/splash.png"
+boot_splash/fullsize=true
+boot_splash/use_filter=true
 
 [autoload]
 FloatingOrigin="*res://core/floating_origin.gd"
