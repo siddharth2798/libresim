@@ -7,7 +7,7 @@ extends Node
 const SAVE := "user://last_flight.json"
 const DEFAULT := {
 	"airport": "VAJJ", "runway": "", "start": "runway",  # runway | stand | air
-	"stand": "", "air_ft": 1500.0, "air_nm": 5.0, "cold": false,
+	"stand": "", "air_ft": 1500.0, "air_nm": 5.0, "air_kt": 90.0, "cold": false,
 	"aircraft": "c172",
 	"fuel_gal": 17.0, "copilot_kg": 0.0, "rear_kg": 0.0, "baggage_kg": 0.0,  # per tank / per station
 	"weather": "Fair", "time_h": 10.0, "time_rate": 1.0, "day_of_year": 45.0,
@@ -113,6 +113,7 @@ func _parse_cmdline() -> void:
 				setup.start = "air"
 				setup.air_ft = float(v) if v != "" else 1500.0
 			"air-nm": setup.air_nm = float(v)  # distance out on final for --air
+			"air-kt": setup.air_kt = float(v)  # airspeed (KIAS) at the start of --air
 			"stand":
 				setup.start = "stand"
 				setup.stand = v

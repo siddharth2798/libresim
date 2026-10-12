@@ -7,6 +7,7 @@ extends RefCounted
 const PATH := "res://training/lessons.json"
 const SAVE := "user://training.json"
 const WARN_COOLDOWN := 5.0
+const ABORT_GRACE := 1.5  # s after a (re)start before the lesson can end early: Props still hold the last frame
 
 
 static func load_lessons() -> Array:
@@ -23,7 +24,7 @@ static func find(id: String) -> Dictionary:
 
 static func new_run(lesson: Dictionary) -> Dictionary:
 	return {"lesson": lesson, "step": 0, "s0": {}, "started": false, "held": 0.0, "rec": {}, "trk": {},
-		"cool": {}, "t": 0.0, "step_t": 0.0, "done": false}
+		"cool": {}, "t": 0.0, "step_t": 0.0, "done": false, "later": {}, "abort_t": {}, "aborted": {}}
 
 
 ## Metric value: plain from the snapshot, or "d_<metric>" = change since the step began
@@ -59,9 +60,14 @@ static func all(conds: Array, snap: Dictionary, s0: Dictionary) -> bool:
 	return true
 
 
-## Advance one frame. Returns {say: [[text, level]], completed: step index or -1, finished: bool}.
+## Advance one frame. Returns {say: [[text, level]], completed: step index or -1 (the last step
+## finished this frame), skipped: [indices ticked off because a later step was already met],
+## finished: bool, aborted: {} or the info of abort() when the lesson ended early}.
+## Steps are in order, but a step flagged "any_order" also counts when its conditions hold while
+## an earlier step is current (the earlier ones are ticked off). Lesson "abort" rules
+## ({steps: [first, last], when, for s, reason, tip}) end a lesson the pilot can no longer finish.
 static func step(run: Dictionary, snap: Dictionary, dt: float) -> Dictionary:
-	var ev := {"say": [], "completed": -1, "finished": false}
+	var ev := {"say": [], "completed": -1, "skipped": [], "finished": false, "aborted": {}}
 	if run.done:
 		return ev
 	var steps: Array = run.lesson.steps
@@ -79,20 +85,84 @@ static func step(run: Dictionary, snap: Dictionary, dt: float) -> Dictionary:
 		if all(w.when, snap, run.s0) and run.t - float(run.cool.get(w.say, -999.0)) >= WARN_COOLDOWN:
 			run.cool[w.say] = run.t
 			ev.say.append([w.say, int(w.get("level", 1))])
-	if all(st.done, snap, run.s0):
-		run.held += dt
+	var ok := all(st.done, snap, run.s0)
+	run.held = run.held + dt if ok else 0.0
+	if ok and run.held >= float(st.get("hold", 0.0)):
+		_complete(run, ev, snap, run.step)
 	else:
-		run.held = 0.0
-	if run.held >= float(st.get("hold", 0.0)) and all(st.done, snap, run.s0):
-		for r in st.get("record", []):
-			run.rec[r.name] = value(snap, run.s0, r.metric)
-		ev.completed = run.step
-		run.step += 1
-		run.started = false
-		if run.step >= steps.size():
-			run.done = true
-			ev.finished = true
+		var j := _later_met(run, snap, dt)
+		if j > run.step:
+			for k in range(run.step, j):
+				ev.skipped.append(k)
+			_complete(run, ev, snap, j)
+	if not run.done:
+		_check_abort(run, ev, snap, dt)
 	return ev
+
+
+## Mark step i done (recording its numbers) and move on to the next one.
+static func _complete(run: Dictionary, ev: Dictionary, snap: Dictionary, i: int) -> void:
+	var steps: Array = run.lesson.steps
+	for r in steps[i].get("record", []):
+		run.rec[r.name] = value(snap, run.s0, r.metric)
+	ev.completed = i
+	run.step = i + 1
+	run.started = false
+	run.later = {}
+	if run.step >= steps.size():
+		run.done = true
+		ev.finished = true
+
+
+## Furthest later "any_order" step whose conditions (absolute metrics only) have held for its own
+## hold time, or -1.
+static func _later_met(run: Dictionary, snap: Dictionary, dt: float) -> int:
+	var steps: Array = run.lesson.steps
+	var best := -1
+	for j in range(run.step + 1, steps.size()):
+		var sj: Dictionary = steps[j]
+		if not sj.get("any_order", false) or sj.done.any(func(c): return str(c[0]).begins_with("d_")):
+			continue
+		if all(sj.done, snap, {}):
+			run.later[j] = float(run.later.get(j, 0.0)) + dt
+			if run.later[j] >= float(sj.get("hold", 0.0)):
+				best = j
+		else:
+			run.later[j] = 0.0
+	return best
+
+
+static func _check_abort(run: Dictionary, ev: Dictionary, snap: Dictionary, dt: float) -> void:
+	if run.t < ABORT_GRACE:
+		return
+	var rules: Array = run.lesson.get("abort", [])
+	for i in rules.size():
+		var r: Dictionary = rules[i]
+		var rng: Array = r.get("steps", [0, 99])
+		if run.step < int(rng[0]) or run.step > int(rng[1]) or not all(r.when, snap, {}):
+			run.abort_t[i] = 0.0
+			continue
+		run.abort_t[i] = float(run.abort_t.get(i, 0.0)) + dt
+		if run.abort_t[i] >= float(r.get("for", 0.0)):
+			ev.aborted = abort(run, str(r.reason), str(r.get("tip", "")))
+			return
+
+
+## End the lesson early (a rule fired, or the aircraft crashed). {step} and {n} in `reason` become
+## the current step's title and number. Returns the info the result card shows: title, reason,
+## tip (what to improve), hint, step and the step list with done / current / todo.
+static func abort(run: Dictionary, reason: String, tip := "") -> Dictionary:
+	var steps: Array = run.lesson.steps
+	var cur := mini(run.step, steps.size() - 1)
+	var list := []
+	for i in steps.size():
+		list.append({"title": steps[i].title, "state": "done" if i < run.step else ("current" if i == cur else "todo")})
+	run.done = true
+	run.aborted = {
+		"title": str(run.lesson.get("incomplete", "%s not completed" % run.lesson.title)),
+		"reason": reason.replace("{step}", str(steps[cur].title)).replace("{n}", str(cur + 1)),
+		"tip": tip, "hint": str(steps[cur].get("hint", "")), "step": cur, "steps": list}
+	return run.aborted
 
 
 static func _track(run: Dictionary, tr: Dictionary, v: float) -> void:

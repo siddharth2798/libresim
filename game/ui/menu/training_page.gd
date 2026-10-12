@@ -3,6 +3,8 @@ extends HBoxContainer
 ## want, and start. Each lesson is a short guided exercise with a step-by-step card, live
 ## target gauges, 3D markers and coach messages, graded with 1-3 stars at the end
 ## (best stars are remembered in user://training.json). Lessons live in training/lessons.json.
+## The START LESSON button is the start screen's bottom bar (it calls start()), so it never
+## scrolls out of sight; summary() is the text next to it.
 
 signal changed
 signal start_requested
@@ -78,19 +80,11 @@ func _ready() -> void:
 		b.size_flags_horizontal = SIZE_EXPAND_FILL
 		b.pressed.connect(func():
 			_assist = a[0]
-			_assist_note.text = a[2])
+			_assist_note.text = a[2]
+			changed.emit())
 		ah.add_child(b)
 	_assist_note = MenuTheme.note(ASSISTS[0][2])
 	right.add_child(_assist_note)
-	var go := Button.new()
-	go.text = "START LESSON  ▶"
-	go.custom_minimum_size = Vector2(260, 56)
-	go.size_flags_horizontal = SIZE_SHRINK_BEGIN
-	go.add_theme_font_size_override("font_size", 22)
-	go.add_theme_stylebox_override("normal", MenuTheme.box(Color(MenuTheme.ACCENT, 0.8), 8))
-	go.add_theme_stylebox_override("hover", MenuTheme.box(MenuTheme.ACCENT, 8))
-	go.pressed.connect(_start)
-	right.add_child(go)
 	if not _lessons.is_empty():
 		_buttons[0].button_pressed = true
 		_select(0)
@@ -103,9 +97,18 @@ func _select(i: int) -> void:
 	_meta.text = "About %d minutes · %d steps · starts at %s runway %s" % [int(l.get("minutes", 5)), l.steps.size(), l.setup.airport, l.setup.runway]
 	_summary.text = str(l.summary)
 	_learn.text = "\n".join(l.get("learn", []).map(func(t): return "•  " + str(t)))
+	changed.emit()
 
 
-func _start() -> void:
+## One line for the start screen's bar: the chosen lesson and help level.
+func summary() -> String:
+	if _lessons.is_empty():
+		return "No lessons found."
+	return "%s  ·  %s" % [_lessons[_sel].title, ASSISTS.filter(func(a): return a[0] == _assist)[0][1]]
+
+
+## START LESSON: write the lesson into Session.setup and ask the start screen to fly it.
+func start() -> void:
 	if _lessons.is_empty():
 		return
 	var l: Dictionary = _lessons[_sel]

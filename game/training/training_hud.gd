@@ -1,7 +1,8 @@
 class_name TrainingHud
 extends Control
 ## Training overlay: the lesson card (steps, current instruction and hint), live target
-## gauges (value against target and tolerance), and the result card with stars at the end.
+## gauges (value against target and tolerance), and the result card with stars at the end
+## (or, when the lesson cannot be finished any more, the "not completed" card).
 
 signal retry
 signal next_lesson
@@ -10,6 +11,7 @@ signal to_menu
 const ACCENT := Color(0.35, 0.75, 1.0)
 const GOOD := Color(0.35, 0.9, 0.45)
 const WARN := Color(1.0, 0.72, 0.2)
+const BAD := Color(1.0, 0.4, 0.35)
 const DIM := Color(0.62, 0.66, 0.72)
 
 var _lesson: Dictionary
@@ -23,6 +25,7 @@ var _gauges_box: VBoxContainer
 var _gauges: Array = []
 var _cur := 0
 var _result: PanelContainer
+var _wrap: Control  # centring container around the result card
 
 
 ## One horizontal target gauge: the marker's position within [min, max], the tolerance band
@@ -102,14 +105,7 @@ func show_step(idx: int) -> void:
 	_cur = idx
 	var steps: Array = _lesson.steps
 	_title.text = "%s  ·  STEP %d OF %d" % [str(_lesson.title).to_upper(), idx + 1, steps.size()]
-	for c in _list.get_children():
-		c.queue_free()
-	for i in steps.size():
-		var l := Label.new()
-		l.add_theme_font_size_override("font_size", 14)
-		l.text = ("✓  " if i < idx else ("▶  " if i == idx else "○  ")) + str(steps[i].title)
-		l.add_theme_color_override("font_color", GOOD if i < idx else (Color(1, 1, 1) if i == idx else DIM))
-		_list.add_child(l)
+	_fill_list(idx, false)
 	_instr.text = str(steps[idx].text)
 	_hint.text = str(steps[idx].get("hint", "")) if _assist != "off" else ""
 	_hint.visible = _hint.text != ""
@@ -123,16 +119,46 @@ func show_step(idx: int) -> void:
 			_gauges.append(bg)
 
 
+## Step list: done ticked, current marked (a cross when the lesson ended on it), the rest open.
+func _fill_list(idx: int, ended: bool) -> void:
+	for c in _list.get_children():
+		c.queue_free()
+	var steps: Array = _lesson.steps
+	for i in steps.size():
+		var l := Label.new()
+		l.add_theme_font_size_override("font_size", 14)
+		var mark := "✓  " if i < idx else (("✗  " if ended else "▶  ") if i == idx else "○  ")
+		l.text = mark + str(steps[i].title)
+		l.add_theme_color_override("font_color", GOOD if i < idx else ((BAD if ended else Color(1, 1, 1)) if i == idx else DIM))
+		_list.add_child(l)
+
+
+## A new attempt (F5 / Try again): the lesson card is back and any result card is gone.
+func reset() -> void:
+	_clear_result()
+	_card.visible = true
+	_title.add_theme_color_override("font_color", ACCENT)
+
+
+func _clear_result() -> void:
+	if is_instance_valid(_wrap):
+		_wrap.queue_free()
+	_wrap = null
+	_result = null
+
+
 func update_gauges(snap: Dictionary, s0: Dictionary) -> void:
 	for bg in _gauges:
 		bg.v = TrainingLogic.value(snap, s0, bg.g.metric)
 		bg.queue_redraw()
 
 
-func show_result(grade: Dictionary, has_next: bool) -> void:
+## The centred result card (replaces the lesson card); returns its VBox.
+func _result_panel(accent: Color) -> VBoxContainer:
+	_clear_result()
 	_card.visible = false
 	_result = PanelContainer.new()
-	var st := Notifications.card_style(GOOD)
+	var st := Notifications.card_style(accent)
 	st.border_width_left = 0
 	st.border_width_top = 4
 	st.bg_color = Color(0.06, 0.07, 0.09, 0.95)
@@ -145,11 +171,38 @@ func show_result(grade: Dictionary, has_next: bool) -> void:
 	var vb := VBoxContainer.new()
 	vb.add_theme_constant_override("separation", 8)
 	_result.add_child(vb)
+	_wrap = Notifications.centered(_result, PRESET_FULL_RECT, 0)
+	add_child(_wrap)
+	return vb
+
+
+func _buttons(vb: VBoxContainer, has_next: bool) -> void:
+	var hb := HBoxContainer.new()
+	hb.alignment = BoxContainer.ALIGNMENT_CENTER
+	hb.add_theme_constant_override("separation", 10)
+	vb.add_child(hb)
+	var buttons := [["Try again", func(): retry.emit()], ["Keep flying", func(): _clear_result()], ["Menu", func(): to_menu.emit()]]
+	if has_next:
+		buttons.insert(1, ["Next lesson ▶", func(): next_lesson.emit()])
+	for bd in buttons:
+		var btn := Button.new()
+		btn.text = bd[0]
+		btn.custom_minimum_size = Vector2(130, 40)
+		btn.pressed.connect(bd[1])
+		hb.add_child(btn)
+
+
+func _title_label(vb: VBoxContainer, text: String) -> void:
 	var t := Label.new()
-	t.text = "%s complete" % _lesson.title
+	t.text = text
 	t.add_theme_font_size_override("font_size", 26)
 	t.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	vb.add_child(t)
+
+
+func show_result(grade: Dictionary, has_next: bool) -> void:
+	var vb := _result_panel(GOOD)
+	_title_label(vb, "%s complete" % _lesson.title)
 	var stars := Label.new()
 	stars.text = "★".repeat(grade.stars) + "☆".repeat(3 - grade.stars)
 	stars.add_theme_font_size_override("font_size", 40)
@@ -170,19 +223,40 @@ func show_result(grade: Dictionary, has_next: bool) -> void:
 		grid.add_child(b)
 		var c := Label.new()
 		c.text = ["✗  Needs work", "~  OK", "✓  Good"][it.points]
-		c.add_theme_color_override("font_color", [Color(1.0, 0.4, 0.35), WARN, GOOD][it.points])
+		c.add_theme_color_override("font_color", [BAD, WARN, GOOD][it.points])
 		grid.add_child(c)
-	var hb := HBoxContainer.new()
-	hb.alignment = BoxContainer.ALIGNMENT_CENTER
-	hb.add_theme_constant_override("separation", 10)
-	vb.add_child(hb)
-	var buttons := [["Try again", func(): retry.emit()], ["Keep flying", func(): _result.queue_free()], ["Menu", func(): to_menu.emit()]]
-	if has_next:
-		buttons.insert(1, ["Next lesson ▶", func(): next_lesson.emit()])
-	for bd in buttons:
-		var btn := Button.new()
-		btn.text = bd[0]
-		btn.custom_minimum_size = Vector2(130, 40)
-		btn.pressed.connect(bd[1])
-		hb.add_child(btn)
-	add_child(Notifications.centered(_result, PRESET_FULL_RECT, 0))
+	_buttons(vb, has_next)
+
+
+## The lesson cannot be finished any more (touched down early, left the approach ...): why, what
+## was done, what to work on. `info` is TrainingLogic.abort().
+func show_incomplete(info: Dictionary) -> void:
+	var vb := _result_panel(WARN)
+	_title_label(vb, str(info.title))
+	var why := _label(vb, 18, Color(1, 1, 1))
+	why.text = str(info.reason)
+	why.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	why.custom_minimum_size = Vector2(440, 0)
+	for st in info.steps:
+		var l := Label.new()
+		l.add_theme_font_size_override("font_size", 14)
+		l.text = ["✓  ", "✗  ", "○  "][["done", "current", "todo"].find(st.state)] + str(st.title) + ("   (not completed)" if st.state == "current" else "")
+		l.add_theme_color_override("font_color", {"done": GOOD, "current": BAD, "todo": DIM}[st.state])
+		vb.add_child(l)
+	var tip := _label(vb, 14, DIM)
+	tip.text = ("To improve: " + str(info.tip) + "\n" if str(info.tip) != "" else "") + str(info.hint)
+	tip.custom_minimum_size = Vector2(440, 0)
+	_buttons(vb, false)
+
+
+## Compact ending on the lesson card itself (a crash: the crash card owns the buttons, F5 retries).
+func show_ended(info: Dictionary) -> void:
+	_title.text = "%s  ·  ENDED" % str(_lesson.title).to_upper()
+	_title.add_theme_color_override("font_color", BAD)
+	_fill_list(int(info.step), true)
+	_instr.text = str(info.reason)
+	_hint.text = ("To improve: " + str(info.tip) + "\n" if str(info.tip) != "" else "") + "Press F5 to try the lesson again."
+	_hint.visible = true
+	for c in _gauges_box.get_children():
+		c.queue_free()
+	_gauges.clear()

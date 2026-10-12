@@ -170,10 +170,10 @@ On first run, Godot imports the project (a few seconds). The data is read from `
 
 ### Start screen (flight setup)
 
-Running the game opens the **start screen** (the libresim logo shows first as the splash).
-- **Guided flow:** a stepper at the top shows Airport → Aircraft → Weather → Failures → Fly. The current step is highlighted, finished steps get a tick, and every pill is clickable. **Next: <step> ▶** moves on, **◀ Back** returns, and on the last step the filled button is **FLY ▶** (FLY works from any step). Page Up / Page Down also step through.
-- **Left list:** FREE FLIGHT (the four steps), LEARN (Training), MORE (Recording, Controls, Options, Saved flights).
-- **Training:** see below. Your last setup is remembered (`user://last_flight.json`). Keys 1–8 switch pages, and Ctrl+Enter flies.
+Running the game opens the **start screen** (the libresim logo shows first as the splash). It first asks one question, **What would you like to do?**, with two large cards, and then shows only the path you chose:
+- **Home screen:** **Free flight** (pick the airport, aircraft, weather and failures) or **Training** (guided lessons: take off, cruise, land). Click a card, or press **1** / **2** (or Left / Right) and **Enter**. The card you chose last time is focused when the game opens. Small buttons below open **Saved flights**, **Controls** and **Options**; **Handbook**, **Credits** and **Quit** stay in the top bar. Each of those pages has a **◀ Back** button (or **Esc**) to the home screen.
+- **Free flight path:** a stepper shows Airport & start → Aircraft → Weather & time → Failures → Recording → Fly. The current step is highlighted, finished steps get a tick, and every pill is clickable. **Next: <step> ▶** moves on, **◀ Back** returns (on the first step, to the home screen), and on the last step the filled button is **FLY ▶**. Keys: **1**–**5** jump to a step, Page Up / Page Down step through, **Ctrl+Enter** flies. A summary line shows the whole setup. Your last setup is remembered (`user://last_flight.json`).
+- **Training path:** the lesson list, "How much help?" and a fixed **START LESSON ▶** button in the bottom bar (it never scrolls out of sight), with **◀ Back** to the home screen. No free-flight stepper is shown. See "Training mode" below.
 
 1. **Airport & start:**
    - Pick an airport from the searchable list. A north-up diagram shows its runways, taxiways and stands, with an arrow at your start point.
@@ -206,7 +206,7 @@ Running the game opens the **start screen** (the libresim logo shows first as th
    - **Random failures:** choose how many, a time window and which systems may fail. You are not told which failures are armed.
    - "Tell me when something fails" shows a notice. With it off, you diagnose the failure from the instruments and the aircraft's behaviour.
 
-5. **Recording:**
+5. **Recording (optional):**
    - Tick "Record this flight" to record the whole session, **picture and sound**.
    - Files go to `recordings/` in the game folder by default, or to any folder you choose. Read-only installs (AppImage, .app) fall back to `~/.local/share/godot/app_userdata/libresim/recordings`.
    - Choose 720p, 1080p or native resolution, at 24, 30 or 60 fps.
@@ -217,7 +217,7 @@ Running the game opens the **start screen** (the libresim logo shows first as th
    - **Cost:** frames are read back from the GPU asynchronously and encoded on worker threads, so frame rate is barely affected (42 FPS with or without recording on the dev machine).
    - **In flight:** F8 starts and stops recording, and a red ● REC shows the time and size. `--record` on the command line also turns it on.
 
-6. **Controls:** joystick and gamepad bindings.
+6. **Controls** (home screen → Controls): joystick and gamepad bindings.
    - Connected devices are listed, and hot-plug works.
    - Each action has a **Bind** button: move an axis or press a button to capture it, or Esc to cancel. Each also has invert, a range (full, half for levers, trigger for toe brakes), deadzone, an expo curve and a live value bar.
    - "Reset: gamepad defaults" gives: left stick roll/pitch, right stick X yaw, triggers toe brakes, LB/RB flaps, A brakes, X parking brake, Y/B views, D-pad trim and magnetos.
@@ -225,7 +225,7 @@ Running the game opens the **start screen** (the libresim logo shows first as th
    - A bound axis takes over from the keyboard. Anything not bound stays on the keyboard.
    - Saved in `user://input_bindings.json`. Also available in flight with **J**.
    - **Keyboard keys are rebindable too.** Click a key slot (up to 3 keys per action, with Shift, Ctrl or Alt allowed), then press the new key. Esc cancels; Delete clears the slot. Conflicts with other actions or fixed hotkeys are shown in orange. Keys match by physical position. Keys are saved in `user://key_bindings.json`.
-7. **Options:**
+7. **Options** (home screen → Options):
    - Volume and mute for each sound bus: Master, Engine, Wind & environment, Cockpit, Radio, Menus.
    - Graphics preset.
    - Units preference (stored for later; the C172 panel stays in ft, kt and inHg).
@@ -238,11 +238,11 @@ Running the game opens the **start screen** (the libresim logo shows first as th
 - **Banners and hints:** STALL is a pulsing banner. A one-line hint at the bottom says when the engine has stopped.
 - **Crash card:** after a crash, a centred card dims the scene. It gives the reason, the impact numbers and the damage, with buttons to Restart (F5), Watch replay (R) or start a New flight.
    - Saved in `user://audio.cfg` and `user://options.cfg`.
-8. **Saved flights:** saved situations with a thumbnail, airport, altitude and IAS. "Fly from this save" resumes exactly there.
+8. **Saved flights** (home screen → Saved flights): saved situations with a thumbnail, airport, altitude and IAS. "Fly from this save" resumes exactly there.
 
 The **Aircraft** page also shows a **weight & balance chart**: the C172S normal and utility CG envelopes, with the takeoff and landing points (landing assumes 5 gal per tank). It turns red when overweight or out of CG limits. The flight model flies the CG you load: an aft CG makes the pitch light and less stable.
 
-**Training mode** (Training page, or `--lesson=takeoff|cruise|landing[,full|light|off]`):
+**Training mode** (home screen → Training, or `--lesson=takeoff|cruise|landing[,full|light|off]`):
 
 Three short, separate lessons at Pune in calm, clear weather. Your free-flight setup is not changed.
 
@@ -252,13 +252,17 @@ Three short, separate lessons at Pune in calm, clear weather. Your free-flight s
 | **Cruise** | Level flight, cruise power, trim, a 90° turn, a 500 ft climb and descent |
 | **Landing** | Slowing down, flaps, the 3° glide path and centreline, the threshold, the flare, touchdown and roll-out |
 
+The landing lesson starts 3 nm out on final (1,000 ft, 80 kt, flaps up, on the 3° path), so there is time to set up. Its steps: **Slow down** (power about 1,700 RPM, 58 to 78 kt), **Flaps and trim** (flaps 20° with `]` or `F7` twice, about 65 kt; `End` trims nose-up, `Home` nose-down), **Fly the glide path** (within 1.5° of the path, stable by 0.8 nm out), **Cross the threshold** (about 60 kt), **Flare and touch down**, **Roll out** (brake with `B` to walking pace, 10 kt ground speed or less).
+
 - **A lesson card** (left) lists the steps, shows the current instruction and a hint, and ticks steps off as you complete them.
 - **Live gauges** show your value against the target and tolerance (green inside, amber near, red far).
 - **3D markers:** a dashed line down the runway centreline, glide-path rings on the approach (cyan = ahead, yellow = next, green = flown, red = missed), an aim-point box on the runway, and a beacon to turn toward in the cruise lesson.
 - **Coach messages** (and optional system-voice speech) warn you: "Drifting off the centreline", "Rotate now!", "High. Reduce power, lower the nose", and so on. Training callouts are always on during a lesson.
 - **Help level:** *Full guidance* (all of the above), *Hints only* (card, hints, callouts) or *Minimal* (step list only, like a check ride).
 - **Result:** 1–3 stars from the graded numbers (centreline error, rotation speed, climb speed, sink rate at touchdown, touchdown point, and so on), with **Try again**, **Next lesson**, **Keep flying** and **Menu**. Your best stars are remembered (`user://training.json`).
-- Lessons are data in `game/training/lessons.json`: steps, conditions, gauges and grades.
+- **Steps are in order, but not strict:** if you already meet a later step's conditions (for example you are configured and stable on the glide path before you finished "Slow down"), the earlier steps are ticked off for you.
+- **A lesson never leaves you stuck.** If you can no longer finish it (you touched down or left the runway before the lesson expected it, got far too low or too high on the approach, floated off the end of the runway, settled back onto the runway after rotating, flew into the ground, or crashed), it ends with a **"not completed"** card: what happened and in which step, which steps you did finish, what to work on, and **Try again** / **Keep flying** / **Menu**. After a crash the lesson card says so and **F5** (or the crash card's Restart) starts the lesson again. **Try again** and **F5** put the aircraft back at the lesson start, whatever state it was in (airborne, stopped on the runway or crashed).
+- Lessons are data in `game/training/lessons.json`: steps (with `any_order` for the tolerant ones), conditions, gauges, grades and `abort` rules (`--air-kt=` sets the IAS of an airborne start; lessons use it).
 
 **In flight:**
 - **Esc** opens the pause menu: resume, restart, failures, settings, new flight (back to this screen) or quit.
@@ -287,6 +291,7 @@ cd game
 | `--runway=NN` | runway end, e.g. `08`, `26`, `14`, `32`; default = the longest runway |
 | `--air[=ft]` | start airborne on a 5 nm final at that height above the field (default 1500) |
 | `--air-nm=N` | with `--air`: distance out on final in nm (default 5) |
+| `--air-kt=N` | with `--air`: airspeed (KIAS) at the start (default 90) |
 | `--lights-debug` | print aerodrome-light build times and what the nearest PAPI shows the camera (e.g. `WWRR`, eye angle) |
 | `--stand[=REF]` | start parked at a stand (always cold & dark): e.g. `--airport=VABB --stand` (a jetbridge gate), `--stand="Bay 40"`, Juhu `--stand=GA3` |
 | `--cold` | cold and dark: everything off, parking brake set (do the "Before Starting Engine" and "Starting Engine" checklists) |

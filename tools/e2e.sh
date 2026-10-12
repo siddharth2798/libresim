@@ -16,17 +16,17 @@ BASE=/tmp/e2e
 OUT="$BASE/$RUN"
 PY="$ROOT/tools/.venv/bin/python"
 [ -x "$PY" ] || PY=python3
-USERDIR="$HOME/.local/share/godot/app_userdata/free-sim"
+USERDIR="$HOME/.local/share/godot/app_userdata/libresim"
 rm -rf "$OUT"; mkdir -p "$OUT/logs" "$OUT/results" "$OUT/shots" "$OUT/rec" "$BASE/ref" "$OUT/backup"
 echo "e2e: run $RUN -> $OUT ($(cd "$ROOT" && git log -1 --format='%h %s' | cut -c1-80))"
 git -C "$ROOT" log -1 --format='%H %ci %s' > "$OUT/git.txt"
 git -C "$ROOT" status --short >> "$OUT/git.txt"
 
 # keep the player's own setup and quick-save: the sweep changes them
-cp -a "$USERDIR/last_flight.json" "$USERDIR/graphics.cfg" "$OUT/backup/" 2>/dev/null
+cp -a "$USERDIR/last_flight.json" "$USERDIR/graphics.cfg" "$USERDIR/options.cfg" "$OUT/backup/" 2>/dev/null
 [ -d "$USERDIR/saves" ] && cp -a "$USERDIR/saves" "$OUT/backup/saves"
 restore() {
-	cp -a "$OUT/backup/last_flight.json" "$OUT/backup/graphics.cfg" "$USERDIR/" 2>/dev/null
+	cp -a "$OUT/backup/last_flight.json" "$OUT/backup/graphics.cfg" "$OUT/backup/options.cfg" "$USERDIR/" 2>/dev/null
 	if [ -d "$OUT/backup/saves" ]; then rm -rf "$USERDIR/saves"; cp -a "$OUT/backup/saves" "$USERDIR/saves"; fi
 }
 trap restore EXIT

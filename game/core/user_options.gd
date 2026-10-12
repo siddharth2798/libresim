@@ -14,6 +14,7 @@ const DEFAULTS := {
 	"auto_coordination": false,  # rudder follows aileron (for keyboard / no-pedal pilots)
 	"callouts": false,  # optional training callouts (ui/callouts.gd), K toggles in flight
 	"callouts_voice": false,  # say them with the OS text-to-speech voice, if the system has one
+	"start_mode": "flight",  # last start-screen choice: flight | training (focused next time)
 }
 const CHOICES := {
 	"alt_unit": ["ft", "m"],

@@ -2,7 +2,7 @@ extends Node3D
 ## Main flight scene. Started from the start screen (ui/menu) with the setup in the
 ## Session autoload, or directly with command-line options (after "--"):
 ##   --airport=VAJJ --runway=08   start on a runway (default VAJJ, first runway)
-##   --air=<alt_ft> [--air-nm=5]  start airborne on the runway's extended centreline, 5 nm out
+##   --air=<alt_ft> [--air-nm=5] [--air-kt=90]  start airborne on the runway's extended centreline, 5 nm out, at 90 KIAS
 ##   --stand[=REF]                start parked at a stand/gate, cold & dark (e.g. --stand="Bay 40"); default: a jetbridge gate
 ##   --cold                       cold & dark (everything off, parking brake set)
 ##   --shot=<png>                 screenshot after 6 s and quit (testing)
@@ -29,6 +29,7 @@ var _start := {}
 var _apt := ""
 var _air_ft := -1.0
 var _air_nm := 5.0
+var _air_kt := 90.0  # IAS of an airborne start (lessons start slower)
 var _shot := ""
 var _shot_time := 6.0
 var _t := 0.0
@@ -45,6 +46,7 @@ func _ready() -> void:
 		"air":
 			_air_ft = float(s.air_ft)
 			_air_nm = float(s.air_nm)
+			_air_kt = float(s.get("air_kt", 90.0))
 		"stand": _stand_ref = s.stand if s.stand != "" else "*"
 	_cold = bool(s.cold)
 	_shot = Session.shot
@@ -102,7 +104,7 @@ func _reset() -> void:
 	if _air_ft > 0.0:
 		var back := Vector2(sin(deg_to_rad(hdg)), cos(deg_to_rad(hdg))) * -_air_nm * 1852.0
 		var q := p + back
-		fdm_node.place_airborne(q.x, q.y, terrain.height_at(p.x, p.y) + _air_ft * 0.3048, hdg, 90.0, $Weather.wind_at(_air_ft * 0.3048))
+		fdm_node.place_airborne(q.x, q.y, terrain.height_at(p.x, p.y) + _air_ft * 0.3048, hdg, _air_kt, $Weather.wind_at(_air_ft * 0.3048))
 	elif _stand_ref != "":
 		var st: Dictionary = $AirportOps.find_stand(_apt, "" if _stand_ref == "*" else _stand_ref)
 		if not st.is_empty():

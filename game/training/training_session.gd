@@ -7,6 +7,9 @@ extends Node
 ## markers (training_markers.gd) and coach messages, and shows the graded result at the end.
 ## Assist level (Session.assist): full = markers + gauges + hints; light = card + hints +
 ## callouts; off = card and warnings only for the steps.
+## A lesson ends either graded (all steps done) or "not completed" (the pilot touched down or
+## left the approach too early, crashed ...: abort rules in lessons.json): the pilot always gets
+## a result card, never a card stuck on a step. Try again / F5 restart it from the start.
 
 var fdm_node: FdmNode
 var airports: AirportBuilder
@@ -20,6 +23,7 @@ var _u := Vector2.ZERO  # runway direction (east, north)
 var _r := Vector2.ZERO  # to the right of the runway direction
 var _last_along := -1.0e9
 var _snap := {}
+var result_kind := ""  # "" while flying the lesson, then "complete" or "incomplete"
 
 
 func setup(f: FdmNode, ab: AirportBuilder, t: TerrainQuadtree) -> void:
@@ -37,7 +41,7 @@ func setup(f: FdmNode, ab: AirportBuilder, t: TerrainQuadtree) -> void:
 	_hud = TrainingHud.new()
 	get_parent().get_node("UI").add_child(_hud)
 	_hud.setup(_lesson, Session.assist)
-	_hud.retry.connect(func(): get_tree().reload_current_scene())
+	_hud.retry.connect(retry)
 	_hud.next_lesson.connect(_next_lesson)
 	_hud.to_menu.connect(func(): get_tree().change_scene_to_file("res://ui/menu/start_screen.tscn"))
 	_find_runway()
@@ -53,12 +57,23 @@ func setup(f: FdmNode, ab: AirportBuilder, t: TerrainQuadtree) -> void:
 	restart()
 
 
+## "Try again": put the aircraft back at the lesson start (what F5 does; it calls restart()).
+func retry() -> void:
+	var flight := get_parent()
+	if flight.has_method("_reset"):
+		flight._reset()
+	else:
+		get_tree().reload_current_scene()
+
+
 ## (Re)start the lesson from step 1 (also on F5).
 func restart() -> void:
 	if _lesson.is_empty():
 		return
 	run = TrainingLogic.new_run(_lesson)
+	result_kind = ""
 	_last_along = -1.0e9
+	_hud.reset()
 	_hud.show_step(0)
 	_enter_step(0)
 	if _markers:
@@ -107,11 +122,14 @@ func _snapshot() -> Dictionary:
 		"throttle": p.get_f("controls/throttle"), "rpm": p.get_f("engine/rpm"), "flaps": float(p.get_v("controls/flaps", 0)),
 		"wow": 1.0 if p.get_b("fdm/wow") else 0.0, "brake": maxf(p.get_f("controls/brake_left"), p.get_f("controls/brake_right")),
 		"pitch_in": p.get_f("controls/pitch"), "along": along, "cross": cross, "gp": gp, "gp_dev": gp_dev,
-		"dist": maxf(-along, 0.0), "pos": pos}
+		"dist": maxf(-along, 0.0), "rem": float(_rw.get("length", 0.0)) - along if not _rw.is_empty() else 0.0, "pos": pos}
 
 
 func _physics_process(dt: float) -> void:
-	if run.is_empty() or run.done or fdm_node.paused or fdm_node.replaying or fdm_node.fdm.damage.crashed:
+	if run.is_empty() or run.done or fdm_node.paused or fdm_node.replaying:
+		return
+	if fdm_node.fdm.damage.crashed:
+		_abort(TrainingLogic.abort(run, "You crashed during step {n}, {step}.", str(_lesson.get("crash_tip", ""))), true)
 		return
 	_snap = _snapshot()
 	_update_rings()
@@ -122,12 +140,16 @@ func _physics_process(dt: float) -> void:
 	if not run.done:
 		_hud.update_gauges(_snap, run.s0)
 	if ev.completed >= 0:
+		for k in ev.skipped:
+			_notify("✓  " + str(_lesson.steps[k].title), "", Notifications.INFO)
 		_notify("✓  " + str(_lesson.steps[ev.completed].title), "", Notifications.INFO)
 		if ev.finished:
 			_finish()
 		else:
 			_hud.show_step(run.step)
 			_enter_step(run.step)
+	elif not ev.aborted.is_empty():
+		_abort(ev.aborted, false)
 	_last_along = _snap.along
 
 
@@ -157,7 +179,21 @@ func _update_rings() -> void:
 			_markers.ring_done(i, false)
 
 
+## The lesson cannot be finished: tell the pilot why (coach line + result card, or the ended
+## lesson card after a crash, where the crash card has the buttons).
+func _abort(info: Dictionary, crashed: bool) -> void:
+	result_kind = "incomplete"
+	if _markers:
+		_markers.clear_beacon()
+	_coach(str(info.reason), 1)
+	if crashed:
+		_hud.show_ended(info)
+	else:
+		_hud.show_incomplete(info)
+
+
 func _finish() -> void:
+	result_kind = "complete"
 	var grade := TrainingLogic.grade(run)
 	TrainingLogic.save_stars(_lesson.id, grade.stars)
 	var lessons := TrainingLogic.load_lessons()
