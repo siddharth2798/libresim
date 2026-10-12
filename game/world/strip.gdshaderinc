@@ -22,7 +22,9 @@ void vertex() {
 	VERTEX.y += length((MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz - CAMERA_POSITION_WORLD) * lod_lift;
 	vec4 vp = MODELVIEW_MATRIX * vec4(VERTEX, 1.0);
 	v_dist = length(vp.xyz);
-#ifdef TAXI_FADE
+#ifdef LEAD_ON
+	vp.xyz *= 0.998;  // pulled more than the runway (0.9985): the line shows on top of it
+#elif defined(TAXI_FADE)
 	vp.xyz *= 0.999;  // pulled less than runways: where they cross, the runway always wins
 #else
 	vp.xyz *= 0.9985;
@@ -46,6 +48,7 @@ void fragment() {
 	// subtle wear / tyre marks
 	col *= 0.92 + 0.08 * sin(along * 0.37 + sin(along * 0.051) * 4.0) * sin(across * 1.3);
 	float m = 0.0;
+	float line = 0.0;
 	if (is_runway) {
 		float from_end = min(along, length_m - along);
 		// centreline: 30 m dashes, 20 m gaps, outside the threshold zone
@@ -64,6 +67,7 @@ void fragment() {
 			m = max(m, band(abs(across), 6.0, 2.5, aa_x));
 	} else {
 		m = band(across, 0.0, 0.08, aa_x);
+		line = m;
 		col = mix(col, taxi_paint, m);
 		m = 0.0;
 	}
@@ -72,7 +76,9 @@ void fragment() {
 	ALBEDO = col * (1.0 - haze);
 	EMISSION = fog_color * haze;
 	ROUGHNESS = mix(0.85, 0.25, wetness);
-#ifdef TAXI_FADE
+#ifdef LEAD_ON
+	ALPHA = line;
+#elif defined(TAXI_FADE)
 	// A taxiway a few px wide (far away / edge-on) rasterises as stair-stepped dashes; fade it
 	// into the terrain imagery, which already shows the pavement at that size.
 	ALPHA = smoothstep(2.0, 6.0, width_m / max(fwidth(across), 1e-4));

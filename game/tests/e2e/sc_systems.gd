@@ -64,7 +64,6 @@ func failures(r) -> void:
 	var fm: Node = r.f.get_node("Systems/Failures")
 	var gy: Node = r.f.get_node("Instruments/Gyros")
 	var radios := _find_script(r.f, "radio_stack.gd")
-	var atc: Node = r.f.get_node("UI/Atc")
 	var order := FailureCatalog.all_ids()
 	order.erase("engine")
 	order.append("engine")  # last: it may not come back
@@ -157,8 +156,9 @@ func failures(r) -> void:
 				ok = b == 0.0
 				det = "commanded 1.0, gear %s=%.2f" % [id, b]
 				Props.set_v("controls/" + id, 0.0)
-			"com1":
-				var said: String = atc._tuned(["TWR"])
+			"com1":  # the ATC session (atc/atc_session.gd) tells the pilot the radio is dead (last transmission, /atc/last_tx)
+				await r.wait(1.5)
+				var said := str(r.p("atc/last_tx", ""))
 				ok = said.contains("dead")
 				det = "ATC: '%s'" % said
 			"com2", "xpdr":

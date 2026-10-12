@@ -14,6 +14,13 @@ const VOL_EFF := 0.85
 const FRICTION_FRAC := 0.10  # friction power at max RPM as a fraction of max power
 const STARTER_TORQUE := 120.0  # N*m at the crankshaft
 const STARTER_RPM := 220.0
+## The engine fires (and keeps running) above this crank speed. The starter alone turns the
+## engine at only ~75-130 RPM (it works against friction and pumping), so a threshold above that
+## (it was 150) made a cold start impossible. Real engines fire at cranking speed (impulse-coupled
+## magnetos, fuel injected), well below idle (550).
+const FIRE_RPM := 60.0
+const FIRE_DELAY_S := 1.0  # it turns over this long before it catches (a windmilling engine, above WINDMILL_RPM, restarts at once)
+const WINDMILL_RPM := 300.0
 const MAP_ZERO := 4.0 * 3386.389  # IMEP ~ k * (MAP - MAP_ZERO): low-MAP inefficiency
 
 var max_power: float
@@ -22,6 +29,7 @@ var idle_rpm: float
 var displacement: float  # m^3
 var _k_power: float  # W per (kg/s air) at best power
 var spark_drop: float
+var _fire_t := 0.0  # s the engine has been turning above FIRE_RPM with spark, fuel and mixture
 
 # inputs
 var throttle := 0.0
@@ -90,7 +98,9 @@ func update(dt: float, rpm: float, p_amb: float, t_amb: float, airspeed: float) 
 		1, 2: spark = 1.0 - spark_drop * 0.9  # single mag: slower burn, ~4 % RPM drop
 		3: spark = 1.0
 	var mf := _mixture_factor(phi)
-	running = spark > 0.0 and fuel_ok and not failed and mf > 0.0 and rpm > 150.0
+	var can_fire := spark > 0.0 and fuel_ok and not failed and mf > 0.0 and rpm > FIRE_RPM
+	_fire_t = _fire_t + dt if can_fire else 0.0
+	running = can_fire and (rpm > WINDMILL_RPM or _fire_t >= FIRE_DELAY_S)
 	var p_ind := _k_power * mdot_air * mf * spark * maxf(1.0 - MAP_ZERO / map_pa, 0.0) if running else 0.0
 	if partial:
 		p_ind *= lerpf(0.9, 0.55, throttle) * (1.0 + randf_range(-0.12, 0.12))  # misfiring: power drops (most at high power) and shakes

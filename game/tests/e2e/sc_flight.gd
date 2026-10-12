@@ -41,7 +41,11 @@ func takeoff(r) -> void:
 	await r.shot("climb")
 
 
-## Air start, no input for 60 s: record roll, heading and altitude drift.
+## Air start, no input for 60 s: record roll, heading and altitude drift. The fixed aileron / rudder tabs are
+## neutral at about 100 KIAS (check: heading within 25 deg). At the default 90 KIAS the pilot's weight and the
+## engine torque win and the almost neutral spiral mode builds up about -10 deg of bank, i.e. about -70 deg of
+## heading in 60 s. JSBSim's c172p with the same tabs does the same (-10.7 deg / -76 deg, tools/18_compare_fdm.py,
+## tests/test_fdm_handsoff.gd), so below 98 KIAS the heading limit is 105 deg (about the JSBSim figure + 40 %).
 func handsoff(r) -> void:
 	await r.wait(1.0)
 	r.take_controls()
@@ -70,7 +74,8 @@ func handsoff(r) -> void:
 	r.metric("alt_change_ft", dalt)
 	r.metric("kias_start_end", [k0, r.kias()])
 	r.check("handsoff_roll", max_roll < 20.0, "max |roll| %.1f deg, final %.1f deg" % [max_roll, r.metrics.final_roll_deg])
-	r.check("handsoff_heading", max_dh < 25.0, "heading drift %.1f deg (max dev %.1f)" % [r.metrics.heading_drift_deg, max_dh])
+	var dh_limit := 25.0 if k0 >= 98.0 else 105.0
+	r.check("handsoff_heading", max_dh < dh_limit, "heading drift %.1f deg (max dev %.1f, limit %.0f at %.0f KIAS)" % [r.metrics.heading_drift_deg, max_dh, dh_limit, k0])
 	r.check("handsoff_altitude", absf(dalt) < 500.0, "altitude change %.0f ft, %.0f -> %.0f KIAS" % [dalt, k0, r.kias()])
 	await r.shot("after60s")
 
@@ -151,6 +156,44 @@ func landing(r) -> void:
 	r.check("stops_on_runway", st.td_t >= 0.0 and Props.get_f("fdm/groundspeed_mps") < 1.0 and st.max_dev < 25.0,
 		"gs %.1f m/s, %.0f m past threshold, max %.1f m off centreline" % [Props.get_f("fdm/groundspeed_mps"), rel.dot(fwd), st.max_dev])
 	await r.shot("stopped")
+
+
+## Cold & dark start the way a pilot does it, with real key presses (--e2e=coldstart_keys): Shift+M master,
+## Ctrl+B beacon, hold Page Up for a cracked throttle, hold ' until the mixture is rich, M three times for
+## magnetos BOTH (a cold start has mixture 0 and the magnetos off), hold S until the engine runs, then let go.
+## Then it must idle by itself and the alternator must charge.
+func coldstart_keys(r) -> void:
+	await r.wait(3.0)
+	r.check("starts_cold", not r.p("engine/running", false) and float(r.p("engine/rpm")) < 50.0, "running=%s rpm=%.0f" % [r.p("engine/running", false), r.p("engine/rpm")])
+	await r.key(KEY_M, true)
+	await r.key(KEY_B, false, true)
+	await r.key_event(KEY_PAGEUP, true)
+	await r.wait(0.3)
+	await r.key_event(KEY_PAGEUP, false)
+	await r.key_event(KEY_APOSTROPHE, true)
+	await r.wait(2.4)
+	await r.key_event(KEY_APOSTROPHE, false)
+	for i in 3:
+		await r.key(KEY_M)
+	await r.wait(1.0)
+	var bat: float = r.p("systems/electrical/bus_volts")
+	r.check("switches_set", bat > 20.0 and Props.get_f("controls/throttle") > 0.03 and Props.get_f("controls/throttle") < 0.2
+		and Props.get_f("controls/mixture") > 0.9 and int(Props.get_v("controls/magnetos")) == 3,
+		"bus %.1f V, throttle %.2f, mixture %.2f, magnetos %s" % [bat, Props.get_f("controls/throttle"), Props.get_f("controls/mixture"), Props.get_v("controls/magnetos")])
+	await r.key_event(KEY_S, true)
+	var t := 0.0
+	while t < 8.0 and not r.p("engine/running", false):
+		await r.wait(0.25)
+		t += 0.25
+	await r.key_event(KEY_S, false)
+	r.metric("crank_s", t)
+	await r.wait(6.0)
+	var rpm: float = r.p("engine/rpm")
+	r.metric("rpm_idle", rpm)
+	r.check("engine_starts", r.p("engine/running", false) and rpm > 500.0 and not Props.get_b("controls/starter"),
+		"cranked %.2f s, then %.0f rpm, running=%s, starter=%s" % [t, rpm, r.p("engine/running", false), Props.get_b("controls/starter")])
+	r.check("alternator_charging", float(r.p("systems/electrical/bus_volts")) > bat + 1.0, "bus %.1f V -> %.1f V" % [bat, r.p("systems/electrical/bus_volts")])
+	await r.shot("after_start")
 
 
 ## Cold & dark (--cold): master, mixture rich, throttle cracked, mags BOTH, starter.

@@ -12,6 +12,7 @@ var data: Dictionary
 var _items: Array = []  # [MeshInstance3D, anchor ENU Vector3]
 var _shader := preload("res://world/runway.gdshader")
 var _taxi_shader := preload("res://world/taxiway.gdshader")  # fades out when a few px wide
+var _lead_shader := preload("res://world/lead_on.gdshader")  # yellow line only, drawn over a runway
 
 
 func build(t: TerrainQuadtree) -> void:
@@ -28,8 +29,36 @@ func build(t: TerrainQuadtree) -> void:
 		for p in tw.pts:
 			pts.append(Vector2(p[0], p[1]))
 		_strip(pts, minf(tw.width, 23.0), false, 0.0)
+	_lead_ons()
 	FloatingOrigin.shifted.connect(func(_d): _reposition())
 	_reposition()
+
+
+## OSM taxiways end on the runway centre line, but the runway surface hides that last stretch: draw
+## the yellow lead-on line over the runway (the part of each taxiway inside a runway strip).
+func _lead_ons() -> void:
+	for r in data.runways:
+		var a := Vector2(r.ends[0].x, r.ends[0].y)
+		var b := Vector2(r.ends[1].x, r.ends[1].y)
+		var u := (b - a).normalized()
+		var hw := float(r.width) * 0.5
+		var length := a.distance_to(b)
+		for tw in data.taxiways:
+			var run: Array[Vector2] = []
+			var prev := Vector2.INF
+			for p in tw.pts:
+				var v := Vector2(p[0], p[1])
+				var along := (v - a).dot(u)
+				if absf((v - a).cross(u)) < hw + 0.5 and along > -2.0 and along < length + 2.0:
+					if run.is_empty() and prev != Vector2.INF:
+						run.append(prev)  # the last point outside: the line enters the runway from there
+					run.append(v)
+				elif not run.is_empty():
+					run.append(v)  # first point past the strip: the line crosses it
+					break
+				prev = v
+			if run.size() >= 2:
+				_strip(run, 1.0, false, 0.0, true)
 
 
 func _reposition() -> void:
@@ -38,7 +67,7 @@ func _reposition() -> void:
 
 
 ## Densify a polyline and extrude it to a strip; UV = (across 0..1, metres along).
-func _strip(pts: Array, width: float, is_runway: bool, length: float) -> void:
+func _strip(pts: Array, width: float, is_runway: bool, length: float, lead_on := false) -> void:
 	var dense: Array[Vector2] = []
 	for i in range(pts.size() - 1):
 		var a: Vector2 = pts[i]
@@ -80,7 +109,7 @@ func _strip(pts: Array, width: float, is_runway: bool, length: float) -> void:
 	var mesh := ArrayMesh.new()
 	mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arr)
 	var mat := ShaderMaterial.new()
-	mat.shader = _shader if is_runway else _taxi_shader
+	mat.shader = _shader if is_runway else (_lead_shader if lead_on else _taxi_shader)
 	mat.set_shader_parameter("is_runway", is_runway)
 	mat.set_shader_parameter("length_m", along if length <= 0.0 else length)
 	mat.set_shader_parameter("width_m", width)

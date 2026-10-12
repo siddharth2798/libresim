@@ -210,7 +210,14 @@ Both are built in the same style but lower: glass to 5 m, cream to 9 m, and tile
   the world.
 - **VOCI ground height** comes from the OurAirports field elevation, not a DEM.
 - **Jet bridges** are only used to work out which side is landside. The in-game jetways
-  come from the Phase A stand system.
+  come from the Phase A stand system. Kochi's 16 bridges have no mapped stands in OSM, so
+  `tools/airport_stands.py` (called from step 13) derives them: one gate stand per bridge
+  gate (two bridges at one door count once), the aircraft's nose gear 2.4 m beside the cab
+  tip, heading square to the main tunnel or along the line between two cabs, turned in 5
+  degree steps until an A320-sized outline clears the terminal footprints. That gives
+  11 gates (the three T1/T2 gate numbers 2, 3, 4 come from the OSM gate nodes), a walk-out
+  gate 1 and 26 remote bays beside the apron lanes, each with a lead-in edge in the taxi
+  graph.
 - **Signs** are `Label3D` with the default font, not the real lettering.
 - **Car parks** are modelled with a fixed number of decks (VABB 5, VAPO 4), not
   real counts.

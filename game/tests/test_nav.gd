@@ -5,11 +5,22 @@ extends RefCounted
 const NM := 1852.0
 const FT := 0.3048
 
+var _made: Array = []  # nodes built by _radios(), freed with the suite (they are never in the tree)
+
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_PREDELETE:
+		for n in _made:
+			if is_instance_valid(n):
+				n.free()
+
 
 func _radios() -> NavRadios:
 	var n := NavRadios.new()
 	n._ready()
 	var tq := TerrainQuadtree.new()
+	_made.append(n)
+	_made.append(tq)
 	tq.cache = TerrainTileCache.new()
 	n.terrain = tq
 	Props.set_v("systems/electrical/avionics_powered", true)

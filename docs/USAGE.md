@@ -122,7 +122,10 @@ $PY tools/09_runways.py            # -> data/processed/runways.json (merged runw
 $PY tools/10_buildings.py          # -> data/processed/buildings/ 3D building meshes (after 02, 04; roofs from s2.tif / corridor s2_corridor.vrt; skips tiles without heights) ~7 min, 207 MB + 79 MB collision
 $PY tools/11_landclass.py          # -> data/processed/terrain/lc/ land-class masks: water + tree density (after 02-04) ~30 s + 2 min
 $PY tools/12_outer.py              # -> terrain levels 3-6 over OUTER_TOTAL ~980 x 1475 km to Kochi (real 90 m data + filled beyond) ~7 min
-$PY tools/13_airport_ops.py        # -> data/processed/airport_ops.json: stands, gates, jetbridges, hold points, taxi graph
+$PY tools/13_airport_ops.py        # -> data/processed/airport_ops.json: stands, gates, jetbridges, hold points, taxi graph ~35 s
+                                   #   (stand_geom/stand_links/stand_remote/airport_stands.py derive airliner stands where OSM maps
+                                   #   jet bridges but no stands: Kochi, Kannur. ./run.sh re-runs 13 when 13_airport_ops.py changes;
+                                   #   after editing a stand_*.py / airport_stands.py run 13 by hand or --force-step=13)
 $PY tools/14_ils.py                # -> data/processed/ils.json: SIMULATED ILS for runways >= 2000 m (after 09)
 $PY tools/15_terminals.py          # -> data/processed/terminals/<ICAO>.json: terminal footprints (VABB, VAPO; VOCI via Overpass, cached) ~70 s
 $PY tools/16_terminal_models.py    # -> terminals/<ICAO>.glb landmark terminal models + landmarks.json; then re-run 10_buildings.py
@@ -358,7 +361,7 @@ cd game
 ### Airport operations (phase A)
 
 **Start options:**
-- Start at a stand: at **VABB** 114 stands (52 gates with jetbridges), **VANM** 87, **VAPO** 24, and generated GA parking at **Juhu**.
+- Start at a stand: at **VABB** 114 stands (52 gates with jetbridges), **VANM** 87, **VAPO** 24 (11 gates), **Calicut** 36 (14 gates), **Manohar (Goa)** 16 (6 gates), **Mangaluru** 15 (6 gates), **Dabolim** 11, and generated GA parking at **Juhu** and other small fields. **Kochi (VOCI)** and **Kannur (VOKN)** have jet bridges in OpenStreetMap but no mapped stands, so their airliner stands are derived from the bridges: at Kochi 11 jetbridge gates (refs 2, 3, 4, B1 to B8: the C172 sits at the L1 door, nose to the terminal), a walk-out gate (1) and 26 remote bays (R1 to R26) along the apron lanes; at Kannur 3 gates. Every one is joined to the taxi graph, so T (taxi to the runway) and the ATC "taxi to the apron" route to it.
 - Start **cold and dark** if you want: the C172 needs the real start procedure (master, mixture rich, throttle cracked, magnetos BOTH, starter).
 
 **On the ground:**
@@ -382,7 +385,7 @@ cd game
 - Kochi is flyable (phase R corridor). To preview a terminal alone, use `godot --path game res://tests/debug_terminal.tscn -- --icao=VOCI --out=/tmp`.
 - Details and sources are in [TERMINALS.md](TERMINALS.md).
 
-**At the airport:** jetbridges, stand lead-in lines with stand numbers, and windsocks that turn with the wind.
+**At the airport:** jetbridges, stand lead-in lines with stand numbers, yellow lead-on lines that carry on over the runway where a taxiway meets it, and windsocks that turn with the wind.
 
 **Ground vehicles:**
 - **At jetway gates:** a ground power unit at the nose, a baggage tug with carts aft, and a fuel truck on some stands. The jetways are the real FlightGear model, laid along the OSM jetbridge.
@@ -537,7 +540,7 @@ Default frequencies are COM1 118.10/121.90, NAV1 116.60/113.90, NAV2 108.10/109.
 - **Failures:** 26 failures with schedules and random failures. See "Start screen" above, and F9 in flight.
 
 **Realism notes:**
-- On runway and air starts the engine is running. Stand starts and `--cold` are cold & dark. To start the engine: BAT on, mixture rich ('), throttle cracked, magnetos BOTH (M), then hold S.
+- On runway and air starts the engine is running. Stand starts and `--cold` are cold & dark. To start the engine: BAT on (Shift+M), mixture rich (hold '), throttle cracked (Page Up), magnetos BOTH (M three times; a cold start has them off), then hold S. The engine fires after a fraction of a second of cranking and idles by itself when you let go; the e2e job `coldstart_keys_VAJJ` does exactly this with real key presses.
 - With only the pilot aboard (the default load) the CG sits slightly left, and engine torque also rolls the aircraft left. Fixed aileron/rudder tabs (`controls.aileron_rigging` 0.033, `rudder_rigging` 0.004) cancel this at about 100 KIAS in level flight. Slower or at climb power it rolls gently left (hold a little right aileron and right rudder); faster it rolls slightly right. Hands off from trim, the bank after 60 s is about −10° at 90 KIAS, 0° at 100 KIAS and +10° at 110 KIAS. JSBSim's c172p behaves the same way: its spiral mode is nearly neutral. See `docs/FDM-VS-FLIGHTGEAR.md`.
 - The aircraft turns left on the takeoff roll (P-factor and torque), so use right rudder (X).
 - **Sound** uses real recordings throughout:
@@ -565,7 +568,7 @@ cd game
 ~/.local/bin/godot --headless --path . res://tests/run_tests.tscn -- --only=fdm  # tests named test_fdm*
 ```
 
-The runner prints PASS/FAIL per test and exits non-zero on failure. Ignore the "ObjectDB instances leaked" warnings at exit.
+The runner prints PASS/FAIL per test and exits non-zero on failure. The run must end without "ObjectDB instances leaked" / "resources still in use at exit" messages (the e2e sweep's "no script errors" check fails on them): a test that builds a Node must free it, and a callback that captures `self` (or an object that holds it) makes a reference cycle. `-- --leaks` lists the tests that leave orphan nodes behind.
 
 | Suite | Covers |
 |---|---|
@@ -575,6 +578,8 @@ The runner prints PASS/FAIL per test and exits non-zero on failure. Ignore the "
 | `tests/test_instruments.gd` | Altimeter and Kollsman, ASI, VSI lag, vacuum-failure gyro drift, compass northerly turning error (M5) |
 | `tests/test_systems.gd` | Alternator failure and battery drain, fuel starvation and restart, wind profile, Ghats ridge lift (M6) |
 | `tests/test_landing.gd` | Normal landing plus POH landing roll; hard landing, nose-first and prop strike, ditching, Vne failure, overstress, flap overspeed |
+| `tests/test_engine_start.gd` | Cold start: the starter alone turns the engine above its firing speed, it fires and idles by itself at every throttle, nothing starts without mixture / magnetos / fuel, battery start with the alternator charging |
+| `tests/test_fdm_handsoff.gd` | Hands-off for 60 s at 3000 ft: neutral at 100 KIAS, bank about −10° and heading about −70° at 90 KIAS, pinned to JSBSim's c172p with the same rigging |
 
 ### Flight-model test cards (M3)
 
@@ -732,6 +737,7 @@ docs/USAGE.md this file
 | Low FPS | Check the F3 overlay. Lower `lod_k` on the Terrain node in `world/flight.tscn` (default 1.6), or turn off `shadow_enabled` on the Sun |
 | Stutter / where does the frame time go? | `godot --path game res://tests/debug_perf.tscn -- --airport=VABB --runway=27 --air=1000 --quality=high --log=/tmp/f.csv --dur=60` logs every frame (GPU, physics, pipeline compiles, per-node `_process` time) and prints the worst frames and top consumers |
 | Jump at the 5 km origin shift? | `res://tests/debug_origin.tscn -- --airport=VABB --runway=27 --air=1500 --dur=150` prints the largest per-frame world-space move of the camera, aircraft and static scenery, split into normal and shift frames (static must be 0) |
+| Does a stand look right? (markings, jetbridge, heading) | `godot --path game res://tests/debug_stand.tscn -- --airport=VOCI --stand=B7 --tod=12 --weather=clear --shots=/tmp/s` saves `stand_chase`, `stand_orbit` and `stand_overview` PNGs there (needs a display); `--cam=e,n,height_agl,yaw_deg,pitch_deg` puts the free camera anywhere instead (e.g. with `--runway=09` at a taxiway junction) and saves `cam.png` |
 | Flicker / scenery check at a fixed spot | `res://tests/debug_view.tscn -- --eye=e,n,alt --at=e,n,alt --wait=12 --out=/tmp/v.png` (free camera, world metres); add `--to=e,n,alt --frames=N` to save a fly-through frame by frame. `debug_perf.tscn ... --burst=/dir@20x10 --freeze` saves 10 frames with sim time stopped (any change = instability) |
 | Does a crash register? (trees, buildings, terminals, jetways, vehicles) | `godot --headless --path game res://tests/obstacle_probe.tscn -- --only=mirror,forest,city,taxi,airport,corridor,fast,scan,ops` flies and taxis scripted runs in the real loaded world (needs `data/processed`) and prints one `ROW` per case; `--only=scan --icao=VABB [--rules]` puts the aircraft at every stand, pushback path, taxiway and runway and reports overlaps with a solid (`--rules`: after the forgiveness rules; normal ops must give 0); `--only=ops` takes off from and lands on 10 runways; `--only=perf` times the collision check |
 | Aircraft spawns in the wrong place / no runway | Run `tools/09_runways.py` (it writes `data/processed/runways.json`) |

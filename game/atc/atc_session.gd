@@ -37,7 +37,8 @@ func setup(e: Dictionary, hooks: Dictionary) -> void:
 	env = e
 	c = AtcController.new(callsign())
 	c.hooks = hooks
-	c.on_tx = func(entry: Dictionary): voice.speak(entry)
+	var v := voice  # not `voice` itself: the lambda would capture self and form a cycle (session -> c -> on_tx -> session)
+	c.on_tx = func(entry: Dictionary): v.speak(entry)
 	mon = AtcMonitor.new(c)
 	_sid = randi()
 	w = AtcWorld.snapshot(env, now)
@@ -99,3 +100,5 @@ func publish() -> void:
 ## The flight scene is going away: the next flight starts with a clean ATC state.
 func close() -> void:
 	Props.set_v("atc/stamp", "")
+	if c != null:
+		c.dispose()

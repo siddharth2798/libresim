@@ -111,10 +111,12 @@ So our roll physics already matched JSBSim and FlightGear:
 | JSBSim c172p, 0.035 / 0.005 | −6.8° / −47° | +4.3° / +27° | +12.7° / +74° |
 | JSBSim c172p, stock (no rigging) | −55° | −51° | −50° |
 | Ours, **0.033 / 0.004** (chosen) | −9.6° / −67° | +1.0° / +6° | +9.8° / +55° |
+| JSBSim c172p, **0.033 / 0.004** (same rigging as ours, ISA) | −10.7° / −76° | 0.0° / 0° | not run |
 
 - A fixed tab balances the rolling moment at only one speed. The tab's moment grows with dynamic pressure, while the pilot's weight and the engine torque stay roughly constant.
 - The JSBSim c172p's spiral mode is nearly neutral at these angles of attack (Clr rises steeply with α), so a small leftover moment turns into a steady bank.
 - Our model reproduces JSBSim. The chosen rigging is neutral at 100 KIAS and keeps 90–110 KIAS within about ±10°.
+- Pinned by `tests/test_fdm_handsoff.gd` (pure FDM, 100 KIAS: bank ≤ 5°, heading ≤ 25°; 90 KIAS: bank −6° to −15°, heading −40° to −105°) and by the e2e jobs `handsoff_calm` / `handsoff_fair` (90 KIAS, heading limit 105°) and `handsoff_100kt` (heading limit 25°). A hands-off heading change of about −70° at 90 KIAS is this behaviour, not a regression (JSBSim with the same rigging at 95 KCAS: −4.7° / −32°).
 
 **Landing gear:**
 - JSBSim's c172p wheels are about twice critically damped (main 23 350 N·s/m), so the damper force jumps to c·v at first contact. A 290 fpm touchdown spiked to 3.8–5.5 g, and over about 500 fpm it tripped the 3×-weight gear overload, which collapsed the gear. Once the airframe had dropped, the tail skid chattered and logged "Tail strike" about 160 times.

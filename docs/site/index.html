@@ -1052,8 +1052,9 @@ flatpak run org.freesim.FreeSim</code></pre><button class="copy" type="button">C
 
 <h3 id="airports-stands"><span class="no">4.2</span>Stands and gates</h3>
 <ul>
-  <li>Stands come from OpenStreetMap: <strong>VABB</strong> 114 stands (52 gates with jetbridges), <strong>VANM</strong> 87, <strong>VAPO</strong> 24, and generated GA parking at <strong>Juhu</strong>.</li>
-  <li>Stands have lead-in lines and stand numbers; jetbridges follow the OSM jetbridge lines; windsocks turn with the wind.</li>
+  <li>Stands come from OpenStreetMap: <strong>VABB</strong> 114 stands (52 gates with jetbridges), <strong>VANM</strong> 87, <strong>VAPO</strong> 24 (11 gates), <strong>Calicut</strong> 36 (14 gates), <strong>Manohar (Goa)</strong> 16 (6 gates), <strong>Mangaluru</strong> 15 (6 gates), <strong>Dabolim</strong> 11, and generated GA parking at <strong>Juhu</strong> and other small fields.</li>
+  <li><strong>Kochi</strong> and <strong>Kannur</strong> have jet bridges in OpenStreetMap but no stands, so their airliner stands are derived from the bridges. At Kochi that is 11 jetbridge gates (numbers 2, 3, 4 and B1 to B8; the C172 stops at the L1 door with its nose to the terminal), a walk-out gate (1) and 26 remote bays (R1 to R26) along the apron lanes. At Kannur it is 3 gates. Each stand is joined to the taxi network, so taxi guidance (<kbd>T</kbd>) and ATC's "taxi to the apron" route to it.</li>
+  <li>Stands have lead-in lines and stand numbers; jetbridges follow the OSM jetbridge lines; yellow lead-on lines carry on over the runway where a taxiway meets it; windsocks turn with the wind.</li>
   <li>From the command line: <code>--airport=VABB --stand</code> (a jetbridge gate), <code>--stand="Bay 40"</code>, or Juhu <code>--stand=GA3</code>.</li>
   <li>Stand starts are always cold and dark with the parking brake set.</li>
 </ul>
@@ -1475,7 +1476,7 @@ flatpak run org.freesim.FreeSim</code></pre><button class="copy" type="button">C
     <tr><td class="mono">10</td><td>3D building meshes and collision → <code>buildings/</code> (~7 min, 207 MB + 79 MB)</td></tr>
     <tr><td class="mono">11</td><td>Land-class masks: water and tree density → <code>terrain/lc/</code></td></tr>
     <tr><td class="mono">12</td><td>Outer terrain levels 3–6 over ~980 × 1475 km to Kochi (~7 min)</td></tr>
-    <tr><td class="mono">13</td><td>Airport ops: stands, gates, jetbridges, hold points, taxi graph → <code>airport_ops.json</code></td></tr>
+    <tr><td class="mono">13</td><td>Airport ops: stands, gates, jetbridges, hold points, taxi graph → <code>airport_ops.json</code>. Derives airliner stands where OSM has jet bridges but no stands (Kochi, Kannur)</td></tr>
     <tr><td class="mono">14</td><td>Simulated ILS for runways ≥ 2000 m → <code>ils.json</code></td></tr>
     <tr><td class="mono">15</td><td>Terminal footprints → <code>terminals/&lt;ICAO&gt;.json</code></td></tr>
     <tr><td class="mono">16</td><td>Landmark terminal models → <code>terminals/&lt;ICAO&gt;.glb</code>, <code>landmarks.json</code></td></tr>
@@ -1552,7 +1553,7 @@ $PY tools/07_preview.py 0 -62000 35000 -52000 41000   <span class="c"># zoom int
     <tr><td><code>test_instruments.gd</code></td><td>Altimeter, ASI, VSI lag, vacuum-failure drift, compass turning error</td></tr>
     <tr><td><code>test_systems.gd</code></td><td>Alternator failure, fuel starvation and restart, wind profile, ridge lift</td></tr>
     <tr><td><code>test_landing.gd</code></td><td>Normal landing and POH roll; hard landing, prop strike, ditching, Vne, overstress, flap overspeed</td></tr>
-    <tr><td>also</td><td><code>test_failures</code>, <code>test_nav</code>, <code>test_input</code>, <code>test_replay</code>, <code>test_situation</code>, <code>test_weight_balance</code>, <code>test_weather_visuals</code>, <code>test_airport_lights</code>, <code>test_aircraft_lights</code>, <code>test_terrain_regions</code></td></tr>
+    <tr><td>also</td><td><code>test_failures</code>, <code>test_nav</code>, <code>test_input</code>, <code>test_replay</code>, <code>test_situation</code>, <code>test_weight_balance</code>, <code>test_weather_visuals</code>, <code>test_airport_lights</code>, <code>test_airport_ops_stands</code> (Kochi stands, taxi routes, stand lines), <code>test_aircraft_lights</code>, <code>test_terrain_regions</code></td></tr>
   </tbody>
 </table></div>
 
@@ -1572,8 +1573,9 @@ E2E_JOBS=3 tools/e2e.sh run2    <span class="c"># parallel game instances</span>
     <tr><td><code>debug_origin.tscn</code></td><td>Largest per-frame jump at the 5 km origin shift: <code>-- --airport=VABB --runway=27 --air=1500 --dur=150</code></td></tr>
     <tr><td><code>debug_view.tscn</code></td><td>Fixed-spot screenshot or fly-through: <code>-- --eye=e,n,alt --at=e,n,alt --wait=12 --out=/tmp/v.png</code>, add <code>--to=e,n,alt --frames=N</code></td></tr>
     <tr><td><code>debug_handsoff.tscn</code></td><td>Hands-off and stutter probe: <code>-- --airport=VAPO --air=1500</code></td></tr>
+    <tr><td><code>debug_stand.tscn</code></td><td>Stand check from three cameras: <code>-- --airport=VOCI --stand=B7 --tod=12 --shots=/tmp/s</code> saves chase, orbit and overview PNGs; <code>--cam=e,n,height,yaw,pitch</code> puts the free camera anywhere</td></tr>
     <tr><td><code>debug_terminal.tscn</code></td><td>Landmark terminal renders: <code>-- --icao=VOCI --out=/tmp [--night]</code></td></tr>
-    <tr><td>others</td><td><code>debug_collision</code>, <code>debug_controls</code>, <code>debug_menu</code>, <code>debug_options</code>, <code>debug_panel</code>, <code>debug_pushback</code>, <code>debug_replay</code>, <code>debug_situation</code>, <code>debug_stand</code>, <code>debug_taxi</code>, <code>debug_turntable</code>, <code>debug_vehicles</code></td></tr>
+    <tr><td>others</td><td><code>debug_collision</code>, <code>debug_controls</code>, <code>debug_menu</code>, <code>debug_options</code>, <code>debug_panel</code>, <code>debug_pushback</code>, <code>debug_replay</code>, <code>debug_situation</code>, <code>debug_taxi</code>, <code>debug_turntable</code>, <code>debug_vehicles</code></td></tr>
   </tbody>
 </table></div>
 <h4>Terrain viewer</h4>

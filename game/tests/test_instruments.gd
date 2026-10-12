@@ -3,6 +3,15 @@ extends RefCounted
 
 const DT := 1.0 / 120.0
 
+var _made: Array = []  # nodes built by _setup(), freed with the suite (they are never in the tree)
+
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_PREDELETE:
+		for n in _made:
+			if is_instance_valid(n):
+				n.free()
+
 
 func _setup() -> Array:
 	var h := FdmHarness.new(2300.0)
@@ -13,6 +22,8 @@ func _setup() -> Array:
 	nodes.gyro.fdm = h.f
 	nodes.comp.fdm = h.f
 	nodes.air._ready()
+	_made.append(fn)
+	_made.append_array(nodes.values())
 	Props.set_v("instruments/altimeter/kollsman_inhg", 29.92)
 	Props.set_v("failures/vacuum_pump", false)
 	return [h, fn, nodes]

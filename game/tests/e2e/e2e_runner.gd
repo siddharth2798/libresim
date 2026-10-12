@@ -14,6 +14,7 @@ const SCEN := {
 	"handsoff": ["res://tests/e2e/sc_flight.gd", "handsoff"],
 	"landing": ["res://tests/e2e/sc_flight.gd", "landing"],
 	"coldstart": ["res://tests/e2e/sc_flight.gd", "coldstart"],
+	"coldstart_keys": ["res://tests/e2e/sc_flight.gd", "coldstart_keys"],
 	"taxi": ["res://tests/e2e/sc_ops.gd", "taxi"],
 	"panels": ["res://tests/e2e/sc_ops.gd", "panels"],
 	"saveload": ["res://tests/e2e/sc_ops.gd", "saveload"],
@@ -119,15 +120,25 @@ func shot(name: String) -> String:
 
 func key(code: Key, shift := false, ctrl := false) -> void:
 	for pressed in [true, false]:
-		var e := InputEventKey.new()
-		e.keycode = code
-		e.physical_keycode = code
-		e.pressed = pressed
-		e.shift_pressed = shift
-		e.ctrl_pressed = ctrl
-		Input.parse_input_event(e)
+		_key_event(code, pressed, shift, ctrl)
 		await get_tree().process_frame
 	Input.flush_buffered_events()
+
+
+## Press (and later release) a key for real, through the game's own input path (KeyboardControls).
+func key_event(code: Key, pressed: bool, shift := false, ctrl := false) -> void:
+	_key_event(code, pressed, shift, ctrl)
+	await get_tree().process_frame
+
+
+func _key_event(code: Key, pressed: bool, shift: bool, ctrl: bool) -> void:
+	var e := InputEventKey.new()
+	e.keycode = code
+	e.physical_keycode = code
+	e.pressed = pressed
+	e.shift_pressed = shift
+	e.ctrl_pressed = ctrl
+	Input.parse_input_event(e)
 
 
 func p(k: String, d: Variant = 0.0) -> Variant:

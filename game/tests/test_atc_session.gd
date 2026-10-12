@@ -88,3 +88,28 @@ func test_atc_menu_never_exceeds_six_and_every_call_works() -> String:
 			if _clean(c) != "":
 				return "%s/%s: %s" % [state, ground, _clean(c)]
 	return ""
+
+
+## Build and drop an ATC session (locals die when this returns); weak references to what should be gone.
+func _drop_session(with_queue: bool) -> Array:
+	var airports := [{"icao": "TEST", "ident": "TEST", "name": "Test Aerodrome", "type": "medium_airport", "x": 0.0, "y": 0.0}]
+	var rw := [{"airport": "TEST", "width": 45.0, "length": 2000.0, "ends": [{"ident": "09", "x": -1000.0, "y": 0.0, "heading_true": 90.0},
+		{"ident": "27", "x": 1000.0, "y": 0.0, "heading_true": 270.0}]}]
+	var s := AtcSession.new()
+	s.setup(AtcWorld.make_env(airports, {}, rw, {}), {"tune": func(_mhz: float): pass})
+	if with_queue:
+		var c := s.c
+		c.say_raw("atc", "Tower", "x", "x", 1.0e9, func(): c.rev += 1)  # never due: stays queued
+		s.close()
+	return [weakref(s), weakref(s.c)]
+
+
+func test_atc_session_is_freed_when_released() -> String:
+	# The voice hook used to capture the session itself (session -> controller -> on_tx -> session): a
+	# reference cycle that leaked six ATC scripts at exit after every flight (the e2e sweep's "resources still
+	# in use at exit"). Queued replies capture the controller the same way; close() must drop them.
+	for with_queue in [false, true]:
+		var refs := _drop_session(with_queue)
+		if refs[0].get_ref() != null or refs[1].get_ref() != null:
+			return "%s: the ATC session or controller is still alive after the last reference was dropped (reference cycle)" % ("with a queued reply" if with_queue else "plain")
+	return ""

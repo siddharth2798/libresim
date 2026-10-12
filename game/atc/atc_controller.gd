@@ -228,6 +228,15 @@ func pending() -> int:
 	return _q.size()
 
 
+## Drop everything that holds a reference back to this controller (the queued `then`
+## lambdas capture it, the callbacks may capture the owner), so it is freed at exit
+## instead of leaking as a reference cycle. Call when the controller is no longer used.
+func dispose() -> void:
+	_q.clear()
+	on_tx = Callable()
+	hooks = {}
+
+
 # ---- slots for the phrases ----
 
 func slots(w: Dictionary, extra := {}) -> Dictionary:
