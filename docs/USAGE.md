@@ -2,9 +2,16 @@
 
 This guide covers how to install, build the map data, and run libresim, a local Cessna 172 flight simulator for the Mumbai–Pune region. Design and roadmap are in `PLAN.md`; the coding conventions are in `CLAUDE.md`.
 
-## Quick start: `./run.sh`
+## Quick start: double-click, or `./run.sh`
 
-One command installs what is missing, downloads the raw data, builds the game data and opens the game:
+**Without a terminal.** Open the project folder in your file manager and double-click:
+
+- **Linux:** `Start libresim.desktop`. Ready to play: the game just opens (output goes to `data/run.log`). First time or data missing: a terminal window opens, runs `./run.sh` (asks before installing anything with `sudo`) and starts the game when done. GNOME: right-click the file once and choose **Allow Launching**; COSMIC and KDE: just double-click (if your file manager asks, mark it trusted).
+- **macOS:** `Start libresim.command` (opens Terminal for the setup, then the game; if macOS blocks it the first time, right-click, Open).
+- Each launch also adds **libresim** to your applications menu (`~/.local/share/applications/libresim.desktop`, with the logo), so afterwards you can start it from the menu or app launcher like any other program. `./launch.sh --register-only` adds just the menu entry.
+- The launcher finds the game folder from its own location, falling back to `~/.config/libresim/root` (written on every launch), so it still works if your file manager starts it from another directory.
+
+**From a terminal:** one command installs what is missing, downloads the raw data, builds the game data and opens the game:
 
 ```bash
 ./run.sh                              # set up everything (first run: ~1-2 h, mostly downloads), then fly

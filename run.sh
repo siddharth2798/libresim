@@ -135,7 +135,7 @@ ask() {  # ask "question" -> 0 on yes
   [[ $a =~ ^[Yy] ]]
 }
 timed() {  # timed "label" cmd...
-  local t=$SECONDS; "$@"; note "($1: $((SECONDS - t)) s)"
+  local label=$1 t=$SECONDS; shift; "$@"; note "($label: $((SECONDS - t)) s)"
 }
 mtime_newer() { [[ $1 -nt $2 ]]; }
 
@@ -261,7 +261,8 @@ outer_done() { [[ -f $STAMPS/01c.done ]] || { [[ -f data/raw/imagery/s2_outer.ti
 outer_get() { tools/01c_fetch_outer_imagery.sh 2>&1 | tee data/raw/imagery/fetch_outer.log; mkdir -p $STAMPS; touch $STAMPS/01c.done; }
 CORRIDOR=""
 for c in tools/01d_fetch_corridor.py tools/01d_fetch_corridor.sh; do [[ -f $c ]] && { CORRIDOR=$c; break; }; done
-corridor_done() { [[ -f $STAMPS/01d.done ]]; }
+# the fetch script logs "all: finished" when every part is downloaded (also true for runs done by hand)
+corridor_done() { [[ -f $STAMPS/01d.done ]] || grep -q 'all: finished' data/raw/fetch_corridor.log 2>/dev/null; }
 corridor_get() {  # resumable; re-running finishes partial downloads
   if [[ $CORRIDOR == *.py ]]; then $PY "$CORRIDOR"; else bash "$CORRIDOR"; fi
   mkdir -p $STAMPS; touch $STAMPS/01d.done; }
@@ -272,8 +273,12 @@ expand() { local p; for p in $1; do compgen -G "$p" || true; done; }
 ref_of() {  # file whose mtime stands for "when step $1 last completed"
   local s=$1 f
   [[ -f $STAMPS/$s.done ]] && { echo "$STAMPS/$s.done"; return; }
-  f=${OUT[$s]%% *}
-  if [[ -d $f ]]; then find "$f" -type f -print -quit; else echo "$f"; fi
+  local best="" o
+  for o in ${OUT[$s]}; do   # the newest output file marks when the step last finished
+    if [[ -d $o ]]; then f=$(find "$o" -type f -printf '%T@ %p\n' 2>/dev/null | sort -rn | sed -n 1p | cut -d' ' -f2-); else f=$o; fi
+    if [[ -e $f ]] && { [[ -z $best ]] || [[ $f -nt $best ]]; }; then best=$f; fi
+  done
+  echo "$best"
 }
 why_run() {  # prints a reason if step $1 must run, nothing if up to date
   local s=$1 o f d ref
@@ -366,6 +371,7 @@ note "setup time: $((SECONDS - T_ALL)) s; log: $LOG"
 
 header 7 "Launch"
 if dry; then note "WOULD run: ${GODOT:-godot} --path game -- ${GAME_ARGS[*]:-}"; exit 0; fi
+[[ -x launch.sh ]] && ./launch.sh --register-only 2>/dev/null   # applications-menu entry + "Start libresim" file
 if ((SETUP_ONLY)); then note "skipped (--setup-only)"; exit 0; fi
 [[ -n $GODOT ]] || { echo "Godot not found; install it (docs/USAGE.md section 1)."; exit 1; }
 if [[ -n $missing_data && $SKIP_DATA -eq 0 ]]; then echo "Data is incomplete; re-run, or pass --skip-data to launch anyway."; exit 1; fi

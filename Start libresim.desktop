@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=libresim
+GenericName=Flight Simulator
+Comment=Double-click to play. The first time it sets everything up in a terminal window.
+Exec=sh -c "d=\\$(dirname \\"\\$0\\"); [ -x \\"\\$d/launch.sh\\" ] || d=\\$(cat \\"\\$HOME/.config/libresim/root\\" 2>/dev/null); [ -x \\"\\$d/launch.sh\\" ] || d=.; exec \\"\\$d/launch.sh\\"" %k
+Icon=applications-games
+Terminal=false
+Categories=Game;Simulation;
