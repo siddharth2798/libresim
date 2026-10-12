@@ -17,7 +17,8 @@ var _air := {}                # wheel name -> seconds since it last touched
 var _marks: Array = []        # [Decal, Vector3 enu (e, n, up)]
 var _smoke: Array = []        # [CPUParticles3D, Vector3 enu]
 var _smoke_i := 0
-var _mark_tex: ImageTexture
+var _mark_tex: Array[ImageTexture] = []
+var _rng := RandomNumberGenerator.new()
 var _puff_tex: GradientTexture2D
 
 
@@ -30,13 +31,28 @@ static func puff(ground_speed: float, sink: float, airborne_s: float) -> float:
 	return clampf(speed_f * (0.35 + 0.65 * sink_f) + 0.1, 0.0, 1.0)
 
 
-static func mark_length(intensity: float) -> float:
-	return 2.0 + 4.0 * intensity
+## Rubber-mark strength 0..1 from how hard the wheel hit: a butter landing (< ~80 fpm) leaves
+## nothing, a smooth one a faint short scuff, a firm one a clear dark mark, a hard one a long
+## heavy streak. Ground speed matters a little (more rubber is scrubbed at higher speed).
+static func mark_strength(sink: float, ground_speed: float) -> float:
+	var fpm := sink * 196.85
+	var s := clampf((fpm - 60.0) / 740.0, 0.0, 1.0)
+	return s * (0.7 + 0.3 * clampf((ground_speed - MIN_GS) / 22.0, 0.0, 1.0))
+
+
+static func mark_length(strength: float) -> float:
+	return 0.8 + 7.0 * strength
+
+
+static func mark_alpha(strength: float) -> float:
+	return clampf(0.08 + 0.9 * strength, 0.0, 1.0)
 
 
 func setup(f: FdmNode) -> void:
 	fdm_node = f
-	_mark_tex = _make_mark_texture()
+	_rng.randomize()
+	for i in 4:
+		_mark_tex.append(_make_mark_texture(i * 7919 + 13))
 	_puff_tex = GradientTexture2D.new()
 	_puff_tex.fill = GradientTexture2D.FILL_RADIAL
 	_puff_tex.fill_from = Vector2(0.5, 0.5)
@@ -77,16 +93,17 @@ func _physics_process(dt: float) -> void:
 			continue
 		var v := fdm_node.fdm.velocity_ned()
 		var gs := Vector2(v.x, v.y).length()
-		var k := puff(gs, float(info.get("vz", 0.0)), air)
+		var sink := float(info.get("vz", 0.0))
+		var k := puff(gs, sink, air)
 		if k > 0.0:
-			_spawn(float(info.n), float(info.e), atan2(v.y, v.x), k)
+			_spawn(float(info.n), float(info.e), atan2(v.y, v.x), k, mark_strength(sink, gs))
 
 
-func _spawn(n: float, e: float, track: float, k: float) -> void:
+func _spawn(n: float, e: float, track: float, k: float, strength := -1.0) -> void:
 	var up: float = fdm_node.fdm.ground_height.call(n, e)
 	var enu := Vector3(e, n, up)
 	_emit_smoke(enu, track, k)
-	_add_mark(enu, track, k)
+	_add_mark(enu, track, k if strength < 0.0 else strength)
 
 
 func _emit_smoke(enu: Vector3, track: float, k: float) -> void:
@@ -108,16 +125,18 @@ func _emit_smoke(enu: Vector3, track: float, k: float) -> void:
 	p.emitting = true
 
 
-func _add_mark(enu: Vector3, track: float, k: float) -> void:
+func _add_mark(enu: Vector3, track: float, strength: float) -> void:
+	if strength < 0.03:
+		return  # a butter landing leaves no mark
 	if _marks.size() >= MAX_MARKS:
 		_marks.pop_front()[0].queue_free()
-	var len := mark_length(k)
+	var len := mark_length(strength) * _rng.randf_range(0.85, 1.15)
 	var d := Decal.new()
-	d.size = Vector3(0.65, 1.5, len)
-	d.texture_albedo = _mark_tex
+	d.size = Vector3(0.85 + 0.35 * strength, 1.5, len) * Vector3(_rng.randf_range(0.9, 1.1), 1.0, 1.0)
+	d.texture_albedo = _mark_tex[_rng.randi() % _mark_tex.size()]  # a few noise variants: no two marks alike
 	d.cull_mask = 1  # world only: aircraft meshes use their own render layer
-	d.modulate = Color(1, 1, 1, clampf(0.7 + 0.3 * k, 0.0, 1.0))
-	d.rotation.y = -track
+	d.modulate = Color(1, 1, 1, mark_alpha(strength) * _rng.randf_range(0.85, 1.0))
+	d.rotation.y = -track + deg_to_rad(_rng.randf_range(-1.5, 1.5))
 	var ahead := Vector3(sin(track), 0.0, -cos(track)) * (len * 0.5)  # mark starts at the touch point
 	add_child(d)
 	d.set_meta("ahead", ahead)
@@ -170,17 +189,41 @@ func _make_smoke() -> CPUParticles3D:
 	return p
 
 
-## Soft-edged dark streak: X across the tyre (0.5 m), Y along the mark, fading at both ends.
-static func _make_mark_texture() -> ImageTexture:
+## Value noise 0..1 on a hashed lattice (deterministic per seed).
+static func _vn(x: float, y: float, seed: int) -> float:
+	var xi := floori(x)
+	var yi := floori(y)
+	var fx := x - xi
+	var fy := y - yi
+	var h := func(a: int, b: int) -> float:
+		return float(hash(Vector3i(a, b, seed)) & 0xFFFF) / 65535.0
+	fx = fx * fx * (3.0 - 2.0 * fx)
+	fy = fy * fy * (3.0 - 2.0 * fy)
+	return lerpf(lerpf(h.call(xi, yi), h.call(xi + 1, yi), fx), lerpf(h.call(xi, yi + 1), h.call(xi + 1, yi + 1), fx), fy)
+
+
+## One rubber mark. X across the tyre, Y along the mark with the touch point at the BOTTOM
+## (+Z end): a dark smudge where the tyre spins up, then a trail that fades and breaks into
+## patches (rubber is laid down unevenly), with a ragged edge and slight width wander.
+static func _make_mark_texture(seed: int) -> ImageTexture:
 	var w := 32
 	var h := 128
 	var img := Image.create(w, h, false, Image.FORMAT_RGBA8)
 	for y in h:
-		var along := float(y) / (h - 1)
-		var ends := smoothstep(0.0, 0.18, along) * (1.0 - smoothstep(0.55, 1.0, along) * 0.8)
+		var d := 1.0 - float(y) / (h - 1)  # 0 at the touch point -> 1 at the far end
+		var spin := exp(-pow(d / 0.17, 2.0))  # the spin-up smudge
+		var trail := exp(-d * 1.7)
+		var fade := smoothstep(0.0, 0.025, d) * (1.0 - smoothstep(0.8, 1.0, d))
+		var half := 0.62 + 0.18 * (_vn(d * 6.0, 4.5, seed + 5) - 0.5)  # width wander
 		for x in w:
 			var across := absf(float(x) / (w - 1) * 2.0 - 1.0)
-			var edge := 1.0 - smoothstep(0.5, 1.0, across)
-			var grain := 0.8 + 0.2 * sin(float(y) * 1.7 + float(x) * 5.1)  # slightly broken rubber
-			img.set_pixel(x, y, Color(0.02, 0.02, 0.025, clampf(edge * ends * grain, 0.0, 1.0)))
+			var xn := float(x) / (w - 1)
+			# blotchy break-up in 2D (not banded): coarse patches plus fine speckle
+			var n := _vn(d * 8.0, xn * 2.2, seed) * 0.6 + _vn(d * 26.0, xn * 6.0, seed + 3) * 0.4 + 0.14 - d * 0.18
+			var patchy := smoothstep(0.24, 0.5, n)
+			var along := clampf(0.2 * spin + 0.85 * spin * patchy + 0.75 * trail * patchy, 0.0, 1.0) * fade
+			var rag := _vn(float(x) * 0.5, d * 24.0, seed + 9)  # ragged edge
+			var edge := 1.0 - smoothstep(half * 0.45, half * (0.85 + 0.3 * rag), across)
+			var grain := 0.75 + 0.25 * _vn(float(x) * 1.3, float(y) * 0.9, seed + 11)
+			img.set_pixel(x, y, Color(0.02, 0.02, 0.025, clampf(edge * along * grain, 0.0, 1.0)))
 	return ImageTexture.create_from_image(img)

@@ -328,7 +328,7 @@ cd game
 - Start **cold and dark** if you want: the C172 needs the real start procedure (master, mixture rich, throttle cracked, magnetos BOTH, starter).
 
 **On the ground:**
-- **Touchdown effects:** a landing puffs tyre smoke from each main wheel (more at higher speed and sink rate) and leaves a rubber mark on the runway, up to 40 marks per session.
+- **Touchdown effects:** a landing puffs tyre smoke from each main wheel (more at higher speed and sink rate) and leaves a rubber mark on the runway that follows how hard you landed: a butter landing (under ~80 fpm) leaves nothing, a smooth one a faint scuff, a firm one a clear dark mark, a hard one a long heavy streak. Each mark is irregular (dark spin-up smudge, patchy trail), and up to 40 are kept per session.
 - **Pushback** with a tug.
 - **Taxi guidance:** the route is computed over the real OSM taxiway network, and the instruction names the taxiways ("via A, B").
 
