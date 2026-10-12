@@ -14,7 +14,7 @@ Goal: a realistic desktop flight simulator in the style of MSFS and Real Flight 
 - **Main aircraft**: Cessna 172 (C172S), built as realistically as the budget allows.
 - **Low Claude-credit use**: most heavy work (data processing, 3D art) runs as local scripts or in free GUI tools, not inside Claude conversations.
 
-The working directory `/home/siddharth/Documents/tech-projects` has no existing project, so this is a greenfield build in `tech-projects/libresim/`.
+The project started as a greenfield build (no existing code) in a `libresim/` directory.
 
 ---
 

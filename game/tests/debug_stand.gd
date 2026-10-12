@@ -13,5 +13,5 @@ func _process(dt):
 		cam._look = Vector2(0.6, -0.55)
 	if t > 4.0:
 		print("STAND ", Props.get_v("ops/stand", "?"))
-		get_viewport().get_texture().get_image().save_png("/tmp/claude-1000/-home-siddharth-Documents-tech-projects-free-sim/f135e359-9884-4ff2-83d4-f05bf2eb11b5/scratchpad/a2.png")
+		get_viewport().get_texture().get_image().save_png(OS.get_user_data_dir() + "/a2.png")
 		get_tree().quit()

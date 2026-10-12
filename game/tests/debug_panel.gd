@@ -7,7 +7,7 @@ func _ready():
 	f = load("res://world/flight.tscn").instantiate(); add_child(f)
 func _process(dt):
 	t += dt
-	var SP := "/tmp/claude-1000/-home-siddharth-Documents-tech-projects-free-sim/f135e359-9884-4ff2-83d4-f05bf2eb11b5/scratchpad/"
+	var SP := (OS.get_environment("FREESIM_SHOTS") if OS.get_environment("FREESIM_SHOTS") != "" else OS.get_user_data_dir()) + "/"
 	if t > 1.0 and t - dt <= 1.0:
 		Props.set_v("controls/nav2/freq_mhz", 108.1)
 		Props.set_v("controls/nav2/obs_deg", 270.0)

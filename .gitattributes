@@ -1,0 +1,29 @@
+# Scripts must keep LF endings (a CRLF checkout on Windows breaks `./run.sh` and the launchers).
+*.sh text eol=lf
+*.command text eol=lf
+*.desktop text eol=lf
+*.gd text eol=lf
+*.py text eol=lf
+
+# Binary assets: never diff or normalise.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.webp binary
+*.dds binary
+*.glb binary
+*.wav binary
+*.ogg binary
+*.mp3 binary
+*.ttf binary
+*.otf binary
+*.mkv binary
+*.bin binary
+*.ico binary
+*.icns binary
+
+# GitHub language statistics: count the game's GDScript and Python, not vendored files or generated import metadata.
+third_party/** linguist-vendored
+packaging/licenses/** linguist-vendored
+docs/site/** linguist-documentation
+*.import linguist-generated

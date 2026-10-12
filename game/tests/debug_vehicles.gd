@@ -14,5 +14,5 @@ func _ready():
 		var arrow := MeshInstance3D.new(); var bm := BoxMesh.new(); bm.size = Vector3(0.3, 0.3, 6); arrow.mesh = bm; arrow.position = m.position + Vector3(-6, 0.2, 3); arrow.rotation.y = PI / 2  # points along -X; add_child(arrow)
 	var cam := Camera3D.new(); cam.position = Vector3(0, 6, 30); cam.look_at_from_position(cam.position, Vector3(0, 1.5, 0)); add_child(cam)
 	await get_tree().create_timer(1.0).timeout
-	get_viewport().get_texture().get_image().save_png("/tmp/claude-1000/-home-siddharth-Documents-tech-projects-free-sim/f135e359-9884-4ff2-83d4-f05bf2eb11b5/scratchpad/veh.png")
+	get_viewport().get_texture().get_image().save_png(OS.get_user_data_dir() + "/veh.png")
 	get_tree().quit()
