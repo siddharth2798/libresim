@@ -62,6 +62,7 @@ func _ready() -> void:
 	$Avionics/Nav.terrain = terrain
 	$Avionics/Gps.db = $Avionics/Nav.db
 	$Systems/Failures.fdm_node = fdm_node
+	$TouchdownFx.setup(fdm_node)
 	$UI/Failures.manager = $Systems/Failures
 	$UI/Pause.flight = self
 	$UI/Map.setup($Avionics/Nav.db, airports, terrain.cache)
@@ -91,6 +92,7 @@ func _ready() -> void:
 
 func _reset() -> void:
 	$Replay.clear()
+	$TouchdownFx.clear()
 	var p: Vector2 = _start.pos
 	var hdg: float = _start.heading_deg
 	FloatingOrigin.set_origin(p)

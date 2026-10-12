@@ -1,4 +1,4 @@
-[gd_scene load_steps=52 format=3]
+[gd_scene load_steps=53 format=3]
 
 [ext_resource type="Script" path="res://world/flight.gd" id="1"]
 [ext_resource type="Script" path="res://world/terrain_quadtree.gd" id="2"]
@@ -46,6 +46,7 @@
 [ext_resource type="Script" path="res://ui/saves_panel.gd" id="44"]
 [ext_resource type="Script" path="res://systems/replay.gd" id="45"]
 [ext_resource type="Script" path="res://ui/replay_bar.gd" id="46"]
+[ext_resource type="Script" path="res://world/touchdown_fx.gd" id="47"]
 
 [sub_resource type="ShaderMaterial" id="sky_mat"]
 shader = ExtResource("28")
@@ -109,6 +110,9 @@ script = ExtResource("20")
 script = ExtResource("21")
 sun_path = NodePath("../Sun")
 env_path = NodePath("../WorldEnvironment")
+
+[node name="TouchdownFx" type="Node3D" parent="."]
+script = ExtResource("47")
 
 [node name="RunwayLights" type="Node3D" parent="."]
 script = ExtResource("23")
