@@ -223,7 +223,7 @@ libresim/
 ## 8a. Later additions requested
 - **Session recording**: option on the start screen; records the whole flight (video + sound) to a local folder (default: game folder, user-selectable).
 - **Realistic terminals** (done for VABB, VAPO, VOCI): terminal buildings that look like the real ones (CSMIA T1/T2, Pune, Navi Mumbai): glass curtain walls, roof forms, piers.
-- **Airbus A320** (final stages): find an open-licence model with accurate cockpit/systems mapping (e.g. FlightGear A320-family, GPL), convert and make it compatible (JSON aircraft data, FDM, panel, sounds), credit it.
+- **Airbus A320** (final stages): find an open-licence model with accurate cockpit/systems mapping (e.g. FlightGear A320-family, GPL), convert and make it compatible (JSON aircraft data, FDM, panel, sounds), credit it. Detailed plan: docs/A320-PLAN.md.
 
 ## 8b. Standing requirements (apply to everything built now and later)
 - **Real sounds for every moving/working part.** No synthesized placeholders in releases. Every engine, propeller, actuator, switch, lever, gear, flap motor, trim wheel, stall horn, gyro, wind, tyre/rumble, door, ground vehicle (pushback tug, fuel truck, GPU…), ATC radio and ambient airport sound must use real recordings, layered and pitch/volume-mapped to the simulated state (RPM, load, airspeed, position). Sources: the FlightGear c172p sound set (CC0/CC-BY, credited per its `Thanks` file), Freesound CC0/CC-BY, own field recordings. Every file is listed with its licence in CREDITS.md. The procedural engine sound in `aircraft/c172/engine_sound.gd` is a stand-in until then.
