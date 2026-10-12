@@ -1,7 +1,7 @@
-"""Text helpers for the logo options: font loading, glyph layout and text converted to SVG outlines.
+"""Text helpers for the libresim logo: font loading, glyph layout and text converted to SVG outlines.
 
-All fonts are open-licensed and already installed (Open Sans: Apache-2.0, Fira Sans: SIL OFL 1.1,
-Roboto Slab: Apache-2.0). Text is emitted as filled paths, so the SVGs need no fonts.
+The wordmark and the runway designator use Fira Sans (SIL OFL 1.1; the OTFs in
+/usr/share/fonts/opentype/fira are used), converted to outlines, so the SVGs need no fonts and none is shipped.
 """
 from functools import lru_cache
 
@@ -10,11 +10,9 @@ from fontTools.pens.svgPathPen import SVGPathPen
 from fontTools.pens.transformPen import TransformPen
 from fontTools.ttLib import TTFont
 
-OPEN_SANS = "/usr/share/fonts/truetype/open-sans/OpenSans-{}.ttf"
 FIRA = "/usr/share/fonts/opentype/fira/FiraSans-{}.otf"
-ROBOTO_SLAB = "/usr/share/fonts/truetype/roboto-slab/RobotoSlab-{}.ttf"
 
-FAMILIES = {"opensans": OPEN_SANS, "fira": FIRA, "robotoslab": ROBOTO_SLAB}
+FAMILIES = {"fira": FIRA}
 
 
 @lru_cache(maxsize=None)

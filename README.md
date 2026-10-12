@@ -1,4 +1,7 @@
-<p align="center"><img src="game/branding/logo_wide.png" alt="libresim" width="560"></p>
+<p align="center"><picture>
+  <source media="(prefers-color-scheme: dark)" srcset="game/branding/logo_wide_dark.png">
+  <img src="game/branding/logo_wide.png" alt="libresim" width="560">
+</picture></p>
 
 # libresim
 
