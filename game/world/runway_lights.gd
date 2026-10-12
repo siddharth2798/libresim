@@ -169,6 +169,11 @@ func _process(dt: float) -> void:
 			_print_papi(w)
 
 
+func _exit_tree() -> void:
+	for icao in _built:
+		_built[icao].release()
+
+
 ## Builds at most one airport per call (spreads the cost when several come into range).
 func _update_built(c: Vector2) -> void:
 	var built_one := false
@@ -187,6 +192,7 @@ func _update_built(c: Vector2) -> void:
 			if _debug:
 				print("lights %s built in %.0f ms: %s" % [icao, (Time.get_ticks_usec() - t0) / 1000.0, al.counts])
 		elif d > FREE_RADIUS and _built.has(icao):
+			_built[icao].release()
 			_built[icao].root.queue_free()
 			_built.erase(icao)
 

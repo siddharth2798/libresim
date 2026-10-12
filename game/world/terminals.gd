@@ -5,6 +5,7 @@ extends Node3D
 ## Loaded when the camera is within LOAD_RADIUS, materials swapped by name for
 ## world/terminal.gdshader (glass curtain walls, cladding, metal / clay-tile roofs,
 ## lit coffered soffits), plus the big airport-name lettering as Label3D signs.
+## The model is also a collision solid (TerminalSolids) while it is loaded.
 
 const LOAD_RADIUS := 20000.0
 const KINDS := {"glass": 0, "panel": 1, "gable": 1, "roof_metal": 2, "roof_white": 2, "roof_tile": 3,
@@ -15,6 +16,7 @@ var _sites := {}  # icao -> {"origin": Vector3 ENU, "node": Node3D or null, "met
 var _mats: Array[ShaderMaterial] = []
 var _shader := preload("res://world/terminal.gdshader")
 var _timer := 0.0
+var _solids := TerminalSolids.new()
 
 
 func _ready() -> void:
@@ -31,7 +33,12 @@ func _ready() -> void:
 	FloatingOrigin.shifted.connect(func(_d): _reposition())
 
 
+func _exit_tree() -> void:
+	_solids.stop_all()
+
+
 func _process(dt: float) -> void:
+	_solids.poll()
 	var night := clampf((2.0 - Props.get_f("environment/sun_elev_deg", 30.0)) / 8.0, 0.0, 1.0)
 	for m in _mats:
 		m.set_shader_parameter("night", night)
@@ -43,13 +50,17 @@ func _process(dt: float) -> void:
 	if cam == null:
 		return
 	var w := FloatingOrigin.to_world(cam.global_position)
+	var ac: Vector3 = Props.get_v("fdm/position_enu", w)  # the aircraft counts as well as the camera
 	for icao in _sites:
 		var s: Dictionary = _sites[icao]
-		var near := Vector2(w.x, w.y).distance_to(Vector2(s.origin.x, s.origin.y)) < LOAD_RADIUS
+		var c := Vector2(s.origin.x, s.origin.y)
+		var near := minf(Vector2(w.x, w.y).distance_to(c), Vector2(ac.x, ac.y).distance_to(c)) < LOAD_RADIUS
 		if near and s.node == null:
 			s.node = _load(icao, s.meta)
 			_reposition()
+			_solids.start(icao, s.node, s.origin)
 		elif not near and s.node != null:
+			_solids.stop(icao)
 			for m in s.node.get_meta("mats", []):
 				_mats.erase(m)
 			s.node.queue_free()

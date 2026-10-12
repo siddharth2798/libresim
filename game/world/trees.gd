@@ -12,8 +12,13 @@ const HIDE_AGL := 1500.0
 const PX := 10.0  # land-class pixel size (m)
 const BUDGET := 2  # finished chunks turned into MultiMeshes per frame
 const MAX_IN_FLIGHT := 4  # chunks generating on worker threads
+const MAX_TREE_H := 15.0  # tallest tree (TreeSampler.cell_tree)
+const COL_CACHE := 12000  # collision cells kept
 
-@export var density_scale := 1.0  # graphics presets scale this
+@export var density_scale := 1.0:  # graphics presets scale this
+	set(v):
+		density_scale = v
+		_col.clear()  # collision trees follow the drawn ones
 
 var terrain: TerrainQuadtree
 var _chunks := {}  # Vector2i -> MultiMeshInstance3D (or null = mask not loaded yet)
@@ -26,6 +31,7 @@ var _mutex := Mutex.new()
 var _done: Array = []  # [chunk key, PackedFloat32Array] from workers
 var _in_flight := 0
 var _flying := {}  # chunk key -> WorkerThreadPool task id while generating
+var _col := {}  # land cell Vector2i -> collision disc record, or false (no tree)
 
 
 func _ready() -> void:
@@ -93,10 +99,6 @@ func _process(dt: float) -> void:
 	_queue.sort_custom(func(a, b): return (Vector2(a) * CHUNK).distance_to(Vector2(w.x, w.y)) < (Vector2(b) * CHUNK).distance_to(Vector2(w.x, w.y)))
 
 
-func _hash(x: int, y: int, k: int) -> float:
-	return TreeSampler.hash3(x, y, k)
-
-
 ## Main thread: look up the chunk's land-class source tile, then generate on a worker.
 func _build(k: Vector2i) -> void:
 	if _sampler == null:
@@ -156,26 +158,47 @@ func _reposition() -> void:
 			_place(_chunks[k], k)
 
 
+## Collision: a vertical cylinder per tree (ObstacleShapes.disc, canopy radius 0.4 x width, top = 0.9 x
+## height), made lazily from the same TreeSampler.cell_tree rule as the drawn trees and cached per
+## land cell. Independent of the camera and of which chunks are drawn: it works wherever the
+## aircraft is, as soon as the land-class mask there has loaded (it loads with the terrain).
+func near(e: float, n: float, r: float, alt_lo: float, out: Array) -> void:
+	if terrain == null or alt_lo > terrain.cache.height_at(e, n) + MAX_TREE_H + r + 2.0:
+		return  # nothing here reaches that high
+	for cj in range(floori((n - r) / PX) - 1, floori((n + r) / PX) + 2):  # a canopy spills ~4 m past its cell
+		for ci in range(floori((e - r) / PX) - 1, floori((e + r) / PX) + 2):
+			var rec = _tree_cell(ci, cj)
+			if rec is Dictionary:
+				var lo: Vector2 = rec.lo
+				var hi: Vector2 = rec.hi
+				if lo.x <= e + r and hi.x >= e - r and lo.y <= n + r and hi.y >= n - r:
+					out.append(rec)
+
+
+func _tree_cell(ci: int, cj: int) -> Variant:
+	var k := Vector2i(ci, cj)
+	var rec = _col.get(k)
+	if rec != null:
+		return rec
+	var lc := terrain.cache.landclass_at((ci + 0.5) * PX, (cj + 0.5) * PX)
+	if lc < 0:
+		return false  # land-class mask still loading: ask again next step
+	var t := TreeSampler.cell_tree(ci, cj, lc, PX, density_scale)
+	rec = false
+	if not t.is_empty():
+		var g := terrain.cache.height_at(t[0], t[1])
+		rec = ObstacleShapes.disc(Vector2(t[0], t[1]), t[3] * 0.4, g - 0.3, g + t[2] * 0.9, "trees", true)
+	if _col.size() > COL_CACHE:
+		_col.clear()
+	_col[k] = rec
+	return rec
+
+
 ## Top of the tree canopy (m AMSL) at world (east, north) if a tree stands there, else -INF.
-## Mirrors _build's placement (same hashes), using the canopy radius.
 func tree_top_at(east: float, north: float) -> float:
-	if terrain == null:
-		return -INF
-	var gi0 := int(east / PX)
-	var gj0 := int(north / PX)
-	for dj in [-1, 0, 1]:
-		for di in [-1, 0, 1]:
-			var gi: int = gi0 + di
-			var gj: int = gj0 + dj
-			var e := (gi + 0.5) * PX
-			var n := (gj + 0.5) * PX
-			var lc := terrain.cache.landclass_at(e, n)
-			if lc <= 0 or lc == 255 or _hash(gi, gj, 1) > lc / 200.0 * 0.8 * density_scale:
-				continue
-			var px := e + (_hash(gi, gj, 2) - 0.5) * PX * 0.8
-			var py := n + (_hash(gi, gj, 3) - 0.5) * PX * 0.8
-			var height := lerpf(6.0, 15.0, _hash(gi, gj, 4))
-			var radius := height * lerpf(0.55, 0.85, _hash(gi, gj, 5)) * 0.4
-			if Vector2(px, py).distance_to(Vector2(east, north)) < radius:
-				return terrain.cache.height_at(px, py) + height * 0.9
+	var out := []
+	near(east, north, 0.0, -INF, out)
+	for rec in out:
+		if (rec.c as Vector2).distance_to(Vector2(east, north)) < rec.r:
+			return rec.top
 	return -INF

@@ -12,7 +12,7 @@ const VERSION := 1
 const QUICK := "quicksave"
 ## Props saved with a situation (everything else is recomputed by the modules each tick).
 const PROP_PREFIXES := ["controls/", "failures/", "weather/", "instruments/", "systems/", "fuel/",
-	"engine/", "fdm/", "atmosphere/", "environment/"]
+	"engine/", "fdm/", "atmosphere/", "environment/", "atc/"]
 
 ## Set by the start screen's saves page; world/flight.gd loads it at the end of _ready.
 static var pending_load := ""

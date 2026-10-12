@@ -12,6 +12,12 @@ var root: Node3D
 var papis: Array = []  # [[ident, units]] for read-outs
 var masts: Array = []  # Vector2 ENU of floodlight masts
 var counts := {}  # group -> light count
+var _icao := ""
+
+
+## Remove the masts' collision (the airport is being unloaded).
+func release() -> void:
+	ObstacleRegistry.remove_group("masts:" + _icao)
 
 
 ## Runway descriptor used by the layouts. ils_rwys: idents of runway ends with an ILS;
@@ -77,8 +83,11 @@ func build(icao: String, runways: Array, taxiways: Array, ils: Array, ops: Dicti
 		tl.taxiway(taxiways, ti, centre, hf, sets.taxi)
 	for hp in ops.get("holds", []):
 		tl.hold(Vector2(hp.x, hp.y), hf, sets.stop)
-	masts = ApronFloodlights.masts(ops.get("stands", []))
+	masts = ApronFloodlights.masts(ops.get("stands", []), runways)
 	ApronFloodlights.add_heads(masts, hf, sets.flood)
+	_icao = icao
+	for m in masts:  # solid, too (ObstacleRegistry), unless it stands where a C172 is meant to be
+		OpsSolids.add_pole("masts:" + icao, m, 0.6, ApronFloodlights.MAST_H, hf.call(m.x, m.y), "a floodlight mast")
 	for g in sets:
 		counts[g] = sets[g].count
 		var mi: MultiMeshInstance3D = sets[g].make_instance(mats[g], g)

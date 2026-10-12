@@ -3,7 +3,7 @@ extends RefCounted
 ## Worker-thread side of Trees: generates one chunk's MultiMesh buffer straight from the
 ## land-class (.r8.gz) and level-0 height (.r16) files, so no per-tree script work runs on
 ## the main thread (it used to: 2 chunks x 2304 landclass_at + height_at calls per frame,
-## 20-90 ms hitches). Placement is identical to Trees.tree_top_at (same hashes, same
+## 20-90 ms hitches). Placement is cell_tree(), also used by Trees.near for collisions (same
 ## bilinear heights as TerrainTileCache.height_at). File caches are mutex-guarded.
 
 const MAX_CACHED := 24
@@ -30,6 +30,17 @@ static func hash3(x: int, y: int, k: int) -> float:
 	return float(posmod((x * 73856093) ^ (y * 19349663) ^ (k * 83492791), 100003)) / 100003.0
 
 
+## THE tree placement rule, shared by rendering (build) and collision (Trees.near), so what is
+## drawn is what is hit. Land cell (ci, cj) of px metres with land class lc: [] when it has no
+## tree, else [east, north, height m, canopy width m].
+static func cell_tree(ci: int, cj: int, lc: int, px: float, density: float) -> PackedFloat32Array:
+	if lc <= 0 or lc == 255 or hash3(ci, cj, 1) > lc / 200.0 * 0.8 * density:
+		return PackedFloat32Array()
+	var height := lerpf(6.0, 15.0, hash3(ci, cj, 4))
+	return PackedFloat32Array([(ci + 0.5 + (hash3(ci, cj, 2) - 0.5) * 0.8) * px,
+		(cj + 0.5 + (hash3(ci, cj, 3) - 0.5) * 0.8) * px, height, height * lerpf(0.55, 0.85, hash3(ci, cj, 5))])
+
+
 ## Worker thread. src: land-class source tile (TerrainMeta.tex_source, looked up on the main
 ## thread) and its size in metres. Returns MultiMesh.buffer data (12 xform + 4 custom floats
 ## per tree), positions relative to the chunk's SW corner.
@@ -41,28 +52,24 @@ func build(x0: float, y0: float, chunk: float, px: float, src: Vector3i, src_siz
 	var n := int(chunk / px)
 	var sx0 := src.y * src_size
 	var sy0 := src.z * src_size
+	var ci0 := floori(x0 / px)
+	var cj0 := floori(y0 / px)
 	for j in n:
 		for i in n:
 			var e := x0 + (i + 0.5) * px
 			var no := y0 + (j + 0.5) * px
 			var cx := clampi(int((e - sx0) / src_size * _img_n), 0, _img_n - 1)
 			var cy := clampi(int((1.0 - (no - sy0) / src_size) * _img_n), 0, _img_n - 1)
-			var v := lc[cy * _img_n + cx]
-			if v == 0 or v == 255:
+			var t := cell_tree(ci0 + i, cj0 + j, lc[cy * _img_n + cx], px, density)
+			if t.is_empty():
 				continue
-			var gi := int(e / px)
-			var gj := int(no / px)
-			if hash3(gi, gj, 1) > v / 200.0 * 0.8 * density:
-				continue
-			var tx := e + (hash3(gi, gj, 2) - 0.5) * px * 0.8
-			var ty := no + (hash3(gi, gj, 3) - 0.5) * px * 0.8
-			var h := height_at(tx, ty)
-			var height := lerpf(6.0, 15.0, hash3(gi, gj, 4))
-			var width := height * lerpf(0.55, 0.85, hash3(gi, gj, 5))
-			var b := Basis(Vector3.UP, hash3(gi, gj, 6) * TAU).scaled(Vector3(width, height, width))
-			out.append_array([b.x.x, b.y.x, b.z.x, tx - x0,
+			var gi := ci0 + i
+			var gj := cj0 + j
+			var h := height_at(t[0], t[1])
+			var b := Basis(Vector3.UP, hash3(gi, gj, 6) * TAU).scaled(Vector3(t[3], t[2], t[3]))
+			out.append_array([b.x.x, b.y.x, b.z.x, t[0] - x0,
 				b.x.y, b.y.y, b.z.y, h - 0.3,
-				b.x.z, b.y.z, b.z.z, -(ty - y0),
+				b.x.z, b.y.z, b.z.z, -(t[1] - y0),
 				hash3(gi, gj, 7), hash3(gi, gj, 8), hash3(gi, gj, 9), hash3(gi, gj, 10)])
 	return out
 

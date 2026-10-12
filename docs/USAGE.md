@@ -230,6 +230,7 @@ Running the game opens the **start screen** (the libresim logo shows first as th
    - Graphics preset.
    - Units preference (stored for later; the C172 panel stays in ft, kt and inHg).
    - Whether the HUD is shown at start.
+   - **Voice (off by default):** "Speak them" (training callouts) and "ATC voice" use the operating system's text-to-speech. Nothing speech-related runs at start-up while both are off. Switching one on probes the system once (about half a second). If no voice is found, the checkbox stays saved but silent, a calm note appears under it and one line is printed to the console. **Linux:** install speech-dispatcher and a voice, e.g. `sudo apt install speech-dispatcher espeak-ng` (Fedora: `sudo dnf install speech-dispatcher espeak-ng`; Arch: `sudo pacman -S speech-dispatcher espeak-ng`), then restart the game. Windows and macOS use their built-in voices. Code: `core/speech_service.gd` (one door for callouts and ATC; tests in `tests/test_speech.gd`).
 
 **On-screen messages:**
 - **Notification cards** at the top-centre carry everything the sim tells you: failures, damage, and the landing debrief (grade, sink rate, g and centreline offset).
@@ -361,7 +362,7 @@ cd game
 - Start **cold and dark** if you want: the C172 needs the real start procedure (master, mixture rich, throttle cracked, magnetos BOTH, starter).
 
 **On the ground:**
-- **Training callouts (optional, off by default):** a real C172 has none, but an instructor would call them. Turn them on with **K** in flight or on the Options page ("Speak them" uses your system's text-to-speech voice if it has one).
+- **Training callouts (optional, off by default):** a real C172 has none, but an instructor would call them. Turn them on with **K** in flight or on the Options page ("Speak them" uses your system's text-to-speech voice if it has one; on Linux that needs `speech-dispatcher` and a voice such as `espeak-ng`, see Options → Voice).
   - **Takeoff:** *Airspeed alive* (40 kt), *Rotate* (55 kt), *Positive rate*.
   - **Approach:** *Five hundred*, *One hundred*, *Fifty*, *Thirty*, *Twenty*, *Ten* (feet above ground, once each, only while descending).
   - **Cautions:** *Sink rate*, *Low airspeed* and *Bank angle* near the ground.
@@ -370,7 +371,7 @@ cd game
 - **Taxi guidance:** the route is computed over the real OSM taxiway network, and the instruction names the taxiways ("via A, B").
 
 **Radio and checklists:**
-- **Text ATC** (`): ATIS, clearance with squawk, ground, tower. Each call only gets an answer when COM1's active frequency is tuned to that facility (ATIS, DEL/GND, TWR), as in the real aircraft.
+- **ATC** (`): a controller with memory, in text (and optionally in the system voice). `` ` `` opens the radio panel: COM1 active/standby, the unit you are tuned to ("VAPO Tower 123.500" or "no facility on this frequency"), a transcript of who said what, and a menu that lists only the calls that make sense now (keys **1-6**, `` ` `` closes it; while it is open the number keys do not change the camera). Departure: ATIS (the information letter changes when the weather does) → VFR clearance with squawk, runway and a readback → pushback and taxi (the green route line and follow-me car start with the call) → "contact Tower" at the holding point → ready for departure → line up and wait → cleared for takeoff with wind → "contact Approach" or "frequency change approved, squawk VFR". Arrival: inbound call (position, altitude) → join / straight-in and QNH → "report final" at about 5 nm → cleared to land → "vacate runway, contact Ground" → taxi to the apron → parked. **Say again** repeats the last instruction; if COM1 is on the wrong frequency the menu offers **Tune COM1 to <unit>**, and a call on the wrong unit is redirected ("you are on the wrong frequency, contact Tower 118.1"). Airports with no published frequency are answered on any COM1 frequency (Juhu, Navi Mumbai); small fields and heliports have no ATC: your calls are blind transmissions that nobody answers. A dead or switched-off COM1 sends nothing. **Free flight only:** if you take off, land or enter a runway without a clearance you get one short note (once per flight), never a block. **In a training lesson ATC stays out of the way:** no unprompted calls or notes, the panel never opens by itself (it is still there on `` ` ``), clearances count as given. The call sign defaults to VT-FSM (`callsign` in `options.cfg`; the Options-page block is written but not yet hooked into the page, see docs/ATC.md); V in the open menu turns the voice on or off. Details, phrase file and state machine: docs/ATC.md.
 - **Checklists** (F2) that track what you've actually done.
 
 **Landmark terminals:** Mumbai (T2 and T1), Pune (the new integrated terminal and the old terminal) and Kochi (T3, T1 and T2) are drawn as dedicated models that look like the real buildings, not as generic blocks.
@@ -389,7 +390,7 @@ cd game
 - **Pushback:** uses a Goldhofer tug.
 - **Follow-me car:** when you request taxi (T), it drives ahead of you along the route, waits if you fall behind, and turns off at the hold-short point.
 
-**Not yet:** moving service vehicles, AI traffic and voice ATC (M9).
+**Not yet:** moving service vehicles, AI traffic (ATC stage A2) and recorded radio voices with real radio effects (stage A3).
 
 ### Beyond the detailed region
 
@@ -409,8 +410,15 @@ Mistakes end the flight the way they would in reality. The thresholds come from 
 **Strikes and impacts:**
 - **Prop strike:** the propeller tip touches the ground (for example, landing nose wheel first or porpoising). The engine is destroyed, and if you were moving faster than about 25 kt the aircraft noses over (crash).
 - **Wingtip strike** above 10 kt (ground loop) is a crash. A **tail strike** damages the airframe.
-- **Ditching** (touching water) is a crash, and so is flying **into trees** or **into buildings**. Buildings are checked at the nose, wingtips, tail and fuselage against OSM footprints and heights.
+- **Ditching** (touching water) is a crash. For trees, buildings, terminals, jetways and vehicles see **What counts as a crash** below.
 - **Crosswind:** touching down while drifting sideways more than about 6 kt damages the gear; more than about 10 kt folds it (ground loop). Use a crab or wing-low correction.
+
+**What counts as a crash (obstacles):** touching any solid ends the flight, in the air or on the ground, at any speed. The card names the part and the thing, for example "The right wingtip hit trees at 82 kt" or "The nose hit a parked vehicle (fuel truck) at 6 kt (taxiing)", and the replay (R) shows the same line.
+- **The whole airframe counts**, not a few points: the propeller disc, nose, cowling, fuselage, both wings (leading and trailing edges, struts), tail fin and stabilizers, and the wheels. A 6 m house or a single tree between a wingtip and the nose is hit by the wing.
+- **Solids:** trees (the same ones that are drawn, canopy and height), 3D OSM buildings (footprint and roof height), the landmark **terminal models** at Mumbai, Pune and Kochi (their real shape: you can taxi under an 8 m canopy but not into a wall), **jetways**, parked **ground vehicles** (fuel trucks, buses, baggage carts, GPUs), apron **floodlight masts** and windsock poles. Wheels count too: driving into a wall or a vehicle at 5 kt is a crash.
+- **No gate on height:** a tall building beside a cliff is hit however far the ground is below you. Collision data for buildings loads around the aircraft (and where it is heading), not around the camera, and the tile under a freshly placed aircraft is read at once.
+- **Normal ground operations never crash:** stands, the pushback swing, taxiways and runways are corridors where OSM buildings and trees (which are not survey-grade) are forgiven, ground vehicles and masts that would stand in them are left out, and an overlap that exists while you sit parked (a stand beside a tree) is forgiven until you drive away from it. Terminals, jetways and vehicles stay solid.
+- Not solid: runway and approach lights, PAPIs, signs, the follow-me car and the pushback tug.
 
 **In-flight limits:**
 - More than 2 s above **Vne 163 KIAS** damages the airframe; at **185 KIAS** the structure fails.
@@ -725,5 +733,6 @@ docs/USAGE.md this file
 | Stutter / where does the frame time go? | `godot --path game res://tests/debug_perf.tscn -- --airport=VABB --runway=27 --air=1000 --quality=high --log=/tmp/f.csv --dur=60` logs every frame (GPU, physics, pipeline compiles, per-node `_process` time) and prints the worst frames and top consumers |
 | Jump at the 5 km origin shift? | `res://tests/debug_origin.tscn -- --airport=VABB --runway=27 --air=1500 --dur=150` prints the largest per-frame world-space move of the camera, aircraft and static scenery, split into normal and shift frames (static must be 0) |
 | Flicker / scenery check at a fixed spot | `res://tests/debug_view.tscn -- --eye=e,n,alt --at=e,n,alt --wait=12 --out=/tmp/v.png` (free camera, world metres); add `--to=e,n,alt --frames=N` to save a fly-through frame by frame. `debug_perf.tscn ... --burst=/dir@20x10 --freeze` saves 10 frames with sim time stopped (any change = instability) |
+| Does a crash register? (trees, buildings, terminals, jetways, vehicles) | `godot --headless --path game res://tests/obstacle_probe.tscn -- --only=mirror,forest,city,taxi,airport,corridor,fast,scan,ops` flies and taxis scripted runs in the real loaded world (needs `data/processed`) and prints one `ROW` per case; `--only=scan --icao=VABB [--rules]` puts the aircraft at every stand, pushback path, taxiway and runway and reports overlaps with a solid (`--rules`: after the forgiveness rules; normal ops must give 0); `--only=ops` takes off from and lands on 10 runways; `--only=perf` times the collision check |
 | Aircraft spawns in the wrong place / no runway | Run `tools/09_runways.py` (it writes `data/processed/runways.json`) |
 | No sound | Godot uses PulseAudio/PipeWire; check the system output device |

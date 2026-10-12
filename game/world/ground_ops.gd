@@ -9,8 +9,6 @@ extends Node3D
 ##    P again stops the push.
 
 const PUSH_SPEED := 1.4
-const PUSH_STRAIGHT := 30.0
-const PUSH_RADIUS := 18.0
 
 var ops: AirportOps
 var airports: AirportBuilder
@@ -18,6 +16,7 @@ var fdm_node: FdmNode
 var terrain: TerrainQuadtree
 var _route: Array = []  # [Vector2]
 var _route_txt := ""
+var _hold_at_end := true  # runway route: "hold short" at the end; stand route: just ends
 var _line: MeshInstance3D
 var _label: Label
 var _push := {}  # active pushback state
@@ -112,6 +111,33 @@ func request_taxi() -> void:
 	if r.is_empty():
 		_say("No taxi route found")
 		return
+	_set_route(r, "Taxi to runway %s%s — hold short" % [rwy.ident, (" via " + ", ".join(r.via)) if not r.via.is_empty() else ""], true)
+	Props.set_v("ops/taxi_route", _route_txt)
+
+
+## ATC "taxi to the apron" after landing: route to the nearest stand (a ramp stand is preferred
+## over a gate with a jetbridge). Returns the instruction text, "" if there is none.
+func request_taxi_to_stand() -> String:
+	var icao := _airport_here()
+	var p := fdm_node.position_enu()
+	var here := Vector2(p.x, p.y)
+	var best := {}
+	var bd := INF
+	for s in ops.data.get(icao, {}).get("stands", []):
+		var d := here.distance_to(Vector2(s.x, s.y)) + (400.0 if s.jetbridge else 0.0)
+		if d < bd:
+			bd = d
+			best = s
+	var r := ops.route(icao, here, Vector2(best.x, best.y)) if not best.is_empty() else {}
+	if r.is_empty():
+		_say("No taxi route to a stand found")
+		return ""
+	var ref := str(best.get("ref", ""))
+	_set_route(r, "Taxi to the apron%s%s" % [(" (stand " + ref + ")") if ref != "" else "", (" via " + ", ".join(r.via)) if not r.via.is_empty() else ""], false)
+	return _route_txt
+
+
+func _set_route(r: Dictionary, txt: String, hold_at_end: bool) -> void:
 	_route = r.path
 	_route_len.clear()
 	var acc := 0.0
@@ -120,8 +146,8 @@ func request_taxi() -> void:
 			acc += (_route[i - 1] as Vector2).distance_to(_route[i])
 		_route_len.append(acc)
 	_spawn_follow_me()
-	_route_txt = "Taxi to runway %s%s — hold short" % [rwy.ident, (" via " + ", ".join(r.via)) if not r.via.is_empty() else ""]
-	Props.set_v("ops/taxi_route", _route_txt)
+	_route_txt = txt
+	_hold_at_end = hold_at_end
 	_draw_route()
 
 
@@ -188,7 +214,9 @@ func _process(_dt: float) -> void:
 		for i in range(nearest, _route.size() - 1):
 			rem += (_route[i] as Vector2).distance_to(_route[i + 1])
 		_update_follow_me(_dt, _route_len[nearest])
-		_say("%s   (%.0f m)%s" % [_route_txt, rem, "\nHOLD SHORT — contact tower for takeoff" if rem < 40.0 else ""])
+		_say("%s   (%.0f m)%s" % [_route_txt, rem, "\nHOLD SHORT — contact tower for takeoff" if rem < 40.0 and _hold_at_end else ""])
+		if not _hold_at_end and rem < 12.0:
+			clear_route()
 	elif _push.is_empty():
 		if _label.text.begins_with("Pushback") or _label.text.begins_with("No "):
 			pass
@@ -278,27 +306,19 @@ func _physics_process(dt: float) -> void:
 	if _push.is_empty():
 		return
 	var f := fdm_node.fdm
+	if f.damage.crashed:
+		_end_push("Pushback stopped: collision")
+		return
 	if f.gear.brake_left > 0.5 or f.gear.brake_right > 0.5:
 		return  # brakes on: tug stalls
 	_push.s += PUSH_SPEED * dt
 	var s: float = _push.s
 	var h0: float = _push.hdg0
-	var back := -Vector2(sin(h0), cos(h0))  # tail direction (east, north)
-	var pos: Vector2
-	var hdg: float
-	if s <= PUSH_STRAIGHT:
-		pos = _push.p0 + back * s
-		hdg = h0
-	else:
-		var a := minf((s - PUSH_STRAIGHT) / PUSH_RADIUS, PI / 2)
-		var side: float = _push.side
-		var right := Vector2(cos(h0), -sin(h0))
-		var centre: Vector2 = _push.p0 + back * PUSH_STRAIGHT + right * side * PUSH_RADIUS
-		var rel := -right * side * PUSH_RADIUS
-		pos = centre + rel.rotated(side * a)  # keeps moving tail-first around the arc
-		hdg = h0 - side * a  # tail swings toward `side`
-		if a >= PI / 2 - 1e-3:
-			_end_push("Pushback complete — set parking brake, start engine, then T for taxi")
+	var pose := PushbackPath.pose(_push.p0, h0, _push.side, s)
+	var pos: Vector2 = pose[0]
+	var hdg: float = pose[1]
+	if s >= PushbackPath.length() - 1e-3 * PushbackPath.RADIUS:
+		_end_push("Pushback complete — set parking brake, start engine, then T for taxi")
 	f.pos_e = pos.x
 	f.pos_n = pos.y
 	var e := f.euler()

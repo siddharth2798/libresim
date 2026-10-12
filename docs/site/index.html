@@ -445,7 +445,7 @@ footer { margin-top: 3rem; padding-top: 0.6rem; border-top: 1px solid var(--rule
   <li>A working steam-gauge panel with modelled instrument errors, two NAV/COMs, ADF, DME, transponder, a GPS direct-to line and a moving map.</li>
   <li>Electrical, fuel, vacuum and pitot-static systems with 26 schedulable failures and random failures.</li>
   <li>Weather presets from Clear to Monsoon, ridge lift off the Ghats, rain on the windshield, a real sun and moon, and ICAO/FAA aerodrome lighting at night.</li>
-  <li>Airport operations: stand and gate starts, taxi routing with a follow-me car, pushback, ground vehicles, text ATC and auto-ticking checklists.</li>
+  <li>Airport operations: stand and gate starts, taxi routing with a follow-me car, pushback, ground vehicles, ATC that follows your flight from clearance to parking, and auto-ticking checklists.</li>
   <li>A damage model: hard landings, gear collapse, prop strikes, ditching, overspeed and overstress.</li>
   <li>Saved flights, a 10-minute instant replay, and built-in video recording.</li>
   <li>Real recorded sounds throughout.</li>
@@ -581,6 +581,7 @@ flatpak run org.freesim.FreeSim</code></pre><button class="copy" type="button">C
   <li>Flight-control feel: yoke keys, input smoothing, auto-coordination (<a href="#flying-feel">OPS 1.5</a>).</li>
   <li>Units preference (stored for later; the C172 panel stays in ft, kt and inHg).</li>
   <li>Whether the flight-data bar shows at start.</li>
+  <li>Voice, both off by default: "Speak them" for training callouts and "ATC voice" for the radio transcript. They use your operating system's text-to-speech. If no voice is found the tick stays saved but silent, and a short note appears under it. On Linux install <code>speech-dispatcher</code> and a voice such as <code>espeak-ng</code> (for example <code>sudo apt install speech-dispatcher espeak-ng</code>), then restart the game; Windows and macOS use their built-in voices.</li>
 </ul>
 <p>Saved in <code>user://audio.cfg</code> and <code>user://options.cfg</code>.</p>
 
@@ -753,7 +754,7 @@ flatpak run org.freesim.FreeSim</code></pre><button class="copy" type="button">C
 <p>The debrief also shows g, airspeed, pitch, bank, centreline offset and distance past the threshold.</p>
 
 <h3 id="flying-callouts"><span class="no">1.11</span>Training callouts (optional)</h3>
-<p>A real C172 has no automatic callouts, so they are off by default. Press <kbd>K</kbd> in flight, or tick "Training callouts" on the Options page, to hear and see what an instructor would say. "Speak them" uses your system's text-to-speech voice if it has one; otherwise the calls show as large text above the hint line.</p>
+<p>A real C172 has no automatic callouts, so they are off by default. Press <kbd>K</kbd> in flight, or tick "Training callouts" on the Options page, to hear and see what an instructor would say. "Speak them" uses your system's text-to-speech voice if it has one (on Linux: <code>speech-dispatcher</code> plus a voice such as <code>espeak-ng</code>); otherwise the calls show as large text above the hint line.</p>
 <ul>
   <li><strong>Takeoff:</strong> Airspeed alive (40 kt), Rotate (55 kt), Positive rate.</li>
   <li><strong>Approach:</strong> Five hundred, One hundred, Fifty, Thirty, Twenty, Ten (feet above ground, once each, only while descending).</li>
@@ -973,24 +974,28 @@ flatpak run org.freesim.FreeSim</code></pre><button class="copy" type="button">C
 </table></div>
 <p>Some frequencies repeat far apart (for example 108.10 at Mumbai and Mangaluru); reception range keeps them from overlapping.</p>
 
-<h3 id="nav-atc"><span class="no">3.3</span>Text ATC</h3>
-<p>Press <kbd>`</kbd> (backquote) to open the radio menu, then <kbd>1</kbd>–<kbd>6</kbd> to pick a call. While it is open the number keys go to the menu, not the cameras. Phraseology follows ICAO / Indian AIP style, with values from the sim: airport, into-wind runway, taxi route, wind, QNH and a squawk code.</p>
+<h3 id="nav-atc"><span class="no">3.3</span>ATC</h3>
+<p>Press <kbd>`</kbd> (backquote) to open the radio panel. It shows COM1 (active and standby), the unit you are tuned to, a transcript of the last transmissions and a menu with only the calls that make sense in your current state. <kbd>1</kbd>–<kbd>6</kbd> pick a call and <kbd>`</kbd> closes the panel. While it is open the number keys go to the menu, not the cameras. After a call the transcript stays on screen for a while, and the controller also calls on its own (handovers, "report final", "vacate").</p>
 <div class="tbl"><table>
-  <thead><tr><th>Key</th><th>Call</th><th>Tune COM1 to</th></tr></thead>
+  <caption>A normal flight through the radio</caption>
+  <thead><tr><th>You are</th><th>Call (tune COM1 first)</th><th>ATC answers</th></tr></thead>
   <tbody>
-    <tr><td><kbd>1</kbd></td><td>Listen to ATIS (runway, wind, visibility, QNH, temperature)</td><td>ATIS</td></tr>
-    <tr><td><kbd>2</kbd></td><td>Clearance delivery: VFR departure, with a squawk</td><td>Clearance / delivery or ground</td></tr>
-    <tr><td><kbd>3</kbd></td><td>Ground: taxi</td><td>Ground</td></tr>
-    <tr><td><kbd>4</kbd></td><td>Tower: departure</td><td>Tower</td></tr>
-    <tr><td><kbd>5</kbd></td><td>Inbound</td><td>Tower or approach</td></tr>
-    <tr><td><kbd>6</kbd></td><td>Final</td><td>Tower</td></tr>
+    <tr><td>Parked</td><td>ATIS · Clearance (Delivery) · Pushback and Taxi (Ground)</td><td>Information letter, weather, runway · cleared VFR with runway, climb limit, squawk, QNH · taxi to the holding point via the taxiways</td></tr>
+    <tr><td>At the holding point</td><td>Ready for departure (Tower)</td><td>Line up and wait, then cleared for takeoff with the wind</td></tr>
+    <tr><td>Airborne after takeoff</td><td>none</td><td>"Contact Approach" or "frequency change approved, squawk VFR"</td></tr>
+    <tr><td>Arriving</td><td>Inbound (Approach, or Tower) · Report final (Tower)</td><td>Runway, QNH, join or straight-in · report final at about 5 nm · cleared to land</td></tr>
+    <tr><td>Landed</td><td>Runway vacated, request taxi to parking (Ground)</td><td>"Vacate runway, contact Ground" · taxi to the apron</td></tr>
   </tbody>
 </table></div>
 <ul>
-  <li>A call is answered only when COM1's active frequency matches that facility, as in the real aircraft. If not, the log says "Nothing heard on COM1" and names the frequency to tune.</li>
-  <li>Airports without published frequencies (small fields such as Juhu) accept any COM1 frequency.</li>
-  <li>With COM1 failed or no avionics power, nothing is heard: squawk 7600 and follow lost-comms procedure.</li>
-  <li>Voice ATC (Piper TTS) is planned for milestone M9.</li>
+  <li>Phraseology follows ICAO / Indian AIP style. The text uses written numbers (runway 09, QNH 1012); the voice says them the ICAO way (zero niner, one zero one two). The default call sign is VT-FSM (<code>callsign</code> in <code>options.cfg</code>).</li>
+  <li>A call is answered only by the right unit. If COM1 is on the wrong frequency the menu offers <em>Tune COM1 to …</em>; a call to the wrong unit of the same airport is redirected; a call on a frequency with no unit gets no reply and the radio says which frequency to tune.</li>
+  <li><em>Say again</em> repeats the last instruction. Pilot readbacks are automatic and ATC answers "readback correct" to a clearance.</li>
+  <li>Airports with frequencies in the data (Mumbai, Pune, Goa, Cochin, Calicut, Mangaluru, Belgaum, Kolhapur, Garuda) need the right frequency; a unit that does not exist is covered by the next one (Pune has only a tower, which does everything). Airports without frequencies in the data (Juhu, Navi Mumbai and similar) answer on any frequency. Small fields and heliports have no ATC: your calls are blind transmissions that nobody answers.</li>
+  <li>With COM1 failed or no avionics power nothing is sent or heard (a failure also says: squawk 7600, lost-communications procedure).</li>
+  <li>Never blocking: take off, land or enter a runway without a clearance and you get one short note, once per flight, and the flight carries on.</li>
+  <li><strong>Training lessons:</strong> ATC stays quiet. No calls, no notes, the panel does not open by itself, and clearances count as given. The panel is still there on <kbd>`</kbd>.</li>
+  <li>Optional voice: <kbd>V</kbd> in the open menu (or <code>atc_voice</code> in <code>options.cfg</code>). It uses your operating system's text-to-speech voices and is off by default. Recorded voices and radio effects come later.</li>
 </ul>
 
 <h3 id="nav-checklists"><span class="no">3.4</span>Checklists</h3>
@@ -1334,13 +1339,21 @@ flatpak run org.freesim.FreeSim</code></pre><button class="copy" type="button">C
     <tr><td>Wingtip strike</td><td>above 10 kt (ground loop)</td><td>Crash</td></tr>
     <tr><td>Tail strike</td><td>tail skid touches (about 10° nose-up with gear intact)</td><td>Airframe damaged</td></tr>
     <tr><td>Side drift at touchdown</td><td>more than ~6 kt / more than ~10 kt</td><td>Gear damaged / gear folds (ground loop)</td></tr>
-    <tr><td>Ditching, trees, buildings</td><td>touching water; flying into trees or OSM buildings (checked at nose, wingtips, tail, fuselage)</td><td>Crash</td></tr>
+    <tr><td>Ditching</td><td>touching water</td><td>Crash</td></tr>
+    <tr><td>Obstacles</td><td>any part of the airframe touching trees, OSM buildings, landmark terminals, jetways, parked vehicles, floodlight masts or windsocks, in the air or on the ground (see below)</td><td>Crash, named on the card: &ldquo;The right wingtip hit trees at 82 kt&rdquo;</td></tr>
     <tr><td>Overspeed</td><td>more than 2 s above V<sub>NE</sub> 163 KIAS; 185 KIAS</td><td>Airframe damaged; structural failure</td></tr>
     <tr><td>Flap overspeed</td><td>2 s above V<sub>FE</sub> (110 kt at 10°, 85 kt beyond)</td><td>Flaps damaged and jammed</td></tr>
     <tr><td>Load factor</td><td>beyond +3.8 / −1.52 g; 1.5 × those values</td><td>Overstress; airframe breaks</td></tr>
   </tbody>
 </table></div>
-<p>Not modelled yet: tyre bursts, engine damage from over-temperature or over-speed, collisions with ground vehicles, bird strikes.</p>
+<h4 id="realism-crash">What counts as a crash</h4>
+<p>Touching a solid ends the flight at any speed. The whole airframe is tested, not a few points: the propeller disc, nose, cowling, fuselage, both wings with their struts, the tail fin and stabilizers, and the wheels, so a 6&nbsp;m house or a single tree between a wingtip and the nose is hit by the wing. The crash card, and the replay, say which part hit what: &ldquo;The nose hit a parked vehicle (fuel truck) at 6 kt (taxiing)&rdquo;.</p>
+<ul>
+  <li><strong>Solids:</strong> the trees you see (canopy and height), 3D OSM buildings, the landmark terminals at Mumbai, Pune and Kochi (their real shape: an 8&nbsp;m canopy leaves room to taxi underneath, a wall does not), jetways, parked ground vehicles, apron floodlight masts and windsock poles. Runway and approach lights, PAPIs, the follow-me car and the pushback tug are not solid.</li>
+  <li><strong>No height gate:</strong> a tall building beside a cliff is hit however far the ground is below you. Building collision data loads around the aircraft and where it is heading, not around the camera.</li>
+  <li><strong>Normal operations never crash:</strong> stands, the pushback swing, taxiways and runways are corridors where OSM buildings and trees (not survey-grade data) are forgiven, ground vehicles and masts that would stand in them are left out, and an overlap that exists while you sit parked (a stand beside a tree) is forgiven until you drive away. Terminals, jetways and vehicles stay solid.</li>
+</ul>
+<p>Not modelled yet: tyre bursts, engine damage from over-temperature or over-speed, bird strikes.</p>
 
 <h3 id="realism-wb"><span class="no">7.4</span>Weight and balance</h3>
 <p>The CG envelope comes from the C172S POH (section 2 limits, section 6 chart), plotted in inches aft of the datum (front face of the firewall) against weight in lb. The loads you set change the mass, CG and inertia in the flight model. With only the pilot aboard, the CG sits slightly left of centre (180 lb pilot 14 in left), which together with engine torque gives the slow left roll described in <a href="#flying-trim">OPS 1.9</a>.</p>
@@ -1511,6 +1524,7 @@ $PY tools/07_preview.py 0 -62000 35000 -52000 41000   <span class="c"># zoom int
     <tr><td><code>aircraft/c172/</code></td><td>aircraft.json, aero and config JSON, checklists, models, sounds, lighting</td></tr>
     <tr><td><code>input/</code></td><td>Keyboard controls, free camera</td></tr>
     <tr><td><code>ui/</code></td><td>HUD, cameras, panel and gauges, start screen (<code>ui/menu</code>), map, ATC, checklists, failures, saves, replay bar, recorder</td></tr>
+    <tr><td><code>atc/</code></td><td>ATC: controller state machine, monitor, facilities and phrase file (<code>docs/ATC.md</code>)</td></tr>
     <tr><td><code>tests/</code></td><td>Headless test runner and suites, debug scenes, e2e scenes</td></tr>
   </tbody>
 </table></div>
@@ -1674,7 +1688,7 @@ godot --path game -- --airport=VAJJ --fail=vacuum_pump@10 --random-failures --me
     <tr class="group"><td colspan="3">Operations</td></tr>
     <tr><td><kbd>T</kbd></td><td>Taxi route (again to clear)</td><td></td></tr>
     <tr><td><kbd>P</kbd></td><td>Pushback (again to stop)</td><td></td></tr>
-    <tr><td><kbd>`</kbd> then <kbd>1</kbd>–<kbd>6</kbd></td><td>Radio (ATC) menu and calls</td><td></td></tr>
+    <tr><td><kbd>`</kbd> then <kbd>1</kbd>–<kbd>6</kbd></td><td>Radio panel and ATC calls (<kbd>V</kbd> voice on/off while open)</td><td></td></tr>
     <tr><td><kbd>F2</kbd></td><td>Checklists; <kbd>Ctrl</kbd>+<kbd>PgUp</kbd>/<kbd>PgDn</kbd> change list, <kbd>Enter</kbd> ticks</td><td></td></tr>
     <tr><td><kbd>F9</kbd></td><td>Failures panel</td><td></td></tr>
     <tr><td><kbd>F10</kbd></td><td>Settings: graphics, renderer, time, weather, failures</td><td></td></tr>
@@ -1735,6 +1749,7 @@ godot --path game -- --airport=VAJJ --fail=vacuum_pump@10 --random-failures --me
     <tr><td>Low FPS</td><td>Check <kbd>F3</kbd>; pick a lower preset; lower <code>lod_k</code> or disable sun shadows (<a href="#graphics">OPS 9</a>)</td></tr>
     <tr><td>Stutter</td><td>Profile with <code>debug_perf.tscn</code> (<a href="#dev-debug">DEV 2.5</a>)</td></tr>
     <tr><td>No sound</td><td>Godot uses PulseAudio / PipeWire; check the system output device and the Options page volumes</td></tr>
+    <tr><td>Voice (callouts or ATC) is silent and Options says no voice was found</td><td>Linux: install <code>speech-dispatcher</code> and <code>espeak-ng</code>, then restart the game</td></tr>
     <tr><td>Renderer toggle has no effect (AppImage, Flatpak)</td><td>Launch with <code>--rendering-method forward_plus</code></td></tr>
     <tr><td>macOS says the app is damaged or unverified</td><td>Right-click → Open, or remove the quarantine attribute (<a href="#install-packages">GEN 2.3</a>)</td></tr>
   </tbody>
@@ -1745,7 +1760,7 @@ godot --path game -- --airport=VAJJ --fail=vacuum_pump@10 --random-failures --me
 <h4>The aircraft keeps rolling left</h4>
 <p>That is the real C172 flown solo: pilot weight and engine torque. It is neutral at about 100 KIAS in level flight; at climb power hold a little right aileron and rudder (<a href="#flying-trim">OPS 1.9</a>).</p>
 <h4>ATC doesn't answer</h4>
-<p>COM1's active frequency must match the facility you call (tune the standby, then click ⇄), and the avionics must be powered. Small fields accept any frequency.</p>
+<p>COM1's active frequency must match the unit you call (open the menu with <kbd>`</kbd> and pick <em>Tune COM1 to …</em>, or tune the standby and click ⇄), and the avionics must be powered. Airports without frequencies in the data answer on any frequency; small fields and heliports have no ATC. In a training lesson ATC says nothing unless you call.</p>
 <h4>I lost the Pune VOR</h4>
 <p>Reception checks terrain line of sight; climb or move clear of the Ghats.</p>
 <h4>Is the ILS real?</h4>

@@ -18,6 +18,7 @@ var replaying := false  # replay (systems/replay.gd) drives the state; physics h
 var _prev_pos := PackedFloat64Array([0.0, 0.0, 0.0])  # ENU at previous tick (64-bit: Vector3 is float32)
 var _prev_q := Quaternion.IDENTITY
 var _terrain: TerrainQuadtree
+var _blds: Buildings
 var _input_snap := true  # next control read jumps straight to the inputs (no smoothing)
 
 
@@ -28,11 +29,18 @@ func _ready() -> void:
 		fdm.ground_height = func(n: float, e: float) -> float: return _terrain.height_at(e, n)
 		fdm.surface = func(n: float, e: float) -> int: return _terrain.cache.landclass_at(e, n)
 	var trees := get_node_or_null(trees_path) as Trees
-	var blds := get_node_or_null(buildings_path) as Buildings
-	fdm.obstacle_top = func(n: float, e: float) -> Array:
-		var tb := blds.building_top_at(e, n) if blds else -INF
-		var tt := trees.tree_top_at(e, n) if trees else -INF
-		return [tb, "a building"] if tb >= tt else [tt, "trees"]
+	_blds = get_node_or_null(buildings_path) as Buildings
+	var blds := _blds
+	# every solid near a point: shared registry (terminals, vehicles, ...), OSM buildings, trees
+	fdm.obstacles = func(e: float, n: float, r: float, lo: float, _hi: float) -> Array:
+		var out: Array = []
+		ObstacleRegistry.near(e, n, r, out)
+		if blds:
+			blds.near(e, n, r, out)
+		if trees:
+			trees.near(e, n, r, lo, out)
+		return out
+	fdm.in_corridor = ObstacleRegistry.in_corridor
 	_defaults()
 
 
@@ -52,6 +60,8 @@ func position_enu() -> Vector3:
 
 
 func place_on_ground(east: float, north: float, heading_deg: float) -> void:
+	if _blds:
+		_blds.place_aircraft(east, north)
 	fdm.damage.reset()
 	fdm.gear = GearGround.new(fdm.cfg)  # repaired
 	fdm.engine.failed = false
@@ -62,6 +72,8 @@ func place_on_ground(east: float, north: float, heading_deg: float) -> void:
 ## Trimmed level flight at kias through the air mass (wind_ned: NED m/s at that height),
 ## in the current weather (weather/qnh_hpa, weather/temp_c), so the start is in trim.
 func place_airborne(east: float, north: float, alt: float, heading_deg: float, kias: float, wind_ned := Vector3.ZERO) -> void:
+	if _blds:
+		_blds.place_aircraft(east, north)
 	fdm.damage.reset()
 	fdm.gear = GearGround.new(fdm.cfg)
 	fdm.engine.failed = false
@@ -87,6 +99,9 @@ func _physics_process(delta: float) -> void:
 		return
 	_prev_pos = PackedFloat64Array([fdm.pos_e, fdm.pos_n, -fdm.pos_d])
 	_prev_q = fdm.q
+	if _blds:  # building collision follows the aircraft (and where it is heading), not the camera
+		var v := fdm.velocity_ned()
+		_blds.focus_aircraft(fdm.pos_e, fdm.pos_n, v.y, v.x)
 	_read_controls(delta)
 	var dt := delta / SUBSTEPS
 	for i in SUBSTEPS:

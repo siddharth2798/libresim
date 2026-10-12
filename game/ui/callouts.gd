@@ -2,12 +2,12 @@ class_name Callouts
 extends Control
 ## Optional training callouts (Options page, or K in flight): shows each call as large text
 ## above the hint line and, if "Speak callouts" is on and the system has a voice, says it
-## with the OS text-to-speech. Logic is in systems/callout_logic.gd. Off by default.
+## with the OS text-to-speech (core/speech_service.gd; nothing speech-related runs at start-up
+## while that option is off). Logic is in systems/callout_logic.gd. Off by default.
 
 var _state := CalloutLogic.new_state()
 var _label: Label
 var _t := 0.0
-var _voice := ""
 
 
 func _ready() -> void:
@@ -20,10 +20,8 @@ func _ready() -> void:
 	_label.add_theme_constant_override("outline_size", 8)
 	_label.visible = false
 	add_child(Notifications.centered(_label, PRESET_BOTTOM_WIDE, -170))
-	if DisplayServer.has_feature(DisplayServer.FEATURE_TEXT_TO_SPEECH):
-		var voices := DisplayServer.tts_get_voices_for_language("en")
-		if not voices.is_empty():
-			_voice = voices[0]
+	if _voice_on():
+		SpeechService.request()  # saved setting: start the voice probe now so the first call is heard
 
 
 func _unhandled_key_input(e: InputEvent) -> void:
@@ -38,6 +36,8 @@ func _unhandled_key_input(e: InputEvent) -> void:
 
 func _process(dt: float) -> void:
 	_t -= dt
+	if _voice_on():
+		SpeechService.status()  # lets the one-time voice probe finish early (about 0.4 s of work)
 	_label.visible = _t > 0.0
 	_label.modulate.a = clampf(_t / 0.4, 0.0, 1.0)
 	var on := bool(UserOptions.get_v("callouts")) or (Session.training != "" and Session.assist != "off")  # lessons always call
@@ -52,15 +52,19 @@ func _process(dt: float) -> void:
 		_show(c[0], int(c[1]))
 
 
+static func _voice_on() -> bool:
+	return bool(UserOptions.get_v("callouts_voice"))
+
+
 ## Say a line with the system voice (if "Speak callouts" is on and a voice exists).
 func speak(text: String) -> void:
-	if _voice != "" and bool(UserOptions.get_v("callouts_voice")):
-		DisplayServer.tts_speak(text, _voice, 70, 1.0, 1.05, 0, false)
+	if _voice_on():
+		SpeechService.speak(text, SpeechService.Kind.CALLOUT, false, 1.05)
 
 
 func _show(text: String, level: int) -> void:
 	_label.text = text.to_upper()
 	_label.add_theme_color_override("font_color", Notifications.COLORS[Notifications.CAUTION] if level == 1 else Color(1, 1, 1))
 	_t = 1.6
-	if _voice != "" and bool(UserOptions.get_v("callouts_voice")):
-		DisplayServer.tts_speak(text, _voice, 70, 1.0, 1.15, 0, true)
+	if _voice_on():
+		SpeechService.speak(text, SpeechService.Kind.CALLOUT, true, 1.15)

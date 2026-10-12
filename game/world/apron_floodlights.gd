@@ -8,12 +8,16 @@ const MAST_H := 25.0
 const CLUSTER := 140.0  # stands within one grid cell share a mast
 const MIN_STANDS := 20  # airports with fewer stands get no masts
 const POOL_D := 110.0
+const RUNWAY_CLEAR := 60.0  # no mast closer than this to a runway's edge, or past its ends
 const WARM := Color(1.0, 0.8, 0.55)
 
 
 ## Mast positions (ENU) for a stand list: one per occupied CLUSTER cell, set off toward
 ## the nose-in side (terminal / service road) so it stands clear of the parked aircraft.
-static func masts(stands: Array) -> Array:
+## runways (the airport's, from runways.json): a mast never stands in or beside a runway (a cluster
+## of GA stands at a runway end used to put one there), nor where a C172 is meant to be (a stand,
+## its pushback swing, a taxiway: ObstacleRegistry corridors): the other side of the cluster, else none.
+static func masts(stands: Array, runways: Array = []) -> Array:
 	if stands.size() < MIN_STANDS:
 		return []
 	var cells := {}
@@ -34,10 +38,25 @@ static func masts(stands: Array) -> Array:
 			var hd := deg_to_rad(float(s.heading_deg))
 			nose += Vector2(sin(hd), cos(hd))
 		c /= group.size()
+		var spots := [c]
 		if nose.length() > 0.5:
-			c += nose.normalized() * 28.0
-		out.append(c)
+			spots = [c + nose.normalized() * 28.0, c - nose.normalized() * 28.0, c]
+		for p in spots:
+			if clear_of_runways(p, runways) and not ObstacleRegistry.overlaps_corridor(ObstacleShapes.box(p, 1.0, 1.0, 0.0, 0.0, 0.0, "")):
+				out.append(p)
+				break
 	return out
+
+
+static func clear_of_runways(p: Vector2, runways: Array) -> bool:
+	for r in runways:
+		var a := Vector2(r.ends[0].x, r.ends[0].y)
+		var b := Vector2(r.ends[1].x, r.ends[1].y)
+		var u := (b - a).normalized()
+		var along := (p - a).dot(u)
+		if absf((p - a).cross(u)) < float(r.width) * 0.5 + RUNWAY_CLEAR and along > -RUNWAY_CLEAR and along < a.distance_to(b) + RUNWAY_CLEAR:
+			return false
+	return true
 
 
 ## Lamp heads of each mast into s (light points, warm, omnidirectional).

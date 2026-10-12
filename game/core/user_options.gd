@@ -15,6 +15,8 @@ const DEFAULTS := {
 	"callouts": false,  # optional training callouts (ui/callouts.gd), K toggles in flight
 	"callouts_voice": false,  # say them with the OS text-to-speech voice, if the system has one
 	"start_mode": "flight",  # last start-screen choice: flight | training (focused next time)
+	"callsign": "VT-FSM",  # radio call sign (atc/atc_speech.gd validates it; Session.setup.callsign overrides)
+	"atc_voice": false,  # say ATC transmissions with the OS text-to-speech voice (atc/atc_voice.gd)
 }
 const CHOICES := {
 	"alt_unit": ["ft", "m"],

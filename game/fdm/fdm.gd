@@ -19,7 +19,10 @@ var gear: GearGround
 var fcs: FlightControls
 var ground_height: Callable = func(_n: float, _e: float) -> float: return 0.0
 var surface: Callable = func(_n: float, _e: float) -> int: return 0  # land class (255 = water)
-var obstacle_top: Callable = func(_n: float, _e: float) -> Array: return [-INF, ""]  # [top m, "trees"/"a building"]
+## Solids near a point: (east, north, radius, alt_lo, alt_hi) -> Array of ObstacleShapes records.
+var obstacles: Callable = func(_e: float, _n: float, _r: float, _lo: float, _hi: float) -> Array: return []
+var in_corridor: Callable = func(_e: float, _n: float) -> bool: return false  # on a taxiway / runway (see ObstacleCollision)
+var obstacle_collision := ObstacleCollision.new()
 var damage := Damage.new()
 
 # state
@@ -182,8 +185,10 @@ func step(dt: float) -> void:
 	var gr: Array = gear.compute(mb, r_bn, Vector3(pos_n, pos_e, pos_d), v_b, w_b,
 		func(n: float, e: float) -> float: return ground_height.call(n, e))
 	damage.update(self, dt, gear.info, surface)
-	if agl < 400.0 and not damage.crashed:
-		_check_obstacles(r_bn)
+	if not damage.crashed:
+		var hit := obstacle_collision.check(self)
+		if not hit.is_empty():
+			damage._crash(ObstacleCollision.reason(hit, self))
 	var f_ext: Vector3 = f_aero + f_thr + gr[0]
 	var m_tot: Vector3 = m_aero + m_thr + gr[1]
 	var f_grav := r_nb * Vector3(0.0, 0.0, G * mb.mass)
@@ -205,22 +210,6 @@ func step(dt: float) -> void:
 	pos_d += v_ned.z * dt
 	_burn_fuel(dt)
 	time += dt
-
-
-## Nose, wingtips, tail and CG against trees/buildings (obstacle_top returns the
-## highest obstacle top at a point and a label).
-func _check_obstacles(r_bn: Basis) -> void:
-	for c in gear.contacts:
-		if c.wheel:
-			continue
-		var p := r_bn * mb.body_of(c.pos)
-		var top: Array = obstacle_top.call(pos_n + p.x, pos_e + p.y)
-		if -(pos_d + p.z) < top[0]:
-			damage._crash("%s hit %s" % [c.name.to_lower().replace("_", " "), top[1]])
-			return
-	var t2: Array = obstacle_top.call(pos_n, pos_e)
-	if -pos_d < t2[0]:
-		damage._crash("flew into %s" % t2[1])
 
 
 func _burn_fuel(dt: float) -> void:

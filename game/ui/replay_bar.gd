@@ -15,6 +15,7 @@ const MIN_W := 760.0  # narrowest the bar may get before it moves above the pane
 
 var replay: Replay
 var _tag: Label
+var _note: Label  # how the replayed flight ended, when it crashed
 var _bar: PanelContainer
 var _play: Button
 var _slider: HSlider
@@ -46,6 +47,16 @@ func _build() -> void:
 	_tag.grow_horizontal = GROW_DIRECTION_BOTH
 	_tag.offset_top = 34  # below the camera-name label
 	add_child(_tag)
+	_note = Label.new()
+	_note.add_theme_font_size_override("font_size", 20)
+	_note.add_theme_color_override("font_color", Color(1.0, 0.85, 0.6))
+	_note.add_theme_color_override("font_outline_color", Color.BLACK)
+	_note.add_theme_constant_override("outline_size", 6)
+	_note.set_anchors_and_offsets_preset(PRESET_CENTER_TOP)
+	_note.grow_horizontal = GROW_DIRECTION_BOTH
+	_note.offset_top = 92
+	_note.visible = false
+	add_child(_note)
 
 	_bar = PanelContainer.new()
 	var sb := StyleBoxFlat.new()
@@ -140,6 +151,8 @@ func _process(_dt: float) -> void:
 		_speeds[s].set_pressed_no_signal(is_equal_approx(s, replay.speed))
 	var sp := ("%sx" % replay.speed) if replay.speed < 1.0 else "%dx" % int(replay.speed)
 	_tag.text = "REPLAY  %s%s" % [sp, "" if replay.playing else "  II"]
+	_note.visible = Props.get_b("damage/crashed")  # the flight being replayed ended in a crash: say how
+	_note.text = "Ends in a crash: " + str(Props.get_v("damage/reason", ""))
 
 
 ## Bottom of the screen in the widest gap between the 2-D panel pieces that sit at

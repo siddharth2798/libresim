@@ -76,11 +76,17 @@ func _ready() -> void:
 	var cv := CheckBox.new()
 	cv.text = "Speak them (system voice)"
 	cv.button_pressed = bool(UserOptions.get_v("callouts_voice"))
+	var cv_note := SpeechNote.new("callouts_voice")
 	cv.toggled.connect(func(on):
 		UserOptions.set_v("callouts_voice", on)
+		cv_note.refresh()
 		changed.emit())
 	right.add_child(cv)
+	right.add_child(cv_note)
 	right.add_child(MenuTheme.note("Airspeed alive, Rotate, Positive rate; 500 / 100 / 50 / 30 / 20 / 10 ft on the approach; sink rate, low airspeed and bank angle warnings. Off by default: a real C172 has none."))
+	var atc := AtcOptionsBox.new()
+	atc.changed.connect(func(): changed.emit())
+	right.add_child(atc)
 	left.add_child(MenuTheme.heading("Flight controls"))
 	var cg := GridContainer.new()
 	cg.columns = 2

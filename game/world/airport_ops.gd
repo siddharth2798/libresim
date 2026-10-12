@@ -17,12 +17,16 @@ var _timer := 0.0
 const VEH := "res://world/models/vehicles/%s.glb"
 const FG_YAW := -PI / 2  # FlightGear vehicle models face -X; ours face -Z
 var _scenes := {}
+var _solids := {}  # icao -> OpsSolids (collision of the dressing, see ops_solids.gd)
+var _cur: OpsSolids  # the airport being built
+var _corridors := {}  # icao -> true: OpsCorridors registered
 
 
 func setup(t: TerrainQuadtree) -> void:
 	terrain = t
 	var d = Paths.load_json("airport_ops.json")
 	data = d if d else {}
+	_register_corridors()
 	_yellow.albedo_color = Color(0.95, 0.78, 0.15)
 	_yellow.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	_bridge_mat.albedo_color = Color(0.72, 0.74, 0.76)
@@ -71,6 +75,8 @@ func _process(dt: float) -> void:
 				elif not near and _built.has(icao):
 					_built[icao].queue_free()
 					_built.erase(icao)
+					_solids[icao].clear()
+					_solids.erase(icao)
 	# windsocks point downwind and stiffen with wind speed
 	var wind: Vector3 = Props.get_v("environment/wind_ned", Vector3.ZERO)
 	var wh := Vector2(wind.y, -wind.x)  # render frame: x east, z south (air moving toward)
@@ -87,6 +93,8 @@ func _build(icao: String) -> void:
 	root.name = "ops_" + icao
 	add_child(root)
 	_built[icao] = root
+	_cur = OpsSolids.new("ops:" + icao)
+	_solids[icao] = _cur
 	root.position = FloatingOrigin.to_render(Vector3.ZERO)
 	var i := 0
 	for s in a.stands:
@@ -101,6 +109,28 @@ func _build(icao: String) -> void:
 		_place(root, "fire_truck", Vector2(tw.x + 40.0, tw.y + 25.0), 0.0, FG_YAW)
 
 
+func _exit_tree() -> void:
+	for icao in _solids:
+		_solids[icao].clear()
+	for icao in _corridors:
+		OpsCorridors.unregister(icao)
+
+
+## Stands, taxiways and runways of every airport are corridors from the start (not only once built).
+func _register_corridors() -> void:
+	var ab := get_node_or_null("../Airports") as AirportBuilder
+	var rws := {}
+	if ab and ab.data:
+		for r in ab.data.runways:
+			if not rws.has(r.airport):
+				rws[r.airport] = []
+			rws[r.airport].append(r)
+	for icao in data.keys() + rws.keys():
+		if not _corridors.has(icao):
+			OpsCorridors.register(icao, data.get(icao, {}), rws.get(icao, []))
+			_corridors[icao] = true
+
+
 func _scene(name: String) -> PackedScene:
 	if not _scenes.has(name):
 		_scenes[name] = load(VEH % name)
@@ -113,6 +143,9 @@ func _place(root: Node3D, name: String, p: Vector2, heading: float, yaw_off := 0
 	n.position = _local(p.x, p.y, 0.0)
 	n.rotation.y = -heading + yaw_off
 	root.add_child(n)
+	if not _cur.add_model(name, n, _h(p.x, p.y)):  # it would sit in a C172 stand's way: leave it out
+		n.queue_free()
+		return null
 	return n
 
 
@@ -189,9 +222,11 @@ func _jetbridge(root: Node3D, pts: Array, stands: Array) -> void:
 	var len := d.length()
 	n.scale = Vector3(clampf(len / 22.0, 0.6, 1.8), 1.0, 1.0)
 	root.add_child(n)
+	_cur.add_jetway(n, _h(terminal.x, terminal.y))
 
 
 func _windsock(root: Node3D, x: float, y: float) -> void:
+	OpsSolids.add_pole(_cur.group, Vector2(x, y), 0.5, 6.0, _h(x, y), "a windsock")
 	var pole := MeshInstance3D.new()
 	var pm := CylinderMesh.new()
 	pm.top_radius = 0.06

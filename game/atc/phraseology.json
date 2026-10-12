@@ -1,0 +1,86 @@
+{
+	"version": 1,
+	"_doc": "Radio phraseology (ICAO / Indian AIP style). Section -> message key -> unit role (ATIS DEL GND TWR APP, or * for any) -> template or list of variants. {slots} are filled by atc_phraseology.gd; opt_* slots may be empty. See docs/ATC.md.",
+	"pilot": {
+		"atis": {"ATIS": "", "*": "{fac}, {callsign}, Cessna 172, request airport information"},
+		"clearance": {"*": "{fac}, {callsign}, Cessna 172 at {where}, {opt_info}request VFR departure"},
+		"pushback": {"*": "{fac}, {callsign}, Cessna 172 at {where}, request start-up and pushback"},
+		"taxi": {"*": "{fac}, {callsign}, Cessna 172 at {where}, {opt_info}ready to taxi"},
+		"ready": {"*": "{fac}, {callsign}, holding point runway {rwy}, ready for departure"},
+		"ready_lined": {"*": "{fac}, {callsign}, lined up runway {rwy}, ready for takeoff"},
+		"inbound": {"*": [
+			"{fac}, {callsign}, Cessna 172, {pos}, {alt} feet, {opt_info}inbound for landing",
+			"{fac}, {callsign}, Cessna 172, {pos}, {alt} feet, {opt_info}request landing"
+		]},
+		"final": {"*": "{fac}, {callsign}, final runway {rwy}"},
+		"goaround": {"*": "{fac}, {callsign}, going around"},
+		"taxi_stand": {"*": "{fac}, {callsign}, runway {rwy} vacated, request taxi to the apron"},
+		"say_again": {"*": "{fac}, {callsign}, say again"},
+		"blind_pushback": {"*": "{apt} traffic, {callsign}, Cessna 172 at {where}, starting up and pushing back"},
+		"blind_taxi": {"*": "{apt} traffic, {callsign}, Cessna 172 at {where}, taxiing to runway {rwy}"},
+		"blind_ready": {"*": "{apt} traffic, {callsign}, Cessna 172, lining up and departing runway {rwy}"},
+		"blind_ready_lined": {"*": "{apt} traffic, {callsign}, Cessna 172, departing runway {rwy}"},
+		"blind_inbound": {"*": "{apt} traffic, {callsign}, Cessna 172, {pos}, {alt} feet, inbound for landing runway {rwy}"},
+		"blind_final": {"*": "{apt} traffic, {callsign}, final runway {rwy}"},
+		"blind_goaround": {"*": "{apt} traffic, {callsign}, going around runway {rwy}"},
+		"blind_taxi_stand": {"*": "{apt} traffic, {callsign}, runway {rwy} vacated, taxiing to the apron"}
+	},
+	"readback": {
+		"clearance": {"*": "Cleared VFR, {opt_route}runway {rwy}, not above {alt_limit} feet, squawk {squawk}, QNH {qnh}, {callsign}"},
+		"pushback": {"*": "Start-up and pushback approved, {callsign}"},
+		"taxi": {"*": "Taxi to holding point runway {rwy}{opt_via}, QNH {qnh}, {callsign}"},
+		"taxi_sq": {"*": "Cleared VFR, squawk {squawk}, taxi to holding point runway {rwy}{opt_via}, QNH {qnh}, {callsign}"},
+		"handoff": {"*": "Contact {fac2} {freq}, {callsign}"},
+		"lineup": {"*": "Line up runway {rwy} and wait, {callsign}"},
+		"takeoff_clear": {"*": "Cleared for takeoff runway {rwy}, {callsign}"},
+		"inbound_join": {"*": "Runway {rwy}, QNH {qnh}, {join}, will report final, {callsign}"},
+		"inbound_join_ho": {"*": "Runway {rwy}, QNH {qnh}, {join}, contact {fac2} {freq}, {callsign}"},
+		"land_clear": {"*": "Cleared to land runway {rwy}, {callsign}"},
+		"goaround": {"*": "Left-hand circuit runway {rwy}, will report downwind, {callsign}"},
+		"vacate": {"*": "Vacate runway, contact {fac2} {freq}, {callsign}"},
+		"vacate_nofreq": {"*": "Vacating runway, will taxi to the apron, {callsign}"},
+		"taxi_stand": {"*": "Taxi to the apron{opt_via}, {callsign}"},
+		"depart_vfr": {"*": "Frequency change approved, squawk VFR, {callsign}"}
+	},
+	"controller": {
+		"atis": {
+			"ATIS": "{apt} information {info}. Runway {rwy} in use. Wind {wind}. Visibility {vis}. {opt_wx}{clouds}. Temperature {temp}. QNH {qnh}. Acknowledge information {info} on first contact.",
+			"*": "{callsign}, runway {rwy} in use, wind {wind}, visibility {vis}, {opt_wx}{clouds}, temperature {temp}, QNH {qnh}."
+		},
+		"clearance": {"*": "{callsign}, cleared VFR, {opt_route}departure runway {rwy}, climb not above {alt_limit} feet, squawk {squawk}, QNH {qnh}."},
+		"readback_ok": {"*": "{callsign}, readback correct."},
+		"pushback": {"*": "{callsign}, start-up and pushback approved, report ready to taxi."},
+		"taxi": {"*": "{callsign}, taxi to holding point runway {rwy}{opt_via}, QNH {qnh}."},
+		"taxi_sq": {"*": "{callsign}, cleared VFR, squawk {squawk}. Taxi to holding point runway {rwy}{opt_via}, QNH {qnh}."},
+		"handoff": {"*": "{callsign}, contact {fac2} {freq}."},
+		"ready_far": {"*": "{callsign}, continue taxi to the holding point runway {rwy} and report ready."},
+		"lineup": {"*": "{callsign}, line up runway {rwy} and wait."},
+		"takeoff_clear": {"*": "{callsign}, wind {wind}, runway {rwy}, cleared for takeoff."},
+		"depart_vfr": {"*": "{callsign}, frequency change approved, squawk VFR."},
+		"inbound_join": {"*": "{callsign}, runway {rwy} in use, QNH {qnh}, {join}, report final."},
+		"inbound_join_ho": {"*": "{callsign}, runway {rwy} in use, QNH {qnh}, {join}, contact {fac2} {freq}."},
+		"report_final": {"*": "{callsign}, report final runway {rwy}."},
+		"land_clear": {"*": "{callsign}, wind {wind}, runway {rwy}, cleared to land."},
+		"land_wait": {"*": "{callsign}, continue approach, runway {rwy} is occupied, report short final."},
+		"goaround": {"*": "{callsign}, roger, join left-hand circuit runway {rwy}, report downwind."},
+		"vacate": {"*": "{callsign}, vacate runway when able, contact {fac2} {freq}."},
+		"vacate_nofreq": {"*": "{callsign}, vacate runway when able and taxi to the apron."},
+		"taxi_stand": {"*": "{callsign}, taxi to the apron{opt_via}."},
+		"wrong_freq": {"*": "{callsign}, you are on the wrong frequency, contact {fac2} {freq}."}
+	},
+	"advisory": {
+		"takeoff_no_clr": {"*": "Note for {callsign}: no takeoff clearance has been given. Call the tower, ready for departure, before you roll (menu key `)."},
+		"land_no_clr": {"*": "Note for {callsign}: no landing clearance has been given. Report final to the tower; a go-around is advised until you are cleared."},
+		"hold_crossed": {"*": "Note for {callsign}: you are on runway {rwy} without a clearance. Please call the tower before entering a runway."}
+	},
+	"system": {
+		"com_failed": {"*": "COM1 is dead: nothing can be sent or heard. Squawk 7600 and follow the lost-communications procedure."},
+		"com_off": {"*": "COM1 is off: there is no power. Switch on the battery master and the avionics master (Shift+M, Shift+V)."},
+		"no_reply": {"*": "No reply on COM1 {freq}. {fac2} is on {freq2}."},
+		"no_reply_any": {"*": "No reply on COM1 {freq}."},
+		"no_airport": {"*": "No airport within range of this radio."},
+		"uncontrolled": {"*": "{apt} has no air traffic service in the data: calls are blind transmissions and nobody will answer. Keep a good lookout."},
+		"tune_hint": {"*": "Tune COM1 to {fac2} {freq2} (menu: Tune COM1)."},
+		"tuned": {"*": "COM1 set to {fac2} {freq2}."}
+	}
+}

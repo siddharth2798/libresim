@@ -1,0 +1,12 @@
+{
+	"_doc": "ATC facility data that the airport data does not carry. names: spoken airport names (radio call-sign prefix) where the derived name from the airport name is wrong. controlled_unpublished: small fields that have a tower in reality but no frequency in the data (calls are answered on any COM1 frequency). departure_routes: optional VFR departure route text per airport (empty = generic clearance). Large and medium airports without published frequencies are also answered on any frequency; small fields and heliports without frequencies are treated as uncontrolled (blind calls).",
+	"names": {
+		"VABB": "Mumbai",
+		"VAPO": "Pune",
+		"VOGO": "Goa",
+		"VOCC": "Garuda",
+		"VANM": "Navi Mumbai"
+	},
+	"controlled_unpublished": ["VAJJ"],
+	"departure_routes": {}
+}
