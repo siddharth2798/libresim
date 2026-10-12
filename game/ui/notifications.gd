@@ -24,6 +24,7 @@ var _pulse := 0.0
 
 
 func _ready() -> void:
+	add_to_group("notifications")
 	set_anchors_and_offsets_preset(PRESET_FULL_RECT)
 	mouse_filter = MOUSE_FILTER_IGNORE
 	_stack = VBoxContainer.new()

@@ -35,6 +35,12 @@ const WEATHER_KEYS := ["wind_dir_deg", "wind_kt", "gust_kt", "turbulence", "visi
 	"cloud_cover", "cloud_base_ft", "qnh_hpa", "temp_c", "time_h", "time_rate", "day_of_year", "precip"]
 
 var setup := {}
+## Training: lesson id ("" = free flight) and assist level (full | light | off). A lesson
+## rewrites `setup` for its own airport / weather; the free-flight setup is kept here and
+## restored when the menu opens again (end_lesson).
+var training := ""
+var assist := "full"
+var _lesson_backup := {}
 var skip_menu := false  # flight options were given on the command line
 ## Test / capture options (command line only).
 var shot := ""
@@ -57,6 +63,28 @@ func _load() -> void:
 		for k in d:
 			if setup.has(k):
 				setup[k] = d[k]
+
+
+## Start a lesson: remember the free-flight setup, then let `fn` overwrite it for the lesson.
+func begin_lesson(id: String, lesson_setup: Dictionary, assist_level: String) -> void:
+	if _lesson_backup.is_empty():
+		_lesson_backup = setup.duplicate(true)
+	if lesson_setup.has("weather"):
+		apply_weather_preset(lesson_setup.weather)
+	for k in lesson_setup:
+		setup[k] = lesson_setup[k]
+	setup.failures = {}
+	setup.random = {"enabled": false, "count": 1, "from_min": 2.0, "to_min": 30.0, "categories": []}
+	setup.record = false
+	training = id
+	assist = assist_level
+
+
+func end_lesson() -> void:
+	if not _lesson_backup.is_empty():
+		setup = _lesson_backup
+		_lesson_backup = {}
+	training = ""
 
 
 func save() -> void:
@@ -108,6 +136,14 @@ func _parse_cmdline() -> void:
 			"view": view = v
 			"clean": clean = true
 			"record": setup.record = true
+	if cmd.has("lesson"):  # --lesson=landing[,light]
+		var parts: PackedStringArray = str(cmd.lesson).split(",")
+		var lesson := TrainingLogic.find(parts[0])
+		if lesson.is_empty():
+			push_warning("unknown lesson: " + parts[0])
+		else:
+			begin_lesson(lesson.id, lesson.setup, parts[1] if parts.size() > 1 else "full")
+			skip_menu = true
 
 
 func _wind(v: String) -> void:  # "270/15" or "270/15G25"

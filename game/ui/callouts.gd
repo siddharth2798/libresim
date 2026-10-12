@@ -11,6 +11,7 @@ var _voice := ""
 
 
 func _ready() -> void:
+	add_to_group("callouts")
 	set_anchors_and_offsets_preset(PRESET_FULL_RECT)
 	mouse_filter = MOUSE_FILTER_IGNORE
 	_label = Label.new()
@@ -39,7 +40,8 @@ func _process(dt: float) -> void:
 	_t -= dt
 	_label.visible = _t > 0.0
 	_label.modulate.a = clampf(_t / 0.4, 0.0, 1.0)
-	if not bool(UserOptions.get_v("callouts")) or Props.get_b("replay/active") or Props.get_b("damage/crashed"):
+	var on := bool(UserOptions.get_v("callouts")) or (Session.training != "" and Session.assist != "off")  # lessons always call
+	if not on or Props.get_b("replay/active") or Props.get_b("damage/crashed"):
 		return
 	var calls := CalloutLogic.step(_state, {
 		"ias": Units.mps_to_kt(Props.get_f("fdm/cas_mps")), "agl": Units.m_to_ft(Props.get_f("fdm/agl_m")),
@@ -48,6 +50,12 @@ func _process(dt: float) -> void:
 		Time.get_ticks_msec() / 1000.0)
 	for c in calls:
 		_show(c[0], int(c[1]))
+
+
+## Say a line with the system voice (if "Speak callouts" is on and a voice exists).
+func speak(text: String) -> void:
+	if _voice != "" and bool(UserOptions.get_v("callouts_voice")):
+		DisplayServer.tts_speak(text, _voice, 70, 1.0, 1.05, 0, false)
 
 
 func _show(text: String, level: int) -> void:

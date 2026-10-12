@@ -15,6 +15,7 @@ extends Node3D
 ##   --random-failures            random failures (defaults: 1 in 2-30 min, any system)
 ##   --record                     record the session (video + sound, see the start screen)
 ##   --clean                      hide all UI (screenshots)
+##   --lesson=takeoff|cruise|landing[,full|light|off]   start a training lesson (see Training page)
 ##   --menu                       show the start screen pre-filled with these options
 ## Keys: Esc pause menu, F5 reset to start, F9 failures, F11 quick-save (Shift: load), R replay, J controls.
 
@@ -63,6 +64,7 @@ func _ready() -> void:
 	$Avionics/Gps.db = $Avionics/Nav.db
 	$Systems/Failures.fdm_node = fdm_node
 	$TouchdownFx.setup(fdm_node)
+	$Training.setup(fdm_node, airports, terrain)
 	$UI/Failures.manager = $Systems/Failures
 	$UI/Pause.flight = self
 	$UI/Map.setup($Avionics/Nav.db, airports, terrain.cache)
@@ -140,6 +142,7 @@ func _reset() -> void:
 	if (_cold or _stand_ref != "") and _air_ft <= 0.0:  # parked at a stand = always cold & dark
 		_cold_and_dark()
 	$Systems/Failures.restart()
+	$Training.restart()
 
 
 ## Fuel and payload from the flight setup (aircraft page).

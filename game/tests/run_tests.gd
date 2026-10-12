@@ -4,7 +4,7 @@ extends Node
 ## Each test_* method returns "" on success or a failure message.
 ## Test suites: tests/test_core.gd (M2), tests/test_fdm_cards.gd (M3 POH test cards).
 
-const SUITES := ["res://tests/test_core.gd", "res://tests/test_fdm_cards.gd", "res://tests/test_flight.gd", "res://tests/test_instruments.gd", "res://tests/test_systems.gd", "res://tests/test_landing.gd", "res://tests/test_nav.gd", "res://tests/test_failures.gd", "res://tests/test_input.gd", "res://tests/test_weight_balance.gd", "res://tests/test_situation.gd", "res://tests/test_replay.gd", "res://tests/test_terrain_regions.gd", "res://tests/test_airport_lights.gd", "res://tests/test_weather_visuals.gd", "res://tests/test_aircraft_lights.gd", "res://tests/test_touchdown_fx.gd", "res://tests/test_callouts.gd"]
+const SUITES := ["res://tests/test_core.gd", "res://tests/test_fdm_cards.gd", "res://tests/test_flight.gd", "res://tests/test_instruments.gd", "res://tests/test_systems.gd", "res://tests/test_landing.gd", "res://tests/test_nav.gd", "res://tests/test_failures.gd", "res://tests/test_input.gd", "res://tests/test_weight_balance.gd", "res://tests/test_situation.gd", "res://tests/test_replay.gd", "res://tests/test_terrain_regions.gd", "res://tests/test_airport_lights.gd", "res://tests/test_weather_visuals.gd", "res://tests/test_aircraft_lights.gd", "res://tests/test_touchdown_fx.gd", "res://tests/test_callouts.gd", "res://tests/test_training.gd"]
 
 
 func _ready() -> void:
