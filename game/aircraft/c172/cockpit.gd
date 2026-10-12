@@ -24,6 +24,9 @@ const SPOTS := {
 	"strip": [Vector3(-0.362, 0.33, 0.06), 0.16],
 	"switches": [Vector3(-0.352, -0.19, -0.168), 0.40],
 }
+## Round gauges (the other items are radios and switch strips with their own plates).
+const GAUGES := ["asi", "ai", "alt", "tc", "hi", "vsi", "tach", "vor1", "vor2", "adf"]
+const FACE_GAP := 0.0015  # gauge quads sit this far in front of the panel's frontmost surface (m)
 ## Pilot eye in the FlightGear model frame (left seat).
 const EYE_FG := Vector3(0.33, -0.22, 0.31)
 
@@ -50,11 +53,20 @@ func build(model: C172Model, fallback_eye: Vector3) -> void:
 		add_child(interior)
 		C172Model.fix_glass(interior)
 		var rects := InstrumentPanel.rects()
+		eye = model.fg_to_local(EYE_FG)
+		var front := _panel_front()
 		for k in SPOTS:
 			var r: Rect2 = rects[k]
 			var w: float = SPOTS[k][1]
-			_add_quad(model.fg_to_local(SPOTS[k][0]) + Vector3(0, 0, 0.004), Vector2(w, w * r.size.y / r.size.x), r, Basis())
-		eye = model.fg_to_local(EYE_FG)
+			var pos := model.fg_to_local(SPOTS[k][0]) + Vector3(0, 0, 0.004)
+			var s := 1.0
+			if k in GAUGES and not is_nan(front) and front + FACE_GAP > pos.z:
+				# the panel's bezels stand proud of the nominal face plane and would clip the gauge:
+				# lift the quad clear of them and shrink it so it looks the same size from the eye
+				var lifted := Vector3(pos.x, pos.y, front + FACE_GAP)
+				s = (eye - lifted).length() / (eye - pos).length()
+				pos = lifted
+			_add_quad(pos, Vector2(w, w * r.size.y / r.size.x) * s, r, Basis())
 	else:
 		_build_placeholder(fallback_eye)
 		eye = fallback_eye
@@ -62,6 +74,20 @@ func build(model: C172Model, fallback_eye: Vector3) -> void:
 	add_child(lighting)
 	var rects := InstrumentPanel.rects()
 	lighting.setup(_quads, [rects.get("radios")] if interior else [], eye)
+
+
+## Local z of the frontmost (toward the pilot) point of the gauge panel mesh, NAN if there is none.
+func _panel_front() -> float:
+	var best := NAN
+	for mi in interior.find_children("panel_1_gauges", "MeshInstance3D", true, false):
+		var t: Transform3D = (mi as MeshInstance3D).transform
+		var p := mi.get_parent()
+		while p != null and p != interior:
+			t = (p as Node3D).transform * t
+			p = p.get_parent()
+		var z := (interior.transform * t * (mi as MeshInstance3D).get_aabb()).end.z
+		best = z if is_nan(best) else maxf(best, z)
+	return best
 
 
 func _add_quad(pos: Vector3, size: Vector2, r: Rect2, b: Basis) -> void:
