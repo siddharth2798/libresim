@@ -16,6 +16,7 @@ var log: Array = []  # [{kind, who, text, spoken, t}]; kind = pilot | atc | syst
 var rev := 0  # bumped on every change (the session publishes /atc/* when it moves)
 var tx_serial := 0  # counts released transmissions (the panel shows itself when it moves)
 var hooks := {}  # name -> Callable: start_pushback, request_taxi, taxi_to_stand, tune
+var assist := false  # radio assist (atc_assist.gd): calls retune COM1 themselves, the next call is suggested
 var delay := Vector2(0.6, 1.5)  # s between a call and the reply
 var readback_gap := 1.3  # s between the reply and the pilot's readback
 var on_tx := Callable()  # called with every released transmission (voice)
@@ -139,6 +140,20 @@ func menu(w: Dictionary) -> Array:
 	return AtcMenu.build(self, w)
 
 
+## The short list for the radio (at most 4, the suggested call first), the suggested call ({} with
+## assist off) and the bar's "Next: ..." text. See atc_assist.gd.
+func actions(w: Dictionary) -> Array:
+	return AtcAssist.actions(self, w)
+
+
+func recommended(w: Dictionary) -> Dictionary:
+	return AtcAssist.recommended(self, w)
+
+
+func next_hint(w: Dictionary) -> String:
+	return AtcAssist.next_hint(self, w)
+
+
 ## The pilot picks a menu entry.
 func request(id: String, w: Dictionary, now: float, mhz := 0.0, unit := "") -> void:
 	if id == "tune":
@@ -151,7 +166,7 @@ func request(id: String, w: Dictionary, now: float, mhz := 0.0, unit := "") -> v
 		if not bool(w.get("com1_ok", true)):
 			system(com_key(w), w, now)
 		else:
-			AtcReplies.run(self, id, w, now)
+			AtcReplies.run(self, id, AtcAssist.tune_for(self, id, w, now), now)  # assist: tuned to the right unit first
 
 
 ## Which note a dead radio gets: no power (switch the avionics on) or a real failure (lost communications).
@@ -188,14 +203,15 @@ func say(section: String, key: String, role: String, sl: Dictionary, at: float, 
 		"system":
 			kind = "system"
 			who = "(radio)"
-	return say_raw(kind, who, phr.fill(tpl, sl), phr.fill(tpl, sl, true), at, then, instr)
+	return say_raw(kind, who, phr.fill(tpl, sl), phr.fill(tpl, sl, true), at, then, instr, key == "readback_ok")
 
 
-## Queue a finished text (say again repeats the last instruction this way).
-func say_raw(kind: String, who: String, text: String, spoken: String, at: float, then := Callable(), instr := false) -> float:
+## Queue a finished text (say again repeats the last instruction this way). `ack`: a bare
+## acknowledgement ("readback correct"), which the radio bar does not keep as the latest message.
+func say_raw(kind: String, who: String, text: String, spoken: String, at: float, then := Callable(), instr := false, ack := false) -> float:
 	_seq += 1
 	_q.append({"at": at, "seq": _seq, "kind": kind, "who": who, "text": text, "spoken": spoken,
-		"then": then, "instr": instr and kind == "atc"})
+		"then": then, "instr": instr and kind == "atc", "ack": ack})
 	return at
 
 
@@ -209,7 +225,7 @@ func update(now: float) -> Array:
 	for e in due:
 		if e.then is Callable and e.then.is_valid():
 			e.then.call()
-		log.append({"kind": e.kind, "who": e.who, "text": e.text, "spoken": e.spoken, "t": now})
+		log.append({"kind": e.kind, "who": e.who, "text": e.text, "spoken": e.spoken, "t": now, "ack": e.ack})
 		s.last_tx = e.text
 		if e.instr:
 			s.last_instr = e.text

@@ -112,7 +112,8 @@ func _process(dt: float) -> void:
 		roll = clampf(m.x * 1.3, -1.0, 1.0)
 		pitch = clampf(m.y * 1.3, -1.0, 1.0)  # mouse down = pull back
 	else:
-		pitch = _move("pitch", pitch, _axis("pitch_down", "pitch_up"), dt)
+		var pitch_in := 0.0 if Props.get_b("ui/radio_open") else _axis("pitch_down", "pitch_up")  # the open radio's Up/Down choose a call
+		pitch = _move("pitch", pitch, pitch_in, dt)
 		roll = _move("roll", roll, _axis("roll_left", "roll_right"), dt)
 	yaw = _move("yaw", yaw, _axis("yaw_left", "yaw_right"), dt)
 	_put("pitch", pitch)

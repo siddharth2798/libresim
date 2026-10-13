@@ -5,7 +5,7 @@ extends Control
 ## WARNING (red). Identical messages merge ("×3") instead of piling up; cards fade out.
 ## Sources polled here (modules only talk via Props): damage/events, damage/last_touchdown
 ## (landing debrief), failures/event. Persistent banners: STALL, ENGINE STOPPED hint.
-## Other UI can call post() directly.
+## Other UI can call post() directly, or hand over a finished card with adopt() (the radio's message card).
 
 enum { INFO, CAUTION, WARNING }
 const COLORS := [Color(0.35, 0.7, 1.0), Color(1.0, 0.72, 0.2), Color(1.0, 0.3, 0.25)]
@@ -96,7 +96,7 @@ func _banner(text: String, col: Color) -> PanelContainer:
 func post(title: String, detail := "", level := INFO, key := "") -> void:
 	key = key if key != "" else title
 	for c in _cards:
-		if c.key == key:
+		if c.key == key and c.has("title_l"):
 			c.count += 1
 			c.t = LIFE[level]
 			c.title_l.text = title + ("   ×%d" % c.count if c.count > 1 else "")
@@ -126,6 +126,22 @@ func post(title: String, detail := "", level := INFO, key := "") -> void:
 	_cards.append({"key": key, "panel": p, "title_l": tl, "detail_l": dl, "count": 1, "t": LIFE[level], "level": level})
 	while _cards.size() > MAX_CARDS:
 		_drop(_cards[0])
+
+
+## Put a finished card (a PanelContainer the caller built, mouse_filter ignore) into the stack: it
+## fades after `life` s and counts towards MAX_CARDS. `key` names it for touch().
+func adopt(p: Control, life: float, key: String) -> void:
+	_stack.add_child(p)
+	_cards.append({"key": key, "panel": p, "count": 1, "t": life, "level": INFO})
+	while _cards.size() > MAX_CARDS:
+		_drop(_cards[0])
+
+
+## Give the card with this key `life` more seconds (a line was added to it).
+func touch(key: String, life: float) -> void:
+	for c in _cards:
+		if c.key == key:
+			c.t = life
 
 
 func _drop(c: Dictionary) -> void:

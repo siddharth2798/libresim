@@ -81,6 +81,7 @@
 		"no_airport": {"*": "No airport within range of this radio."},
 		"uncontrolled": {"*": "{apt} has no air traffic service in the data: calls are blind transmissions and nobody will answer. Keep a good lookout."},
 		"tune_hint": {"*": "Tune COM1 to {fac2} {freq2} (menu: Tune COM1)."},
-		"tuned": {"*": "COM1 set to {fac2} {freq2}."}
+		"tuned": {"*": "COM1 set to {fac2} {freq2}."},
+		"tuned_auto": {"*": "COM1 tuned to {freq3} {fac2}."}
 	}
 }

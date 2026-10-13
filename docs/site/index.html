@@ -975,10 +975,11 @@ flatpak run org.freesim.FreeSim</code></pre><button class="copy" type="button">C
 <p>Some frequencies repeat far apart (for example 108.10 at Mumbai and Mangaluru); reception range keeps them from overlapping.</p>
 
 <h3 id="nav-atc"><span class="no">3.3</span>ATC</h3>
-<p>Press <kbd>`</kbd> (backquote) to open the radio panel. It shows COM1 (active and standby), the unit you are tuned to, a transcript of the last transmissions and a menu with only the calls that make sense in your current state. <kbd>1</kbd>–<kbd>6</kbd> pick a call and <kbd>`</kbd> closes the panel. While it is open the number keys go to the menu, not the cameras. After a call the transcript stays on screen for a while, and the controller also calls on its own (handovers, "report final", "vacate").</p>
+<p>In free flight a slim <strong>radio bar</strong> sits at the top-left, level with the flight-data bar. It shows COM1 and the unit you are tuned to (<code>COM1 118.100 · Pune Tower</code>: green when a unit answers on that frequency, amber "no facility", red when COM1 is off or failed), the call to make next (<em>Next: ask Ground for taxi</em>) and, for 20 seconds, the latest controller message. Click the bar or press <kbd>`</kbd> (backquote) to open a short list of at most four plain calls, the suggested one first and highlighted. <kbd>↑</kbd> <kbd>↓</kbd> move, <kbd>Enter</kbd> or <kbd>1</kbd>–<kbd>4</kbd> make the call, <kbd>Esc</kbd> or <kbd>`</kbd> close, and the list closes by itself after a call. While it is open the arrow keys do not pitch the aircraft and the number keys do not change the cameras. The small row under the list has <em>Say again</em> (<kbd>A</kbd>), <em>History</em> (<kbd>H</kbd>, the last 30 transmissions, scrollable) and <em>Voice</em> on/off (<kbd>V</kbd>).</p>
+<p>What the controller says arrives as one calm card at the top-centre, like the other notification cards, and fades after 6 to 8 seconds; your own call and read-back appear in it as small muted lines. The controller also calls on its own (handovers, "report final", "vacate").</p>
 <div class="tbl"><table>
   <caption>A normal flight through the radio</caption>
-  <thead><tr><th>You are</th><th>Call (tune COM1 first)</th><th>ATC answers</th></tr></thead>
+  <thead><tr><th>You are</th><th>Call (the bar suggests it)</th><th>ATC answers</th></tr></thead>
   <tbody>
     <tr><td>Parked</td><td>ATIS · Clearance (Delivery) · Pushback and Taxi (Ground)</td><td>Information letter, weather, runway · cleared VFR with runway, climb limit, squawk, QNH · taxi to the holding point via the taxiways</td></tr>
     <tr><td>At the holding point</td><td>Ready for departure (Tower)</td><td>Line up and wait, then cleared for takeoff with the wind</td></tr>
@@ -989,13 +990,14 @@ flatpak run org.freesim.FreeSim</code></pre><button class="copy" type="button">C
 </table></div>
 <ul>
   <li>Phraseology follows ICAO / Indian AIP style. The text uses written numbers (runway 09, QNH 1012); the voice says them the ICAO way (zero niner, one zero one two). The default call sign is VT-FSM (<code>callsign</code> in <code>options.cfg</code>).</li>
-  <li>A call is answered only by the right unit. If COM1 is on the wrong frequency the menu offers <em>Tune COM1 to …</em>; a call to the wrong unit of the same airport is redirected; a call on a frequency with no unit gets no reply and the radio says which frequency to tune.</li>
+  <li><strong>Radio assist</strong> (Options → Radio / ATC, on by default): a call tunes COM1 to the unit that answers it ("COM1 tuned to 118.100 Pune Tower") and the bar suggests the next call. Switch it off for the realistic radio: you tune COM1 yourself, nothing is suggested, and the list offers <em>Tune COM1 to …</em> first when needed.</li>
+  <li>A call is answered only by the right unit. With assist off, a call to the wrong unit of the same airport is redirected ("contact Tower 118.1") and a call on a frequency with no unit gets no reply; the radio says which frequency to tune.</li>
   <li><em>Say again</em> repeats the last instruction. Pilot readbacks are automatic and ATC answers "readback correct" to a clearance.</li>
   <li>Airports with frequencies in the data (Mumbai, Pune, Goa, Cochin, Calicut, Mangaluru, Belgaum, Kolhapur, Garuda) need the right frequency; a unit that does not exist is covered by the next one (Pune has only a tower, which does everything). Airports without frequencies in the data (Juhu, Navi Mumbai and similar) answer on any frequency. Small fields and heliports have no ATC: your calls are blind transmissions that nobody answers.</li>
   <li>With COM1 failed or no avionics power nothing is sent or heard (a failure also says: squawk 7600, lost-communications procedure).</li>
   <li>Never blocking: take off, land or enter a runway without a clearance and you get one short note, once per flight, and the flight carries on.</li>
-  <li><strong>Training lessons:</strong> ATC stays quiet. No calls, no notes, the panel does not open by itself, and clearances count as given. The panel is still there on <kbd>`</kbd>.</li>
-  <li>Optional voice: <kbd>V</kbd> in the open menu (or <code>atc_voice</code> in <code>options.cfg</code>). It uses your operating system's text-to-speech voices and is off by default. Recorded voices and radio effects come later.</li>
+  <li><strong>Training lessons:</strong> ATC stays quiet. No calls, no notes, the radio bar stays hidden, and clearances count as given. The radio is still there on <kbd>`</kbd>.</li>
+  <li>Optional voice: <kbd>V</kbd> in the open radio (or <code>atc_voice</code> in <code>options.cfg</code>). It uses your operating system's text-to-speech voices and is off by default. Recorded voices and radio effects come later.</li>
 </ul>
 
 <h3 id="nav-checklists"><span class="no">3.4</span>Checklists</h3>
@@ -1690,7 +1692,7 @@ godot --path game -- --airport=VAJJ --fail=vacuum_pump@10 --random-failures --me
     <tr class="group"><td colspan="3">Operations</td></tr>
     <tr><td><kbd>T</kbd></td><td>Taxi route (again to clear)</td><td></td></tr>
     <tr><td><kbd>P</kbd></td><td>Pushback (again to stop)</td><td></td></tr>
-    <tr><td><kbd>`</kbd> then <kbd>1</kbd>–<kbd>6</kbd></td><td>Radio panel and ATC calls (<kbd>V</kbd> voice on/off while open)</td><td></td></tr>
+    <tr><td><kbd>`</kbd></td><td>Open or close the radio (click the bar top-left too). Open: <kbd>↑</kbd> <kbd>↓</kbd> choose, <kbd>Enter</kbd> or <kbd>1</kbd>–<kbd>4</kbd> call, <kbd>A</kbd> say again, <kbd>H</kbd> history, <kbd>V</kbd> voice, <kbd>Esc</kbd> close</td><td></td></tr>
     <tr><td><kbd>F2</kbd></td><td>Checklists; <kbd>Ctrl</kbd>+<kbd>PgUp</kbd>/<kbd>PgDn</kbd> change list, <kbd>Enter</kbd> ticks</td><td></td></tr>
     <tr><td><kbd>F9</kbd></td><td>Failures panel</td><td></td></tr>
     <tr><td><kbd>F10</kbd></td><td>Settings: graphics, renderer, time, weather, failures</td><td></td></tr>
@@ -1762,7 +1764,7 @@ godot --path game -- --airport=VAJJ --fail=vacuum_pump@10 --random-failures --me
 <h4>The aircraft keeps rolling left</h4>
 <p>That is the real C172 flown solo: pilot weight and engine torque. It is neutral at about 100 KIAS in level flight; at climb power hold a little right aileron and rudder (<a href="#flying-trim">OPS 1.9</a>).</p>
 <h4>ATC doesn't answer</h4>
-<p>COM1's active frequency must match the unit you call (open the menu with <kbd>`</kbd> and pick <em>Tune COM1 to …</em>, or tune the standby and click ⇄), and the avionics must be powered. Airports without frequencies in the data answer on any frequency; small fields and heliports have no ATC. In a training lesson ATC says nothing unless you call.</p>
+<p>COM1's active frequency must match the unit you call. With radio assist on (the default) a call tunes it for you; with assist off open the radio with <kbd>`</kbd> and pick <em>Tune COM1 to …</em>, or tune the standby and click ⇄. The avionics must be powered. Airports without frequencies in the data answer on any frequency; small fields and heliports have no ATC. In a training lesson ATC says nothing unless you call.</p>
 <h4>I lost the Pune VOR</h4>
 <p>Reception checks terrain line of sight; climb or move clear of the Ghats.</p>
 <h4>Is the ILS real?</h4>

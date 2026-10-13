@@ -1,10 +1,11 @@
 class_name AtcOptionsBox
 extends VBoxContainer
-## The ATC part of the Options page: call sign (validated, saved when valid) and the optional
-## voice. A self-contained block: ui/menu/options_page.gd adds it with
+## The ATC part of the Options page: call sign (validated, saved when valid), radio assist (UserOptions
+## radio_assist, on by default) and the optional voice. A self-contained block: ui/menu/options_page.gd
+## adds it with
 ##     right.add_child(AtcOptionsBox.new())
-## and connects `changed` like the other rows. While the menu page is not wired up, the voice
-## can also be toggled with V in the in-flight radio menu (ui/atc_panel.gd).
+## and connects `changed` like the other rows. The voice can also be toggled with V in the open
+## in-flight radio (ui/atc_panel.gd).
 
 signal changed
 
@@ -35,6 +36,14 @@ func _ready() -> void:
 	_status = Label.new()
 	_status.add_theme_color_override("font_color", Color(1.0, 0.5, 0.4))
 	row.add_child(_status)
+	var a := CheckBox.new()
+	a.text = "Radio assist (tunes COM1 for you, suggests the next call)"
+	a.button_pressed = AtcSession.assist_on()
+	a.toggled.connect(func(on):
+		UserOptions.set_v("radio_assist", on)
+		changed.emit())
+	add_child(a)
+	add_child(MenuTheme.note("Assist on: a call tunes COM1 to the right unit by itself and the radio bar suggests what to call next. Off: you tune COM1 yourself, as in a real aircraft; nothing is suggested."))
 	var v := CheckBox.new()
 	v.text = "ATC voice (system text-to-speech)"
 	v.button_pressed = AtcVoice.enabled()

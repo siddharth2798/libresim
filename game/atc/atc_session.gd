@@ -28,6 +28,11 @@ static func callsign() -> String:
 	return n if n != "" else "VT-FSM"
 
 
+## Radio assist (Options page): calls retune COM1 themselves and the next call is suggested.
+static func assist_on() -> bool:
+	return bool(UserOptions.get_v("radio_assist"))
+
+
 ## A training lesson is active: ATC stays quiet (no advisories, clearances implied).
 static func in_lesson() -> bool:
 	return str(Session.training) != ""
@@ -37,6 +42,7 @@ func setup(e: Dictionary, hooks: Dictionary) -> void:
 	env = e
 	c = AtcController.new(callsign())
 	c.hooks = hooks
+	c.assist = assist_on()
 	var v := voice  # not `voice` itself: the lambda would capture self and form a cycle (session -> c -> on_tx -> session)
 	c.on_tx = func(entry: Dictionary): v.speak(entry)
 	mon = AtcMonitor.new(c)
@@ -61,6 +67,7 @@ func tick(dt: float) -> void:
 		_stamp = stamp
 		_pub_rev = -1
 	mon.silent = in_lesson()
+	c.assist = assist_on()
 	_snap_t -= dt
 	if _snap_t <= 0.0:
 		_snap_t = SNAP_EVERY
@@ -78,12 +85,18 @@ func menu() -> Array:
 	return c.menu(w) if c != null else []
 
 
+## The short, ordered list the radio shows (see AtcController.actions).
+func actions() -> Array:
+	return c.actions(w) if c != null else []
+
+
 ## The pilot picked a menu entry.
 func pick(entry: Dictionary) -> void:
 	if c == null:
 		return
 	w = AtcWorld.snapshot(env, now)
 	c.request(str(entry.id), w, now, float(entry.get("mhz", 0.0)), str(entry.get("name", "")))
+	w = AtcWorld.snapshot(env, now)  # a call may have retuned COM1
 
 
 func publish() -> void:

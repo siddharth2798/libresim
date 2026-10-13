@@ -125,6 +125,22 @@ static func tuned(w: Dictionary) -> Dictionary:
 	return out
 
 
+## The radio bar's unit text: {text, tone}. tone: ok (a unit answers on this frequency), warn (no
+## facility on it), dim (nothing to call: no airport, no ATC), dead (COM1 off or failed).
+static func summary(w: Dictionary) -> Dictionary:
+	if not bool(w.get("com1_ok", true)):
+		return {"text": "off (no power)" if str(w.get("com1_why", "")) == "unpowered" else "failed", "tone": "dead"}
+	var t := tuned(w)
+	if t.role != "":
+		return {"text": str(t.name), "tone": "ok"}
+	match str(w.get("ctl", "none")):
+		"published":
+			return {"text": "no facility", "tone": "warn"}
+		"uncontrolled":
+			return {"text": "%s has no ATC" % str(w.get("apt_name", w.get("apt", ""))), "tone": "dim"}
+	return {"text": "no airport in range", "tone": "dim"}
+
+
 ## Does the unit COM1 is tuned to answer this service?
 static func handles(w: Dictionary, service: String) -> bool:
 	match str(w.get("ctl", "none")):

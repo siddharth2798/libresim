@@ -1,69 +1,50 @@
-extends PanelContainer
-## Radio panel: ` opens the menu, 1-6 pick a call (the menu swallows the keys, so camera views
-## do not change), ` closes it. Header: COM1 active / standby and the unit COM1 is tuned to.
-## Then the transcript (who said what) and a menu that lists only the calls that make sense in
-## the current state, plus "Say again" and, when COM1 is on the wrong frequency, "Tune COM1 to
-## <unit>". With the menu closed only the recent transmissions are shown, for a while after the
-## last one (the controller also calls by itself). V toggles the ATC voice while the menu is open.
-## The logic is in atc/ (atc_session.gd); this node is the screen and the keys. flight.gd sets
-## ground_ops and fdm_node. Where it sits: atc/atc_layout.gd (never over the other UI).
-
-const ACCENT := Color(0.3, 0.85, 0.75)
-const WIDTH := 360.0
-const RECENT := 18.0  # s the transcript stays after the last transmission
+extends Control
+## The radio (see docs/ATC.md): a slim bar at the top-left in free flight (COM1 frequency and unit,
+## the suggested next call, the latest controller message); ` or a click opens a short list of calls
+## (the suggested one first): Up/Down or 1-4 choose, Enter calls, Esc or ` closes, A says again,
+## H shows the history, V toggles the voice. A call closes the list. Incoming messages are a calm
+## card in the notification stack (ui/atc_card.gd). In a training lesson the bar stays hidden: only
+## ` opens it. While it is open the arrow keys do not pitch the aircraft (Props ui/radio_open).
+## This node is the keys and the wiring; the logic is in atc/ (atc_session.gd, atc_assist.gd,
+## atc_card_logic.gd) and the drawing in atc_box.gd. flight.gd sets ground_ops and fdm_node.
+## Where it sits: atc/atc_layout.gd (never over the other UI).
 
 var ground_ops: GroundOps
 var fdm_node: FdmNode
 var session: AtcSession
+var menu: Control  # the part that shows while the radio is open (the e2e panels check reads it)
+var _box: AtcBox
+var _cards := AtcCardLogic.new()
+var _card: AtcCard
 var _open := false
-var _head: Label
-var _unit: Label
-var _info: Label
-var _sep: HSeparator
-var _log: AtcTranscript
-var _items: Array[Label] = []
-var _hint: Label
-var _entries: Array = []
-var _quiet := 999.0  # s since the last transmission
-var _asked := 999.0  # s since the pilot last made a call (a lesson shows the transcript only then)
+var _history := false
+var _sel := 0
+var _actions: Array = []
 var _serial := 0
 var _t := 0.0
 
 
 func _ready() -> void:
-	set_anchors_preset(PRESET_TOP_LEFT)
-	custom_minimum_size = Vector2(WIDTH, 0)
+	set_anchors_and_offsets_preset(PRESET_FULL_RECT)
 	mouse_filter = MOUSE_FILTER_IGNORE
-	add_theme_stylebox_override("panel", Notifications.card_style(ACCENT))
-	var vb := VBoxContainer.new()
-	vb.add_theme_constant_override("separation", 4)
-	add_child(vb)
-	_head = _label(vb, 14, Color(0.78, 0.86, 0.92))
-	_unit = _label(vb, 16, Color(0.6, 1.0, 0.7))
-	_info = _label(vb, 12, Color(0.6, 0.68, 0.75))
-	_log = AtcTranscript.new()
-	vb.add_child(_log)
-	_sep = HSeparator.new()
-	vb.add_child(_sep)
-	for i in 6:
-		_items.append(_label(vb, 15, Color(1, 0.85, 0.4)))
-	_hint = _label(vb, 12, Color(0.6, 0.68, 0.75))
-	visible = false
+	_box = AtcBox.new()
+	add_child(_box)
+	menu = _box.menu
+	_box.open_requested.connect(func(): _set_open(true))
+	_box.picked.connect(_perform)
+	_box.hovered.connect(func(i: int):
+		if i != _sel:
+			_sel = i
+			_refresh())
+	_box.history_toggled.connect(_toggle_history)
+	_box.again_requested.connect(_say_again)
+	_box.voice_toggled.connect(_toggle_voice)
 
 
 func _exit_tree() -> void:
+	Props.set_v("ui/radio_open", false)
 	if session != null:
 		session.close()
-
-
-func _label(parent: Control, size_px: int, col: Color) -> Label:
-	var l := Label.new()
-	l.add_theme_font_size_override("font_size", size_px)
-	l.add_theme_color_override("font_color", col)
-	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	l.custom_minimum_size = Vector2(WIDTH - 28.0, 0)
-	parent.add_child(l)
-	return l
 
 
 ## Wait until flight.gd has wired the scene, then build the ATC session from its data.
@@ -84,92 +65,169 @@ func _process(dt: float) -> void:
 	if session == null:
 		_try_init()
 		return
-	session.tick(dt)
-	_quiet += dt
-	_asked += dt
-	_t += dt
-	var c := session.c
-	if c.tx_serial != _serial:  # something was said
-		_serial = c.tx_serial
-		_quiet = 0.0
-		_refresh()
-	elif _t > 0.5:
-		_t = 0.0
-		if visible:
-			_refresh()
-	var want := _open or _recent()
-	if want != visible:
-		visible = want
-		if want:
-			_refresh()
-
-
-func _unhandled_key_input(e: InputEvent) -> void:
-	if not e.pressed or e.echo or session == null:
+	if Props.get_b("replay/active"):
+		_box.visible = false
 		return
-	if e.keycode == KEY_QUOTELEFT:
-		_open = not _open
-		visible = _open or _recent()
+	session.tick(dt)
+	_cards.tick(dt)
+	if session.c.tx_serial != _serial:
+		_heard(session.c)
+	_t += dt
+	if _t > 0.25:
+		_t = 0.0
 		_refresh()
+
+
+## New transmissions: the message card (ui/atc_card.gd) and the bar.
+func _heard(c: AtcController) -> void:
+	var n := c.tx_serial - _serial
+	_serial = c.tx_serial
+	for e in c.log.slice(maxi(c.log.size() - n, 0)):
+		_show_card(_cards.feed(e))
+	_refresh()
+
+
+func _show_card(started: bool) -> void:
+	var notes := get_tree().get_first_node_in_group("notifications") as Notifications
+	if notes == null:
+		return
+	if started or _card == null or not is_instance_valid(_card) or _card.is_queued_for_deletion():
+		_card = AtcCard.new()
+		notes.adopt(_card, _cards.left, "atc")
+	else:
+		notes.touch("atc", _cards.left)
+	_card.show_lines(_cards.lines)
+
+
+# ---- keys and clicks ----
+
+## ` opens the radio (while it is open the keys are taken in _input).
+func _unhandled_key_input(e: InputEvent) -> void:
+	if session != null and not _open and e.pressed and not e.echo and e.keycode == KEY_QUOTELEFT:
+		_set_open(true)
 		get_viewport().set_input_as_handled()
-	elif _open and e.keycode >= KEY_1 and e.keycode <= KEY_6:
-		var i: int = e.keycode - KEY_1
-		if i < _entries.size():
-			session.pick(_entries[i])
-		_open = false
-		_quiet = 0.0
-		_asked = 0.0
-		visible = true
+
+
+## The open radio takes its keys before the rest of the game (Esc would open the pause menu, H
+## toggles the flight-data bar, V re-centres the view, 1-4 change the camera).
+func _input(e: InputEvent) -> void:
+	if not _open or session == null or not (e is InputEventKey) or not e.pressed:
+		return
+	var focus := get_viewport().gui_get_focus_owner()
+	if focus is LineEdit or focus is TextEdit:
+		return
+	var plain: bool = not (e.ctrl_pressed or e.alt_pressed or e.shift_pressed or e.meta_pressed)
+	var key: int = e.keycode
+	var handled := true
+	if key == KEY_UP or key == KEY_DOWN:
+		_move(-1 if key == KEY_UP else 1)  # also while a key is held
+	elif e.echo:
+		handled = key in [KEY_ESCAPE, KEY_QUOTELEFT, KEY_ENTER, KEY_H, KEY_V, KEY_A, KEY_1, KEY_2, KEY_3, KEY_4]
+	elif key == KEY_ESCAPE or key == KEY_QUOTELEFT:
+		_set_open(false)
+	elif not plain:
+		handled = false
+	elif key == KEY_ENTER:
+		if not _history:
+			_perform(_sel)
+	elif key >= KEY_1 and key <= KEY_4:
+		if not _history:
+			_perform(key - KEY_1)
+	elif key == KEY_H:
+		_toggle_history()
+	elif key == KEY_V:
+		_toggle_voice()
+	elif key == KEY_A:
+		_say_again()
+	else:
+		handled = false
+	if handled:
+		get_viewport().set_input_as_handled()
+
+
+func _set_open(on: bool) -> void:
+	_open = on
+	_history = false
+	_sel = 0
+	Props.set_v("ui/radio_open", on)
+	_refresh()
+
+
+func _move(d: int) -> void:
+	if _history:
+		_box.history_view().scroll_lines(d * 3)
+	elif not _actions.is_empty():
+		_sel = posmod(_sel + d, _actions.size())
 		_refresh()
-		get_viewport().set_input_as_handled()
-	elif _open and e.keycode == KEY_V and not e.shift_pressed and not e.ctrl_pressed:
-		UserOptions.set_v("atc_voice", not AtcVoice.enabled())
-		if AtcVoice.enabled():
-			SpeechService.request()  # starts the one-time probe; the hint says if there is no voice
-		_refresh()
-		get_viewport().set_input_as_handled()
 
 
-## Show the transcript for a while after a transmission. In a training lesson ATC never pops up by
-## itself: only after the pilot has made a call.
-func _recent() -> bool:
-	return _quiet < RECENT and (not AtcSession.in_lesson() or _asked < RECENT)
+## Make the call with this number in the list; the list closes.
+func _perform(i: int) -> void:
+	if session == null or i < 0 or i >= _actions.size():
+		return
+	session.pick(_actions[i])
+	_set_open(false)
 
 
+func _say_again() -> void:
+	if session != null and session.c.s.last_instr != "":
+		session.pick({"id": "say_again"})
+		_set_open(false)
+
+
+func _toggle_history() -> void:
+	_history = not _history
+	_refresh()
+
+
+func _toggle_voice() -> void:
+	UserOptions.set_v("atc_voice", not AtcVoice.enabled())
+	if AtcVoice.enabled():
+		SpeechService.request()  # starts the one-time probe; the button says if there is no voice
+	_refresh()
+
+
+# ---- drawing ----
+
+## The bar shows in free flight (a lesson keeps it hidden until ` opens it, and ATC never speaks
+## by itself there); never over the crash card or a replay.
 func _refresh() -> void:
 	if session == null:
 		return
+	if not (_open or not AtcSession.in_lesson()) or Props.get_b("damage/crashed") or Props.get_b("replay/active"):
+		_box.visible = false
+		return
 	var c := session.c
-	_log.show_log(c.log, 8 if _open else 4)
-	_log.custom_minimum_size = Vector2(WIDTH - 28.0, 170.0 if _open else 96.0)
-	for n in [_head, _unit, _info, _sep, _hint]:
-		n.visible = _open
-	if _open:
-		var w := session.w
-		var t := AtcFacilities.tuned(w)
-		_head.text = "COM1  %.3f   standby %.3f" % [Props.get_f("controls/com1/freq_mhz", 118.1), Props.get_f("controls/com1/standby_mhz", 121.9)]
-		var dead := not bool(w.get("com1_ok", true))
-		_unit.text = ("COM1 is off (no power)" if str(w.get("com1_why", "")) == "unpowered" else "COM1 has failed") if dead else str(t.label)
-		_unit.add_theme_color_override("font_color", Color(1, 0.4, 0.35) if dead else (Color(0.6, 1.0, 0.7) if t.role != "" else Color(1, 0.8, 0.4)))
-		_info.text = "%s  ·  squawk %s  ·  %s  ·  information %s" % [c.s.callsign, c.s.squawk, str(c.s.state).replace("_", " "), c.info_word()]
-		_entries = session.menu()
-		for i in _items.size():
-			_items[i].visible = i < _entries.size()
-			if i < _entries.size():
-				_items[i].text = "%d  %s" % [i + 1, _entries[i].label]
-				_items[i].add_theme_color_override("font_color", Color(0.6, 0.9, 1.0) if _entries[i].kind != "call" else Color(1, 0.85, 0.4))
-		var calls_text := "" if not _entries.is_empty() else "No call fits right now.   "
-		_hint.text = "%s`  close     V  voice %s%s" % [calls_text, "on" if AtcVoice.enabled() else "off",
-			" (no system voice)" if session.voice.missing() else ""]
-	else:
-		for it in _items:
-			it.visible = false
-	reset_size()
+	_actions = session.actions() if _open else []
+	_sel = clampi(_sel, 0, maxi(_actions.size() - 1, 0))
+	_box.show_model(_model(c, session.w))
+	_box.reset_size()
 	call_deferred("_place")
 
 
+func _model(c: AtcController, w: Dictionary) -> Dictionary:
+	var sm := AtcFacilities.summary(w)
+	var labels: Array = _actions.map(func(a): return str(a.label))
+	var hint := c.next_hint(w)
+	if _open and _actions.is_empty() and hint == "":
+		hint = "Nothing to call right now"
+	var voice := "Voice on" if AtcVoice.enabled() else "Voice off"
+	if session.voice.missing():
+		voice = "Voice: none found"
+	return {"width": AtcLayout.bar_width(get_viewport_rect().size), "open": _open, "history": _history,
+		"freq": "%.3f" % float(w.get("com1_mhz", 118.1)), "unit": str(sm.text), "tone": str(sm.tone),
+		"hint": hint, "msg": _cards.bar_line(), "actions": labels, "sel": _sel,
+		"note": AtcAssist.tune_note(c, w, _actions[_sel]) if _open and not _actions.is_empty() else "",
+		"log": c.log, "can_again": c.s.last_instr != "" and bool(w.get("com1_ok", true)), "voice": voice,
+		"keys": "H  back to calls     ↑ ↓  scroll     Esc  close" if _history
+			else "↑ ↓  choose     Enter or 1-4  call     Esc  close"}
+
+
 func _place() -> void:
-	position = AtcLayout.place(get_combined_minimum_size(), get_viewport_rect().size, _busy())
+	var vp := get_viewport_rect().size
+	var home := AtcLayout.home(vp)
+	_box.size = _box.get_combined_minimum_size()
+	_box.position = AtcLayout.place(_box.size, vp, _busy(), home) if _open else home
 
 
 ## Rects of the other UI that is on screen now (see atc/atc_layout.gd).

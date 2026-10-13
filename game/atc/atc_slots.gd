@@ -14,7 +14,7 @@ static func build(c: AtcController, w: Dictionary, extra := {}) -> Dictionary:
 	var routes: Dictionary = AtcFacilities.config().get("departure_routes", {})
 	var sl := {
 		"callsign": c.s.callsign, "fac": name, "fac2": name, "apt": apt_name, "rwy": rwy,
-		"freq": float(w.get("com1_mhz", 118.1)), "freq2": float(w.get("com1_mhz", 118.1)),
+		"freq": float(w.get("com1_mhz", 118.1)), "freq2": float(w.get("com1_mhz", 118.1)), "freq3": float(w.get("com1_mhz", 118.1)),
 		"wind": [float(w.get("wind_dir", 0.0)), float(w.get("wind_kt", 0.0)), float(w.get("gust_kt", 0.0))],
 		"qnh": float(w.get("qnh", 1013.0)), "squawk": c.s.squawk, "info": c.info_word(),
 		"vis": float(w.get("vis", 20000.0)), "temp": float(w.get("temp", 15.0)), "clouds": _clouds(w),

@@ -8,7 +8,7 @@ const PANELS := [
 	["F10 settings", KEY_F10, "UI/Settings", ""],
 	["F2 checklists", KEY_F2, "UI/Checklist", ""],
 	["N moving map", KEY_N, "UI/Map", ""],
-	["` radio/ATC", KEY_QUOTELEFT, "UI/Atc", ""],
+	["` radio/ATC", KEY_QUOTELEFT, "UI/Atc", "menu"],  # the bar is always there; the open list is the part that toggles
 	["F12 credits", KEY_F12, "UI/Credits", "_panel"],
 	["Esc pause", KEY_ESCAPE, "UI/Pause", ""],
 	["F1 key help", KEY_F1, "UI/Hud", "_help"],

@@ -14,17 +14,19 @@ const STATES := ["parked", "clearance", "taxi", "hold_short", "lined_up", "takeo
 	"enroute", "inbound", "final", "landed", "vacated"]
 const NEAR_RWY := 300.0  # m from a runway: "ready for departure" makes sense
 
-## id -> service (see atc_facilities.gd) and the menu text; {who} is the unit that answers.
+## id -> service (see atc_facilities.gd) and the plain-language menu text; {who} is the unit that
+## answers ("Ask Ground for taxi"). label_lined: the wording once lined up; blind: at a field without ATC.
 const INTENTS := {
-	"atis": {"service": "atis", "label": "Listen to ATIS", "label_info": "{who}: request airport information"},
-	"clearance": {"service": "clearance", "label": "{who}: request VFR clearance"},
-	"pushback": {"service": "ground", "label": "{who}: request start-up and pushback"},
-	"taxi": {"service": "ground", "label": "{who}: request taxi"},
-	"ready": {"service": "tower", "label": "{who}: ready for departure"},
-	"inbound": {"service": "approach", "label": "{who}: inbound, request landing"},
-	"final": {"service": "tower", "label": "{who}: report final"},
-	"goaround": {"service": "tower", "label": "{who}: going around"},
-	"taxi_stand": {"service": "ground", "label": "{who}: runway vacated, request taxi to parking"},
+	"atis": {"service": "atis", "label": "Listen to ATIS", "label_info": "Ask {who} for airport information", "blind": ""},
+	"clearance": {"service": "clearance", "label": "Ask {who} for clearance", "blind": ""},
+	"pushback": {"service": "ground", "label": "Ask {who} for pushback", "blind": "Blind call: start-up and pushback"},
+	"taxi": {"service": "ground", "label": "Ask {who} for taxi", "blind": "Blind call: taxi"},
+	"ready": {"service": "tower", "label": "Report ready for departure", "label_lined": "Ask {who} for takeoff clearance",
+		"blind": "Blind call: ready for departure"},
+	"inbound": {"service": "approach", "label": "Ask {who} for landing", "blind": "Blind call: inbound for landing"},
+	"final": {"service": "tower", "label": "Report final", "blind": "Blind call: final"},
+	"goaround": {"service": "tower", "label": "Report going around", "blind": "Blind call: going around"},
+	"taxi_stand": {"service": "ground", "label": "Ask {who} for taxi to parking", "blind": "Blind call: taxi to parking"},
 }
 
 

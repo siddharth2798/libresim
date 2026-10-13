@@ -1,15 +1,17 @@
 class_name AtcMenu
 extends RefCounted
-## The radio menu: only the calls that make sense in the current state (atc_state.gd), then
-## "Tune COM1 to <unit>" when COM1 is on the wrong unit for the next call, then "Say again".
+## The full list of radio calls: only the ones that make sense in the current state (atc_state.gd),
+## then "Tune COM1 to <unit>" when COM1 is on the wrong unit for the next call and radio assist is
+## off (with assist on the call retunes COM1 itself), then "Say again". The panel shows a shorter,
+## ordered list of it: AtcAssist.actions().
 
 ## The calls that make sense now: [{id, label, kind: call | tune | again, ...}], at most six.
 static func build(c: AtcController, w: Dictionary) -> Array:
 	var out := []
 	var ids := AtcState.available(c.s, w)
 	for id in ids:
-		out.append({"id": id, "label": label(id, w), "kind": "call"})
-	var t := _tune_entry(w, ids)
+		out.append({"id": id, "label": label(id, w, str(c.s.state)), "kind": "call"})
+	var t := {} if c.assist else _tune_entry(w, ids)
 	if not t.is_empty():
 		out.append(t)
 	if c.s.last_instr != "":
@@ -17,13 +19,18 @@ static func build(c: AtcController, w: Dictionary) -> Array:
 	return out.slice(0, 6)
 
 
-static func label(id: String, w: Dictionary) -> String:
+## Plain-language text of a call ("Ask Ground for taxi"); `st` is the state (lined up changes "ready").
+static func label(id: String, w: Dictionary, st := "") -> String:
 	var d: Dictionary = AtcState.INTENTS[id]
-	var role := AtcFacilities.role_for(w, str(d.service))
-	var who: String = "Blind call" if str(w.get("ctl", "")) == "uncontrolled" else str(AtcFacilities.WORD.get(role, "ATC"))
-	if id == "atis" and role == "ATIS":
-		return str(d.label)
-	return str(d.get("label_info", d.label) if id == "atis" else d.label).replace("{who}", who)
+	if str(w.get("ctl", "")) == "uncontrolled":
+		return str(d.get("blind", "Blind call: " + id))
+	var who := str(AtcFacilities.WORD.get(AtcFacilities.role_for(w, str(d.service)), "ATC"))
+	var t := str(d.label)
+	if id == "atis" and AtcFacilities.role_for(w, "atis") != "ATIS":
+		t = str(d.label_info)
+	elif st == "lined_up" and d.has("label_lined"):
+		t = str(d.label_lined)
+	return t.replace("{who}", who)
 
 
 static func _tune_entry(w: Dictionary, ids: Array) -> Dictionary:

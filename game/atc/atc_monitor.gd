@@ -188,6 +188,8 @@ func _tower_handover(w: Dictionary, now: float) -> void:
 	c.set_flag("st_ho")
 	if AtcFacilities.handles(w, "tower") or _handoff_to(w, now, "TWR"):
 		return
+	if c.assist:
+		return  # the next call tunes COM1 by itself (atc_assist.gd)
 	var f := AtcFacilities.facility_for(w, "tower")
 	c.system("tune_hint", w, now, {"fac2": f.name, "freq2": f.mhz})
 
@@ -288,7 +290,7 @@ func _handoff_watch(w: Dictionary, now: float) -> void:
 	if svc == "" or AtcFacilities.handles(w, svc):
 		c.s.handoff = ""
 		c.rev += 1
-	elif now - float(c.s.handoff_at) > 25.0 and not c.flag("st_hint_" + h) and bool(w.com1_ok):
+	elif now - float(c.s.handoff_at) > 25.0 and not c.flag("st_hint_" + h) and bool(w.com1_ok) and not c.assist:
 		c.set_flag("st_hint_" + h)
 		var f := AtcFacilities.facility_for(w, svc)
 		if float(f.mhz) > 0.0:

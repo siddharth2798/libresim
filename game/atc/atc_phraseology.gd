@@ -10,7 +10,7 @@ const PATH := "res://atc/phraseology.json"
 const SAMPLE := {
 	"callsign": "VT-FSM", "fac": "Pune Tower", "fac2": "Pune Ground", "apt": "Pune", "rwy": "09L",
 	"wind": [270.0, 12.0, 20.0], "qnh": 1012.0, "squawk": "4521", "info": "Alpha", "vis": 8000.0, "temp": 31.0,
-	"clouds": ["scattered", 3000.0], "alt": 2500.0, "alt_limit": 2000.0, "freq": 118.1, "freq2": 121.9,
+	"clouds": ["scattered", 3000.0], "alt": 2500.0, "alt_limit": 2000.0, "freq": 118.1, "freq2": 121.9, "freq3": 121.9,
 	"pos": "8 miles south-west of the field", "where": "stand 12", "join": "join left-hand downwind runway 09L",
 	"opt_via": " via A, B", "opt_info": "information Alpha, ", "opt_route": "via the Lonavala route, ",
 	"opt_wx": "light rain, "}
@@ -106,6 +106,7 @@ static func _slot(name: String, v: Variant, sp: bool) -> String:
 		"temp": return AtcSpeech.temperature(float(v), sp)
 		"alt", "alt_limit": return AtcSpeech.altitude(float(v)) if sp else str(int(round(float(v) / 100.0)) * 100)
 		"freq", "freq2": return AtcSpeech.frequency(float(v), sp)
+		"freq3": return AtcSpeech.frequency(float(v), true) if sp else "%.3f" % float(v)  # as on the radio display: 118.100
 		"clouds":
 			if not (v is Array) or str(v[0]) == "":
 				return "no significant cloud"
