@@ -582,6 +582,10 @@ The runner prints PASS/FAIL per test and exits non-zero on failure. The run must
 | `tests/test_engine_start.gd` | Cold start: the starter alone turns the engine above its firing speed, it fires and idles by itself at every throttle, nothing starts without mixture / magnetos / fuel, battery start with the alternator charging |
 | `tests/test_fdm_handsoff.gd` | Hands-off for 60 s at 3000 ft: neutral at 100 KIAS, bank about −10° and heading about −70° at 90 KIAS, pinned to JSBSim's c172p with the same rigging |
 
+### README screenshots
+
+`tools/make_screenshots.sh [scene ...]` regenerates the gallery in `docs/screenshots/` from the real game: each scene (list and camera settings in `game/tests/showcase_scenes.gd`, runner `game/tests/debug_showcase.gd`) is one game run at 1920x1080 on the Ultra preset that places the aircraft, hides the UI except what the scene shows, waits until the terrain, tree and building streamers are idle and saves a PNG (to `$FREESIM_SHOTS`, default `/tmp/libresim-shots`); the script then writes the 1600x900 progressive JPEGs (quality 85, Pillow from `tools/.venv`). It needs a display and the generated data, opens a window per scene, and backs up and restores your `*.cfg` / `*.json` settings and saves in the user data folder. To look at a new camera, add `"variants"` to a scene and run `godot --path game res://tests/debug_showcase.tscn -- --scene=<name> --quality=ultra`.
+
 ### Flight-model test cards (M3)
 
 `tests/test_fdm_cards.gd` flies the C172 with a test autopilot (2550 lb, sea level, ISA) and checks it against the POH:

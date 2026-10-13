@@ -15,6 +15,9 @@ libresim itself is licensed under **GPL-2.0-or-later** (see `LICENSE`). Licence 
   - libresim converted these to glTF and modified them; the unmodified source is in `third_party/c172p/`.
 - **Propeller blade model:** Syd Adams and Heiko Schulz (c182s project), GPL-2.0, via the c172p team.
 - **Flight-model data:** JSBSim `c172p` aircraft, `engIO360C` engine and `prop_75in2f` propeller, by the JSBSim Team and contributors (https://github.com/JSBSim-Team/jsbsim), LGPL-2.1. libresim converted them to JSON and retuned them (`tools/06_jsbsim_to_json.py`).
+- **JSBSim authors:** the JSBSim project names Jon S. Berndt (primary architect), Agostino De Marco, Tony Peden and David Megginson among its principal authors (see its `AUTHORS` file). The header of the `c172p` aircraft file gives its author as unknown.
+- **Flight-model code written from JSBSim's published design:** `game/fdm/aero.gd`, `game/fdm/table.gd` and `game/fdm/propeller.gd` re-implement how JSBSim evaluates aerodynamic function trees, lookup tables and propeller thrust, torque and P-factor. They are libresim's own GDScript; no JSBSim source code was copied. JSBSim is LGPL-2.1.
+- **Tuning values from the c172p team's files:** the control actuator travel times (elevator 0.30 s, aileron and rudder 0.15 s) from `c172p.xml`, and the engine and wind sound volume and pitch curves in `game/aircraft/c172/aircraft_audio.gd` from `c172-sound.xml`. Numbers only, no code. Source and licence as for the c172p model above (GPL-2.0-or-later).
 
 ### Airport vehicles and jetways
 - **From FlightGear fgdata** (https://gitlab.com/flightgear/fgdata, release/2024.1), FlightGear contributors, GPL-2.0. Converted to glTF; originals are in `third_party/fgdata/`:
@@ -37,7 +40,7 @@ All sounds are real recordings, listed file by file in `game/aircraft/c172/sound
 - **Trim wheel:** "rubber.wav" by **datasoundsample**, CC0.
 - **Primer:** by **coltures**, CC0.
 - **Flap motor, tyres, switches and doors:** c172p team, GPL-2.0-or-later.
-- **Wind, rumble, squeal, rain, avionics fan:** FlightGear fgdata contributors (https://gitlab.com/flightgear/fgdata), GPL-2.0-or-later.
+- **Wind, rumble, squeal, rain, avionics fan:** FlightGear fgdata contributors (https://gitlab.com/flightgear/fgdata), GPL-2.0 (fgdata states no "or later").
 
 ### Engine (runtime)
 - **Godot Engine 4.7** (https://godotengine.org), MIT licence, © Juan Linietsky, Ariel Manzur and Godot Engine contributors. Godot bundles third-party components (FreeType, HarfBuzz, Vulkan loader, fonts and others); their licences are listed in full on the in-game credits screen (taken from the engine itself).
@@ -65,7 +68,7 @@ All sounds are real recordings, listed file by file in `game/aircraft/c172/sound
 - **Overpass API** (https://overpass-api.de): one-off fetch of the OpenStreetMap data for Kochi (VOCI), outside the Geofabrik extract.
 - **AWS Open Data** (Copernicus DEM bucket) and the **EOX WMTS** service: data hosting.
 
-## Inspiration (ideas only; no code or assets taken)
+## Inspiration and references (the data and assets that were reused are credited above)
 - **FlightGear** (https://www.flightgear.org), the open-source flight simulator. Its property tree, aircraft-as-data approach and c172p team's realism inspired our design. Research notes are in `docs/FLIGHTGEAR_NOTES.md`.
 - **JSBSim**: its function and table format for aerodynamics is mirrored in `game/fdm/aero.gd`.
 - **Real Flight Simulator (RORTOS)** and **Microsoft Flight Simulator (Asobo / Microsoft)**: feature and visual-quality benchmarks. Their names are trademarks of their owners. libresim is not affiliated with them and uses none of their content.

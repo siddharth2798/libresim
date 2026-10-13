@@ -19,6 +19,7 @@ func setup(nav_db: NavDatabase, ab: AirportBuilder, c: TerrainTileCache) -> void
 	cache = c
 	runways = ab.data.runways if ab.data else []
 	visible = false
+	clip_contents = true  # tile imagery is drawn past the edge of the map otherwise
 	anchor_left = 0.42
 	anchor_right = 1.0
 	anchor_top = 0.0

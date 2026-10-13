@@ -9,7 +9,7 @@ var _text: RichTextLabel
 
 
 func _ready() -> void:
-	set_anchors_preset(PRESET_FULL_RECT)
+	set_anchors_and_offsets_preset(PRESET_FULL_RECT)  # offsets too: a zero-size control put the line off-screen
 	mouse_filter = MOUSE_FILTER_IGNORE
 	var attr := Label.new()
 	attr.text = ATTRIBUTION
@@ -17,10 +17,17 @@ func _ready() -> void:
 	attr.add_theme_color_override("font_color", Color(1, 1, 1, 0.75))
 	attr.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.8))
 	attr.add_theme_constant_override("outline_size", 3)
-	attr.set_anchors_preset(PRESET_TOP_RIGHT)
-	attr.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	attr.position = Vector2(-8, 4)
-	attr.grow_horizontal = GROW_DIRECTION_BEGIN
+	# bottom centre, between the instrument stacks; wraps to two lines on narrow windows
+	attr.set_anchors_and_offsets_preset(PRESET_BOTTOM_WIDE)
+	attr.offset_left = 330
+	attr.offset_right = -130
+	attr.offset_top = -32
+	attr.offset_bottom = -4
+	attr.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	attr.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	attr.vertical_alignment = VERTICAL_ALIGNMENT_BOTTOM
+	attr.grow_vertical = Control.GROW_DIRECTION_BEGIN  # a third line on a narrow window grows upward
+	attr.mouse_filter = MOUSE_FILTER_IGNORE
 	add_child(attr)
 	_panel = PanelContainer.new()
 	_panel.set_anchors_preset(PRESET_FULL_RECT)

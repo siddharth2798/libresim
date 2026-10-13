@@ -246,7 +246,7 @@ libresim/
 
 | Challenge | Why it's hard | Mitigation |
 |---|---|---|
-| **Flight model fidelity** | Realism depends on correct aero coefficients, moments and damping; small sign errors make the aircraft uncontrollable | Port validated JSBSim C172 tables; build one force term at a time; compare against standalone JSBSim runs and POH numbers with automated test cards |
+| **Flight model fidelity** | Realism depends on correct aero coefficients, moments and damping; small sign errors make the aircraft uncontrollable | Reuse validated JSBSim C172 tables (data only, no code port); build one force term at a time; compare against standalone JSBSim runs and POH numbers with automated test cards |
 | **Ground handling** | Stiff springs plus a fixed timestep cause bouncing and jitter; ground friction is notoriously hard | 120 Hz with sub-steps, critically damped gear, a static-friction "stick" state at low speed, and tuning via test cards (takeoff roll, crosswind taxi) |
 | **Floating-point precision** | 32-bit render transforms jitter at tens of km | Floating origin; keep FDM state in 64-bit GDScript floats |
 | **Terrain LOD, seams & streaming** | Cracks between LODs, pop-in, hitches while loading | Skirts or edge stitching, geomorphing, background-thread loading, a tile cache with prefetch along the velocity vector |
