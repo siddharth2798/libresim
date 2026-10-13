@@ -20,6 +20,7 @@ height from footprint area (Mumbai: small = 1-4 floors, large blocks up to ~40 m
 import gzip
 import json
 import math
+import os
 import struct
 import sys
 from concurrent.futures import ProcessPoolExecutor
@@ -137,6 +138,13 @@ def landmark_paths():
 LANDMARKS = landmark_paths()
 
 
+def write_atomic(path, data):
+    """Temp file + rename: a running game never reads a half-written tile."""
+    tmp = path.with_name(path.name + ".tmp")
+    tmp.write_bytes(data)
+    os.replace(tmp, path)
+
+
 def build_tile(path):
     tx, ty = map(int, path.stem.split("_"))
     if not (c.OUT / "terrain" / "h" / "0" / f"{tx}_{ty}.r16").exists():
@@ -190,9 +198,9 @@ def build_tile(path):
     cl = np.asarray(col, np.uint8)
     ix = np.asarray(idx, "<u4")
     data = b"BLD1" + struct.pack("<II", len(p), len(ix)) + p.tobytes() + cl.tobytes() + ix.tobytes()
-    (DST / f"{path.stem}.bin").write_bytes(gzip.compress(data, 6))
+    write_atomic(DST / f"{path.stem}.bin", gzip.compress(data, 6))
     cdata = b"COL1" + struct.pack("<I", len(colrec)) + b"".join(colrec)
-    (DST / f"{path.stem}.col").write_bytes(gzip.compress(cdata, 6))
+    write_atomic(DST / f"{path.stem}.col", gzip.compress(cdata, 6))
     return path.stem, len(p), len(ix)
 
 

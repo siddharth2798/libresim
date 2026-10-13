@@ -1,8 +1,11 @@
 """Tile I/O for 17_airport_fixups.py: read/write level 0-2 height and land-class tiles in
-place, keep the originals of every file it changes (terrain/fixups_orig/) so a re-run first
-reverts and then re-applies (tool changes take effect; a second run gives the same bytes).
+place, keep the originals of every file it changes (terrain/fixups_orig/) so a re-run starts
+again from the originals (tool changes take effect; a second run gives the same bytes).
 Covers the base grid (meta.json) and region packs (meta_<region>.json); a tile's min/max
 is updated in whichever meta lists it.
+Every write goes through a temp file and an atomic rename, and tiles patched last time are
+read from their originals instead of being reverted on disk first, so a game running during
+the re-run never sees a half-written or temporarily unpatched tile.
 State: terrain/fixups.json = {"files": {relpath: sha1 written},
                               "meta": {"<meta file>|<level>/<key>": original [min, max]}}.
 A file regenerated since (02/11 re-run) no longer matches its sha1: its stale original is
@@ -11,6 +14,7 @@ dropped and the fresh file is patched instead.
 import gzip
 import hashlib
 import json
+import os
 import shutil
 
 import numpy as np
@@ -28,24 +32,33 @@ def sha(b):
     return hashlib.sha1(b).hexdigest()
 
 
+def atomic_write(path, data):
+    """Write bytes next to path, then rename over it (readers see the old or the new file)."""
+    tmp = path.with_name(path.name + ".tmp")
+    tmp.write_bytes(data)
+    os.replace(tmp, path)
+
+
 class Tiles:
     def __init__(self):
-        self.files = {}  # relpath -> sha1 of what we wrote
+        self.files = {}  # relpath -> sha1 of what we wrote this run
         self.metas = {p.name: json.loads(p.read_text()) for p in sorted(T.glob("meta*.json"))}
         self.meta_orig = {}
         self._dirty = set()
+        self._ours = set()  # patched by the previous run, untouched since: originals are in ORIG
 
     # ------------------------------------------------------------ state / revert
     def prepare(self):
-        """Put back the originals of files we patched last time (if still ours)."""
+        """Find the files we patched last time (if still ours); their originals are read from ORIG
+        and put back at save() unless this run patches them again."""
         if not STATE.exists():
             shutil.rmtree(ORIG, ignore_errors=True)
             return "fresh"
         st = json.loads(STATE.read_text())
         n_rev = n_new = 0
         for k, v in st["files"].items():
-            if (T / k).exists() and sha((T / k).read_bytes()) == v:
-                shutil.copyfile(ORIG / k, T / k)
+            if (T / k).exists() and (ORIG / k).exists() and sha((T / k).read_bytes()) == v:
+                self._ours.add(k)
                 n_rev += 1
                 if k.startswith("h/"):
                     lv, key = k[2:-4].split("/")
@@ -56,13 +69,16 @@ class Tiles:
                             self._dirty.add(mfile)
             else:
                 n_new += 1
-        shutil.rmtree(ORIG, ignore_errors=True)
-        STATE.unlink()
-        return f"reverted {n_rev} previously patched tiles; {n_new} were regenerated since"
+        return f"{n_rev} tiles patched last time are re-derived from their originals; {n_new} were regenerated since"
 
     def save(self):
+        for k in sorted(self._ours - set(self.files)):  # patched last time, not now: originals back
+            atomic_write(T / k, (ORIG / k).read_bytes())
+        for p in sorted(ORIG.rglob("*")):  # ORIG keeps exactly the originals of what we wrote
+            if p.is_file() and p.relative_to(ORIG).as_posix() not in self.files:
+                p.unlink()
         for m in self._dirty:
-            (T / m).write_text(json.dumps(self.metas[m]))
+            atomic_write(T / m, json.dumps(self.metas[m]).encode())
         STATE.write_text(json.dumps({"files": self.files, "meta": self.meta_orig}, indent=0))
 
     def _tiles(self, mfile, level):
@@ -78,16 +94,20 @@ class Tiles:
                 return m, t
         return None, None
 
+    def _src(self, rel):
+        """Where the unpatched-so-far bytes of a tile are: its original, until this run writes it."""
+        return ORIG / rel if rel in self._ours and rel not in self.files else T / rel
+
     def _write(self, rel, b):
-        if rel not in self.files:
+        if rel not in self.files and rel not in self._ours:
             (ORIG / rel).parent.mkdir(parents=True, exist_ok=True)
             shutil.copyfile(T / rel, ORIG / rel)
-        (T / rel).write_bytes(b)
+        atomic_write(T / rel, b)
         self.files[rel] = sha(b)
 
     # ------------------------------------------------------------ heights
     def read_h(self, level, tx, ty):
-        p = T / f"h/{level}/{tx}_{ty}.r16"
+        p = self._src(f"h/{level}/{tx}_{ty}.r16")
         if not p.exists():
             return None
         return np.fromfile(p, "<u2").reshape(N + 1, N + 1).astype(np.float64) * c.H_SCALE + c.H_OFFSET
@@ -104,7 +124,7 @@ class Tiles:
 
     # ------------------------------------------------------------ land class
     def read_lc(self, level, tx, ty):
-        p = T / f"lc/{level}/{tx}_{ty}.r8.gz"
+        p = self._src(f"lc/{level}/{tx}_{ty}.r8.gz")
         if not p.exists():
             return None
         return np.frombuffer(gzip.decompress(p.read_bytes()), np.uint8).reshape(LCN, LCN).copy()

@@ -128,11 +128,18 @@ $PY tools/13_airport_ops.py        # -> data/processed/airport_ops.json: stands,
                                    #   after editing a stand_*.py / airport_stands.py run 13 by hand or --force-step=13)
 $PY tools/14_ils.py                # -> data/processed/ils.json: SIMULATED ILS for runways >= 2000 m (after 09)
 $PY tools/15_terminals.py          # -> data/processed/terminals/<ICAO>.json: terminal footprints (VABB, VAPO; VOCI via Overpass, cached) ~70 s
-$PY tools/16_terminal_models.py    # -> terminals/<ICAO>.glb landmark terminal models + landmarks.json; then re-run 10_buildings.py
-$PY tools/17_airport_fixups.py     # patches terrain h/lc levels 0-2 in place, both regions (after 02, 09, 11, 12): levelled
-                                   #   sites (VANM 8 m, VOKN, VOSR) without water/trees, taxiway ground smoothed, no water on
-                                   #   paving, no trees inside airports. Re-runnable (reverts + re-applies). Then re-run 09, 14, 10
-                                   #   (./run.sh orders this: ... 11 12 17 09 13 14 15 16 10).
+$PY tools/16_terminal_models.py    # -> terminals/<ICAO>.glb landmark terminal models + landmarks.json (follows the terrain: after 17); then re-run 10_buildings.py
+$PY tools/17_airport_fixups.py     # patches terrain h/lc levels 0-2 in place, both regions (after 02, 09, 11, 12, 13, 15): levelled
+                                   #   sites (VANM 8 m, VOKN, VOSR) without water/trees, taxiway ground smoothed, APRON GROUND
+                                   #   levelled (tools/apron_flatten.py: stands, gates, apron polygons, taxilanes and a margin round
+                                   #   terminals/hangars lose the DSM's roofs, walls and parked aircraft; harmonic fill from the
+                                   #   ground around, 30 m blend, all three LODs), no water on paving, no trees inside airports.
+                                   #   Re-runnable (starts again from the saved originals), tiles replaced atomically (~3 min).
+                                   #   Then re-run 09, 14, 16 (terminal base heights follow the ground) and 10.
+                                   #   (./run.sh orders this: ... 11 12 13 15 17 09 14 16 10).
+$PY tools/apron_roughness.py       # optional QA: stand-area relief, apron polygon std, ring around terminals, terminal base height
+                                   #   per airport from the tiles on disk (VABB before the apron fix: 54 % of the stands had a mound
+                                   #   > 1.5 m within 45 m, median 2.0 m, p90 12.4 m; after: 5 %, 0.3 m, 1.0 m)
 
 # Aircraft 3D models (FlightGear c172p, GPL), already committed as .glb; only needed to regenerate:
 blender -b --factory-startup --python tools/blender/convert_c172p.py            # exterior.glb
@@ -580,6 +587,7 @@ The runner prints PASS/FAIL per test and exits non-zero on failure. The run must
 | `tests/test_systems.gd` | Alternator failure and battery drain, fuel starvation and restart, wind profile, Ghats ridge lift (M6) |
 | `tests/test_landing.gd` | Normal landing plus POH landing roll; hard landing, nose-first and prop strike, ditching, Vne failure, overstress, flap overspeed |
 | `tests/test_engine_start.gd` | Cold start: the starter alone turns the engine above its firing speed, it fires and idles by itself at every throttle, nothing starts without mixture / magnetos / fuel, battery start with the alternator charging |
+| `tests/test_apron_flat.gd` | Apron ground from the real terrain cache: stand-area relief at VABB and VANM (no DSM mounds), landmark terminal base height on the ground (step 17 + 16) |
 | `tests/test_fdm_handsoff.gd` | Hands-off for 60 s at 3000 ft: neutral at 100 KIAS, bank about −10° and heading about −70° at 90 KIAS, pinned to JSBSim's c172p with the same rigging |
 
 ### README screenshots

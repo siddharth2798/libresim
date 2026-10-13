@@ -55,8 +55,18 @@ footprints, and any signs. The script then writes three files:
 - `landmarks.json`: the footprint rings of every airport, in world metres. 10_buildings.py
   uses this file to leave those buildings out of the generic extruded city.
 
-The ground height comes from the DEM tiles where they exist. Otherwise (Kochi) it falls
-back to the OurAirports field elevation.
+**Base height.** The ground under the terminals is the *levelled* apron ground that
+`17_airport_fixups.py` leaves in the tiles (`tools/apron_flatten.py` replaces the DSM's roofs and
+walls under and beside every terminal footprint with a smooth fill of the ground around it), so
+run 16 after 17. `origin h` is the area-weighted terrain height under the landmark footprints,
+and every vertex of the glb (and every sign) is raised by *terrain height under it minus origin h*
+(`Glb.shift_y`, `GroundFn` in `16_terminal_models.py`). Each landmark therefore sits on its own
+ground even when they are far apart: at VABB the terrain under T2, T1 and the GA terminal is 8.8,
+6.5 and 10.2 m. (Before: one height from the DSM at the mean centroid of the big terminals, a point
+between T1 and T2: 14.8 m at VABB, a mound of terminal roofs, against 7 to 9 m of apron ground, so
+both terminals floated about 7 m.) Without DEM tiles under every landmark it falls back to the
+OurAirports field elevation, with no per-vertex shift. `tests/test_apron_flat.gd` checks that the
+origin height matches the terrain under the landmarks and is within 2 m of the stand ground beside them.
 
 **In game**, `Terminals` (`game/world/terminals.gd`) reads every `*_model.json`. Once a
 second it checks the camera, loads an airport's glb with `GLTFDocument` when the camera

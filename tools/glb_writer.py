@@ -29,6 +29,13 @@ class Glb:
         p[3] += len(pos)
         self.colors.setdefault(material, color)
 
+    def shift_y(self, dy):
+        """Raise every vertex by dy(x, z) metres (callable on arrays): lets a model follow the
+        ground under it. Call after all geometry is added."""
+        for ps, *_ in self.prims.values():
+            for i, a in enumerate(ps):
+                ps[i] = a + np.asarray([0.0, 1.0, 0.0], np.float32) * np.asarray(dy(a[:, 0], a[:, 2]), np.float32)[:, None]
+
     def save(self, path):
         buf = bytearray()
         views, accs, prims, mats = [], [], [], []

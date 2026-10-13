@@ -1059,6 +1059,7 @@ flatpak run org.freesim.FreeSim</code></pre><button class="copy" type="button">C
   <li>Stands have lead-in lines and stand numbers; jetbridges follow the OSM jetbridge lines; yellow lead-on lines carry on over the runway where a taxiway meets it; windsocks turn with the wind.</li>
   <li>From the command line: <code>--airport=VABB --stand</code> (a jetbridge gate), <code>--stand="Bay 40"</code>, or Juhu <code>--stand=GA3</code>.</li>
   <li>Stand starts are always cold and dark with the parking brake set.</li>
+  <li><strong>The apron is flat.</strong> The terrain comes from a surface model (Copernicus GLO-30), so terminal walls and roofs, parked aircraft and vehicles are in the heights. Around every stand, gate, apron polygon, taxilane and terminal or hangar the pipeline (step 17) replaces them with a smooth fill of the ground around them, blended out over 30 m, at every level of detail. At Mumbai that took the median mound within 45 m of a stand from 2.0 m to 0.3 m, and the ones over 1.5 m from 54 % of the stands to 5 %.</li>
 </ul>
 
 <h3 id="airports-taxi"><span class="no">4.3</span>Taxi routing and the follow-me car</h3>
@@ -1131,6 +1132,7 @@ flatpak run org.freesim.FreeSim</code></pre><button class="copy" type="button">C
   <li><strong>Pune (VAPO):</strong> the new integrated terminal with its long "verandah" and dark-basalt pointed arcade, and the old terminal.</li>
   <li><strong>Kochi (VOCI) T3, T1 and T2:</strong> Kerala terracotta hip roofs with white gablets, cream walls, and a red fascia reading "COCHIN INTERNATIONAL AIRPORT".</li>
 </ul>
+<p>Each model follows the levelled apron ground under it (every vertex is raised by the terrain height beneath it), so T1, T2 and the general aviation terminal at Mumbai, which stand on ground 6.5 to 10.2 m above sea level, each sit on their own ground.</p>
 <p>Builders: the pipeline, material kinds and per-airport sources are in <code>docs/TERMINALS.md</code>. Preview one airport without terrain:</p>
 <div class="cmd"><pre><code>~/.local/bin/godot --path game res://tests/debug_terminal.tscn -- --icao=VOCI --out=/tmp --night</code></pre><button class="copy" type="button">Copy</button></div>
 <a class="top" href="#top">Back to top</a>
@@ -1460,7 +1462,7 @@ flatpak run org.freesim.FreeSim</code></pre><button class="copy" type="button">C
 </ul>
 
 <h3 id="data-pipeline"><span class="no">1.3</span>Pipeline steps</h3>
-<p><code>./run.sh</code> runs the steps in this order: <span class="mono">05 04 02 03 06 09 11 12 17 09 13 14 15 16 10</span>. Step 09 runs twice because 17 changes the terrain it reads.</p>
+<p><code>./run.sh</code> runs the steps in this order: <span class="mono">05 04 02 03 06 09 11 12 13 15 17 09 14 16 10</span>. Step 09 runs twice because 17 changes the terrain it reads; 17 needs the stands (13) and terminal outlines (15), and 16 needs the levelled ground from 17.</p>
 <div class="tbl"><table>
   <thead><tr><th>Step</th><th>Output and purpose</th></tr></thead>
   <tbody>
@@ -1481,8 +1483,8 @@ flatpak run org.freesim.FreeSim</code></pre><button class="copy" type="button">C
     <tr><td class="mono">13</td><td>Airport ops: stands, gates, jetbridges, hold points, taxi graph → <code>airport_ops.json</code>. Derives airliner stands where OSM has jet bridges but no stands (Kochi, Kannur)</td></tr>
     <tr><td class="mono">14</td><td>Simulated ILS for runways ≥ 2000 m → <code>ils.json</code></td></tr>
     <tr><td class="mono">15</td><td>Terminal footprints → <code>terminals/&lt;ICAO&gt;.json</code></td></tr>
-    <tr><td class="mono">16</td><td>Landmark terminal models → <code>terminals/&lt;ICAO&gt;.glb</code>, <code>landmarks.json</code></td></tr>
-    <tr><td class="mono">17</td><td>Airport fixups in place: levelled sites (VANM, VOKN, VOSR), smoothed taxiway ground, no water on paving, no trees inside airports. Re-runnable</td></tr>
+    <tr><td class="mono">16</td><td>Landmark terminal models → <code>terminals/&lt;ICAO&gt;.glb</code>, <code>landmarks.json</code> (base height follows the terrain, so after 17)</td></tr>
+    <tr><td class="mono">17</td><td>Airport fixups in place: levelled sites (VANM, VOKN, VOSR), flat apron ground around stands, gates, apron polygons and terminals (<code>tools/apron_flatten.py</code>), smoothed taxiway ground, no water on paving, no trees inside airports. Re-runnable, tiles replaced atomically, about 3 min. <code>tools/apron_roughness.py</code> reports the before/after relief</td></tr>
     <tr><td class="mono">18</td><td>Optional: FDM comparison against JSBSim → plots and <code>metrics.md</code> in <code>/tmp/fdm_compare</code></td></tr>
   </tbody>
 </table></div>
@@ -1555,7 +1557,7 @@ $PY tools/07_preview.py 0 -62000 35000 -52000 41000   <span class="c"># zoom int
     <tr><td><code>test_instruments.gd</code></td><td>Altimeter, ASI, VSI lag, vacuum-failure drift, compass turning error</td></tr>
     <tr><td><code>test_systems.gd</code></td><td>Alternator failure, fuel starvation and restart, wind profile, ridge lift</td></tr>
     <tr><td><code>test_landing.gd</code></td><td>Normal landing and POH roll; hard landing, prop strike, ditching, Vne, overstress, flap overspeed</td></tr>
-    <tr><td>also</td><td><code>test_failures</code>, <code>test_nav</code>, <code>test_input</code>, <code>test_replay</code>, <code>test_situation</code>, <code>test_weight_balance</code>, <code>test_weather_visuals</code>, <code>test_airport_lights</code>, <code>test_airport_ops_stands</code> (Kochi stands, taxi routes, stand lines), <code>test_aircraft_lights</code>, <code>test_terrain_regions</code></td></tr>
+    <tr><td>also</td><td><code>test_failures</code>, <code>test_nav</code>, <code>test_input</code>, <code>test_replay</code>, <code>test_situation</code>, <code>test_weight_balance</code>, <code>test_weather_visuals</code>, <code>test_airport_lights</code>, <code>test_airport_ops_stands</code> (Kochi stands, taxi routes, stand lines), <code>test_apron_flat</code> (stand-area relief at Mumbai and Navi Mumbai, terminal base on the ground), <code>test_aircraft_lights</code>, <code>test_terrain_regions</code></td></tr>
   </tbody>
 </table></div>
 

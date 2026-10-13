@@ -11,15 +11,22 @@
    only runways and aprons are flattened by 02, so taxiway strips (airport_builder.gd) were
    buried in metre-high bumps ("runway / taxiway does not load completely"). Heights under
    each taxiway (+ shoulder) follow a robustly smoothed centreline profile, feathered out.
-3. Land class: water (255) -> 0 on all paved surfaces (runways.json strips, OSM aprons), and
+3. Apron ground (tools/apron_flatten.py): stands, jet-bridge gates, apron polygons, taxilanes and a
+   margin around terminals/hangars (OSM footprints) are levelled to a ground model that ignores
+   the DSM's buildings, aircraft and vehicles, so aprons are flat and the terminal base height
+   (16_terminal_models.py) is ground, not roof. Applied before the taxiway pass (it wins where
+   both reach a sample).
+4. Land class: water (255) -> 0 on all paved surfaces (runways.json strips, OSM aprons), and
    no trees (1..200 -> 0) inside any aerodrome perimeter: airfields are kept clear, and the
    6-15 m crossed-quad trees 11 placed on the grass hid taxiways at grazing angles.
 Both regions (meta.json grid and meta_<region>.json packs). Heights: level 0 is edited; the
 change is propagated to levels 1-2 with 02's [1 2 1] decimation filter. Land class: the same
 per-pixel rules on every existing level 0-2 mask. min/max in the owning meta are updated. Levels >= 3 (12_outer, >= 61 km tiles) are left alone.
-Originals are kept (airport_fixups_io), so re-running reverts and re-applies.
+Originals are kept (airport_fixups_io), so re-running starts again from them; tiles are replaced
+atomically, a game running meanwhile never sees a half-written one.
 
-Run order: after 02, 09, 11, 12; then re-run 09 (runway heights), 14 (ILS), 10 (buildings).
+Run order: after 02, 09, 11, 12, 13 (stands, taxi graph); then re-run 09 (runway heights), 14 (ILS),
+16 (terminal base height) and 10 (buildings).
 ./run.sh does this (step 17).
 Usage: 17_airport_fixups.py [--refresh-osm]
 """
@@ -31,6 +38,7 @@ import shapely
 from matplotlib.path import Path as MplPath
 from scipy.ndimage import median_filter, uniform_filter1d
 
+import apron_flatten
 import common as c
 from airport_fixups_io import N, LCN, Tiles, downsample
 
@@ -157,15 +165,17 @@ def taxiway_profile(m, line):
     return lambda pts: np.interp(shapely.line_locate_point(line, pts), s, h)
 
 
-def fix_heights(tiles, ad, rw):
+def fix_heights(tiles, ad, rw, ops):
     poly = np.asarray(ad["pts"], float)
     lo, hi = poly.min(0) - FEATHER - 500, poly.max(0) + FEATHER + 500
     rwys, twys = near_lines(rw, lo, hi)
     m = Mosaic(tiles, lo, hi)
     elev = LEVELLED.get(ad["icao"])
+    nz = 0
     if elev is not None:
         m.blend(shapely.Polygon(poly), 0.0, FEATHER, lambda pts: np.full(len(pts), elev))
     else:
+        nz = apron_flatten.level(m, poly, ops)  # before the taxiways: wins where weights tie
         for pts, w in twys:
             line = shapely.LineString(pts)
             if line.length > 1.0:
@@ -174,7 +184,7 @@ def fix_heights(tiles, ad, rw):
     if elev is None:  # 02 made runways exact (least-squares line): never touch them
         for pts, w in rwys:
             keep |= shapely.distance(shapely.LineString(pts), shapely.points(m.X, m.Y)) < w / 2 + 20.0
-    return m.commit(tiles, keep), len(twys)
+    return m.commit(tiles, keep), len(twys), nz
 
 
 def paved_polys(rw, lo, hi):
@@ -228,16 +238,20 @@ def main():
     tiles = Tiles()
     print(tiles.prepare())
     rw = json.loads((c.OUT / "runways.json").read_text())
-    for ad in aerodromes():
-        name = ad["icao"] or ad["name"]
-        n, ntw = fix_heights(tiles, ad, rw)
-        what = f"levelled to {LEVELLED[ad['icao']]} m" if ad["icao"] in LEVELLED else f"{ntw} taxiways smoothed"
-        print(f"{name}: {what}, {n} height tiles patched (levels 0-2)")
-        ha = fix_landclass(tiles, ad, rw)
-        if ha > 0:
-            print(f"{name}: land class fixed on {ha:.1f} ha")
-    tiles.save()
-    print(f"{len(tiles.files)} tiles written; now re-run 09_runways.py, 14_ils.py and 10_buildings.py")
+    ops = apron_flatten.Ops()
+    try:
+        for ad in aerodromes():
+            name = ad["icao"] or ad["name"]
+            n, ntw, nz = fix_heights(tiles, ad, rw, ops)
+            what = f"levelled to {LEVELLED[ad['icao']]} m" if ad["icao"] in LEVELLED else \
+                f"{nz * c.DEM_RES ** 2 / 1e4:.1f} ha of apron levelled, {ntw} taxiways smoothed"
+            print(f"{name}: {what}, {n} height tiles patched (levels 0-2)")
+            ha = fix_landclass(tiles, ad, rw)
+            if ha > 0:
+                print(f"{name}: land class fixed on {ha:.1f} ha")
+    finally:
+        tiles.save()  # also after an error: state and tiles stay consistent
+    print(f"{len(tiles.files)} tiles written; now re-run 09_runways.py, 14_ils.py, 16_terminal_models.py and 10_buildings.py")
 
 
 if __name__ == "__main__":
