@@ -120,9 +120,11 @@ func test_input_keyboard_yields_to_joy() -> String:
 func test_input_joystick_unbound_releases() -> String:
 	var j := JoystickControls.new()
 	j.table = InputBindings.defaults("gamepad")
+	for b in j.table.values():  # point every binding at a pad that is not there, whatever is plugged in
+		b.device = 99
 	j._rev = int(Props.get_v("input/bindings_rev", 0))
 	j._own("pitch", true)
-	j._process(0.016)  # no pad connected in tests -> nothing owned, joystick inactive
+	j._process(0.016)  # bound pad missing -> nothing owned, joystick inactive
 	var owner = Props.get_v("input/axis_owner/pitch", "")
 	var active := Props.get_b("controls/joystick_active")
 	j.free()

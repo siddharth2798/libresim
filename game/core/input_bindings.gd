@@ -8,6 +8,9 @@ extends RefCounted
 ##   lo / hi (optional) calibrate the lever: the raw values at the low end (idle, closed)
 ##   and the high end (full) of its travel. Raw beyond lo or hi clamps, so a reverse
 ##   zone below idle reads as idle. Absent = the range's natural ends (-1..1, trigger 0..1).
+## "flaps_lever" is a detented lever: its binding also has detents, the raw value of each
+##   notch in order (0, 1, 2, 3, ...); the nearest notch picks the flap setting.
+## Button actions in LEVEL follow the held state of a latching switch (held = on).
 ## Button binding: {button, device, guid, name}. axis / button == -1 means unbound.
 ## A binding finds its pad by guid, else by name (case-insensitive substring of the pad's
 ## name, set by profiles for pads that are not plugged in yet), else by device index.
@@ -20,18 +23,22 @@ const AXES := {
 	"pitch": "controls/pitch", "roll": "controls/roll", "yaw": "controls/yaw",
 	"throttle": "controls/throttle", "mixture": "controls/mixture",
 	"brake_left": "controls/brake_left", "brake_right": "controls/brake_right",
-	"pitch_trim_axis": "controls/pitch_trim",
+	"pitch_trim_axis": "controls/pitch_trim", "flaps_lever": "controls/flaps",
 }
 const BUTTONS := ["flaps_up", "flaps_down", "brakes", "parking_brake", "trim_up", "trim_down",
-	"view_next", "view_cockpit", "starter", "magnetos_next", "toggle_map", "pause"]
+	"view_next", "view_cockpit", "starter", "magnetos_next", "toggle_map", "pause",
+	"parking_brake_switch", "magnetos_switch"]
+## Switch-following buttons: act on both edges (held = on), not just the press.
+const LEVEL := ["parking_brake_switch", "magnetos_switch"]
 const LABELS := {
 	"pitch": "Pitch (elevator)", "roll": "Roll (ailerons)", "yaw": "Yaw (rudder)",
 	"throttle": "Throttle", "mixture": "Mixture", "brake_left": "Left toe brake",
-	"brake_right": "Right toe brake", "pitch_trim_axis": "Pitch trim (axis)",
+	"brake_right": "Right toe brake", "pitch_trim_axis": "Pitch trim (axis)", "flaps_lever": "Flaps lever (notches)",
 	"flaps_up": "Flaps up (retract)", "flaps_down": "Flaps down (extend)", "brakes": "Brakes (hold)",
 	"parking_brake": "Parking brake toggle", "trim_up": "Trim nose up", "trim_down": "Trim nose down",
 	"view_next": "Next view (C)", "view_cockpit": "Cockpit view (1)", "starter": "Starter (hold)",
 	"magnetos_next": "Magnetos cycle", "toggle_map": "Moving map (N)", "pause": "Pause (Esc)",
+	"parking_brake_switch": "Parking brake (switch)", "magnetos_switch": "Magnetos OFF / BOTH (switch)",
 }
 const RANGES := ["full", "half", "trigger"]
 ## Actions whose output is 0..1 (default range "half").
@@ -146,6 +153,15 @@ static func _dead(m: float, dz: float) -> float:
 ## Expo: blend of linear and cubic, so small inputs are finer and full travel is still 1.
 static func _curve(m: float, e: float) -> float:
 	return (1.0 - e) * m + e * m * m * m
+
+
+## Index of the detent nearest to raw (0 for an empty list).
+static func detent_index(raw: float, detents: Array) -> int:
+	var best := 0
+	for i in detents.size():
+		if absf(raw - float(detents[i])) < absf(raw - float(detents[best])):
+			best = i
+	return best
 
 
 ## The raw axis value of a bound axis on a connected pad, else null.
