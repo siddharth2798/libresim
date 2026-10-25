@@ -1,6 +1,6 @@
 extends HBoxContainer
 ## One row of the controls page: action name, current binding, Bind / clear, and for
-## axes invert, range, deadzone and curve (expo), plus a live value bar.
+## axes invert, range, deadzone, curve (expo) and Lo / Hi calibration, plus a live value bar.
 ## Edits the binding dictionary in place and emits `edited`; the page saves.
 
 signal edited
@@ -18,6 +18,8 @@ var _inv: CheckBox
 var _range: OptionButton
 var _dz: SpinBox
 var _expo: SpinBox
+var _lo: Button
+var _hi: Button
 var _bar: Control
 
 
@@ -50,6 +52,8 @@ func setup(a: String, binding: Dictionary) -> void:
 		add_child(_range)
 		_dz = _spin(0.0, 0.5, 0.01, "Deadzone", "deadzone")
 		_expo = _spin(0.0, 1.0, 0.05, "Curve (expo): 0 linear, 1 fully cubic", "expo")
+		_lo = _button("Lo", 40, _calibrate.bind("lo"))
+		_hi = _button("Hi", 40, _calibrate.bind("hi"))
 	_bar = Control.new()
 	_bar.custom_minimum_size = Vector2(90, 18)
 	_bar.size_flags_vertical = SIZE_SHRINK_CENTER
@@ -86,9 +90,19 @@ func _edit(key: String, v: Variant) -> void:
 	edited.emit()
 
 
+## Take the axis's current position as the low (idle, closed) or high (full) end of its travel.
+func _calibrate(key: String) -> void:
+	var raw = InputBindings.raw_value(b)
+	if raw != null:
+		_edit(key, snappedf(raw, 0.001))
+
+
 func _clear() -> void:
 	b["axis" if InputBindings.is_axis(action) else "button"] = -1
 	b.guid = ""
+	b.name = ""
+	b.erase("lo")
+	b.erase("hi")
 	refresh()
 	edited.emit()
 
@@ -107,6 +121,11 @@ func refresh() -> void:
 		_range.select(maxi(InputBindings.RANGES.find(str(b.get("range", "full"))), 0))
 		_dz.set_value_no_signal(float(b.get("deadzone", 0.0)))
 		_expo.set_value_no_signal(float(b.get("expo", 0.0)))
+		for k in [[_lo, "lo", "Lo"], [_hi, "hi", "Hi"]]:
+			k[0].tooltip_text = "Set %s end of travel from the lever's current position%s" % [
+				"the low (idle)" if k[1] == "lo" else "the high (full)",
+				" (now %.2f)" % float(b[k[1]]) if b.has(k[1]) else " (not set)"]
+			k[0].text = k[2] + ("*" if b.has(k[1]) else "")
 
 
 func set_value(v: float) -> void:
