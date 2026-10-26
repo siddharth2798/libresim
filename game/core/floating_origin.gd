@@ -54,6 +54,11 @@ func set_origin(o: Vector2) -> void:
 	shifted.emit(Vector3(-d.x, 0.0, d.y))
 
 
+## Current wrap base (multiple of PATTERN_WRAP): world ENU = shader pattern coordinate + this.
+func wrap_base_value() -> Vector2:
+	return _wrap_base
+
+
 ## Origin relative to the current wrap base (small, float32-safe).
 func pattern_origin() -> Vector2:
 	return origin - _wrap_base

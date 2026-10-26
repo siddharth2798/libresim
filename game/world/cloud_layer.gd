@@ -13,6 +13,7 @@ var _img_hi: Image
 var base := 1400.0
 var cover := 0.0
 var drift := Vector2.ZERO
+var shadow := Vector4.ZERO  # last cloud_shadow global: (base m, coverage, strength, 0)
 
 
 func _ready() -> void:
@@ -63,6 +64,20 @@ func update_layer(cam_world: Vector3, base_m: float, cov: float, dr: Vector2, su
 	_mat.set_shader_parameter("ambient", amb)
 	_mat.set_shader_parameter("steps", steps)
 	_mat.set_shader_parameter("base_dark", base_dark)
+	_publish_shadow(sun_dir, sun_col, base_dark)
+
+
+## Cloud shadows on the ground (terrain.gdshader): the same coverage noise, projected along the sun.
+func _publish_shadow(sun_dir: Vector3, sun_col: Color, base_dark: float) -> void:
+	var st := clampf(sun_col.get_luminance() * 1.1, 0.0, 1.0) * clampf(cover * 3.0, 0.0, 1.0) \
+		* (1.0 - clampf(base_dark * 2.0, 0.0, 1.0)) * (1.0 if steps > 0 else 0.0)
+	var wb := FloatingOrigin.wrap_base_value()
+	shadow = Vector4(base, cover, st, 0.0)
+	RenderingServer.global_shader_parameter_set("cloud_shadow", shadow)
+	RenderingServer.global_shader_parameter_set("cloud_uv_off", Vector2(fposmod(wb.x + drift.x, 9000.0), fposmod(wb.y + drift.y, 9000.0)) / 9000.0)
+	RenderingServer.global_shader_parameter_set("cloud_sun", sun_dir.normalized())
+	if _lo.get_image() != null:
+		RenderingServer.global_shader_parameter_set("cloud_noise", _lo)
 
 
 static func _sample(img: Image, uv: Vector2) -> float:

@@ -80,12 +80,8 @@ static func lift_tyres(root: Node) -> void:
 
 
 static func fix_glass(root: Node, rain := false) -> void:
-	var glass := StandardMaterial3D.new()
-	glass.albedo_color = Color(0.85, 0.92, 0.95, 0.1)
-	glass.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	glass.roughness = 0.05
-	glass.metallic_specular = 0.9
-	glass.cull_mode = BaseMaterial3D.CULL_DISABLED
+	var glass := ShaderMaterial.new()
+	glass.shader = preload("res://aircraft/c172/glass.gdshader")
 	if rain:
 		var drops := ShaderMaterial.new()
 		drops.shader = preload("res://aircraft/c172/windshield_rain.gdshader")
