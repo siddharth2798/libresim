@@ -4,7 +4,17 @@ World frame = local Transverse Mercator centred on the world origin, so projecte
 metres are the game's ENU metres (x = east, y = north). Godot maps ENU to
 Vector3(x, up, -y).
 """
+import os
+import ssl
 from pathlib import Path
+
+# python.org builds on macOS ship without CA certificates, so urllib fails with
+# CERTIFICATE_VERIFY_FAILED. Fall back to the system bundle (stdlib-only; no certifi needed).
+if not os.environ.get("SSL_CERT_FILE") and not os.path.exists(ssl.get_default_verify_paths().cafile or ""):
+    for _ca in ("/etc/ssl/cert.pem", "/etc/ssl/certs/ca-certificates.crt"):
+        if os.path.exists(_ca):
+            os.environ["SSL_CERT_FILE"] = _ca
+            break
 
 ROOT = Path(__file__).resolve().parent.parent
 RAW = ROOT / "data" / "raw"

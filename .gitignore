@@ -44,3 +44,5 @@ Thumbs.db
 .directory
 *.log
 .claude/settings.local.json
+
+test-image.jpeg

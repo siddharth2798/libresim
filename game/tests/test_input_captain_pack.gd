@@ -72,8 +72,10 @@ func test_captain_profile_per_os() -> String:
 			if d[a].name != "sidestick" or InputBindings.describe(d[a]) == "—":
 				return "%s: %s should be on the sidestick" % [os_name, a]
 		for a in ["throttle", "mixture"]:
-			if d[a].name != "q-eng" or d[a].axis < 0 or d[a].range != "half" or d[a].lo >= d[a].hi:
-				return "%s: %s should be a calibrated half-range quadrant lever" % [os_name, a]
+			if d[a].name != "q-eng" or d[a].axis < 0 or d[a].range != "half":
+				return "%s: %s should be a half-range quadrant lever" % [os_name, a]
+		if d.throttle.lo >= d.throttle.hi or d.mixture.axis == d.throttle.axis:
+			return "%s: throttle needs a calibration and its own lever" % os_name
 		for a in ["starter", "parking_brake_switch", "magnetos_switch"]:
 			if d[a].name != "q-eng" or d[a].button < 0:
 				return "%s: %s should be a quadrant switch" % [os_name, a]
@@ -187,3 +189,15 @@ func test_captain_lever_ignored_until_it_reports() -> String:
 	var again := j._reported(0, 0, 0.0)
 	j.free()
 	return "" if not again else "re-plug did not reset lever readiness"
+
+
+func test_captain_mixture_never_cut_at_rest() -> String:
+	var t := InputBindings.defaults(InputProfiles.CAPTAIN_PACK, "macOS")
+	# the speed brake lever rests at RET (raw -1): that must be full rich, not cutoff
+	if not _near(InputBindings.shape(-1.0, t.mixture), 1.0):
+		return "mixture at the lever's rest end is %f, want 1 (rich)" % InputBindings.shape(-1.0, t.mixture)
+	if InputBindings.shape(1.0, t.mixture) != 0.0:
+		return "pulling the lever fully back should lean to cutoff"
+	if t.mixture.axis == 1:
+		return "mixture is bound to throttle lever 2 (its idle detent would cut the engine)"
+	return ""

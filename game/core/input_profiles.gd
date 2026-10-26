@@ -8,17 +8,18 @@ extends RefCounted
 ## back). Two pads: "TCA Sidestick X Copilot", and the quadrant plugged into the Mac or hub
 ## directly as "TCA Q-Eng 1&2" (it does not pass through the sidestick's USB-A ports).
 ##   sidestick  roll / pitch / twist (rudder), trigger = brakes, hat = trim, base keys
-##   quadrant   lever 1 throttle, lever 2 mixture (the C172 has one throttle), flaps
-##              lever (notches 0-1-2-3-FULL; FULL stays at flaps 3), engine mode switch
-##              IGN/START = starter, ENG 1 master = magnetos OFF / BOTH, park brake switch
+##   quadrant   lever 1 throttle, speed brake lever = mixture (RET = rich, pull back to lean;
+##              lever 2 is unbound: its idle detent would mean mixture cutoff and stop the
+##              engine), flaps lever (notches 0-1-2-3-FULL; FULL stays at flaps 3), engine mode
+##              switch IGN/START = starter, ENG 1 master = magnetos OFF / BOTH, park brake switch
 ## Numbers were read off real hardware on macOS (Godot 4.7, IOKit) with the mapper page.
 ## Linux (evdev) can number the same pad differently and is NOT yet checked: record any
 ## difference in OS_OVERRIDES, keyed by Godot's OS.get_name(). Unused here, by design:
 ## sidestick base wheel (axis 3), left base keys Y / unlabelled / B (buttons 11-14, the same
-## numbers as the hat), speed brake lever (axis 5), gear lever (button 20), auto brake dial
+## numbers as the hat), throttle lever 2 (axis 1), gear lever (button 20), auto brake dial
 ## (21-25), ENG 2 master (3), pushbuttons (4, 5), rudder trim (16-18).
 ## Throttle lo = the idle detent just above the reverse zone, estimated from where the
-## levers rested (-0.51, -0.57) plus a little play: re-set it with Lo on the Controls page.
+## lever rested (-0.51) plus a little play: re-set it with Lo on the Controls page.
 
 const CAPTAIN_PACK := "captain_pack"
 
@@ -39,7 +40,7 @@ const PROFILES := {
 			"name": "q-eng",
 			"axes": {
 				"throttle": {"axis": 0, "deadzone": 0.02, "lo": -0.48, "hi": 1.0},
-				"mixture": {"axis": 1, "deadzone": 0.02, "lo": -0.54, "hi": 1.0},
+				"mixture": {"axis": 5, "invert": true, "deadzone": 0.02},  # speed brake lever, RET = -1 = rich
 				"flaps_lever": {"axis": 2, "detents": [-1.0, -0.49, -0.06, 0.44, 1.0]},
 			},
 			"buttons": {"starter": 7, "parking_brake_switch": 19, "magnetos_switch": 2},
