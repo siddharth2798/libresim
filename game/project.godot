@@ -16,11 +16,14 @@ FloatingOrigin="*res://core/floating_origin.gd"
 Props="*res://core/props.gd"
 Graphics="*res://core/graphics_settings.gd"
 Session="*res://core/session.gd"
+UiScale="*res://core/ui_scale.gd"
 
 [display]
 window/size/viewport_width=1280
 window/size/viewport_height=720
 window/vsync/vsync_mode=1
+window/stretch/mode="canvas_items"
+window/stretch/aspect="expand"
 
 [physics]
 common/physics_ticks_per_second=120

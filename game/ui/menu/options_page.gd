@@ -58,6 +58,12 @@ func _ready() -> void:
 		_unit_row(grid, u[0], u[1])
 	right.add_child(MenuTheme.note("Stored for later: instruments and the HUD still read ft, kt and inHg, like the real C172 panel."))
 	right.add_child(MenuTheme.heading("Display"))
+	var ug := GridContainer.new()
+	ug.columns = 2
+	ug.add_theme_constant_override("h_separation", 16)
+	right.add_child(ug)
+	_unit_row(ug, "UI size", "ui_scale")
+	right.add_child(MenuTheme.note("Auto sizes text and panels to the window (4K, ultrawide, small windows). A percentage is fixed, relative to your system scale."))
 	var hud := CheckBox.new()
 	hud.text = "Show the HUD overlay at start (H toggles in flight)"
 	hud.button_pressed = bool(UserOptions.get_v("hud_at_start"))
@@ -151,5 +157,7 @@ func _unit_row(grid: GridContainer, label: String, key: String) -> void:
 	ob.select(maxi(choices.find(UserOptions.get_v(key)), 0))
 	ob.item_selected.connect(func(i):
 		UserOptions.set_v(key, choices[i])
+		if key == "ui_scale":
+			UiScale.apply()
 		changed.emit())
 	grid.add_child(ob)

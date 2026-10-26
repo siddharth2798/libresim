@@ -9,6 +9,7 @@ const DEFAULTS := {
 	"speed_unit": "kt",  # kt | km/h
 	"pressure_unit": "inHg",  # inHg | hPa
 	"hud_at_start": true,
+	"ui_scale": "Auto",  # Auto | 100% | 125% | 150% | 200% (core/ui_scale.gd)
 	"keyboard_mode": "spring",  # spring: yoke keys re-centre on release | sticky: stay put (FlightGear)
 	"control_smoothing": "light",  # low-pass on pilot inputs before the FDM (fdm_node.gd)
 	"auto_coordination": false,  # rudder follows aileron (for keyboard / no-pedal pilots)
@@ -25,6 +26,7 @@ const CHOICES := {
 	"pressure_unit": ["inHg", "hPa"],
 	"keyboard_mode": ["spring", "sticky"],
 	"control_smoothing": ["off", "light", "strong"],
+	"ui_scale": ["Auto", "100%", "125%", "150%", "200%"],
 }
 
 static var _v := {}
