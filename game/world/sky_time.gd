@@ -93,6 +93,8 @@ func _process(dt: float) -> void:
 	_sky.set_shader_parameter("day", day)
 	_sky.set_shader_parameter("dusk", dusk * (1.0 - occl))
 	_sky.set_shader_parameter("sun_vis", 1.0 - smoothstep(0.5, 0.9, occl))
+	_sky.set_shader_parameter("cirrus", 0.6 * (1.0 - smoothstep(0.2, 0.7, occl)) * (1.0 - rain) * (1.0 - 0.4 * Props.get_f("weather/cloud_cover")))
+	_sky.set_shader_parameter("cirrus_wind", _drift * 0.00004)
 	RenderingServer.global_shader_parameter_set("sky_top_color", top)
 	_sky.set_shader_parameter("horizon_color", hor)
 	_sky.set_shader_parameter("ground_color", hor * 0.4)

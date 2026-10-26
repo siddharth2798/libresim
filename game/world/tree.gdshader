@@ -41,6 +41,7 @@ void fragment() {
 	}
 	vec3 leaf = vec3(0.12, 0.22, 0.08) * (0.75 + v_tint * 0.6) * (0.7 + n * 0.6);
 	vec3 bark = vec3(0.18, 0.13, 0.09);
+	leaf *= mix(0.55, 1.1, smoothstep(0.25, 1.0, p.y));  // darker under the crown, lighter on top
 	vec3 col = canopy >= 0.0 ? leaf : bark;
 	// fake round normal for the canopy (view space)
 	vec3 nrm = normalize(vec3(c.x, c.y * 0.8 + 0.4, 0.6));

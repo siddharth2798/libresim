@@ -36,6 +36,22 @@ anti_aliasing/quality/screen_space_aa=1
 
 [shader_globals]
 
+cloud_noise={
+"type": "sampler2D",
+"value": ""
+}
+cloud_shadow={
+"type": "vec4",
+"value": Vector4(0, 0, 0, 0)
+}
+cloud_uv_off={
+"type": "vec2",
+"value": Vector2(0, 0)
+}
+cloud_sun={
+"type": "vec3",
+"value": Vector3(0, 1, 0)
+}
 haze_density={
 "type": "float",
 "value": 1.8e-05

@@ -14,6 +14,8 @@ uniform vec3 sun_dir_u = vec3(0.0, 1.0, 0.0);  // towards the sun (for the moon'
 uniform float moon_illum = 0.5;   // illuminated fraction
 uniform float moon_vis = 0.0;     // night x clear sky x above the horizon
 uniform float stars = 0.0;        // star visibility
+uniform float cirrus = 0.0;       // 0..1 high wispy layer (thinner / absent under a thick deck)
+uniform vec2 cirrus_wind = vec2(0.0);
 
 float hash3(vec3 p) { return fract(sin(dot(p, vec3(127.1, 311.7, 74.7))) * 43758.5453); }
 
@@ -29,6 +31,25 @@ vec3 star_field(vec3 d) {
 	return tint * mag * 2.2 * exp(-r * r * 9.0);
 }
 
+float h2(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+float n2(vec2 p) {
+	vec2 i = floor(p), f = fract(p);
+	f = f * f * (3.0 - 2.0 * f);
+	return mix(mix(h2(i), h2(i + vec2(1, 0)), f.x), mix(h2(i + vec2(0, 1)), h2(i + vec2(1, 1)), f.x), f.y);
+}
+// cirrus: stretched streaks on a plane high above, fading out towards the horizon
+float cirrus_density(vec3 d) {
+	vec2 uv = d.xz / (d.y + 0.15) * 1.3 + cirrus_wind;
+	vec2 q = vec2(uv.x * 0.45, uv.y * 2.4);
+	float a = 0.0, w = 0.5;
+	for (int i = 0; i < 4; i++) {
+		a += w * n2(q);
+		q = q * 2.07 + vec2(3.1, 1.7);
+		w *= 0.5;
+	}
+	return smoothstep(0.5 - cirrus * 0.14, 0.82, a) * smoothstep(0.03, 0.28, d.y);
+}
+
 void sky() {
 	vec3 d = EYEDIR;
 	vec3 sun = LIGHT0_DIRECTION;  // towards the sun, render frame (x east, y up, z south)
@@ -42,6 +63,12 @@ void sky() {
 		COLOR = col;
 	} else {
 		float above = smoothstep(-0.01, 0.06, d.y);  // extinction near the horizon
+		if (cirrus > 0.0 && d.y > 0.0) {
+			float dens = cirrus_density(d);
+			vec3 lit = mix(vec3(0.88, 0.91, 0.97), vec3(1.0, 0.7, 0.5), dusk * 0.8) * (0.2 + 0.8 * day);
+			lit *= 1.0 + 1.6 * pow(mu, 6.0) * day;  // silver lining towards the sun
+			col = mix(col, lit, dens * cirrus * 0.6 * sun_vis);
+		}
 		if (stars > 0.0) col += star_field(d) * stars * above;
 		if (moon_vis > 0.0) {
 			// disc (0.6 deg radius, enlarged for readability) shaded by the sun's direction

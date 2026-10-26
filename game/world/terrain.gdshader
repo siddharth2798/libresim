@@ -28,9 +28,14 @@ global uniform vec2 pattern_origin; // FloatingOrigin.pattern_origin(): origin m
 global uniform vec3 sky_top_color;
 global uniform float wetness;       // WeatherFx: wet ground after rain
 global uniform float precip;        // WeatherFx: local rain rate
-uniform sampler2D lc_tex : filter_linear, repeat_disable;  // land class: 255 = water
+uniform sampler2D lc_tex : filter_linear, repeat_disable;  // land class: 255 = water, 1..200 tree density
+global uniform sampler2D cloud_noise : filter_linear_mipmap, repeat_enable;  // CloudLayer coverage noise
+global uniform vec4 cloud_shadow;   // x cloud base (m), y coverage, z shadow strength
+global uniform vec2 cloud_uv_off;   // noise phase of the pattern frame (wrap base + wind drift)
+global uniform vec3 cloud_sun;      // towards the sun, render frame
 
 varying float v_dist;
+varying float v_alt;  // absolute altitude of the vertex (render y)
 varying vec2 v_en;  // world east/north (m) relative to the pattern wrap base
 
 float h_at(ivec2 t) {
@@ -60,6 +65,7 @@ void vertex() {
 	v_dist = length((MODELVIEW_MATRIX * vec4(VERTEX, 1.0)).xyz);
 	vec3 wr = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
 	v_en = vec2(wr.x + pattern_origin.x, -wr.z + pattern_origin.y);
+	v_alt = wr.y;
 }
 
 float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
@@ -96,6 +102,9 @@ void fragment() {
 	col = pow(col, vec3(0.85)) * 1.15;
 	float water = smoothstep(0.88, 0.97, texture(lc_tex, lc_uv).r);
 	float land = 1.0 - water;
+	// forest floor: dense tree cover (land class 1..200) darkens and greens the imagery under the canopy
+	float forest = smoothstep(0.1, 0.6, texture(lc_tex, lc_uv).r * 1.275) * land;
+	col = mix(col, col * vec3(0.8, 0.95, 0.72) * 0.85, forest * 0.6);
 	// macro: slow tonal drift (m-scale to km-scale) so far ground is not a flat smear
 	float macro = fbm(v_en * 0.0011) - 0.5 + 0.6 * (fbm(v_en * 0.011) - 0.5);
 	col *= 1.0 + macro * 0.5 * land * smoothstep(300.0, 2500.0, v_dist);
@@ -108,6 +117,16 @@ void fragment() {
 		vec2 e = vec2(0.6, 0.0);
 		vec2 mg = vec2(fbm(q + e.xy) - fbm(q - e.xy), fbm(q + e.yx) - fbm(q - e.yx));
 		NORMAL = normalize(NORMAL + (VIEW_MATRIX * vec4(-mg.x, 0.0, mg.y, 0.0)).xyz * 0.25 * land * near_k);
+	}
+	// cloud shadows: where the sun's ray to this ground point crosses the cloud layer's coverage noise
+	if (cloud_shadow.z > 0.0 && cloud_sun.y > 0.08) {
+		float t = (cloud_shadow.x + 360.0 - v_alt) / cloud_sun.y;
+		if (t > 0.0 && t < 80000.0) {
+			vec2 q = (v_en + vec2(cloud_sun.x, -cloud_sun.z) * t) / 9000.0 + cloud_uv_off;
+			float cov = textureLod(cloud_noise, q, 0.0).r - (1.0 - cloud_shadow.y) * 0.82;
+			float sh = smoothstep(0.0, 0.45, cov * 2.6 - 0.2) * cloud_shadow.z * smoothstep(0.08, 0.3, cloud_sun.y);
+			col *= 1.0 - 0.55 * sh * (1.0 - 0.6 * water);
+		}
 	}
 	float rough = 0.95;
 	float spec = 0.1;
