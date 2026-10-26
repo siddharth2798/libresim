@@ -55,7 +55,7 @@ func start() -> void:
 	dir = dir if dir != "" else default_dir()
 	DirAccess.make_dir_recursive_absolute(dir)
 	path = dir.path_join("libresim_%s.mkv" % Time.get_datetime_string_from_system().replace(":", "-").replace("T", "_"))
-	var vs := get_viewport().get_visible_rect().size
+	var vs := Vector2(get_viewport().get_texture().get_size())  # real pixels (the visible rect is in UI units)
 	var h := int(Session.setup.get("record_height", 720))
 	_size = Vector2i(vs) if h <= 0 or h >= int(vs.y) else Vector2i(int(vs.x * h / vs.y) & ~1, h)
 	_mkv = MkvWriter.new()
