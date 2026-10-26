@@ -10,9 +10,9 @@ const PX_PER_DEG := 0.03  # fraction of radius per degree of pitch
 func _draw_face(c: Vector2, r: float) -> void:
 	var pitch := rad_to_deg(Props.get_f("instruments/ai/pitch_rad"))
 	var roll := Props.get_f("instruments/ai/roll_rad")
-	var up := Vector2(sin(roll), -cos(roll))  # screen direction of "sky" in the gyro frame
+	var up := dir(-roll)  # screen direction of "sky"; tilts toward the raised wing, like the bank scale
 	var along := Vector2(-up.y, up.x)
-	var centre := c - up * (-pitch * PX_PER_DEG * r)  # horizon moves down when nose up
+	var centre := c - up * (pitch * PX_PER_DEG * r)  # horizon moves down when nose up
 	draw_circle(c, r, SKY)
 	# ground = disk ∩ half-plane below the horizon line (convex)
 	var pts := PackedVector2Array()

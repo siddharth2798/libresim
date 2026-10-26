@@ -7,6 +7,8 @@ extends RefCounted
 ##   90 KCAS -10.7 deg / -76 deg;  95 KCAS -4.7 / -32;  100 KCAS 0.0 / 0 (tools/18_compare_fdm.py setup_air).
 ## Ours is within a few degrees of that, so a real regression (rigging, trim, wind, gear or thrust changes)
 ## shows up here, in the pure FDM, long before the game-level e2e run.
+## The game adds a weak wings-level pull (controls.roll_stability, FlightControls._wings_level) because a
+## neutral spiral mode made the aircraft hard to fly and land; the JSBSim comparison runs with it off.
 
 const DT := 1.0 / 120.0
 const KT := 0.514444
@@ -14,8 +16,10 @@ const FT := 0.3048
 
 
 ## Trim at 3000 ft and `kcas`, fly 60 s with no input at all. Returns {bank, dpsi, dalt_ft, kcas_end} (degrees).
-func _hands_off(kcas: float) -> Dictionary:
+func _hands_off(kcas: float, stability := true) -> Dictionary:
 	var f := FDM.new()
+	if not stability:
+		f.fcs.roll_stability = 0.0
 	f.engine.mixture = 1.0
 	var tas := kcas * KT
 	for i in 3:  # trim at TAS, then correct TAS so CAS hits the target (as tools/18_compare_fdm.py)
@@ -34,7 +38,7 @@ func _hands_off(kcas: float) -> Dictionary:
 
 
 func test_handsoff_100_kias_stays_level() -> String:
-	var r := _hands_off(100.0)
+	var r := _hands_off(100.0, false)
 	print("    100 KCAS hands off 60 s: bank %.1f deg, heading %+.0f deg, altitude %+.0f ft, %.0f KCAS at the end (JSBSim 0 / 0)" % [r.bank, r.dpsi, r.dalt_ft, r.kcas_end])
 	if absf(r.bank) > 5.0 or absf(r.dpsi) > 25.0:
 		return "hands-off at 100 KIAS drifted: bank %.1f deg, heading change %.0f deg (rigging is neutral here, JSBSim 0 / 0)" % [r.bank, r.dpsi]
@@ -43,11 +47,20 @@ func test_handsoff_100_kias_stays_level() -> String:
 	return ""
 
 
-func test_handsoff_90_kias_drifts_left_like_jsbsim() -> String:
-	var r := _hands_off(90.0)
+func test_handsoff_90_kias_drifts_left_like_jsbsim_without_assist() -> String:
+	var r := _hands_off(90.0, false)
 	print("    90 KCAS hands off 60 s: bank %.1f deg, heading %+.0f deg, altitude %+.0f ft (JSBSim -10.7 / -76)" % [r.bank, r.dpsi, r.dalt_ft])
 	if r.bank > -6.0 or r.bank < -15.0:
 		return "bank after 60 s %.1f deg, JSBSim -10.7 with the same rigging (expect -6 .. -15)" % r.bank
 	if r.dpsi > -40.0 or r.dpsi < -105.0:
 		return "heading change %.0f deg, JSBSim -76 with the same rigging (expect -40 .. -105)" % r.dpsi
+	return ""
+
+
+func test_handsoff_stays_near_level_with_stability() -> String:
+	for kcas in [75.0, 90.0]:
+		var r := _hands_off(kcas)
+		print("    %.0f KCAS hands off 60 s with wings-level pull: bank %.1f deg, heading %+.0f deg" % [kcas, r.bank, r.dpsi])
+		if absf(r.bank) > 4.0:
+			return "hands-off at %.0f KCAS still banked %.1f deg after 60 s" % [kcas, r.bank]
 	return ""
