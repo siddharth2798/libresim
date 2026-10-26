@@ -38,6 +38,30 @@ func test_papi_readings() -> String:
 	return ""
 
 
+func test_papi_both_ends_left_side_and_settings() -> String:
+	var r := _rwy()
+	for i in 2:  # each landing direction has its own set, on its own left, 300 m in, beam towards the approach
+		var units := Papi.units(r, i, _flat)
+		var f := RunwayLightLayout.end_frame(r, i)
+		var t: Vector2 = f[0]
+		var d: Vector2 = f[1]
+		for k in 4:
+			var rel := Vector2(units[k].pos.x, units[k].pos.y) - t
+			var left := Vector2(-d.y, d.x)
+			if absf(rel.dot(d) - 300.0) > 0.1 or absf(rel.dot(left) - (W * 0.5 + 15.0 + 9.0 * k)) > 0.1:
+				return "end %d unit %d at along %.1f, left %.1f" % [i, k, rel.dot(d), rel.dot(left)]
+			if units[k].dir.distance_to(-d) > 0.001:
+				return "end %d unit %d beam %s, want %s" % [i, k, units[k].dir, -d]
+			var want: float = 3.0 + [0.5, 1.0 / 6.0, -1.0 / 6.0, -0.5][k]  # ICAO: path +30', +10', -10', -30' (inner first)
+			if absf(units[k].angle - want) > 0.01:
+				return "unit %d setting %.3f, want %.3f" % [k, units[k].angle, want]
+		var u0: Vector3 = units[0].pos  # 3 degrees from 2 km out on the centreline: 2 white outside, 2 red inside
+		var eye2 := Vector2(u0.x, u0.y) - d * 2000.0 - Vector2(-d.y, d.x) * (W * 0.5 + 15.0)
+		if Papi.reading(units, Vector3(eye2.x, eye2.y, u0.z + 2000.0 * tan(deg_to_rad(3.0)))) != "WWRR":
+			return "end %d: not WWRR on the 3 degree path" % i
+	return ""
+
+
 func test_edge_light_count_and_spacing() -> String:
 	var r := _rwy()
 	var s := LightSet.new()
