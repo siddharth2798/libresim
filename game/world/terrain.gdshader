@@ -68,6 +68,13 @@ float vnoise(vec2 p) {
 	f = f * f * (3.0 - 2.0 * f);
 	return mix(mix(hash(i), hash(i + vec2(1, 0)), f.x), mix(hash(i + vec2(0, 1)), hash(i + vec2(1, 1)), f.x), f.y);
 }
+// Ground detail the 10 m imagery lacks: tonal variation at field / hill scale far away, grain and a
+// micro-relief normal close up. Both fade by distance so nothing shimmers at the horizon.
+float fbm(vec2 p) {
+	float a = 0.5, s = 0.0;
+	for (int i = 0; i < 3; i++) { s += a * vnoise(p); p = p * 2.03 + vec2(17.3, 9.1); a *= 0.5; }
+	return s;
+}
 // small wind waves: height field gradient from scrolling noise octaves
 vec2 wave_grad(vec2 p, float t) {
 	vec2 g = vec2(0.0);
@@ -88,6 +95,20 @@ void fragment() {
 	// Sentinel-2 mosaics are dark and slightly blue-shifted; lift for daylight.
 	col = pow(col, vec3(0.85)) * 1.15;
 	float water = smoothstep(0.88, 0.97, texture(lc_tex, lc_uv).r);
+	float land = 1.0 - water;
+	// macro: slow tonal drift (m-scale to km-scale) so far ground is not a flat smear
+	float macro = fbm(v_en * 0.0011) - 0.5 + 0.6 * (fbm(v_en * 0.011) - 0.5);
+	col *= 1.0 + macro * 0.5 * land * smoothstep(300.0, 2500.0, v_dist);
+	// micro: soft grain and relief within a kilometre
+	float near_k = 1.0 - smoothstep(250.0, 1400.0, v_dist);
+	if (near_k > 0.0 && land > 0.0) {
+		vec2 q = v_en * 0.8;
+		float grain = (fbm(q) - 0.5) * 0.5 + (fbm(v_en * 0.15) - 0.5) * 0.9;
+		col *= 1.0 + grain * 0.22 * land * near_k;
+		vec2 e = vec2(0.6, 0.0);
+		vec2 mg = vec2(fbm(q + e.xy) - fbm(q - e.xy), fbm(q + e.yx) - fbm(q - e.yx));
+		NORMAL = normalize(NORMAL + (VIEW_MATRIX * vec4(-mg.x, 0.0, mg.y, 0.0)).xyz * 0.25 * land * near_k);
+	}
 	float rough = 0.95;
 	float spec = 0.1;
 	if (water > 0.0) {

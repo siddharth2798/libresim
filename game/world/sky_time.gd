@@ -16,6 +16,7 @@ const LON := 73.4
 
 var _sun: DirectionalLight3D
 var _env: Environment
+var _adapt := 0.0  # 0..1 how far the eye has adapted to the sun being in view
 var _sky: ShaderMaterial  # world/sky_clouds.gdshader
 var _drift := Vector2.ZERO
 var _night: NightSky
@@ -108,6 +109,7 @@ func _process(dt: float) -> void:
 	_env.fog_density = haze
 	_env.fog_sky_affect = clampf(1.0 - (vis - 1500.0) / 8000.0, 0.0, 0.85)
 	_update_clouds(dt, occl, rain, hor, day * ls.dark)  # last: in-cloud fog overrides the visibility fog
+	_update_glare(dt, d, el_deg, occl, rain)
 
 
 ## Feed the volumetric cloud pass (CloudLayer on the camera) and detect flying inside a cloud.
@@ -141,3 +143,17 @@ func _update_clouds(dt: float, occl: float, rain: float, hor: Color, light: floa
 		_env.fog_light_color = inside
 		RenderingServer.global_shader_parameter_set("haze_density", _env.fog_density)
 		RenderingServer.global_shader_parameter_set("fog_color", inside.srgb_to_linear())
+
+
+## Sun glare overlay and the eye's adaptation: looking towards a bright sun pulls the exposure down a little.
+func _update_glare(dt: float, sun_dir: Vector3, el_deg: float, occl: float, rain: float) -> void:
+	var cam := get_viewport().get_camera_3d()
+	var glare: SunGlare = cam.get_node_or_null("SunGlare") if cam else null
+	var k := clampf((el_deg + 1.0) / 8.0, 0.0, 1.0) * (1.0 - smoothstep(0.3, 0.8, occl)) * (1.0 - rain)
+	var facing := 0.0
+	if glare:
+		var col := Color(1.0, 0.95, 0.88).lerp(Color(1.0, 0.6, 0.35), clampf(1.0 - absf(el_deg - 1.0) / 10.0, 0.0, 1.0))
+		glare.update_glare(sun_dir.normalized(), col, k)
+		facing = smoothstep(0.75, 0.99, (-cam.global_transform.basis.z).dot(sun_dir.normalized())) * k
+	_adapt = lerpf(_adapt, facing, 1.0 - exp(-dt / 0.8))
+	_env.tonemap_exposure *= 1.0 - 0.2 * _adapt
