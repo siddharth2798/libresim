@@ -18,6 +18,9 @@ var yaw := 0.0
 var pitch_trim := 0.0
 var flap_cmd := 0  # detent index
 var aileron_rigging := 0.0  # fixed trim tab (config)
+var roll_stability := 0.0  # aileron per rad of bank pulling back to wings level (config)
+var bank := 0.0  # rad, set by the FDM each step
+var airborne := false  # set by the FDM each step
 var flaps_powered := true
 var flap_motor_running := false
 var rudder_rigging := 0.0
@@ -36,6 +39,7 @@ func _init(cfg: Dictionary) -> void:
 	_surf = cfg.controls.surfaces
 	aileron_rigging = cfg.controls.get("aileron_rigging", 0.0)
 	rudder_rigging = cfg.controls.get("rudder_rigging", 0.0)
+	roll_stability = cfg.controls.get("roll_stability", 0.0)
 	var ft: Dictionary = cfg.controls.get("full_travel_s", {})
 	for k in ft:
 		_rate[k] = 2.0 / maxf(float(ft[k]), 1e-3)
@@ -63,7 +67,7 @@ func update(dt: float) -> void:
 	act_yaw = move_toward(act_yaw, yaw, _rate.yaw * dt)
 	var e := clampf(-(act_pitch + pitch_trim), -1.0, 1.0)
 	elevator = _scale(e, _surf.elevator)
-	aileron = _scale(clampf(act_roll + aileron_rigging, -1.0, 1.0), _surf["left-aileron"])
+	aileron = _scale(clampf(act_roll + aileron_rigging + _wings_level(), -1.0, 1.0), _surf["left-aileron"])
 	rudder = _scale(clampf(-(act_yaw + rudder_rigging), -1.0, 1.0), _surf.rudder)
 	var target: float = _flap_detents[clampi(flap_cmd, 0, _flap_detents.size() - 1)]
 	flap_motor_running = flaps_powered and not is_equal_approx(flap_deg, target)
@@ -73,6 +77,17 @@ func update(dt: float) -> void:
 			seg += 1
 		var rate: float = _flap_rates[seg]
 		flap_deg = move_toward(flap_deg, target, rate * dt)
+
+
+## The real C172 is spirally stable (dihedral, wing rigging) but JSBSim's model is almost neutral, so it
+## rolls off to the left on its own. A weak pull back to wings level, only with the stick near centre and
+## below ~25 deg of bank, so steep turns are still flown with the stick.
+func _wings_level() -> float:
+	if not airborne or roll_stability == 0.0:
+		return 0.0
+	var hold := clampf(1.0 - absf(act_roll) * 5.0, 0.0, 1.0)
+	var steep := 1.0 - smoothstep(deg_to_rad(15.0), deg_to_rad(25.0), absf(bank))
+	return -roll_stability * bank * hold * steep
 
 
 func flap_detents() -> int:

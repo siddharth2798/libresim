@@ -257,6 +257,7 @@
   ],
   "aileron_rigging": 0.033,
   "rudder_rigging": 0.004,
+  "roll_stability": 1.0,
   "full_travel_s": {
    "pitch": 0.3,
    "roll": 0.15,

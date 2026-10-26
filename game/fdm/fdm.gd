@@ -156,6 +156,8 @@ func step(dt: float) -> void:
 
 	if damage.flaps_jammed:
 		fcs.flaps_powered = false
+	fcs.bank = euler().x
+	fcs.airborne = not gear.wow
 	fcs.update(dt)
 	gear.steer_cmd = fcs.yaw
 	engine.update(dt, prop.rpm, atmo.pressure, atmo.temperature, vt)
