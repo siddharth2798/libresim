@@ -39,6 +39,9 @@ func setup(model: C172Model) -> void:
 	var clouds := CloudLayer.new()
 	clouds.name = "CloudLayer"
 	add_child(clouds)
+	var glare := SunGlare.new()
+	glare.name = "SunGlare"
+	add_child(glare)
 	var data = Paths.load_json("airports.json")
 	if data:
 		for a in data:

@@ -689,11 +689,13 @@ flatpak run org.freesim.FreeSim
 | Preset | FPS on a Radeon 780M | Render scale | Shadows | Buildings / trees range | Cloud steps |
 |---|---|---|---|---|---|
 | Low | ~69 | 70 % + FSR | off | 4 km / 1.2 km | 10 |
-| Medium | ~62 | 85 % + FSR | 150 m | 6 km / 1.8 km | 16 |
-| High | ~51 | 100 % + MSAA 2× | 300 m | 9 km / 2.2 km | 24 |
-| Ultra | ~45 | 100 % + MSAA 4× | 600 m | 12 km / 3 km | 40 |
+| Medium | ~62 | 85 % + FSR | 700 m, 2 cascades | 6 km / 1.8 km | 16 |
+| High | ~51 | 100 % + MSAA 2× | 1.8 km, 4 cascades | 9 km / 2.2 km | 24 |
+| Ultra | ~45 | 100 % + MSAA 4× | 4 km, 4 cascades | 12 km / 3 km | 40 |
 
-With the Forward+ renderer (F10 → Renderer, then restart; or launch with `--rendering-method forward_plus`), Ultra also enables SSAO and TAA. Mobile is the default renderer and the fastest on integrated GPUs.
+With the Forward+ renderer (F10 → Renderer, then restart; or launch with `--rendering-method forward_plus`), Ultra also enables SSAO and TAA. Mobile is the default renderer and the fastest on integrated GPUs. The FPS figures were measured before the cascaded shadows (sun shadows now reach 0.7 / 1.8 / 4 km instead of 150 / 300 / 600 m) and have not been re-measured.
+
+**Ground detail and sun glare** (quick wins towards a more photographic look): `world/terrain.gdshader` adds tonal variation at field and hill scale with distance, and fine grain plus a soft micro-relief normal within about a kilometre, over the 10 m satellite imagery (water is left alone). `world/sun_glare.gd` / `sun_glare.gdshader` draw a veil, a faint starburst and lens ghosts when the sun is in view (not on Low); terrain, the cockpit frame and clouds cut it off because it samples the depth buffer, and looking towards the sun lowers the exposure by up to 20 % (`SkyTime._update_glare`). Filmic tone mapping was kept: AgX and ACES were tried on the same scenes and were not clearly better (AgX greyer, ACES a darker cockpit). New showcase scene `low_ground` (VAPO, 450 ft, low sun) shows the terrain detail.
 
 **Trees:**
 - Forests are placed from the satellite vegetation index, excluding buildings, roads, runways and water.
