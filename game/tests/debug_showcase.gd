@@ -138,6 +138,11 @@ func _flight(def: Dictionary) -> void:
 			pn._build()
 		await _wait(2.0)  # camera easing, cloud and shader warm-up
 		print("SETTLED after %.1f s (%s)" % [t, _state()])
+		if d.has("pause"):  # the full-screen pause over the frozen scene (UI/Pause was hidden by _hide_ui)
+			var pm: Control = f.get_node("UI/Pause")
+			pm.visible = false
+			pm.open()
+			pm.show_page(str(d.pause))
 		await _save("" if views.size() == 1 else "_%d" % i)
 
 

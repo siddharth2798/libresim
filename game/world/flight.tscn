@@ -220,7 +220,7 @@ script = ExtResource("40")
 [node name="ReplayBar" type="Control" parent="UI"]
 script = ExtResource("46")
 
-[node name="Pause" type="PanelContainer" parent="UI"]
+[node name="Pause" type="Control" parent="UI"]
 script = ExtResource("39")
 
 [node name="Saves" type="PanelContainer" parent="UI"]

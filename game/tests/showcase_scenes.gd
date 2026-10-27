@@ -14,6 +14,7 @@ extends RefCounted
 ##   pilot_lesson: fly the landing lesson's scripted pilot (fly.landing) without any training UI;
 ##   variants: several camera tries from one placement (files <scene>_<n>.png), for looking around;
 ##   map_zoom (m per px) and gps (direct-to ident) for the moving map
+##   pause: open the full-screen pause on that page (home | options | settings | controls | saves | failures); keep "Hud" in ui
 ## Order and file names of the final README images are in tools/make_screenshots.sh.
 
 const SCENES := {
@@ -52,6 +53,27 @@ const SCENES := {
 		"setup": {"airport": "VAPO", "runway": "28", "start": "air", "air_ft": 450.0, "air_nm": 8.0, "time_h": 16.8, "visibility_m": 30000.0},
 		"fly": {"secs": 2.0, "pitch": 0.0, "throttle": 0.6},
 		"cam": [-30.0, -6.0, 8.0], "aim": [300.0, 0.0, -40.0], "fov": 65.0},
+	# The full-screen pause (Esc) over a frozen flight: pause = the page to show (home, options, saves, ...)
+	"pause_home": {"weather": "Fair", "view": "chase", "ui": ["Hud"], "pause": "home",
+		"setup": {"airport": "VAPO", "start": "air", "air_ft": 2500.0, "air_nm": 5.0, "time_h": 16.6, "visibility_m": 30000.0},
+		"fly": {"secs": 3.0, "pitch": 0.0, "throttle": 0.7}},
+	"pause_options": {"weather": "Fair", "view": "chase", "ui": ["Hud"], "pause": "options",
+		"setup": {"airport": "VAPO", "start": "air", "air_ft": 2500.0, "air_nm": 5.0, "time_h": 16.6, "visibility_m": 30000.0},
+		"fly": {"secs": 3.0, "pitch": 0.0, "throttle": 0.7}},
+	"pause_saves": {"weather": "Fair", "view": "cockpit", "ui": ["Hud"], "pause": "saves",
+		"setup": {"airport": "VAPO", "start": "air", "air_ft": 2500.0, "air_nm": 5.0, "time_h": 16.6, "visibility_m": 30000.0},
+		"fly": {"secs": 3.0, "pitch": 0.0, "throttle": 0.7}},
+	"pause_failures": {"weather": "Fair", "view": "chase", "ui": ["Hud"], "pause": "failures",
+		"setup": {"airport": "VAPO", "start": "air", "air_ft": 2500.0, "air_nm": 5.0, "time_h": 16.6, "visibility_m": 30000.0},
+		"fly": {"secs": 3.0, "pitch": 0.0, "throttle": 0.7}},
+	"pause_weather": {"weather": "Fair", "view": "chase", "ui": ["Hud"], "pause": "settings",
+		"setup": {"airport": "VAPO", "start": "air", "air_ft": 2500.0, "air_nm": 5.0, "time_h": 16.6, "visibility_m": 30000.0},
+		"fly": {"secs": 3.0, "pitch": 0.0, "throttle": 0.7}},
+	"pause_night": {"weather": "Clear", "view": "chase", "ui": ["Hud"], "pause": "controls",
+		"setup": {"airport": "VABB", "runway": "27", "start": "air", "air_ft": 1500.0, "air_nm": 4.0, "time_h": 21.0},
+		"fly": {"secs": 3.0, "pitch": 0.0, "throttle": 0.7}},
+}
+
 	"ghats_chase": {"weather": "Fair", "view": "chase",
 		"setup": {"airport": "VAAV", "start": "air", "air_ft": 2200.0, "air_nm": 5.0, "time_h": 17.2, "visibility_m": 25000.0},
 		"fly": {"secs": 6.0, "pitch": 5.0, "throttle": 1.0},

@@ -20,20 +20,27 @@ const SLIDERS := [
 	["Temperature (sea level)", "weather/temp_c", -5.0, 45.0, 1.0, "°C"],
 ]
 
+## Set before add_child: the content as a page of the pause screen (ui/pause_menu.gd): no frame,
+## no title, always shown, no F10 hotkey. refresh() re-reads the values when the page opens.
+var embedded := false
 var _labels := {}
 var _sliders := {}
 
 
 func _ready() -> void:
-	visible = false
-	set_anchors_preset(PRESET_CENTER)
-	custom_minimum_size = Vector2(560, 0)
+	if embedded:
+		add_theme_stylebox_override("panel", StyleBoxEmpty.new())
+	else:
+		visible = false
+		set_anchors_preset(PRESET_CENTER)
+		custom_minimum_size = Vector2(560, 0)
 	var vb := VBoxContainer.new()
 	add_child(vb)
-	var title := Label.new()
-	title.text = "Settings  (F10 to close)"
-	title.add_theme_font_size_override("font_size", 20)
-	vb.add_child(title)
+	if not embedded:
+		var title := Label.new()
+		title.text = "Settings  (F10 to close)"
+		title.add_theme_font_size_override("font_size", 20)
+		vb.add_child(title)
 	var gl := Label.new()
 	gl.text = "Graphics preset"
 	vb.add_child(gl)
@@ -78,6 +85,8 @@ func _ready() -> void:
 		grid.add_child(vl)
 		_sliders[s[1]] = sl
 		_labels[s[1]] = [vl, s[5]]
+	if embedded:
+		return
 	var fl := Label.new()
 	fl.text = "Failures: F9.  Back to the start screen (airport, aircraft, weather, failures): Esc."
 	fl.add_theme_color_override("font_color", Color(0.7, 0.7, 0.7))
@@ -85,15 +94,19 @@ func _ready() -> void:
 
 
 func _unhandled_key_input(e: InputEvent) -> void:
-	if e.pressed and not e.echo and e.keycode == KEY_F10:
+	if not embedded and e.pressed and not e.echo and e.keycode == KEY_F10:
 		visible = not visible
 		if visible:
-			for p in _sliders:
-				(_sliders[p] as HSlider).set_value_no_signal(Props.get_f(p))
+			refresh()
+
+
+func refresh() -> void:
+	for p in _sliders:
+		(_sliders[p] as HSlider).set_value_no_signal(Props.get_f(p))
 
 
 func _process(_dt: float) -> void:
-	if not visible:
+	if not is_visible_in_tree():
 		return
 	for p in _labels:
 		var v := Props.get_f(p)

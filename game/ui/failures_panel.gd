@@ -4,21 +4,28 @@ extends PanelContainer
 ## "Repair all". Failure notices are cards from ui/notifications.gd.
 
 var manager: FailureManager
+## Set before add_child: the content as a page of the pause screen (ui/pause_menu.gd): no frame,
+## no title, always shown, no F9 hotkey.
+var embedded := false
 var _rows := {}  # id -> [status Label, Button]
 var _footer: Label
 var _acc := 0.0
 
 
 func _ready() -> void:
-	visible = false
-	set_anchors_preset(PRESET_CENTER)
-	custom_minimum_size = Vector2(760, 0)
+	if embedded:
+		add_theme_stylebox_override("panel", StyleBoxEmpty.new())
+	else:
+		visible = false
+		set_anchors_preset(PRESET_CENTER)
+		custom_minimum_size = Vector2(760, 0)
 	var vb := VBoxContainer.new()
 	add_child(vb)
-	var title := Label.new()
-	title.text = "Failures  (F9 to close)"
-	title.add_theme_font_size_override("font_size", 20)
-	vb.add_child(title)
+	if not embedded:
+		var title := Label.new()
+		title.text = "Failures  (F9 to close)"
+		title.add_theme_font_size_override("font_size", 20)
+		vb.add_child(title)
 	var cols := HBoxContainer.new()
 	cols.add_theme_constant_override("separation", 24)
 	vb.add_child(cols)
@@ -69,16 +76,20 @@ func _toggle(id: String) -> void:
 
 
 func _unhandled_key_input(e: InputEvent) -> void:
-	if e.pressed and not e.echo and e.keycode == KEY_F9:
+	if not embedded and e.pressed and not e.echo and e.keycode == KEY_F9:
 		visible = not visible
 		_refresh()
 
 
 func _process(dt: float) -> void:
 	_acc += dt
-	if visible and _acc > 0.25:
+	if is_visible_in_tree() and _acc > 0.25:
 		_acc = 0.0
 		_refresh()
+
+
+func refresh() -> void:
+	_refresh()
 
 
 func _refresh() -> void:
