@@ -27,15 +27,36 @@ void vertex() {
 	POSITION = vec4(VERTEX.xy * 2.0, 1.0, 1.0);  // QuadMesh 1x1 -> full screen
 }
 
-float density(vec3 p) {
+// Texel sizes in metres (256 px tiling over 9000 m, detail at 6x): the noise is sampled at the mip
+// that matches the march step, so detail finer than the step is averaged away instead of aliasing
+// into salt-and-pepper speckle along the cloud edges (a point sample per step on 5 m texels).
+const float LO_TEXEL = 35.0;
+const float HI_TEXEL = 5.9;
+
+float density(vec3 p, float step_m) {
 	float h = (p.z - cloud_base) / cloud_thick;
 	if (h < 0.0 || h > 1.0) return 0.0;
 	vec2 q = (p.xy + wind_offset) / 9000.0;
-	float cov = textureLod(noise_lo, q, 0.0).r - (1.0 - coverage) * 0.82;
+	float cov = textureLod(noise_lo, q, max(log2(step_m / LO_TEXEL), 0.0)).r - (1.0 - coverage) * 0.82;
 	float dome = cov * 2.6 - h * h * 1.1 - (1.0 - smoothstep(0.0, 0.1, h)) * 0.4;
 	if (dome < -0.3) return 0.0;
-	float detail = textureLod(noise_hi, q * 6.0 + vec2(h * 0.35, -h * 0.27), 0.0).r;
+	float detail = textureLod(noise_hi, q * 6.0 + vec2(h * 0.35, -h * 0.27), max(log2(step_m / HI_TEXEL) - 2.5, 0.0)).r;
 	return clamp((dome - (1.0 - detail) * 0.32) * 2.2, 0.0, 1.0);
+}
+
+// Interleaved gradient noise (Jimenez): well-distributed per-pixel values, far less clumpy than a sin hash.
+float ign(vec2 px) {
+	return fract(52.9829189 * fract(dot(px, vec2(0.06711056, 0.00583715))));
+}
+
+// Mean of the 2x2 pixel quad via fine derivatives (the neighbours' march offsets differ, so this halves
+// the remaining step noise for free). The derivative signs are measured from FRAGCOORD itself.
+vec4 quad_mean(vec4 v, vec2 fc) {
+	vec2 par = mod(floor(fc), 2.0);
+	vec2 sg = vec2(dFdxFine(fc.x), dFdyFine(fc.y));  // +-1: direction of rising pixel index
+	v += 0.5 * (1.0 - 2.0 * par.x) * sg.x * dFdxFine(v);
+	v += 0.5 * (1.0 - 2.0 * par.y) * sg.y * dFdyFine(v);
+	return v;
 }
 
 void fragment() {
@@ -55,21 +76,20 @@ void fragment() {
 		t0 = max(min(ta, tb), 0.0);
 		t1 = min(max(ta, tb), max_dist);
 	} else if (ro.z < zb || ro.z > zt) {
-		discard;
+		t1 = -1.0;  // parallel to the layer and outside it: nothing to march
 	}
 	t1 = min(t1, scene_dist);
-	if (t1 <= t0) discard;
-	float dt = (t1 - t0) / float(steps);
-	float t = t0 + dt * fract(sin(dot(SCREEN_UV, vec2(12.9898, 78.233))) * 43758.5453);
+	float dt = max(t1 - t0, 0.0) / float(steps);
+	float t = t0 + dt * ign(FRAGCOORD.xy);
 	float trans = 1.0;
 	vec3 light = vec3(0.0);
 	vec3 sun_enu = vec3(sun_dir.x, -sun_dir.z, sun_dir.y);
-	for (int i = 0; i < steps; i++) {
+	for (int i = 0; i < (t1 > t0 ? steps : 0); i++) {
 		vec3 p = ro + rd * t;
-		float d = density(p);
+		float d = density(p, dt);
 		if (d > 0.01) {
 			float h = (p.z - cloud_base) / cloud_thick;
-			float occl = density(p + sun_enu * 300.0);
+			float occl = density(p + sun_enu * 300.0, max(dt, 150.0));
 			float lit = exp(-occl * 2.2) * (0.4 + 0.6 * h);
 			vec3 c = mix(ambient, sun_color, lit) * (1.0 - base_dark * (1.0 - h) * (1.0 - h));
 			float a = 1.0 - exp(-d * dt * 0.006);
@@ -81,6 +101,10 @@ void fragment() {
 	}
 	// aerial perspective to the cloud entry point, from the visibility (at least a faint blue haze)
 	float haze = 1.0 - exp(-t0 * max(haze_density, 1.0 / 22000.0));
-	ALBEDO = mix(light / max(1.0 - trans, 1e-3), fog_color, haze);
-	ALPHA = (1.0 - trans) * (1.0 - haze * 0.35);
+	float alpha = (1.0 - trans) * (1.0 - haze * 0.35);
+	vec3 col = mix(light / max(1.0 - trans, 1e-3), fog_color, haze);
+	vec4 m = quad_mean(vec4(col * alpha, alpha), FRAGCOORD.xy);  // premultiplied, so empty pixels do not darken the edge
+	if (m.a < 1e-4) discard;
+	ALBEDO = m.rgb / m.a;
+	ALPHA = m.a;
 }
