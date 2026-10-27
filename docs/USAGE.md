@@ -292,8 +292,10 @@ The landing lesson starts 3 nm out on final (1,000 ft, 80 kt, flaps up, on the 3
 - Lessons are data in `game/training/lessons.json`: steps (with `any_order` for the tolerant ones), conditions, gauges, grades and `abort` rules (`--air-kt=` sets the IAS of an airborne start; lessons use it).
 
 **In flight:**
-- **Esc** opens the pause menu: resume, restart, failures, settings, new flight (back to this screen) or quit.
-- **Saving and loading:** Esc → Save flight / Load flight, or **F11** to quick-save and **Shift+F11** to quick-load. A save keeps everything: position, motion, engine state, fuel, damage, switches, radios, failures, weather and time. Saves live in `user://saves/`.
+- **Esc** opens the full-screen pause screen (like Microsoft Flight Simulator). The flight stops and the frozen scene stays visible behind a blurred, dimmed backdrop; resuming is instant and nothing is reloaded. A big **PAUSED** title shows the aircraft, start airport and time; the left column lists **Resume flight**, **Options**, **Weather & time** (F10), **Controls & keys** (J), **Save / Load flight** (F11), **Failures** (F9), **Checklists** (F2), **Instant replay** (R), **Restart flight** (F5), **Quit to main menu** and **Quit game**. The page you pick is shown on the right, embedded (the same content as the start screen's Options and Controls pages and the F9 / F10 / F11 panels). The home page shows altitude, height, airspeed, heading, wind, visibility, time and flight time. In a lesson the context line names the lesson, and during a replay it says Replay.
+  - **Keys:** **↑ ↓** move down the list (each page previews as you pass it), **← →** cross between the list and the page, **Enter** selects (and moves into the page), the mouse works everywhere. **Esc** backs out one level: a text field, then the page (back to the home page), then it resumes. Every other key is ignored while paused, so the flight hotkeys do nothing underneath. A gamepad or joystick pause button works like Esc. Restart flight, Quit to main menu and Quit game need a second click ("Click again to confirm", cancelled by Esc or after 3 s).
+  - It scales with **UI size** and fits any window shape (16:9, ultrawide, small windows).
+- **Saving and loading:** Esc → Save / Load flight, or **F11** to quick-save and **Shift+F11** to quick-load. A save keeps everything: position, motion, engine state, fuel, damage, switches, radios, failures, weather and time. Saves live in `user://saves/`.
 - **Replay (R):** replays up to the last 10 minutes from any camera.
   - **Space** plays and pauses, **← / →** seek ±5 s, and **[ / ]** change speed (0.25x–4x). The timeline bar can be scrubbed.
   - **Take control** resumes flying from the replayed moment, with its exact speed and attitude. **Exit replay** returns to where you were.
@@ -371,7 +373,7 @@ cd game
 | H / F1 / F3 | Flight-data bar (IAS, GS, ALT, AGL near the ground, VS, HDG; top-centre) / key-help card / developer performance overlay (off by default) |
 | F12 | Credits and licences |
 | F10 | Settings: graphics preset and renderer, time of day and time rate, wind and gusts, wind aloft, turbulence, visibility, clouds, QNH, temperature, failures |
-| Esc | Pause |
+| Esc | Pause screen (Esc again: back, then resume) |
 | F5 | Reset to the start position |
 
 **Control feel (start screen → Options → Flight controls):**

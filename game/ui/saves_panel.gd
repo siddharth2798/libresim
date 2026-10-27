@@ -5,7 +5,14 @@ extends PanelContainer
 ## Delete a save from the list (thumbnail, airport, altitude, IAS, date).
 ## F11 quick-save, Shift+F11 quick-load (slot "quicksave"), with a brief confirmation.
 
+signal closed
+
 var flight: Node  # world/flight.gd (defaults to the scene owner)
+## Set before add_child: the content as a page of the pause screen (ui/pause_menu.gd): no frame,
+## no title, always shown, no Esc / F11 handling, no Close button. hide_target is what to hide
+## while the thumbnail is grabbed (the whole pause screen); closed fires after a load.
+var embedded := false
+var hide_target: CanvasItem
 var _list: ItemList
 var _name: LineEdit
 var _status: Label
@@ -17,26 +24,31 @@ var _saves: Array = []
 
 
 func _ready() -> void:
-	visible = false
 	if flight == null:
 		flight = owner
-	theme = MenuTheme.make()
-	add_theme_stylebox_override("panel", MenuTheme.box(Color(MenuTheme.PANEL, 0.95), 10, Color(1, 1, 1, 0.08), 18.0))
-	custom_minimum_size = Vector2(760, 540)
-	set_anchors_preset(PRESET_CENTER)
-	offset_left = -380.0
-	offset_right = 380.0
-	offset_top = -270.0
-	offset_bottom = 270.0
-	grow_horizontal = GROW_DIRECTION_BOTH
-	grow_vertical = GROW_DIRECTION_BOTH
+	if embedded:
+		add_theme_stylebox_override("panel", StyleBoxEmpty.new())
+		size_flags_vertical = SIZE_EXPAND_FILL
+	else:
+		visible = false
+		theme = MenuTheme.make()
+		add_theme_stylebox_override("panel", MenuTheme.box(Color(MenuTheme.PANEL, 0.95), 10, Color(1, 1, 1, 0.08), 18.0))
+		custom_minimum_size = Vector2(760, 540)
+		set_anchors_preset(PRESET_CENTER)
+		offset_left = -380.0
+		offset_right = 380.0
+		offset_top = -270.0
+		offset_bottom = 270.0
+		grow_horizontal = GROW_DIRECTION_BOTH
+		grow_vertical = GROW_DIRECTION_BOTH
 	var vb := VBoxContainer.new()
 	vb.add_theme_constant_override("separation", 8)
 	add_child(vb)
-	var t := Label.new()
-	t.text = "Saved flights"
-	t.add_theme_font_size_override("font_size", 22)
-	vb.add_child(t)
+	if not embedded:
+		var t := Label.new()
+		t.text = "Saved flights"
+		t.add_theme_font_size_override("font_size", 22)
+		vb.add_child(t)
 	var row := HBoxContainer.new()
 	vb.add_child(row)
 	_name = LineEdit.new()
@@ -47,6 +59,7 @@ func _ready() -> void:
 	row.add_child(_button("Save current flight", _save))
 	_list = ItemList.new()
 	_list.size_flags_vertical = SIZE_EXPAND_FILL
+	_list.custom_minimum_size = Vector2(0, 220)
 	_list.fixed_icon_size = Vector2i(160, 90)
 	_list.icon_mode = ItemList.ICON_MODE_LEFT
 	_list.item_selected.connect(func(_i): _update_buttons())
@@ -62,7 +75,8 @@ func _ready() -> void:
 	_del_btn = _button("Delete", _delete)
 	bar.add_child(_load_btn)
 	bar.add_child(_del_btn)
-	bar.add_child(_button("Close", close))
+	if not embedded:
+		bar.add_child(_button("Close", close))
 	_toast = Label.new()
 	_toast.add_theme_font_size_override("font_size", 22)
 	_toast.add_theme_color_override("font_outline_color", Color.BLACK)
@@ -72,7 +86,10 @@ func _ready() -> void:
 	_toast.custom_minimum_size = Vector2(300, 0)
 	_toast.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_toast.visible = false
-	get_parent().add_child.call_deferred(_toast)
+	var toast_parent: Node = flight.get_node("UI") if embedded else get_parent()
+	toast_parent.add_child.call_deferred(_toast)
+	if embedded:
+		tree_exiting.connect(_toast.queue_free)
 
 
 func _button(text: String, cb: Callable) -> Button:
@@ -85,21 +102,26 @@ func _button(text: String, cb: Callable) -> Button:
 
 ## Show the panel (pauses the flight). focus_save: put the cursor in the name field.
 func open(focus_save := false) -> void:
-	visible = true
-	flight.fdm_node.paused = true
+	if not embedded:
+		visible = true
+		flight.fdm_node.paused = true
 	_name.text = Situation.default_name(flight)
 	_status.text = Situation.why_not_save(flight)
 	_refresh()
+	if _saves.is_empty() and _status.text == "":
+		_status.text = "No saved flights yet."
 	if focus_save:
 		_name.grab_focus()
 		_name.select_all()
-	elif _list.item_count > 0:
+	elif _list.item_count > 0 and not embedded:  # a pause page keeps the focus on its menu
 		_list.grab_focus()
 
 
 func close() -> void:
-	visible = false
-	flight.fdm_node.paused = false
+	if not embedded:
+		visible = false
+		flight.fdm_node.paused = false
+	closed.emit()
 
 
 func _refresh() -> void:
@@ -131,9 +153,10 @@ func _save() -> void:
 	var name := _name.text.strip_edges()
 	if name == "":
 		name = Situation.default_name(flight)
-	visible = false  # keep the panel out of the thumbnail
+	var hidden: CanvasItem = hide_target if hide_target else self
+	hidden.visible = false  # keep the panel (or the whole pause screen) out of the thumbnail
 	var err := await _save_with_thumb(name)
-	visible = true
+	hidden.visible = true
 	_status.text = err if err != "" else "Saved \"%s\"" % name
 	_refresh()
 
@@ -193,6 +216,8 @@ func _process(dt: float) -> void:
 
 func _unhandled_key_input(e: InputEvent) -> void:
 	if not e.pressed or e.echo:
+		return
+	if embedded:
 		return
 	if e.keycode == KEY_ESCAPE and visible:
 		close()

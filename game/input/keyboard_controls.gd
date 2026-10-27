@@ -67,8 +67,9 @@ func _on(e: InputEventKey, action: String) -> bool:
 	return KeyBindings.matches(keys, action, e, _shifted)
 
 
+## Held keys count for nothing while the pause screen is open: its arrow keys navigate it.
 func _k(action: String) -> bool:
-	return KeyBindings.held(keys, action, _shifted)
+	return not Props.get_b("ui/pause_open") and KeyBindings.held(keys, action, _shifted)
 
 
 ## -1 / 0 / +1 from a pair of held actions.
@@ -106,7 +107,9 @@ func _move(axis: String, cur: float, input: float, dt: float) -> float:
 func _process(dt: float) -> void:
 	if int(Props.get_v("input/bindings_rev", 0)) != _keys_rev:
 		_load_keys()
-	if mouse_yoke:
+	if mouse_yoke and Props.get_b("ui/pause_open"):
+		pass  # the mouse is a pointer in the pause screen: the yoke stays where it was
+	elif mouse_yoke:
 		var vp := get_viewport()
 		var m := vp.get_mouse_position() / vp.get_visible_rect().size * 2.0 - Vector2.ONE
 		roll = clampf(m.x * 1.3, -1.0, 1.0)
