@@ -151,17 +151,26 @@ func _flight(def: Dictionary) -> void:
 func _show_map(d: Dictionary) -> void:
 	var m: Control = f.get_node("UI/Map")
 	m.clip_contents = true  # the map draws imagery tiles past its own edge otherwise
-	m._m_per_px = float(d.get("map_zoom", 100.0))
-	if d.has("gps"):
-		Props.set_v("controls/gps/target", d.gps)
+	var route: Array = d.get("map_route", [d.gps] if d.has("gps") else [])  # GPS direct-to, then later legs
+	Props.set_v("controls/gps/target", route[0] if not route.is_empty() else "")
+	Props.set_v("controls/gps/route_next", route.slice(1))
 	m.set_process(true)  # _hide_ui stopped it; it redraws from _process
-	m.visible = true
+	m.visible = true  # opens centred on the aircraft (wider if the route needs it)
+	await _wait(1.0)
+	var v := {"heading_up": d.get("map_heading_up", false)}
+	if d.has("map_across"):
+		v["across_nm"] = d.map_across
+	if d.has("map_centre_on"):
+		v["centre_on"] = d.map_centre_on
+	m.apply_view(v)
 	await _wait(1.0)
 
 
 func _setup_session(def: Dictionary) -> void:
 	Session.skip_menu = true
 	Session.clean = false
+	m.wait_imagery()  # tiles load on worker threads
+	await _wait(0.5)
 	Session.shot = ""
 	Session.setup = Session.DEFAULT.duplicate(true)
 	Session.end_lesson()

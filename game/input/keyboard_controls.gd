@@ -107,8 +107,8 @@ func _move(axis: String, cur: float, input: float, dt: float) -> float:
 func _process(dt: float) -> void:
 	if int(Props.get_v("input/bindings_rev", 0)) != _keys_rev:
 		_load_keys()
-	if mouse_yoke and Props.get_b("ui/pause_open"):
-		pass  # the mouse is a pointer in the pause screen: the yoke stays where it was
+	if mouse_yoke and (Props.get_b("ui/pause_open") or Props.get_b("ui/map_open")):
+		pass  # the mouse is a pointer in the pause screen and the map: the yoke stays where it was
 	elif mouse_yoke:
 		var vp := get_viewport()
 		var m := vp.get_mouse_position() / vp.get_visible_rect().size * 2.0 - Vector2.ONE
@@ -124,7 +124,10 @@ func _process(dt: float) -> void:
 	_put("yaw", yaw)
 
 	var thr := Props.get_f("controls/throttle")
-	thr += _axis("throttle_down", "throttle_up") * LEVER_RATE * dt  # Ctrl+PgUp/PgDn (checklists) don't match
+	var thr_in := _axis("throttle_down", "throttle_up")
+	if Props.get_b("ui/map_open"):  # the open map zooms with = / - / Num +/-: only Page Up/Down move the throttle
+		thr_in = float(Input.is_physical_key_pressed(KEY_PAGEUP)) - float(Input.is_physical_key_pressed(KEY_PAGEDOWN))
+	thr += thr_in * LEVER_RATE * dt  # Ctrl+PgUp/PgDn (checklists) don't match
 	_put("throttle", clampf(thr, 0.0, 1.0))
 	var mix := Props.get_f("controls/mixture", 1.0) + _axis("mixture_lean", "mixture_rich") * LEVER_RATE * dt
 	_put("mixture", clampf(mix, 0.0, 1.0))

@@ -16,6 +16,7 @@ extends RefCounted
 ##   map_zoom (m per px) and gps (direct-to ident) for the moving map
 ##   pause: open the full-screen pause on that page (home | options | settings | controls | saves | failures); keep "Hud" in ui
 ##   cam: [forward, right, up] metres from the aircraft in its heading frame, aim: same frame ("agl": true makes the
+##   moving map: gps (direct-to ident) or map_route [target, next...]; map_across (nm wide, default = fit), map_heading_up, map_centre_on (ident)
 ## Order and file names of the final README images are in tools/make_screenshots.sh.
 
 const SCENES := {
@@ -127,6 +128,21 @@ const SCENES := {
 			{"cam": [40.0, 0.0, 35.0], "aim": [140.0, -20.0, 14.0], "fov": 62.0},
 			{"cam": [40.0, 0.0, 9.0], "aim": [140.0, -20.0, 10.0], "fov": 62.0}]},
 	# The taxi instruction after landing (<scene>_a just issued, <scene>_b after it has faded); aircraft on the runway
+	"map_open": {"weather": "Fair", "view": "chase", "ui": ["Panel"], "map": true,
+		"setup": {"airport": "VAPO", "runway": "10", "start": "air", "air_ft": 2500.0, "air_nm": 3.0, "time_h": 10.0},
+		"cam": [-18.0, 11.0, 4.0], "aim": [0.0, 11.0, 0.0], "fov": 60.0},
+	"map_zoom_in": {"weather": "Fair", "view": "chase", "ui": ["Panel"], "map": true, "map_across": 1.2,
+		"setup": {"airport": "VAPO", "runway": "10", "start": "air", "air_ft": 2500.0, "air_nm": 3.0, "time_h": 10.0},
+		"cam": [-18.0, 11.0, 4.0], "aim": [0.0, 11.0, 0.0], "fov": 60.0},
+	"map_zoom_out": {"weather": "Fair", "view": "chase", "ui": ["Panel"], "map": true, "map_across": 160.0,
+		"setup": {"airport": "VAPO", "runway": "10", "start": "air", "air_ft": 2500.0, "air_nm": 3.0, "time_h": 10.0},
+		"cam": [-18.0, 11.0, 4.0], "aim": [0.0, 11.0, 0.0], "fov": 60.0},
+	"map_route": {"weather": "Fair", "view": "chase", "ui": ["Panel"], "map": true, "map_route": ["VAAV", "VAPO", "VABB"],
+		"setup": {"airport": "VANM", "runway": "08", "start": "air", "air_ft": 3500.0, "air_nm": 4.0, "time_h": 10.0},
+		"cam": [-18.0, 11.0, 4.0], "aim": [0.0, 11.0, 0.0], "fov": 60.0},
+	"map_heading_up": {"weather": "Fair", "view": "chase", "ui": ["Panel"], "map": true, "map_route": ["VAAV", "VAPO"], "map_across": 14.0, "map_heading_up": true,
+		"setup": {"airport": "VANM", "runway": "08", "start": "air", "air_ft": 3500.0, "air_nm": 4.0, "time_h": 10.0},
+		"cam": [-18.0, 11.0, 4.0], "aim": [0.0, 11.0, 0.0], "fov": 60.0},
 	"ghats_chase": {"weather": "Fair", "view": "chase",
 		"setup": {"airport": "VAAV", "start": "air", "air_ft": 2200.0, "air_nm": 5.0, "time_h": 17.2, "visibility_m": 25000.0},
 		"fly": {"secs": 6.0, "pitch": 5.0, "throttle": 1.0},
@@ -147,7 +163,7 @@ const SCENES := {
 	"training_landing": {"lesson": "landing", "view": "cockpit", "ui": ["training", "Hud"],
 		"setup": {"air_ft": 500.0, "air_nm": 1.5},
 		"fly": {"landing": true, "secs": 24.0}},
-	"moving_map": {"weather": "Fair", "view": "chase", "ui": ["Panel"], "map": true, "panel": 2, "map_zoom": 140.0, "gps": "VAAV",
+	"moving_map": {"weather": "Fair", "view": "chase", "ui": ["Panel"], "map": true, "panel": 2, "gps": "VAAV",
 		"setup": {"airport": "VANM", "runway": "08", "start": "air", "air_ft": 3500.0, "air_nm": 4.0, "time_h": 10.0},
 		"cam": [-18.0, 11.0, 4.0], "aim": [0.0, 11.0, 0.0], "fov": 60.0},
-}
+	# Trees and buildings (look: close forest, Konkan palm coast, dense city district)

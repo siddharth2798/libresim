@@ -33,6 +33,20 @@ func _init() -> void:
 		coms[a.icao if a.icao != "" else a.ident] = a.get("freqs", [])
 
 
+## Position (Vector2, ENU metres) of an airport (ICAO or ident), VOR or NDB by ident; null if unknown.
+func position_of(ident: String) -> Variant:
+	for a in airports:
+		if a.ident == ident or a.icao == ident:
+			return Vector2(a.x, a.y)
+	for v in vors:
+		if v.ident == ident:
+			return Vector2(v.x, v.y)
+	for n in ndbs:
+		if n.ident == ident:
+			return Vector2(n.x, n.y)
+	return null
+
+
 ## Station on a NAV frequency (VOR or ILS localizer), nearest if several share it.
 func nav_station(mhz: float, from: Vector2) -> Dictionary:
 	var best := {}
