@@ -18,6 +18,12 @@ const DEFAULTS := {
 	"start_mode": "flight",  # last start-screen choice: flight | training (focused next time)
 	"callsign": "VT-FSM",  # radio call sign (atc/atc_speech.gd validates it; Session.setup.callsign overrides)
 	"radio_assist": true,  # radio assist: calls tune COM1 by themselves and the next call is suggested (atc/atc_assist.gd)
+	"checklist_x": -1.0,  # checklist window (ui/checklist_window.gd): position as fractions of the free screen space,
+	"checklist_y": -1.0,  # -1 = never moved: docked right-centre, clear of the instrument panel
+	"checklist_w": 0.0,  # size in UI units, 0 = default
+	"checklist_h": 0.0,
+	"checklist_opacity": 0.9,  # background opacity (text stays opaque)
+	"checklist_collapsed": false,
 	"atc_voice": false,  # say ATC transmissions with the OS text-to-speech voice (atc/atc_voice.gd)
 }
 const CHOICES := {

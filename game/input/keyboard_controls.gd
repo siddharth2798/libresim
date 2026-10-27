@@ -107,8 +107,8 @@ func _move(axis: String, cur: float, input: float, dt: float) -> float:
 func _process(dt: float) -> void:
 	if int(Props.get_v("input/bindings_rev", 0)) != _keys_rev:
 		_load_keys()
-	if mouse_yoke and (Props.get_b("ui/pause_open") or Props.get_b("ui/map_open")):
-		pass  # the mouse is a pointer in the pause screen and the map: the yoke stays where it was
+	if mouse_yoke and (Props.get_b("ui/pause_open") or Props.get_b("ui/map_open") or Props.get_b("ui/checklist_grab")):
+		pass  # the mouse is a pointer in the pause screen, the map and the checklist window: the yoke stays where it was
 	elif mouse_yoke:
 		var vp := get_viewport()
 		var m := vp.get_mouse_position() / vp.get_visible_rect().size * 2.0 - Vector2.ONE

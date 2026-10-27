@@ -336,17 +336,7 @@ func _taxi_banner(d: Dictionary) -> void:
 ## The floating checklist (F2) in a given state: {frac: [x, y] (omit = default dock), size: [w, h],
 ## opacity, collapsed, list, ticks (items ticked by hand)}.
 func _show_checklist(d: Dictionary) -> void:
-	var old: Control = f.get_node("UI/Checklist")
-	if d.get("legacy", false):  # temporary: the old fixed panel, for before / after shots
-		old.queue_free()
-		old = PanelContainer.new()
-		old.name = "Checklist"
-		old.set_script(load("res://tests/_legacy_checklist.gd"))
-		f.get_node("UI").add_child(old)
-		await _frames(2)
-		old.visible = true
-		return
-	var cl: ChecklistPanel = old
+	var cl: ChecklistPanel = f.get_node("UI/Checklist")
 	cl.persist = false
 	cl.current = int(d.get("list", 0))
 	cl._rebuild()
@@ -360,5 +350,3 @@ func _show_checklist(d: Dictionary) -> void:
 		if d.get("collapsed", false):
 			cl.set_collapsed(true)
 	await _frames(3)
-		push_warning("streaming did not settle in %.0f s" % MAX_SETTLE_S)
-	return t

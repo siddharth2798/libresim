@@ -154,6 +154,19 @@ const SCENES := {
 	"start_air": {"menu": "flight", "step": 0, "setup": {"airport": "VAPO", "start": "air", "cold": true}},
 	"start_conditions": {"menu": "flight", "step": 2, "weather": "Broken",
 		"setup": {"time_h": 12.5, "wind_dir_deg": 270.0, "wind_kt": 14.0, "gust_kt": 20.0, "turbulence": 0.3}},
+	"checklist_default": {"weather": "Fair", "view": "chase", "ui": ["Hud", "Panel", "Atc", "Checklist"], "panel": 1, "checklist": {"list": 1, "ticks": 2},
+		"setup": {"airport": "VAPO", "start": "stand", "cold": true, "time_h": 16.6, "visibility_m": 30000.0}},
+	"checklist_full_panel": {"weather": "Fair", "view": "chase", "ui": ["Hud", "Panel", "Atc", "Checklist"], "panel": 0, "checklist": {"list": 2, "ticks": 5},
+		"setup": {"airport": "VAPO", "start": "stand", "cold": true, "time_h": 16.6, "visibility_m": 30000.0}},
+	"checklist_moved": {"weather": "Fair", "view": "chase", "ui": ["Hud", "Panel", "Atc", "Checklist"], "panel": 1,
+		"checklist": {"list": 1, "ticks": 3, "frac": [0.12, 0.3], "size": [430.0, 470.0], "opacity": 0.55},
+		"setup": {"airport": "VAPO", "start": "stand", "cold": true, "time_h": 16.6, "visibility_m": 30000.0}},
+	"checklist_collapsed": {"weather": "Fair", "view": "chase", "ui": ["Hud", "Panel", "Atc", "Checklist"], "panel": 1,
+		"checklist": {"list": 1, "ticks": 4, "collapsed": true},
+		"setup": {"airport": "VAPO", "start": "stand", "cold": true, "time_h": 16.6, "visibility_m": 30000.0}},
+
+	# Follow-me car: taxi requested from a stand, the car waits ~55 m ahead of the aircraft (cam / aim are in the
+	# car's frame, forward / right / up above the ground; "on_follow")
 	"ghats_chase": {"weather": "Fair", "view": "chase",
 		"setup": {"airport": "VAAV", "start": "air", "air_ft": 2200.0, "air_nm": 5.0, "time_h": 17.2, "visibility_m": 25000.0},
 		"fly": {"secs": 6.0, "pitch": 5.0, "throttle": 1.0},

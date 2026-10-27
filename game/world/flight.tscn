@@ -202,7 +202,7 @@ script = ExtResource("24")
 [node name="Map" type="Control" parent="UI"]
 script = ExtResource("36")
 
-[node name="Checklist" type="PanelContainer" parent="UI"]
+[node name="Checklist" type="Control" parent="UI"]
 script = ExtResource("32")
 
 [node name="Atc" type="Control" parent="UI"]
