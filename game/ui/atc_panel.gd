@@ -22,6 +22,7 @@ var _sel := 0
 var _actions: Array = []
 var _serial := 0
 var _t := 0.0
+var _taxi_n := 0  # last taxi instruction written to the history (Props ops/taxi_msg)
 
 
 func _ready() -> void:
@@ -72,6 +73,7 @@ func _process(dt: float) -> void:
 	_cards.tick(dt)
 	if session.c.tx_serial != _serial:
 		_heard(session.c)
+	_log_taxi()
 	_t += dt
 	if _t > 0.25:
 		_t = 0.0
@@ -85,6 +87,16 @@ func _heard(c: AtcController) -> void:
 	for e in c.log.slice(maxi(c.log.size() - n, 0)):
 		_show_card(_cards.feed(e))
 	_refresh()
+
+
+## A taxi instruction from the on-screen guidance (ui/taxi_banner.gd) goes into the History as a
+## note, so it can be read again after the banner has faded.
+func _log_taxi() -> void:
+	var m: Dictionary = Props.get_v("ops/taxi_msg", {})
+	if m.is_empty() or int(m.n) == _taxi_n:
+		return
+	_taxi_n = int(m.n)
+	session.c.log.append({"kind": "system", "who": "Taxi", "text": str(m.text), "spoken": "", "t": 0.0, "ack": false})
 
 
 func _show_card(started: bool) -> void:
@@ -216,7 +228,7 @@ func _model(c: AtcController, w: Dictionary) -> Dictionary:
 		voice = "Voice: none found"
 	return {"width": AtcLayout.bar_width(get_viewport_rect().size), "open": _open, "history": _history,
 		"freq": "%.3f" % float(w.get("com1_mhz", 118.1)), "unit": str(sm.text), "tone": str(sm.tone),
-		"hint": hint, "msg": _cards.bar_line(), "actions": labels, "sel": _sel,
+		"hint": hint, "msg": _cards.bar_line(), "taxi": str(Props.get_v("ops/taxi_hint", "")), "actions": labels, "sel": _sel,
 		"note": AtcAssist.tune_note(c, w, _actions[_sel]) if _open and not _actions.is_empty() else "",
 		"log": c.log, "can_again": c.s.last_instr != "" and bool(w.get("com1_ok", true)), "voice": voice,
 		"keys": "H  back to calls     ↑ ↓  scroll     Esc  close" if _history

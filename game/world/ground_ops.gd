@@ -18,7 +18,7 @@ var _route: Array = []  # [Vector2]
 var _route_txt := ""
 var _hold_at_end := true  # runway route: "hold short" at the end; stand route: just ends
 var _line: MeshInstance3D
-var _label: Label
+var _banner: TaxiBanner  # the instruction on screen (a fading card, ui/taxi_banner.gd)
 var _push := {}  # active pushback state
 var _tug: Node3D
 var _follow: Node3D  # follow-me car leading along the taxi route
@@ -36,15 +36,8 @@ func setup(o: AirportOps, ab: AirportBuilder, fn: FdmNode, t: TerrainQuadtree, u
 	_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	_mat.emission_enabled = true
 	_mat.emission = Color(0.2, 1.0, 0.35)
-	_label = Label.new()
-	_label.add_theme_font_size_override("font_size", 16)
-	_label.add_theme_color_override("font_color", Color(0.7, 1.0, 0.7))
-	_label.add_theme_stylebox_override("normal", Notifications.card_style(Color(0.3, 0.9, 0.45)))
-	_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_label.custom_minimum_size = Vector2(520, 0)
-	_label.visible = false
-	ui.add_child(Notifications.centered(_label, Control.PRESET_TOP_WIDE, 300))  # taxi / pushback instructions under the notices
+	_banner = TaxiBanner.new()
+	add_child(_banner)
 	FloatingOrigin.shifted.connect(func(d: Vector3):
 		if _line:
 			_line.position += d)
@@ -148,6 +141,7 @@ func _set_route(r: Dictionary, txt: String, hold_at_end: bool) -> void:
 	_spawn_follow_me()
 	_route_txt = txt
 	_hold_at_end = hold_at_end
+	_banner.announce(txt)
 	_draw_route()
 
 
@@ -159,8 +153,7 @@ func clear_route() -> void:
 	if _line:
 		_line.queue_free()
 		_line = null
-	_label.text = ""
-	_label.visible = _label.text != ""
+	_banner.route_cleared()
 
 
 func _draw_route() -> void:
@@ -195,8 +188,7 @@ func _draw_route() -> void:
 
 
 func _say(t: String) -> void:
-	_label.text = t
-	_label.visible = _label.text != ""
+	_banner.say(t)
 
 
 func _process(_dt: float) -> void:
@@ -214,12 +206,9 @@ func _process(_dt: float) -> void:
 		for i in range(nearest, _route.size() - 1):
 			rem += (_route[i] as Vector2).distance_to(_route[i + 1])
 		_update_follow_me(_dt, _route_len[nearest])
-		_say("%s   (%.0f m)%s" % [_route_txt, rem, "\nHOLD SHORT — contact tower for takeoff" if rem < 40.0 and _hold_at_end else ""])
+		_banner.route_progress(_route_txt, rem, _hold_at_end)
 		if not _hold_at_end and rem < 12.0:
 			clear_route()
-	elif _push.is_empty():
-		if _label.text.begins_with("Pushback") or _label.text.begins_with("No "):
-			pass
 
 
 func _spawn_follow_me() -> void:
@@ -281,7 +270,7 @@ func start_pushback() -> void:
 			side = 1.0 if (node - Vector2(p.x, p.y)).dot(right) > 0.0 else -1.0
 	_push = {"s": 0.0, "hdg0": e.z, "p0": Vector2(p.x, p.y), "side": side}
 	_spawn_tug()
-	_say("Pushback in progress — P to stop")
+	_banner.say("Pushback in progress — P to stop", "Pushback in progress  ·  P to stop")
 
 
 func _end_push(msg: String) -> void:

@@ -8,6 +8,7 @@ const KEYS := [
 	["V", "Re-centre view"],
 	["N", "Moving map"],
 	["T / P", "Taxi route / pushback"],
+	["Backspace", "Dismiss the taxi message"],
 	["`", "Radio (ATC) menu"],
 	["F2", "Checklists"],
 	["F9", "Failures panel"],

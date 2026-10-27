@@ -366,7 +366,8 @@ cd game
 | Tab / Shift+Tab | 2D panel layout in outside views: Full, Split (six-pack bottom-left, engine gauges right), Compact (small six-pack), Minimal (ASI, AI, ALT top-right), Off. Remembered between sessions |
 | Right-mouse drag | Look around (cockpit, orbit, free, wing, tail). Mouse wheel: cockpit zoom (field of view), orbit distance, free-camera speed |
 | V | Re-centre the view |
-| T | Taxi guidance: route to the into-wind runway (green line on the ground, "Taxi via …, hold short"). T again clears it |
+| T | Taxi guidance: route to the into-wind runway (green line on the ground, "Taxi via …, hold short"). T again clears it. The instruction is a compact card at the top of the screen for 8-12 s (12 s the first time after landing), then it fades; the route and the distance left stay as a tiny line in the radio bar |
+| Backspace | Dismiss the taxi / pushback message at once (it also goes when you start taxiing, reach the stand or a newer instruction replaces it; it stays in the radio History) |
 | P | Pushback (parking brake off): tug pushes you back and swings the tail toward the taxiway. P again stops |
 | ` (backquote) | Open / close the radio (the bar top-left is always there in free flight; click it to open). Open: ↑ ↓ choose, Enter or 1–4 call, Esc close, A say again, H history, V voice |
 | F2 | Checklists (C172S POH, preflight → securing); Ctrl+PgUp/PgDn change list, Enter ticks the next item; most items tick themselves |

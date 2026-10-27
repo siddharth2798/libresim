@@ -44,7 +44,7 @@ func taxi(r) -> void:
 	var h0: float = r.hdg_deg()
 	await r.key(KEY_P)
 	await r.wait(1.0)
-	r.check("pushback_tug_spawned", g.get("_tug") != null, "label: %s" % g.get("_label").text)
+	r.check("pushback_tug_spawned", g.get("_tug") != null, "label: %s" % g.get("_banner").text)
 	await r.wait(14.0)
 	await r.shot("pushback")
 	var p1: Vector3 = r.f.get_node("Fdm").position_enu()
