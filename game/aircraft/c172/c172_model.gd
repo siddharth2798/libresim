@@ -42,6 +42,7 @@ func build(node: FdmNode) -> void:
 	var lights := AircraftLights.new()
 	add_child(lights)
 	lights.build(_s)
+	ReflectionRig.attach(self)  # reflection probe: surroundings on the glass and paint (reflection_rig.gd)
 
 
 ## FlightGear model frame (x aft, y right, z up, origin = VRP) exported Y-up by glTF:
