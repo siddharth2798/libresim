@@ -25,7 +25,9 @@ const SLIDERS := {  # key: [label, min, max, step, format]
 
 var _sl := {}
 var _val := {}
-var _preset_btns := {}
+var _weather_row: PresetRow
+var _time_row: PresetRow
+var _wind_row: PresetRow
 var _xwind: Label
 var _month: OptionButton
 var _runways: Array = []
@@ -36,36 +38,20 @@ func _ready() -> void:
 	var rw = Paths.load_json("runways.json")
 	_runways = rw.runways if rw else []
 	var weather := _column("Weather")
-	var grid := GridContainer.new()
-	grid.columns = 2
-	weather.add_child(grid)
-	var g := ButtonGroup.new()
-	for n in Session.WEATHER:
-		var b := Button.new()
-		b.text = n
-		b.toggle_mode = true
-		b.button_group = g
-		b.size_flags_horizontal = SIZE_EXPAND_FILL
-		b.pressed.connect(func():
-			Session.apply_weather_preset(n)
-			_sync())
-		grid.add_child(b)
-		_preset_btns[n] = b
+	_weather_row = PresetRow.new().setup(Session.WEATHER.keys(), 2)
+	_weather_row.picked.connect(func(n):
+		Session.apply_weather_preset(n)
+		_sync())
+	weather.add_child(_weather_row)
 	for k in ["cloud_cover", "cloud_base_ft", "visibility_m", "precip", "turbulence", "qnh_hpa", "temp_c"]:
-		_slider(weather, k, true)
+		_slider(weather, k)
 	weather.add_child(MenuTheme.note("Rain: Broken = passing showers, Overcast = drizzle, Monsoon = heavy rain under a low deck with gusty south-westerlies (and the odd lightning flash). Winter haze = Mumbai's smoggy Dec–Feb mornings."))
 	var time := _column("Time & date")
-	var tg := GridContainer.new()
-	tg.columns = 3
-	time.add_child(tg)
-	for t in TIMES:
-		var b := Button.new()
-		b.text = t[0]
-		b.size_flags_horizontal = SIZE_EXPAND_FILL
-		b.pressed.connect(func(): _put("time_h", preset_time(t[1], float(Session.setup.day_of_year))))
-		tg.add_child(b)
-	_slider(time, "time_h", false)
-	_slider(time, "time_rate", false)
+	_time_row = PresetRow.new().setup(TIMES.map(func(x): return x[0]), 3)
+	_time_row.picked.connect(func(n): _put("time_h", preset_time(_time_value(n), float(Session.setup.day_of_year))))
+	time.add_child(_time_row)
+	_slider(time, "time_h")
+	_slider(time, "time_rate")
 	var mh := HBoxContainer.new()
 	time.add_child(mh)
 	var ml := Label.new()
@@ -79,21 +65,17 @@ func _ready() -> void:
 	mh.add_child(_month)
 	time.add_child(MenuTheme.note("Sun and moon positions are computed for the date and time; 0x freezes the clock."))
 	var wind := _column("Wind")
-	var wg := GridContainer.new()
-	wg.columns = 4
-	wind.add_child(wg)
-	for w in WINDS:
-		var b := Button.new()
-		b.text = w[0]
-		b.size_flags_horizontal = SIZE_EXPAND_FILL
-		b.pressed.connect(func():
-			Session.setup.wind_kt = float(w[1])
-			Session.setup.gust_kt = float(w[2])
-			Session.setup.turbulence = float(w[3])
-			_sync())
-		wg.add_child(b)
+	_wind_row = PresetRow.new().setup(WINDS.map(func(x): return x[0]), 4)
+	_wind_row.picked.connect(func(n):
+		for w in WINDS:
+			if w[0] == n:
+				Session.setup.wind_kt = float(w[1])
+				Session.setup.gust_kt = float(w[2])
+				Session.setup.turbulence = float(w[3])
+		_sync())
+	wind.add_child(_wind_row)
 	for k in ["wind_dir_deg", "wind_kt", "gust_kt"]:
-		_slider(wind, k, false)
+		_slider(wind, k)
 	var xb := Button.new()
 	xb.text = "Make it a 90° crosswind"
 	xb.pressed.connect(func():
@@ -117,6 +99,41 @@ static func preset_time(h: float, day: float) -> float:
 	return snappedf(rs.x if h == -1.0 else rs.y, 1.0 / 12.0)
 
 
+static func _time_value(name: String) -> float:
+	for t in TIMES:
+		if t[0] == name:
+			return t[1]
+	return 12.0
+
+
+## Which preset row entry the values in `s` (a Session.setup) match, or "" for custom values.
+## The highlight is derived from the values, so it can never lie after a slider, a field or
+## a loaded setup changed them. Weather ignores turbulence: the wind presets set it too.
+static func weather_match(s: Dictionary) -> String:
+	for n in Session.WEATHER:
+		var ok := true
+		for k in Session.WEATHER[n]:
+			if k != "turbulence" and absf(float(s[k]) - float(Session.WEATHER[n][k])) > 0.001:
+				ok = false
+		if ok:
+			return n
+	return ""
+
+
+static func time_match(s: Dictionary) -> String:
+	for t in TIMES:
+		if absf(float(s.time_h) - preset_time(t[1], float(s.day_of_year))) < 0.01:
+			return t[0]
+	return ""
+
+
+static func wind_match(s: Dictionary) -> String:
+	for w in WINDS:
+		if absf(float(s.wind_kt) - w[1]) < 0.01 and absf(float(s.gust_kt) - w[2]) < 0.01 and absf(float(s.turbulence) - w[3]) < 0.001:
+			return w[0]
+	return ""
+
+
 func _column(title: String) -> VBoxContainer:
 	var v := VBoxContainer.new()
 	v.size_flags_horizontal = SIZE_EXPAND_FILL
@@ -126,7 +143,7 @@ func _column(title: String) -> VBoxContainer:
 	return v
 
 
-func _slider(parent: Control, key: String, makes_custom: bool) -> void:
+func _slider(parent: Control, key: String) -> void:
 	var d: Array = SLIDERS[key]
 	var hb := HBoxContainer.new()
 	parent.add_child(hb)
@@ -140,10 +157,7 @@ func _slider(parent: Control, key: String, makes_custom: bool) -> void:
 	sl.min_value = d[1]
 	sl.max_value = d[2]
 	sl.step = d[3]
-	sl.value_changed.connect(func(x):
-		if makes_custom:
-			Session.setup.weather = "Custom"
-		_put(key, x))
+	sl.value_changed.connect(func(x): _put(key, x))  # _sync re-derives which preset still matches
 	parent.add_child(sl)
 	_sl[key] = sl
 	_val[key] = v
@@ -175,8 +189,11 @@ func _sync() -> void:
 			"cloud_cover", "turbulence", "precip": _val[k].text = f % int(x * 100.0)
 			"visibility_m": _val[k].text = f % (x / 1000.0)
 			_: _val[k].text = f % int(x)
-	for n in _preset_btns:
-		_preset_btns[n].set_pressed_no_signal(n == s.weather)
+	var wx := weather_match(s)
+	s.weather = wx if wx != "" else "Custom"
+	_weather_row.select(wx)
+	_time_row.select(time_match(s))
+	_wind_row.select(wind_match(s))
 	_month.select(clampi(int((float(s.day_of_year) - 1.0) / 30.4), 0, 11))
 	var h := _runway_heading()
 	if h >= 0.0:

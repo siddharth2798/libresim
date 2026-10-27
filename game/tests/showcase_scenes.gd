@@ -151,6 +151,9 @@ const SCENES := {
 		"setup": {"airport": "VAPO", "runway": "28", "start": "runway", "time_h": 11.0, "visibility_m": 30000.0},
 		"taxi_banner": {}},
 	# The full-screen pause (Esc) over a frozen flight: pause = the page to show (home, options, saves, ...)
+	"start_air": {"menu": "flight", "step": 0, "setup": {"airport": "VAPO", "start": "air", "cold": true}},
+	"start_conditions": {"menu": "flight", "step": 2, "weather": "Broken",
+		"setup": {"time_h": 12.5, "wind_dir_deg": 270.0, "wind_kt": 14.0, "gust_kt": 20.0, "turbulence": 0.3}},
 	"ghats_chase": {"weather": "Fair", "view": "chase",
 		"setup": {"airport": "VAAV", "start": "air", "air_ft": 2200.0, "air_nm": 5.0, "time_h": 17.2, "visibility_m": 25000.0},
 		"fly": {"secs": 6.0, "pitch": 5.0, "throttle": 1.0},

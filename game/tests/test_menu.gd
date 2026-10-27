@@ -188,3 +188,72 @@ func test_menu_other_pages_return_home() -> String:
 			break
 	_close(s)
 	return err
+
+
+func test_menu_cold_and_dark_exists_only_where_it_is_a_choice() -> String:
+	var s := _open()
+	s.go("flight")
+	var p: Control = s.screen("flight").pages[0]
+	var setup: Dictionary = Session.setup
+	var keep := setup.duplicate(true)
+	p._cur = {"stands": [{"ref": "A1"}], "runways": []}  # headless: no airport data may be loaded
+	var err := ""
+	setup.start = "runway"
+	setup.cold = true
+	p._refresh()
+	if not p._cold.visible or not p._cold.button_pressed or p._cold.disabled:
+		err = "runway start: the cold & dark box should be shown, enabled and keep its value"
+	setup.start = "air"
+	p._refresh()
+	if err == "" and (p._cold.visible or setup.cold):
+		err = "air start: no cold & dark control, and cold must be forced off (cold=%s)" % setup.cold
+	if err == "" and p._cold.get_parent().get_children().filter(func(c): return c.visible and c is CheckBox).size() != 0:
+		err = "air start: no check box should take up room"
+	setup.start = "stand"
+	p._refresh()
+	if err == "" and (p._cold.visible or not p._stand_note.visible):
+		err = "stand start: the box is replaced by the always-cold note"
+	setup.start = "runway"
+	p._refresh()
+	if err == "" and (not p._cold.visible or p._stand_note.visible):
+		err = "back on a runway: the box returns and the stand note goes"
+	Session.setup = keep
+	_close(s)
+	return err
+
+
+func test_menu_conditions_highlight_follows_the_values() -> String:
+	var s := _open()
+	s.go("flight")
+	var page: Control = s.screen("flight").pages[2]
+	var setup: Dictionary = Session.setup
+	var keep := setup.duplicate(true)
+	var err := ""
+	setup.day_of_year = 45.0
+	page._time_row.picked.emit("Noon")
+	page._wind_row.picked.emit("Moderate")
+	page._weather_row.picked.emit("Overcast")
+	if page._time_row.selected() != "Noon" or page._wind_row.selected() != "Moderate" or page._weather_row.selected() != "Overcast":
+		err = "clicked presets should be highlighted: %s / %s / %s" % [page._time_row.selected(), page._wind_row.selected(), page._weather_row.selected()]
+	if err == "":  # sliders, the month and the other rows change the values: highlights follow
+		page._sl.time_h.value = 13.0
+		page._sl.gust_kt.value = 21.0
+		page._sl.precip.value = 0.5
+		if page._time_row.selected() != "" or page._wind_row.selected() != "" or page._weather_row.selected() != "" or setup.weather != "Custom":
+			err = "manual values should clear all three highlights (weather=%s)" % setup.weather
+	if err == "":
+		page._time_row.picked.emit("Dawn")
+		page._month.item_selected.emit(5)  # June: sunrise moves, so 'Dawn' no longer matches
+		if page._time_row.selected() != "":
+			err = "Dawn highlight should clear when the month moves sunrise"
+	if err == "":  # leaving and re-entering (or loading a setup) restores the highlights from the values
+		page._time_row.select("")
+		page._wind_row.select("")
+		setup.merge({"time_h": 9.0, "wind_kt": 6.0, "gust_kt": 0.0, "turbulence": 0.1}, true)
+		s.screen("flight").show_step(3)  # leave the page, then come back to it
+		s.screen("flight").show_step(2)
+		if page._time_row.selected() != "Morning" or page._wind_row.selected() != "Light":
+			err = "re-entering should restore Morning / Light, got %s / %s" % [page._time_row.selected(), page._wind_row.selected()]
+	Session.setup = keep
+	_close(s)
+	return err

@@ -16,6 +16,7 @@ var _air_box: Control
 var _alt: SpinBox
 var _dist: SpinBox
 var _cold: CheckBox
+var _stand_note: Label
 var _cur := {}
 
 
@@ -75,6 +76,8 @@ func _ready() -> void:
 	_cold.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_cold.toggled.connect(func(on): _put("cold", on))
 	right.add_child(_cold)
+	_stand_note = MenuTheme.note("Stand starts are always cold & dark with the parking brake set: run the checklists.")
+	right.add_child(_stand_note)
 	right.add_child(MenuTheme.note("Stands come from OpenStreetMap: gates with jetbridges at the big airports, remote bays and GA parking. On the ground: T taxi route + follow-me car, P pushback, ` radio."))
 	_fill_list()
 	var s: Dictionary = Session.setup
@@ -192,8 +195,14 @@ func _refresh() -> void:
 	_mode_btns.stand.disabled = _cur.get("stands", []).is_empty()
 	_stand.visible = s.start == "stand"
 	_air_box.visible = s.start == "air"
-	_cold.disabled = s.start != "runway"  # stands are always cold & dark, air starts never
-	_cold.set_pressed_no_signal(s.start == "stand" or (s.start == "runway" and bool(s.cold)))
+	# Cold & dark is only a choice on a runway: stands are always cold & dark (a note says so)
+	# and air starts never are. The control is removed, not greyed, and an air start never
+	# keeps a stale value.
+	_cold.visible = s.start == "runway"
+	_stand_note.visible = s.start == "stand"
+	if s.start == "air":
+		s.cold = false
+	_cold.set_pressed_no_signal(bool(s.cold))
 	_diagram.start = {}
 	for r in _cur.get("runways", []):
 		for e in r.ends:
