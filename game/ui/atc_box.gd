@@ -27,6 +27,7 @@ var _unit: Label
 var _chip: Label
 var _next: Label
 var _msg: Label
+var _taxi: Label  # tiny reminder of the taxi route / pushback (the banner has faded)
 var _list: VBoxContainer
 var _rows: Array[Button] = []
 var _note: Label
@@ -72,6 +73,7 @@ func _init() -> void:
 	_chip.add_theme_stylebox_override("normal", chip_style)
 	_next = _label(vb, 15, Color(0.58, 0.86, 1.0))
 	_msg = _label(vb, 15, Color(0.78, 0.9, 0.82))
+	_taxi = _label(vb, 13, Color(0.55, 0.85, 0.65))
 	menu = VBoxContainer.new()
 	menu.add_theme_constant_override("separation", 3)
 	menu.mouse_filter = MOUSE_FILTER_IGNORE
@@ -165,7 +167,7 @@ func _row_style(selected: bool) -> StyleBoxFlat:
 	return s
 
 
-## Draw a state. Keys: width, open, history, freq, unit, tone, hint, msg, actions (labels), sel,
+## Draw a state. Keys: width, open, history, freq, unit, tone, hint, msg, taxi (optional), actions (labels), sel,
 ## note, log, can_again, voice, keys.
 func show_model(m: Dictionary) -> void:
 	_open = bool(m.open)
@@ -181,6 +183,8 @@ func show_model(m: Dictionary) -> void:
 	_next.visible = str(m.hint) != "" and (not _open or (not hist and acts.is_empty()))
 	_msg.text = str(m.msg)
 	_msg.visible = not _open and str(m.msg) != ""
+	_taxi.text = str(m.get("taxi", ""))
+	_taxi.visible = not _open and _taxi.text != ""
 	menu.visible = _open
 	mouse_default_cursor_shape = Control.CURSOR_ARROW if _open else Control.CURSOR_POINTING_HAND
 	if _open:

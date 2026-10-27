@@ -4,7 +4,7 @@ extends RefCounted
 ## level with the flight-data bar (home(), bar_width(): the room left of that bar; free flight has
 ## nothing else there). The open radio uses place(): the first of a few screen spots (home, right,
 ## bottom) that does not overlap anything busy, else the one that overlaps least. "Busy" = the
-## fixed regions of the flight-data bar, the notification cards and the taxi/pushback instruction,
+## fixed regions of the flight-data bar and the notification cards (the taxi instruction is one of them),
 ## plus whatever panels are open right now (the 2D instrument-panel pieces, the training card,
 ## the checklist, the moving map).
 
@@ -21,7 +21,6 @@ static func reserved(vp: Vector2) -> Array:
 	return [
 		Rect2(vp.x * 0.5 - 270.0, 4.0, 540.0, 58.0),     # flight-data bar
 		Rect2(vp.x * 0.5 - 225.0, 60.0, 450.0, 250.0),   # notification cards
-		Rect2(vp.x * 0.5 - 262.0, 296.0, 524.0, 90.0),   # taxi / pushback instruction
 	]
 
 

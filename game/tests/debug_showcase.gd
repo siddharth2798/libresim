@@ -143,6 +143,13 @@ func _flight(def: Dictionary) -> void:
 		if d.has("pause"):  # the full-screen pause over the frozen scene (UI/Pause was hidden by _hide_ui)
 			var pm: Control = f.get_node("UI/Pause")
 			pm.visible = false
+		if d.has("checklist"):
+			await _show_checklist(d.checklist)
+		await _wait(2.0)  # camera easing, cloud and shader warm-up
+		print("SETTLED after %.1f s (%s)" % [t, _state()])
+		if d.has("taxi_banner"):  # the taxi instruction right after landing: just issued, then after it faded
+			await _taxi_banner(d.taxi_banner)
+			continue
 			pm.open()
 			pm.show_page(str(d.pause))
 		await _save("" if views.size() == 1 else "_%d" % i)
@@ -308,5 +315,50 @@ func _settle() -> float:
 		quiet = 0.0 if _busy() else quiet + dt
 		await get_tree().process_frame
 	if t >= MAX_SETTLE_S:
+
+
+## Just after landing (the aircraft stands on the runway): ATC gives "taxi to the apron". Saves the
+## screen 1.5 s after the instruction (<scene>_a) and again once it has faded (<scene>_b).
+func _taxi_banner(d: Dictionary) -> void:
+	var atc: Control = f.get_node("UI/Atc")
+	atc.session.c.set_state("landed")
+	if d.get("stack", false):  # the cards that usually come with a landing
+		var notes := get_tree().get_first_node_in_group("notifications") as Notifications
+		notes.post("Touchdown \u00b7 Smooth", "420 fpm \u00b7 1.2 g \u00b7 63 KIAS", Notifications.INFO, "td")
+	var txt: String = f.get_node("GroundOps").request_taxi_to_stand()
+	print("TAXI instruction: ", txt)
+	await _wait(1.5)
+	await _save("_a")
+	await _wait(float(d.get("fade_s", 15.0)))
+	await _save("_b")
+
+
+## The floating checklist (F2) in a given state: {frac: [x, y] (omit = default dock), size: [w, h],
+## opacity, collapsed, list, ticks (items ticked by hand)}.
+func _show_checklist(d: Dictionary) -> void:
+	var old: Control = f.get_node("UI/Checklist")
+	if d.get("legacy", false):  # temporary: the old fixed panel, for before / after shots
+		old.queue_free()
+		old = PanelContainer.new()
+		old.name = "Checklist"
+		old.set_script(load("res://tests/_legacy_checklist.gd"))
+		f.get_node("UI").add_child(old)
+		await _frames(2)
+		old.visible = true
+		return
+	var cl: ChecklistPanel = old
+	cl.persist = false
+	cl.current = int(d.get("list", 0))
+	cl._rebuild()
+	for i in int(d.get("ticks", 0)):
+		cl._manual["%d/%d" % [cl.current, i]] = true
+	cl.visible = true
+	if d.has("frac"):
+		cl.set_placement(Vector2(d.frac[0], d.frac[1]), Vector2(d.size[0], d.size[1]), float(d.get("opacity", 0.9)), bool(d.get("collapsed", false)))
+	else:
+		cl.set_opacity(float(d.get("opacity", 0.9)), false)
+		if d.get("collapsed", false):
+			cl.set_collapsed(true)
+	await _frames(3)
 		push_warning("streaming did not settle in %.0f s" % MAX_SETTLE_S)
 	return t

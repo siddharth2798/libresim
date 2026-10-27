@@ -17,6 +17,7 @@ extends RefCounted
 ##   pause: open the full-screen pause on that page (home | options | settings | controls | saves | failures); keep "Hud" in ui
 ##   cam: [forward, right, up] metres from the aircraft in its heading frame, aim: same frame ("agl": true makes the
 ##   moving map: gps (direct-to ident) or map_route [target, next...]; map_across (nm wide, default = fit), map_heading_up, map_centre_on (ident)
+##   taxi_banner: {stack, fade_s}: ATC gives "taxi to the apron" just after landing; saves <scene>_a (just issued) and <scene>_b (after fading); keep "Hud", "Atc", "Crash"
 ## Order and file names of the final README images are in tools/make_screenshots.sh.
 
 const SCENES := {
@@ -143,6 +144,13 @@ const SCENES := {
 	"map_heading_up": {"weather": "Fair", "view": "chase", "ui": ["Panel"], "map": true, "map_route": ["VAAV", "VAPO"], "map_across": 14.0, "map_heading_up": true,
 		"setup": {"airport": "VANM", "runway": "08", "start": "air", "air_ft": 3500.0, "air_nm": 4.0, "time_h": 10.0},
 		"cam": [-18.0, 11.0, 4.0], "aim": [0.0, 11.0, 0.0], "fov": 60.0},
+	"taxi_banner": {"weather": "Fair", "view": "cockpit", "ui": ["Hud", "Atc", "Crash"],
+		"setup": {"airport": "VAPO", "runway": "28", "start": "runway", "time_h": 11.0, "visibility_m": 30000.0},
+		"taxi_banner": {"stack": true}},
+	"taxi_banner_chase": {"weather": "Fair", "view": "chase", "ui": ["Hud", "Atc", "Crash"],
+		"setup": {"airport": "VAPO", "runway": "28", "start": "runway", "time_h": 11.0, "visibility_m": 30000.0},
+		"taxi_banner": {}},
+	# The full-screen pause (Esc) over a frozen flight: pause = the page to show (home, options, saves, ...)
 	"ghats_chase": {"weather": "Fair", "view": "chase",
 		"setup": {"airport": "VAAV", "start": "air", "air_ft": 2200.0, "air_nm": 5.0, "time_h": 17.2, "visibility_m": 25000.0},
 		"fly": {"secs": 6.0, "pitch": 5.0, "throttle": 1.0},

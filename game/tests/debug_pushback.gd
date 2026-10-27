@@ -14,6 +14,6 @@ func _process(dt):
 		h0 = rad_to_deg(fn.fdm.euler().z); p0 = fn.position_enu()
 		f.get_node("GroundOps").start_pushback()
 	if t > 2.0 and int(t) != int(t - dt) and int(t) % 10 == 0:
-		print("PB t %.0f moved %.1f m heading %.0f -> %.0f  msg: %s" % [t, Vector2(fn.position_enu().x - p0.x, fn.position_enu().y - p0.y).length(), h0, rad_to_deg(fn.fdm.euler().z), f.get_node("GroundOps")._label.text])
+		print("PB t %.0f moved %.1f m heading %.0f -> %.0f  msg: %s" % [t, Vector2(fn.position_enu().x - p0.x, fn.position_enu().y - p0.y).length(), h0, rad_to_deg(fn.fdm.euler().z), f.get_node("GroundOps")._banner.text])
 	if t > 55.0:
 		get_tree().quit()

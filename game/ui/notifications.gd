@@ -144,6 +144,21 @@ func touch(key: String, life: float) -> void:
 			c.t = life
 
 
+## True while a card with this key is on screen.
+func has(key: String) -> bool:
+	for c in _cards:
+		if c.key == key:
+			return true
+	return false
+
+
+## Fade the card with this key out now (dismissed by the player or no longer true).
+func dismiss(key: String) -> void:
+	for c in _cards:
+		if c.key == key:
+			c.t = minf(c.t, 0.4)
+
+
 func _drop(c: Dictionary) -> void:
 	_cards.erase(c)
 	c.panel.queue_free()
