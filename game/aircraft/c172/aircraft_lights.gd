@@ -32,8 +32,9 @@ func build(s: Callable) -> void:
 	_beacon = _point(s.call(Vector3(6.55, 0.0, 2.05)), RED, 1.2, 2.5, Vector3(0, 0.15, 0))  # on the model's BeaconMount (fin top)
 	_strobes.append(_point(s.call(Vector3(1.15, -5.52, 1.5)), STROBE, 1.2, 7.0, Vector3(0.6, 0.4, 0)))
 	_strobes.append(_point(s.call(Vector3(1.15, 5.52, 1.5)), STROBE, 1.2, 7.0, Vector3(-0.6, 0.4, 0)))
-	_lamps.append(_lamp(s.call(Vector3(-0.9, -0.25, 0.1)), 20.0, 900.0, 11.0, 26.0, 9.0))  # landing
-	_lamps.append(_lamp(s.call(Vector3(-0.9, 0.25, 0.1)), 8.0, 300.0, 28.0, 14.0, 14.0))  # taxi
+	# both lamps sit behind the model's landinglightcover (left wing leading edge, local x -3.0..-2.65, y 0.5, z -0.14)
+	_lamps.append(_lamp(s.call(Vector3(0.91, -2.93, 1.48)), 20.0, 900.0, 11.0, 26.0, 9.0))  # landing
+	_lamps.append(_lamp(s.call(Vector3(0.91, -2.77, 1.48)), 8.0, 300.0, 28.0, 14.0, 14.0))  # taxi
 	_fill = OmniLight3D.new()
 	_fill.light_color = Color(0.72, 0.8, 1.0)
 	_fill.omni_range = 26.0
