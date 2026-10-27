@@ -29,7 +29,7 @@ func build(s: Callable) -> void:
 	_nav.append(_point(s.call(Vector3(1.1, -5.5, 1.5)), RED, 1.0, 2.6, Vector3(0.25, 0.1, 0)))
 	_nav.append(_point(s.call(Vector3(1.1, 5.5, 1.5)), GREEN, 1.0, 2.6, Vector3(-0.25, 0.1, 0)))
 	_nav.append(_point(s.call(Vector3(6.6, 0.0, 0.7)), WHITE, 0.9, 1.8, Vector3(0, 0.15, 0.1)))
-	_beacon = _point(s.call(Vector3(6.0, 0.0, 2.1)), RED, 1.2, 2.5, Vector3(0, 0.15, 0))
+	_beacon = _point(s.call(Vector3(6.55, 0.0, 2.05)), RED, 1.2, 2.5, Vector3(0, 0.15, 0))  # on the model's BeaconMount (fin top)
 	_strobes.append(_point(s.call(Vector3(1.15, -5.52, 1.5)), STROBE, 1.2, 7.0, Vector3(0.6, 0.4, 0)))
 	_strobes.append(_point(s.call(Vector3(1.15, 5.52, 1.5)), STROBE, 1.2, 7.0, Vector3(-0.6, 0.4, 0)))
 	_lamps.append(_lamp(s.call(Vector3(-0.9, -0.25, 0.1)), 20.0, 900.0, 11.0, 26.0, 9.0))  # landing

@@ -40,7 +40,7 @@ The sections below describe the individual steps that `run.sh` automates.
 | Godot 4.7.2 (standard build) | already installed at `~/.local/share/godot/`, with a symlink at `~/.local/bin/godot` | see below |
 | Python venv | `python3 -m venv --system-site-packages tools/.venv && tools/.venv/bin/pip install osmium jsbsim mapbox_earcut shapely` | `--system-site-packages` lets it use the apt GDAL bindings |
 | Blender 4.x + AC3D add-on | `sudo apt install blender`; add-on: download https://github.com/NikolaiVChr/Blender-AC3D (branch `4.0`) into `data/raw/fg/addon/` | only to regenerate the aircraft models |
-| Disk | ~1.5 GB raw data + ~0.4 GB processed | |
+| Disk | ~1.5 GB raw data + ~0.4 GB processed (+ 0.18 GB raw / 0.08 GB processed for WorldCover) | |
 
 `~/.local/bin` is **not on your PATH** in this shell. Either run Godot by its full path (`~/.local/bin/godot`) or add this to `~/.bashrc`:
 
@@ -122,6 +122,14 @@ $PY tools/09_runways.py            # -> data/processed/runways.json (merged runw
 $PY tools/10_buildings.py          # -> data/processed/buildings/ 3D building meshes (after 02, 04; roofs from s2.tif / corridor s2_corridor.vrt; skips tiles without heights) ~7 min, 207 MB + 79 MB collision
 $PY tools/11_landclass.py          # -> data/processed/terrain/lc/ land-class masks: water + tree density (after 02-04) ~30 s + 2 min
 $PY tools/12_outer.py              # -> terrain levels 3-6 over OUTER_TOTAL ~980 x 1475 km to Kochi (real 90 m data + filled beyond) ~7 min
+$PY tools/19_worldcover.py        # -> data/processed/terrain/wc/ ESA WorldCover 2021 v200 class tiles (CC BY 4.0), one per lc tile (after 11 and 12; ./run.sh orders it
+                                   #   there). Needs network on the first run: GDAL /vsicurl/ windowed reads of the public COG tiles (no account):
+                                   #   the 80 m overview of 17 three-degree tiles (30 MB) and 90 half-degree cells at 10 m over the level-0/1 tiles
+                                   #   (122 MB) into data/raw/worldcover/ (resumable, existing files kept; --download-only fetches without building).
+                                   #   Codes 0 nodata, 1 tree, 2 shrub, 3 grass, 4 crop, 5 built-up, 6 bare, 7 snow, 8 water, 9 wetland, 10 mangrove,
+                                   #   11 moss. 1758 tiles, 76 MB, ~1 min on 10 cores (+ ~4 min the first download). Re-run with --force to rebuild.
+                                   #   The terrain shader varies the ground per class (parcels, built-up speckle, bare soil, scrub); without wc/ the
+                                   #   ground looks as before. Credit (CC BY 4.0): CREDITS.md, F12 screen, attribution line.
 $PY tools/13_airport_ops.py        # -> data/processed/airport_ops.json: stands, gates, jetbridges, hold points, taxi graph ~35 s
                                    #   (stand_geom/stand_links/stand_remote/airport_stands.py derive airliner stands where OSM maps
                                    #   jet bridges but no stands: Kochi, Kannur. ./run.sh re-runs 13 when 13_airport_ops.py changes;
