@@ -182,6 +182,7 @@ func apply_to_props() -> void:
 	FailureCatalog.clear_all()
 	for k in ["ops/stand", "ops/taxi_route", "controls/gps/target"]:
 		Props.set_v(k, "")
+	Props.set_v("controls/gps/route_next", [])
 
 
 ## One-line summary for the start screen.

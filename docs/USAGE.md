@@ -516,10 +516,13 @@ The panel now carries the right-hand column and radio stack of a real C172S:
   - Range depends on altitude, and terrain line of sight is checked every 0.5 s. Flying low behind the Western Ghats will lose Pune VOR.
   - The radios need avionics power.
 - **ILS:** OurAirports has no ILS data, so `tools/14_ils.py` **generates simulated** localizers and glideslopes for the long runways. Geometry follows the real runway, and the glideslope is 3°. **The frequencies and idents are not real.** The map labels them "simulated".
-- **GPS direct-to:** in the moving map, click any airport or navaid. The GPS line on the stack then shows bearing, distance and ETE.
-- **Moving map (N):**
-  - A north-up satellite map with airports, runways, VORs and NDBs, ILS feathers, your track and the direct-to line.
-  - The mouse wheel zooms.
+- **GPS direct-to and route:** in the moving map, click any airport or navaid for direct-to; Shift+click adds it as a further leg. The GPS line on the stack shows bearing, distance and ETE of the active leg, and the GPS flies to the next leg by itself once you pass within 1 nm of the active waypoint (`avionics/route_plan.gd`; Props `controls/gps/target` is the active waypoint and `controls/gps/route_next` the ones after it).
+- **Moving map (N):** a large overlay (the window minus a 28-unit margin, scaled with UI size) that opens centred on the aircraft, about 20 nm across, or wider if a route is set so that the whole route fits.
+  - **Contents:** satellite imagery (loaded in the background, a coarser tile stands in while a fine one loads, so there are no holes), airports and runways, VOR / NDB, ILS feathers, your track, the aircraft symbol turned to its heading, a north arrow and a scale bar. Labels do not overlap: route names win, then airports, then navaids; heliports show below 15 nm across, navaid names below 140 nm.
+  - **Zoom:** mouse wheel (around the cursor), `+` / `-` (also `=` and the number pad), or the on-screen buttons; 0.3 to 300 nm across, eased. While the map is open `=`, `-` and Num +/- zoom instead of moving the throttle (Page Up / Page Down still do), and the mouse yoke is ignored.
+  - **Pan and follow:** drag with the left button (a click moves under 6 px, so a drag never sets a direct-to). Panning, or zooming at the cursor away from the middle, leaves follow mode; **Space** or the Follow button recentres on the aircraft. **O** (or the button) switches north up / heading up. **G** (Fit route) zooms to show the whole route.
+  - **Route (magenta line):** from the aircraft to the active waypoint in bold, later legs thinner, with a dark outline, direction arrows, a label per leg (magnetic bearing, distance, ETE; ETE uses 90 kt when you are nearly stopped), a diamond with ident and distance along the route at each waypoint, and a ring on the active one. The line updates live as you fly. **Backspace** or the Clear route button cancels the direct-to and the route. The bottom of the map shows the whole route with total distance and ETE. There is no mini map in the cockpit panel.
+  - **Keys:** N open/close, wheel or +/- zoom, Space follow, O orientation, G fit route, Backspace clear route. Tests: `tests/test_map.gd`; screenshots: showcase scenes `map_open`, `map_zoom_in`, `map_zoom_out`, `map_route`, `map_heading_up`.
 
 Default frequencies are COM1 118.10/121.90, NAV1 116.60/113.90, NAV2 108.10/109.30, ADF 381 and squawk 7000. Panel layouts: the Full, Split and Compact layouts include the VORs, ADF and radio stack.
 
