@@ -140,6 +140,7 @@ What is copyright-relevant here: the **data** files and **assets** are copies or
 | fgdata models (4) and 7 sounds | Repository `COPYING` is GPL-2 text and the README says "This project is GPL'd". No per-file version and no per-file author (history was rewritten to a clean history) | listed as GPL-2.0 in `docs/LICENSING.md` | Mostly. See caveat 1. |
 | CC-BY sounds (Morsule, algefaen) | CC-BY (version not stated by the c172p team) | credited | Fine as separate files with attribution. They are not relicensed. |
 | Sentinel-2 imagery, OSM data | CC BY-NC-SA 4.0 / ODbL | not in git (`data/` ignored) | Yes, except the screenshot (caveat 3). |
+| ESA WorldCover 2021 v200 (land-class tiles) | CC BY 4.0 | not in git (`data/` ignored); credited in CREDITS.md, the F12 screen and the attribution line | Yes. No third-party texture assets are used for the per-class ground detail (procedural shader). |
 
 Caveats:
 1. **"Or later" needs a caveat for the whole distribution.** If any bundled fgdata file is GPL-2.0 only, anyone who receives the complete distribution gets it under GPL-2.0, not "or later". fgdata gives no "or later" statement, and `CREDITS.md` currently labels the 7 fgdata sounds "GPL-2.0-or-later" while `docs/LICENSING.md` labels the fgdata models "GPL-2.0". Say in the README: "libresim's own code is GPL-2.0-or-later; bundled FlightGear data files are GPL-2.0 (some or later), so the complete distribution is GPL-2.0."

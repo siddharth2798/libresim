@@ -2,7 +2,7 @@ extends Control
 ## F12: credits & licences (CREDITS.md + the Godot engine's own licence notices),
 ## plus the always-visible map data attribution line required by the data licences.
 
-const ATTRIBUTION := "Imagery: Sentinel-2 cloudless by EOX (Copernicus Sentinel data 2024) CC BY-NC-SA  ·  Elevation: Copernicus DEM © DLR/Airbus  ·  Map data © OpenStreetMap contributors (ODbL)  ·  F12 credits"
+const ATTRIBUTION := "Imagery: Sentinel-2 cloudless by EOX (Copernicus Sentinel data 2024) CC BY-NC-SA  ·  Elevation: Copernicus DEM © DLR/Airbus  ·  Land cover: ESA WorldCover 2021 CC BY 4.0  ·  Map data © OpenStreetMap contributors (ODbL)  ·  F12 credits"
 
 var _panel: PanelContainer
 var _text: RichTextLabel

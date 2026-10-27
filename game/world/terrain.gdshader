@@ -29,6 +29,10 @@ global uniform vec3 sky_top_color;
 global uniform float wetness;       // WeatherFx: wet ground after rain
 global uniform float precip;        // WeatherFx: local rain rate
 uniform sampler2D lc_tex : filter_linear, repeat_disable;  // land class: 255 = water, 1..200 tree density
+// ESA WorldCover class per texel (tools/19_worldcover.py), same source tile / lc_off / lc_scale as lc_tex;
+// 1x1 when absent. Read with texelFetch and blended per class parameter, never filtered as classes.
+uniform sampler2D wc_tex : filter_nearest, repeat_disable;
+#include "res://world/terrain_landcover.gdshaderinc"
 global uniform sampler2D cloud_noise : filter_linear_mipmap, repeat_enable;  // CloudLayer coverage noise
 global uniform vec4 cloud_shadow;   // x cloud base (m), y coverage, z shadow strength
 global uniform vec2 cloud_uv_off;   // noise phase of the pattern frame (wrap base + wind drift)
@@ -94,6 +98,50 @@ vec2 wave_grad(vec2 p, float t) {
 	return g;
 }
 
+// Class-driven ground detail: 30 m tonal blobs, crop parcels with furrows, built-up speckle and
+// slope-following streaks. Each layer fades out before it would alias or shimmer.
+vec3 ground_detail(vec3 col, vec3 wn, vec4 amp, float streak, float k) {
+	if (k <= 0.0) { return col; }
+	float d = v_dist;
+	float blob_k = (1.0 - smoothstep(500.0, 2800.0, d)) * k;
+	if (blob_k > 0.0 && amp.y > 0.0) {
+		float p = fbm(v_en * 0.031 + 5.3) - 0.5;
+		col *= (1.0 + p * 0.24 * amp.y * blob_k) * vec3(1.0 + p * 0.1 * blob_k, 1.0, 1.0 - p * 0.1 * blob_k);
+	}
+	float parcel_k = (1.0 - smoothstep(700.0, 3200.0, d)) * amp.z * k;
+	if (parcel_k > 0.0) {
+		// rectangular field parcels, warped so they are not a grid; each has its own tone and furrows
+		vec2 pp = mat2(vec2(0.94, -0.34), vec2(0.34, 0.94)) * v_en + (vec2(vnoise(v_en * 0.012), vnoise(v_en * 0.012 + 9.1)) - 0.5) * 36.0;
+		vec2 ps = vec2(78.0, 49.0);
+		vec2 cell = floor(pp / ps);
+		float h1 = hash(cell), h2 = hash(cell + 7.7), h3 = hash(cell + 19.1);
+		vec3 tone = mix(vec3(0.82, 1.08, 0.78), vec3(1.18, 1.0, 0.82), smoothstep(0.2, 0.8, h1));  // green crop vs ploughed / dry
+		col *= mix(vec3(1.0), tone * (0.82 + 0.36 * h2), parcel_k);
+		float fk = (1.0 - smoothstep(110.0, 420.0, d)) * amp.z * k;
+		if (fk > 0.0) {
+			vec2 e = min(fract(pp / ps), 1.0 - fract(pp / ps)) * ps;
+			col *= 1.0 - 0.22 * (1.0 - smoothstep(0.0, 1.8, min(e.x, e.y))) * fk;  // bunds between parcels
+			float a = h3 * 3.14159;
+			float fur = sin(dot(v_en, vec2(cos(a), sin(a))) * 6.2832 / (1.8 + 1.6 * h1) + vnoise(v_en * 0.15) * 3.0);
+			col *= 1.0 + fur * 0.085 * fk * step(0.3, h2);
+		}
+	}
+	float block_k = (1.0 - smoothstep(450.0, 1500.0, d)) * amp.w * k;
+	if (block_k > 0.0) {
+		float hb = hash(floor(v_en / 6.5 + vnoise(v_en * 0.08) * 0.6));
+		col *= (1.0 + (hb - 0.5) * 0.26 * block_k + (hash(floor(v_en / 23.0)) - 0.5) * 0.12 * block_k)
+			* mix(vec3(1.0), mix(vec3(0.97, 0.98, 1.03), vec3(1.04, 1.0, 0.95), hb), block_k * 0.8);
+	}
+	float slope = smoothstep(0.04, 0.3, 1.0 - wn.y);
+	if (slope > 0.0 && streak > 0.0) {
+		vec2 dn = normalize(vec2(wn.x, -wn.z) + vec2(1e-4));  // downhill, (east, north)
+		vec2 u = vec2(dot(v_en, vec2(-dn.y, dn.x)), dot(v_en, dn));
+		float sv = vnoise(u * vec2(0.3, 0.03) + 11.0) * 0.55 + mix(0.5, vnoise(u * vec2(1.1, 0.09)), 1.0 - smoothstep(250.0, 900.0, d)) * 0.45;
+		col *= 1.0 + (sv - 0.5) * 0.7 * streak * slope * k * (1.0 - smoothstep(600.0, 3000.0, d));
+	}
+	return col;
+}
+
 void fragment() {
 	vec2 uv = img_off + vec2(UV.x, -UV.y) * img_scale;
 	vec2 lc_uv = lc_off + vec2(UV.x, -UV.y) * lc_scale;
@@ -102,22 +150,47 @@ void fragment() {
 	col = pow(col, vec3(0.85)) * 1.15;
 	float water = smoothstep(0.88, 0.97, texture(lc_tex, lc_uv).r);
 	float land = 1.0 - water;
-	// forest floor: dense tree cover (land class 1..200) darkens and greens the imagery under the canopy
+	// forest floor: dense tree cover (land class 1..200) darkens and greens the imagery under the canopy;
+	// with WorldCover the tree class tint does most of this, so the density term is only a hint
 	float forest = smoothstep(0.1, 0.6, texture(lc_tex, lc_uv).r * 1.275) * land;
-	col = mix(col, col * vec3(0.8, 0.95, 0.72) * 0.85, forest * 0.6);
+	col = mix(col, col * vec3(0.8, 0.95, 0.72) * 0.85, forest * (textureSize(wc_tex, 0).x > 1 ? 0.3 : 0.6));
+	// land cover: class parameters from the 4 texels around the fragment, weights smoothed and the
+	// sampling point warped by noise so 10 m class borders are neither blocky nor straight
+	float cls_k = (1.0 - smoothstep(5000.0, 12000.0, v_dist)) * land;
+	vec3 c_tint = vec3(1.0);
+	float c_desat = 0.0, c_streak = 0.15;
+	vec4 c_amp = vec4(1.0, 0.0, 0.0, 0.0);  // class 0 = the plain ground look
+	ivec2 wsz = textureSize(wc_tex, 0);
+	if (cls_k > 0.0 && wsz.x > 1) {
+		vec2 tc = lc_uv * vec2(wsz) - 0.5 + (vec2(vnoise(v_en * 0.045), vnoise(v_en * 0.045 + 31.7)) - 0.5) * 1.4;
+		ivec2 i0 = ivec2(floor(tc));
+		vec2 f = fract(tc);
+		f = f * f * (3.0 - 2.0 * f);
+		ivec2 hi = wsz - 1;
+		ivec4 cc = ivec4(int(texelFetch(wc_tex, clamp(i0, ivec2(0), hi), 0).r * 255.0 + 0.5),
+			int(texelFetch(wc_tex, clamp(i0 + ivec2(1, 0), ivec2(0), hi), 0).r * 255.0 + 0.5),
+			int(texelFetch(wc_tex, clamp(i0 + ivec2(0, 1), ivec2(0), hi), 0).r * 255.0 + 0.5),
+			int(texelFetch(wc_tex, clamp(i0 + ivec2(1, 1), ivec2(0), hi), 0).r * 255.0 + 0.5));
+		vec4 w = vec4((1.0 - f.x) * (1.0 - f.y), f.x * (1.0 - f.y), (1.0 - f.x) * f.y, f.x * f.y);
+		cls_blend(min(cc, ivec4(11)), w, c_tint, c_desat, c_amp, c_streak);
+	}
+	col = mix(col, vec3(dot(col, vec3(0.299, 0.587, 0.114))), c_desat * cls_k);
+	col *= mix(vec3(1.0), c_tint, cls_k);
 	// macro: slow tonal drift (m-scale to km-scale) so far ground is not a flat smear
 	float macro = fbm(v_en * 0.0011) - 0.5 + 0.6 * (fbm(v_en * 0.011) - 0.5);
 	col *= 1.0 + macro * 0.5 * land * smoothstep(300.0, 2500.0, v_dist);
 	// micro: soft grain and relief within a kilometre
 	float near_k = 1.0 - smoothstep(250.0, 1400.0, v_dist);
+	vec3 wn = (INV_VIEW_MATRIX * vec4(NORMAL, 0.0)).xyz;  // ground normal, render frame (x east, y up)
 	if (near_k > 0.0 && land > 0.0) {
 		vec2 q = v_en * 0.8;
 		float grain = (fbm(q) - 0.5) * 0.5 + (fbm(v_en * 0.15) - 0.5) * 0.9;
-		col *= 1.0 + grain * 0.22 * land * near_k;
+		col *= 1.0 + grain * 0.22 * land * near_k * c_amp.x;
 		vec2 e = vec2(0.6, 0.0);
 		vec2 mg = vec2(fbm(q + e.xy) - fbm(q - e.xy), fbm(q + e.yx) - fbm(q - e.yx));
-		NORMAL = normalize(NORMAL + (VIEW_MATRIX * vec4(-mg.x, 0.0, mg.y, 0.0)).xyz * 0.25 * land * near_k);
+		NORMAL = normalize(NORMAL + (VIEW_MATRIX * vec4(-mg.x, 0.0, mg.y, 0.0)).xyz * 0.25 * land * near_k * (0.5 + 0.5 * c_amp.x));
 	}
+	col = ground_detail(col, wn, c_amp, c_streak, cls_k);
 	// cloud shadows: where the sun's ray to this ground point crosses the cloud layer's coverage noise
 	if (cloud_shadow.z > 0.0 && cloud_sun.y > 0.08) {
 		float t = (cloud_shadow.x + 360.0 - v_alt) / cloud_sun.y;

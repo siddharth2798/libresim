@@ -21,7 +21,8 @@ LOG=data/run.log
 # Order as documented in docs/USAGE.md section 3. 17 patches the terrain tiles of 02/11/12 in
 # place, so it runs after 12, and it reads the stands (13) and terminal outlines (15), so after
 # those; 09 then runs again (runway heights) before 14 and 10; 16 (terminal base height) follows 17.
-PIPELINE=(05 04 02 03 06 09 11 12 13 15 17 09 14 16 10)
+# 19 (ESA WorldCover class tiles, needs network the first time) follows every lc tile writer (11, 12).
+PIPELINE=(05 04 02 03 06 09 11 12 19 13 15 17 09 14 16 10)
 # OUT: first entry is the sentinel used when no stamp exists yet (a dir means "a file in it").
 # IN : files/globs whose change makes the step stale (script + raw data + helper modules).
 # DEP: upstream steps; if one ran this session (or its stamp is newer), this step re-runs.
@@ -43,6 +44,8 @@ OUT[11]="data/processed/terrain/lc/0"
 IN[11]="tools/11_landclass.py data/raw/imagery/s2.tif";  DEP[11]="02 03 04"
 OUT[12]="data/processed/terrain/h/6 data/processed/terrain/img/6 data/processed/terrain/lc/6"
 IN[12]="tools/12_outer.py tools/bc1.py data/raw/imagery/s2_outer.tif";  DEP[12]="02 03 11"
+OUT[19]="data/processed/terrain/wc/0"
+IN[19]="tools/19_worldcover.py";  DEP[19]="11 12"
 OUT[17]="data/processed/terrain/fixups.json"   # airport fixups: levelled sites, apron + stand ground, taxiway ground, no water/trees on airfields
 IN[17]="tools/17_airport_fixups.py tools/airport_fixups_io.py tools/apron_flatten.py";  DEP[17]="02 04 05 11 12 13 15"  # not 09: it re-runs after 17
 OUT[13]="data/processed/airport_ops.json"
@@ -69,6 +72,7 @@ step_14() { $PY tools/14_ils.py; }
 step_15() { $PY tools/15_terminals.py; }
 step_16() { $PY tools/16_terminal_models.py; }
 step_17() { $PY tools/17_airport_fixups.py; }
+step_19() { $PY tools/19_worldcover.py; }
 
 # Raw data (section 2 of docs/USAGE.md)
 DEM30_TILES="N18_00_E072_00 N18_00_E073_00 N18_00_E074_00 N19_00_E072_00 N19_00_E073_00 N19_00_E074_00"

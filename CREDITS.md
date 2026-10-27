@@ -48,6 +48,7 @@ All sounds are real recordings, listed file by file in `game/aircraft/c172/sound
 ### Map data
 - **Satellite imagery:** Sentinel-2 cloudless, https://s2maps.eu, by EOX IT Services GmbH (contains modified Copernicus Sentinel data 2024). Licence: **CC BY-NC-SA 4.0**. libresim's imagery tiles are derived from it and carry the same licence.
 - **Elevation:** Copernicus GLO-30 DEM © DLR e.V. 2010–2014 and © Airbus Defence and Space GmbH 2014–2018, provided under COPERNICUS by the European Union and ESA. Free licence with attribution.
+- **Land cover:** ESA WorldCover 2021 v200 © ESA WorldCover project / Contains modified Copernicus Sentinel data (2021) processed by ESA WorldCover consortium, https://esa-worldcover.org. Licence: **CC BY 4.0** (https://creativecommons.org/licenses/by/4.0/). libresim's land-class tiles (`terrain/wc/`) are a modified (resampled, re-coded) copy; the ground detail drawn per class is procedural.
 - **Map features** (runways, taxiways, roads, buildings, water): © OpenStreetMap contributors, available under the Open Database Licence (ODbL 1.0), https://www.openstreetmap.org/copyright.
 - **Airports, runways, frequencies and navaids:** OurAirports (https://ourairports.com), public domain.
 

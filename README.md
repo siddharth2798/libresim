@@ -7,7 +7,7 @@
 
 A free, offline, realistic Cessna 172 flight simulator for the Mumbai–Pune region, built with Godot 4.
 
-- **Terrain:** real Copernicus 30 m elevation with Sentinel-2 satellite imagery, and runways and taxiways from OpenStreetMap.
+- **Terrain:** real Copernicus 30 m elevation with Sentinel-2 satellite imagery, ESA WorldCover land cover (cropland parcels, built-up, scrub, forest floor) as procedural ground detail, and runways and taxiways from OpenStreetMap.
 - **Flight model:** a JSBSim-derived 6-DOF model validated against the C172S POH by headless test cards.
 - **Aircraft:** the FlightGear c172p 3D model and cockpit, with live, physically modelled instruments.
 - **Simulation:** systems, failures, weather with ridge lift off the Western Ghats, time of day and night lighting.
@@ -39,7 +39,7 @@ Real in-game captures at 1920x1080 on the Ultra graphics preset, nothing edited 
   </tr>
 </table>
 
-Screenshots show Sentinel-2 cloudless imagery by EOX IT Services GmbH (contains modified Copernicus Sentinel data 2024), Copernicus GLO-30 DEM © DLR e.V. and Airbus Defence and Space GmbH, and map data © OpenStreetMap contributors (ODbL); see [CREDITS.md](CREDITS.md). The imagery is licensed for non-commercial use only (CC BY-NC-SA 4.0), so the screenshots follow the same terms (see [docs/LICENSING.md](docs/LICENSING.md)).
+Screenshots show Sentinel-2 cloudless imagery by EOX IT Services GmbH (contains modified Copernicus Sentinel data 2024), Copernicus GLO-30 DEM © DLR e.V. and Airbus Defence and Space GmbH, land cover from ESA WorldCover 2021 v200 © ESA WorldCover project (CC BY 4.0; contains modified Copernicus Sentinel data (2021) processed by ESA WorldCover consortium), and map data © OpenStreetMap contributors (ODbL); see [CREDITS.md](CREDITS.md). The imagery is licensed for non-commercial use only (CC BY-NC-SA 4.0), so the screenshots follow the same terms (see [docs/LICENSING.md](docs/LICENSING.md)).
 
 **Quick start:** double-click **Start libresim** (Linux: `Start libresim.desktop`, macOS: `Start libresim.command`; see [docs/USAGE.md](docs/USAGE.md)). The first time it opens a window that sets everything up; after that it just starts the game. Or from a terminal: `./run.sh` checks and installs the prerequisites (asking before any `sudo`), downloads the data, builds it and opens the game. Re-running it just launches the game. `./run.sh --help` lists the options; details are in [docs/USAGE.md](docs/USAGE.md).
 

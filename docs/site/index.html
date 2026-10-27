@@ -1447,6 +1447,7 @@ flatpak run org.freesim.FreeSim</code></pre><button class="copy" type="button">C
     <tr><td>Elevation, 30 m</td><td>Copernicus GLO-30 DEM (AWS Open Data)</td><td>Copernicus, free with attribution</td></tr>
     <tr><td>Elevation, 90 m (outer ring)</td><td>Copernicus GLO-90 DEM</td><td>Copernicus, free with attribution</td></tr>
     <tr><td>Imagery</td><td>Sentinel-2 cloudless 2024 by EOX (s2maps.eu); 10 m detailed, 20 m corridor, 80 m outer</td><td>CC BY-NC-SA 4.0</td></tr>
+    <tr><td>Land cover classes, 10 m</td><td>ESA WorldCover 2021 v200 (public S3 bucket, windowed reads; <code>19_worldcover.py</code>)</td><td>CC BY 4.0</td></tr>
     <tr><td>Runways, taxiways, roads, buildings, water, stands</td><td>OpenStreetMap via Geofabrik (western and southern zones); Overpass API for Kochi terminals</td><td>ODbL 1.0</td></tr>
     <tr><td>Airports, runway ends, frequencies, navaids</td><td>OurAirports</td><td>Public domain</td></tr>
     <tr><td>Aerodynamics, engine, propeller</td><td>JSBSim c172p, engIO360C, prop_75in2f</td><td>LGPL-2.1</td></tr>
@@ -1469,6 +1470,7 @@ flatpak run org.freesim.FreeSim</code></pre><button class="copy" type="button">C
     <tr><td class="mono">01b</td><td><code>01b_fetch_imagery.sh</code>: Sentinel-2 cloudless imagery, reprojected to the world frame (20–40 min, ~0.5 GB)</td></tr>
     <tr><td class="mono">01c</td><td><code>01c_fetch_outer_imagery.sh</code>: outer-ring imagery at 80 m (~15 min; resumes on re-run)</td></tr>
     <tr><td class="mono">01d</td><td><code>01d_fetch_corridor.py all</code>: corridor GLO-30 + GLO-90, 20 m / 80 m imagery, southern-zone OSM (~40 min, resumable)</td></tr>
+    <tr><td class="mono">19</td><td><code>19_worldcover.py</code>: ESA WorldCover class tiles → <code>terrain/wc/</code> (after 11 and 12; ~150 MB download, ~1 min, 76 MB)</td></tr>
     <tr><td class="mono">02</td><td>Heightmap tiles with runways flattened → <code>terrain/h/</code></td></tr>
     <tr><td class="mono">03</td><td>BC1 <code>.dds</code> imagery tiles → <code>terrain/img/</code> (skips existing tiles)</td></tr>
     <tr><td class="mono">04</td><td>OSM extract: runways, roads, water, buildings → <code>osm/</code> (~6.5 min)</td></tr>
@@ -1731,6 +1733,7 @@ godot --path game -- --airport=VAJJ --fail=vacuum_pump@10 --random-failures --me
     <tr><td>Godot Engine 4.7</td><td>Juan Linietsky, Ariel Manzur and contributors</td><td>MIT</td></tr>
     <tr><td>Satellite imagery</td><td>Sentinel-2 cloudless by EOX IT Services (modified Copernicus Sentinel data 2024)</td><td>CC BY-NC-SA 4.0</td></tr>
     <tr><td>Elevation</td><td>Copernicus GLO-30 / GLO-90 (DLR, Airbus DS; EU and ESA)</td><td>Copernicus, free with attribution</td></tr>
+    <tr><td>Land cover</td><td>ESA WorldCover 2021 v200 © ESA WorldCover project (modified Copernicus Sentinel data 2021)</td><td>CC BY 4.0</td></tr>
     <tr><td>Map features</td><td>© OpenStreetMap contributors</td><td>ODbL 1.0</td></tr>
     <tr><td>Airports and navaids</td><td>OurAirports</td><td>Public domain</td></tr>
   </tbody>

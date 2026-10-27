@@ -20,6 +20,7 @@ libresim's code is **GPL-2.0-or-later** (`LICENSE`). The project also contains o
 | Godot Engine (in exported builds) | binary | MIT plus bundled third-party licences | Copyright and licence notices are shown on the in-game credits screen (F12), taken from `Engine.get_license_text()` and `Engine.get_copyright_info()`; a `licenses/` folder is added to release archives |
 | Sentinel-2 cloudless 2024 imagery | `data/processed/terrain/img` (generated, **not in git**) | CC BY-NC-SA 4.0 | Attribution always visible in the sim (bottom-centre line) and in credits; derived tiles stay under CC BY-NC-SA; **no commercial use** of any package containing them |
 | Copernicus GLO-30 DEM | `data/processed/terrain/h` (generated, not in git) | Copernicus licence (free, attribution) | Attribution visible in the sim and in credits |
+| ESA WorldCover 2021 v200 land cover | `data/raw/worldcover`, `data/processed/terrain/wc` (generated, not in git) | CC BY 4.0 | Credit "ESA WorldCover 2021 v200 © ESA WorldCover project / Contains modified Copernicus Sentinel data (2021) processed by ESA WorldCover consortium" in the credits (F12) and a short line in the bottom-centre attribution; derived class tiles are marked as modified |
 | OpenStreetMap data | `data/processed/osm`, `runways.json` (generated, not in git) | ODbL 1.0 | "© OpenStreetMap contributors" visible in the sim and in credits. A shipped data pack is a derivative database, so it must be offered under ODbL (see below) |
 | OurAirports | `data/processed/airports.json` | Public domain | Credited (courtesy) |
 | Trademarks (Cessna, Skyhawk, MSFS, RFS, FlightGear) | docs only | n/a | Named only factually, with a non-affiliation statement |
@@ -39,5 +40,6 @@ libresim's code is **GPL-2.0-or-later** (`LICENSE`). The project also contains o
    - imagery under CC BY-NC-SA 4.0
    - OSM-derived files under ODbL 1.0, offering the derived database (`osm/`, `runways.json`) under ODbL (shipping them inside the pack counts)
    - the Copernicus DEM notice
+   - the ESA WorldCover credit and CC BY 4.0 notice (`terrain/wc/`, modified data)
 4. **Do not sell, or ship in paid or ad-supported stores, while the 2018+ s2cloudless imagery is included** (NC clause). Alternatives: the 2016 s2cloudless layer (CC BY 4.0) or raw Copernicus Sentinel-2 data (free, including commercial use).
 5. Any new sound or asset must be added to CREDITS.md (and `sounds/SOURCES.md`) at the moment it is added.

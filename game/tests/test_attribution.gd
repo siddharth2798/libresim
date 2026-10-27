@@ -46,7 +46,7 @@ func test_attribution_label_is_inside_the_window() -> String:
 		sv.free()
 		if not Rect2(Vector2.ZERO, Vector2(size)).grow(1.0).encloses(r):
 			return "attribution line at %s is outside the %s window" % [r, size]
-		for needle in ["Sentinel-2", "Copernicus", "OpenStreetMap", "F12 credits"]:
+		for needle in ["Sentinel-2", "Copernicus", "WorldCover", "OpenStreetMap", "F12 credits"]:
 			if not txt.contains(needle):
 				return "attribution text lacks '%s'" % needle
 	return ""

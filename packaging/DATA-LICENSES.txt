@@ -7,6 +7,9 @@ terrain/img/     Satellite imagery tiles derived from Sentinel-2 cloudless (http
 terrain/h/       Heightmap tiles derived from Copernicus GLO-30 and GLO-90 DEM:
                  © DLR e.V. 2010-2014 and © Airbus Defence and Space GmbH 2014-2018,
                  provided under COPERNICUS by the European Union and ESA.
+terrain/wc/      Land-cover class masks derived (resampled, re-coded to 11 classes) from
+                 ESA WorldCover 2021 v200 © ESA WorldCover project / Contains modified Copernicus Sentinel data (2021) processed by ESA WorldCover consortium
+                 (https://esa-worldcover.org). Licence: CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/).
 terrain/lc/      Land-class masks derived from the imagery, DEM and OpenStreetMap data.
 buildings/, runways.json
                  Derived from OpenStreetMap data © OpenStreetMap contributors.
