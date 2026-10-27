@@ -172,6 +172,10 @@ Not determined:
 
 > libresim is not a fork of FlightGear and contains no FlightGear or JSBSim source code. It is a separate simulator written in GDScript on the Godot engine, with its own flight-dynamics integrator, engine, systems, instruments, radios, ATC and world streaming. It does reuse FlightGear-project work as data and assets: the c172p 3D model, cockpit, textures and sounds (GPL-2.0-or-later, by the c172p team) and four fgdata airport models (GPL-2.0), plus JSBSim's c172p aerodynamic, mass and propeller data (LGPL-2.1), which libresim converts to JSON and retunes. By file size most of the repository is those assets; by lines of code essentially none of it is. See [CREDITS.md](CREDITS.md), [docs/PROVENANCE.md](docs/PROVENANCE.md) and [docs/LICENSING.md](docs/LICENSING.md).
 
+## Procedural scenery
+
+The building facades, roofs, rooftop details and hip roofs (`game/world/building.gdshader`, `tools/building_geom.py`) and the tree species, impostor atlas, LOD0 meshes and their shaders (`game/world/tree*.gd`, `tree*.gdshader`) are written from scratch for libresim: no third-party model, texture, sprite or sound is used. Shapes and sprites are generated in code at startup or by the pipeline; the only external input is OpenStreetMap footprints and the Sentinel-2 roof colour already covered above.
+
 ## Reproducing
 
 The counting and similarity scripts were throwaway Python in a scratch directory. To redo the audit: classify `git ls-files` by path (rules in the inventory table), fetch JSBSim `src/**` and the c172p team files named in "Method", and compare as described there. Asset identity is `md5sum` of `game/aircraft/c172/{models,sounds}` and `game/world/models/vehicles` against `third_party/` and the upstream `Sounds/` folders.

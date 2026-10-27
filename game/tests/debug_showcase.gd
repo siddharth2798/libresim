@@ -130,6 +130,8 @@ func _flight(def: Dictionary) -> void:
 		_aim_camera(cam, d)
 		await _wait(float(d.get("wait", 5.0)) if i == 0 else 1.0)
 		var t := await _settle()
+		if d.get("agl", false):
+			_aim_camera(cam, d)  # the ground heights under the camera are known now that the terrain has streamed in
 		if d.get("map", false):
 			await _show_map(d)
 		if d.has("panel"):
@@ -233,7 +235,8 @@ func _aim_camera(cam: CameraRig, def: Dictionary) -> void:
 		var from := Vector3(p.x, p.y, p.z) + Vector3(fwd.x * c[0] + right.x * c[1], fwd.y * c[0] + right.y * c[1], c[2])
 		var to := Vector3(p.x, p.y, p.z) + Vector3(fwd.x * a[0] + right.x * a[1], fwd.y * a[0] + right.y * a[1], a[2])
 		var d := to - from
-		cam.set_mode(CameraRig.Mode.FREE)
+		if cam.mode != CameraRig.Mode.FREE:
+			cam.set_mode(CameraRig.Mode.FREE)
 		cam._free_enu = from
 		cam._look = Vector2(-atan2(d.x, d.y), atan2(d.z, Vector2(d.x, d.y).length()))
 		cam._look_goal = cam._look
@@ -246,6 +249,10 @@ func _aim_camera(cam: CameraRig, def: Dictionary) -> void:
 		_fov = float(def.fov)
 	else:
 		_fov = 0.0
+		if def.get("agl", false):  # cam / aim heights are metres above the ground under each point
+			var cache: TerrainTileCache = f.get_node("Terrain").cache
+			from.z = cache.height_at(from.x, from.y) + c[2]
+			to.z = cache.height_at(to.x, to.y) + a[2]
 	if def.has("dist"):
 		cam._dist = float(def.dist)
 
@@ -275,7 +282,11 @@ func _busy() -> bool:
 
 func _state() -> String:
 	var tr: Trees = f.get_node("Trees")
-	return "terrain nodes %d, tree chunks %d, building tiles %d" % [f.get_node("Terrain").visible_nodes, tr._chunks.size(), f.get_node("Buildings")._tiles.size()]
+	var n_bb := 0
+	for mi in tr._chunks.values():
+		n_bb += mi.multimesh.instance_count if mi != null else 0
+	var lod: TreeLod = tr.get_node("Lod")
+	return "terrain nodes %d, tree chunks %d (%d billboards, %d LOD0 meshes within %.0f m), building tiles %d" % [f.get_node("Terrain").visible_nodes, tr._chunks.size(), n_bb, lod.instance_count(), lod.covered, f.get_node("Buildings")._tiles.size()]
 
 
 ## Waits until the streamers have been idle for QUIET_S in a row; returns the seconds waited.
