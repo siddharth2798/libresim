@@ -69,7 +69,8 @@ func _path(k: Vector2i) -> String:
 func _load(k: Vector2i) -> void:
 	var raw := FileAccess.get_file_as_bytes(_path(k))
 	var b := raw.decompress_dynamic(-1, FileAccess.COMPRESSION_GZIP)
-	if b.size() < 12 or b.slice(0, 4).get_string_from_ascii() != "BLD1":
+	var magic := b.slice(0, 4).get_string_from_ascii() if b.size() >= 12 else ""
+	if magic != "BLD1" and magic != "BLD2":
 		return
 	var nv := b.decode_u32(4)
 	var ni := b.decode_u32(8)
@@ -80,9 +81,18 @@ func _load(k: Vector2i) -> void:
 	o += nv * 12
 	arrays[Mesh.ARRAY_CUSTOM0] = b.slice(o, o + nv * 4)
 	o += nv * 4
+	# BLD2 (tools/building_geom.py) adds CUSTOM1 = wall height, parapet band, rooftop kind; BLD1 tiles get zeros
+	if magic == "BLD2":
+		arrays[Mesh.ARRAY_CUSTOM1] = b.slice(o, o + nv * 4)
+		o += nv * 4
+	else:
+		var z := PackedByteArray()
+		z.resize(nv * 4)
+		arrays[Mesh.ARRAY_CUSTOM1] = z
 	arrays[Mesh.ARRAY_INDEX] = b.slice(o, o + ni * 4).to_int32_array()
 	var mesh := ArrayMesh.new()
-	var fmt := Mesh.ARRAY_CUSTOM_RGBA8_UNORM << Mesh.ARRAY_FORMAT_CUSTOM0_SHIFT
+	var rgba := Mesh.ARRAY_CUSTOM_RGBA8_UNORM
+	var fmt := (rgba << Mesh.ARRAY_FORMAT_CUSTOM0_SHIFT) | (rgba << Mesh.ARRAY_FORMAT_CUSTOM1_SHIFT)
 	mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays, [], {}, fmt)
 	_mutex.lock()
 	_done.append([k, mesh])

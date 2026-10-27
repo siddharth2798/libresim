@@ -15,6 +15,7 @@ extends RefCounted
 ##   variants: several camera tries from one placement (files <scene>_<n>.png), for looking around;
 ##   map_zoom (m per px) and gps (direct-to ident) for the moving map
 ##   pause: open the full-screen pause on that page (home | options | settings | controls | saves | failures); keep "Hud" in ui
+##   cam: [forward, right, up] metres from the aircraft in its heading frame, aim: same frame ("agl": true makes the
 ## Order and file names of the final README images are in tools/make_screenshots.sh.
 
 const SCENES := {
@@ -105,6 +106,27 @@ const SCENES := {
 		"setup": {"airport": "VAPO", "runway": "28", "start": "air", "air_ft": 9500.0, "air_nm": 4.0, "air_kt": 90.0, "time_h": 10.0},
 		"fly": {"secs": 2.0, "pitch": 0.0, "throttle": 0.6},
 		"cam": [-30.0, -12.0, 6.0], "aim": [150.0, 0.0, -30.0], "fov": 65.0},
+	"trees_close": {"weather": "Fair", "view": "chase",
+		"setup": {"airport": "VAAV", "runway": "14", "start": "air", "air_ft": 330.0, "air_nm": 3.0, "time_h": 16.4, "visibility_m": 30000.0},
+		"fly": {"secs": 2.0, "pitch": 0.0, "throttle": 0.6},
+		"cam": [-14.0, -4.0, 3.0], "aim": [60.0, 0.0, -18.0], "fov": 60.0,
+		"agl": true, "variants": [{"cam": [60.0, 0.0, 30.0], "aim": [200.0, 0.0, 8.0], "fov": 60.0},
+			{"cam": [60.0, 0.0, 12.0], "aim": [200.0, 0.0, 9.0], "fov": 60.0},
+			{"cam": [60.0, 0.0, 55.0], "aim": [220.0, 0.0, 6.0], "fov": 60.0}]},
+	"konkan_palms": {"weather": "Fair", "view": "chase",
+		"setup": {"airport": "VOCI", "runway": "09", "start": "air", "air_ft": 400.0, "air_nm": 2.5, "time_h": 16.8, "visibility_m": 30000.0},
+		"fly": {"secs": 2.0, "pitch": 0.0, "throttle": 0.6},
+		"agl": true, "variants": [{"cam": [-20.0, -4.0, 30.0], "aim": [200.0, 0.0, 5.0], "fov": 62.0},
+			{"cam": [60.0, 0.0, 14.0], "aim": [200.0, 0.0, 9.0], "fov": 60.0},
+			{"cam": [60.0, 0.0, 80.0], "aim": [300.0, 0.0, 0.0], "fov": 60.0}]},
+	"city_district": {"weather": "Fair", "view": "chase",
+		"setup": {"airport": "VAJJ", "start": "air", "air_ft": 300.0, "air_nm": 1.5, "time_h": 16.2, "visibility_m": 30000.0},
+		"fly": {"secs": 2.0, "pitch": 0.0, "throttle": 0.6},
+		"cam": [-20.0, -4.0, 4.0], "aim": [120.0, 0.0, -40.0], "fov": 62.0,
+		"agl": true, "variants": [{"cam": [-20.0, -4.0, 105.0], "aim": [120.0, 0.0, 10.0], "fov": 62.0},
+			{"cam": [40.0, 0.0, 35.0], "aim": [140.0, -20.0, 14.0], "fov": 62.0},
+			{"cam": [40.0, 0.0, 9.0], "aim": [140.0, -20.0, 10.0], "fov": 62.0}]},
+	# The taxi instruction after landing (<scene>_a just issued, <scene>_b after it has faded); aircraft on the runway
 	"ghats_chase": {"weather": "Fair", "view": "chase",
 		"setup": {"airport": "VAAV", "start": "air", "air_ft": 2200.0, "air_nm": 5.0, "time_h": 17.2, "visibility_m": 25000.0},
 		"fly": {"secs": 6.0, "pitch": 5.0, "throttle": 1.0},

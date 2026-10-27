@@ -2,7 +2,9 @@ class_name Trees
 extends Node3D
 ## Forests from the land-class mask (tools/11_landclass.py, 1..200 = tree density).
 ## The world is split into CHUNK-metre cells; cells within radius of the camera get
-## a MultiMesh of crossed-quad trees, placed deterministically (same trees every time).
+## a MultiMesh of crossed-quad impostor trees (sprites from the TreeAtlas baked at startup, four
+## species, see TreeSpecies), placed deterministically (same trees every time). Trees within
+## lod_radius of the camera are drawn as real meshes by TreeLod instead (dither swap).
 ## Generation runs on worker threads (TreeSampler reads the data files itself); the main
 ## thread only uploads finished buffers, BUDGET per frame. Hidden above HIDE_AGL.
 
@@ -12,15 +14,32 @@ const HIDE_AGL := 1500.0
 const PX := 10.0  # land-class pixel size (m)
 const BUDGET := 2  # finished chunks turned into MultiMeshes per frame
 const MAX_IN_FLIGHT := 4  # chunks generating on worker threads
-const MAX_TREE_H := 15.0  # tallest tree (TreeSampler.cell_tree)
+const MAX_TREE_H := TreeSpecies.MAX_HEIGHT  # tallest tree of any species
 const COL_CACHE := 12000  # collision cells kept
 
 @export var density_scale := 1.0:  # graphics presets scale this
 	set(v):
 		density_scale = v
 		_col.clear()  # collision trees follow the drawn ones
+		if _lod:
+			_lod.density_scale = v
+			_lod.clear()
 
-var terrain: TerrainQuadtree
+## Radius (m) of the LOD0 meshes around the camera; 0 = none (Low preset).
+var lod_radius := 130.0:
+	set(v):
+		lod_radius = v
+		if _lod:
+			_lod.radius = v
+
+var terrain: TerrainQuadtree:
+	set(t):
+		terrain = t
+		if _lod:
+			_lod.terrain = t
+var _lod: TreeLod
+var _atlas: TreeAtlas
+var _atlas_ready := false
 var _chunks := {}  # Vector2i -> MultiMeshInstance3D (or null = mask not loaded yet)
 var _queue: Array[Vector2i] = []
 var _mesh: ArrayMesh
@@ -37,27 +56,46 @@ var _col := {}  # land cell Vector2i -> collision disc record, or false (no tree
 func _ready() -> void:
 	_mat.shader = preload("res://world/tree.gdshader")
 	_mesh = _crossed_quads()
+	_lod = TreeLod.new()
+	_lod.name = "Lod"
+	_lod.radius = lod_radius
+	_lod.density_scale = density_scale
+	_lod.terrain = terrain
+	add_child(_lod)
+	_atlas = TreeAtlas.new()
+	_atlas.baked.connect(_on_atlas)
+	add_child(_atlas)
 	FloatingOrigin.shifted.connect(func(_d): _reposition())
 
 
+func _on_atlas(albedo: Texture2D, normal: Texture2D) -> void:
+	_mat.set_shader_parameter("atlas_albedo", albedo)
+	_mat.set_shader_parameter("atlas_normal", normal)
+	_atlas_ready = true
+
+
+## Two crossed quads, front faces towards +z / -x, with the plane normal and the tangent along the sprite's x.
 static func _crossed_quads() -> ArrayMesh:
 	var st := SurfaceTool.new()
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)
 	for k in 2:
 		var a := Vector3(0.5, 0, 0) if k == 0 else Vector3(0, 0, 0.5)
+		var nrm := Vector3(0, 0, 1) if k == 0 else Vector3(-1, 0, 0)
 		var v := [-a, a, a + Vector3.UP, -a + Vector3.UP]
 		var uv := [Vector2(0, 1), Vector2(1, 1), Vector2(1, 0), Vector2(0, 0)]
 		for i in [0, 2, 1, 0, 3, 2]:
 			st.set_uv(uv[i])
-			st.set_normal(Vector3.UP)
+			st.set_normal(nrm)
+			st.set_tangent(Plane(a.normalized(), 1.0))
 			st.add_vertex(v[i])
 	return st.commit()
 
 
 func _process(dt: float) -> void:
 	visible = Props.get_f("fdm/agl_m", 0.0) < HIDE_AGL or not Props.has("fdm/agl_m")
-	if terrain == null or not visible:
+	if terrain == null or not visible or not _atlas_ready:
 		return
+	_mat.set_shader_parameter("lod_r", _lod.covered)
 	_mutex.lock()
 	var done := _done.slice(0, BUDGET)
 	_done = _done.slice(BUDGET)
@@ -158,8 +196,8 @@ func _reposition() -> void:
 			_place(_chunks[k], k)
 
 
-## Collision: a vertical cylinder per tree (ObstacleShapes.disc, canopy radius 0.4 x width, top = 0.9 x
-## height), made lazily from the same TreeSampler.cell_tree rule as the drawn trees and cached per
+## Collision: a vertical cylinder per tree (ObstacleShapes.disc, TreeSpecies.hit_radius / hit_top: 0.4 x width and
+## 0.9 x height, less for palms), made lazily from the same TreeSampler.cell_tree rule as the drawn trees and cached per
 ## land cell. Independent of the camera and of which chunks are drawn: it works wherever the
 ## aircraft is, as soon as the land-class mask there has loaded (it loads with the terrain).
 func near(e: float, n: float, r: float, alt_lo: float, out: Array) -> void:
@@ -187,7 +225,9 @@ func _tree_cell(ci: int, cj: int) -> Variant:
 	rec = false
 	if not t.is_empty():
 		var g := terrain.cache.height_at(t[0], t[1])
-		rec = ObstacleShapes.disc(Vector2(t[0], t[1]), t[3] * 0.4, g - 0.3, g + t[2] * 0.9, "trees", true)
+		var sh := TreeSpecies.shape(ci, cj, t[1], g)  # [species, variant, height, width]
+		var sp := int(sh[0])
+		rec = ObstacleShapes.disc(Vector2(t[0], t[1]), TreeSpecies.hit_radius(sp, sh[3]), g - 0.3, g + TreeSpecies.hit_top(sp, sh[2]), "trees", true)
 	if _col.size() > COL_CACHE:
 		_col.clear()
 	_col[k] = rec

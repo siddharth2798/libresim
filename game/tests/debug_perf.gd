@@ -61,6 +61,7 @@ func _ready() -> void:
 	RenderingServer.viewport_set_measure_render_time(_vp, true)
 	process_priority = -100000
 	_sandwich.call_deferred()
+	_late_flags.call_deferred()
 
 
 ## Give every processing node in the flight scene its own priority with a stamp after it.
@@ -165,3 +166,19 @@ func _finish() -> void:
 	for i in mini(8, tops.size()):
 		print("  %-40s %.2f ms/frame" % [tops[i][1], tops[i][0] / 1000.0 / maxf(_frame - 3, 1)])
 	get_tree().quit()
+
+
+## --lod=<m> sets the LOD0 tree radius, --ab alternates it, --nobld hides the buildings, --notrees hides the trees (A/B timing).
+func _late_flags() -> void:
+	await get_tree().create_timer(3.0).timeout
+	for a in OS.get_cmdline_user_args():
+		if a.begins_with("--lod=") and f.get_node("Trees").get("lod_radius") != null:
+			f.get_node("Trees").lod_radius = float(a.substr(6))
+		elif a == "--nobld":
+			f.get_node("Buildings").radius = 0.0
+		elif a == "--notrees":
+			f.get_node("Trees").radius = 0.0
+		elif a == "--ab":  # LOD0 trees off / on every 8 s, from t = 8 (rows of t in [8,16) are off, [16,24) on, ...)
+			for i in 8:
+				f.get_node("Trees").lod_radius = 0.0 if i % 2 == 0 else 150.0
+				await get_tree().create_timer(8.0).timeout

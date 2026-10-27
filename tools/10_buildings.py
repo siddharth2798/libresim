@@ -5,13 +5,16 @@ Input:  data/processed/osm/buildings/<tx>_<ty>.bin (04_osm_extract.py), level-0 
         data/raw/imagery/corridor/s2_corridor.vrt (20 m, Konkan-Kerala corridor tiles).
         Tiles whose level-0 heights do not exist yet are skipped (re-run after 02).
 Output: data/processed/buildings/<tx>_<ty>.bin  (gzip) =
-        b"BLD1", u32 nverts, u32 nidx,
+        b"BLD2", u32 nverts, u32 nidx,
         nverts * f32 xyz  (tile-local render axes: x = east - tile_x0, y = height AMSL, z = -(north - tile_y0)),
-        nverts * u8 rgba  (rgb = roof colour from imagery, a = facade style 0..255),
-        nidx * u32 indices (walls + earcut roofs; flat normals are made in the shader)
+        nverts * u8 rgba  (CUSTOM0: rgb = roof colour from imagery, a = style: pid << 2 | roof type),
+        nverts * u8 rgba  (CUSTOM1: wall height cm lo/hi, parapet band / rooftop kind, wall height fraction),
+        nidx * u32 indices (walls, parapet strip, flat or hipped roofs, rooftop boxes and tanks; flat
+        normals are made in the shader). The vertex layout is documented in building_geom.py.
+        (BLD1 = the old layout without CUSTOM1; the game still reads it.)
 Also data/processed/buildings/<tx>_<ty>.col (gzip): b"COL1", u32 count, then per building
         u16 n, f32 base, f32 top, n * (f32 east, f32 north) world metres -- for collisions.
-Two vertex rings per footprint (ground + roof line), shared between walls and roof.
+Vertex rings per footprint (ground, wall top, parapet inner edge), shared between walls and roof.
 Footprints listed in terminals/landmarks.json (16_terminal_models.py) are skipped in the
 mesh (but kept in .col): those buildings are drawn as landmark terminal models.
 Heights: OSM height / building:levels when tagged, else a deterministic synthetic
@@ -29,6 +32,7 @@ import mapbox_earcut as earcut
 import numpy as np
 from osgeo import gdal
 
+import building_geom as bg
 import common as c
 import osm_regions as R
 
@@ -153,9 +157,9 @@ def build_tile(path):
     img, res = roof_colours(tx, ty)
     npx = img.shape[0] - 1
     x0, y0 = hts.x0, hts.y0
-    pos, col, idx = [], [], []
+    acc = bg.Acc()
     colrec = []
-    nv = 0
+    pitch_prob = 0.3 if (tx, ty) in GRID else 0.75  # tiled hip roofs: common in Konkan / Kerala, rarer in the cities
     for tagged_h, ring in read_tile(path):
         if len(ring) < 3:
             continue
@@ -175,29 +179,18 @@ def build_tile(path):
         if (tx, ty) not in GRID and not rgb.any():  # corridor imagery gap
             rgb = np.array([150, 140, 130])
         style = int((math.sin(cx * 3.1 + cy * 7.7) * 9999.0) % 1.0 * 255)
-        colrec.append(struct.pack("<Hff", n, base, base + h) + ring.astype("<f4").tobytes())
-        if any(lp.contains_point((cx, cy)) for lp in LANDMARKS):
-            continue  # drawn by the landmark terminal model instead (still collides)
-        lx, lz = ring[:, 0] - x0, -(ring[:, 1] - y0)
-        for k in range(n):  # ground ring then roof ring
-            pos.append((lx[k], base, lz[k]))
-        for k in range(n):
-            pos.append((lx[k], base + h, lz[k]))
-        col.extend([(*rgb, style)] * (2 * n))
-        for k in range(n):
-            k2 = (k + 1) % n
-            b0, b1, t0, t1 = nv + k, nv + k2, nv + n + k, nv + n + k2
-            idx.extend((b0, t0, b1, b1, t0, t1))  # clockwise seen from outside (Godot front)
-        tri = earcut.triangulate_float64(ring, np.array([n], np.uint32))
-        for t in range(0, len(tri), 3):  # earcut gives CCW in x/y; flip for Godot
-            idx.extend((nv + n + int(tri[t]), nv + n + int(tri[t + 2]), nv + n + int(tri[t + 1])))
-        nv += 2 * n
-    if nv == 0:
+        rise = 0.0
+        if not any(lp.contains_point((cx, cy)) for lp in LANDMARKS):  # else drawn by the landmark terminal model (still collides)
+            def rnd(k, cx=cx, cy=cy):
+                return (math.sin(cx * 12.9898 + cy * 78.233 + k * 37.719) * 43758.5453) % 1.0
+            rise = bg.add_building(acc, ring, x0, y0, base, h, rgb, style >> 2, rnd, pitch_prob, abs(a))
+        colrec.append(struct.pack("<Hff", n, base, base + h + rise) + ring.astype("<f4").tobytes())
+    if not acc.pos:
         return path.stem, 0, 0
-    p = np.asarray(pos, "<f4")
-    cl = np.asarray(col, np.uint8)
-    ix = np.asarray(idx, "<u4")
-    data = b"BLD1" + struct.pack("<II", len(p), len(ix)) + p.tobytes() + cl.tobytes() + ix.tobytes()
+    p = np.asarray(acc.pos, "<f4")
+    ix = np.asarray(acc.idx, "<u4")
+    data = (b"BLD2" + struct.pack("<II", len(p), len(ix)) + p.tobytes() + np.asarray(acc.c0, np.uint8).tobytes()
+            + np.asarray(acc.c1, np.uint8).tobytes() + ix.tobytes())
     write_atomic(DST / f"{path.stem}.bin", gzip.compress(data, 6))
     cdata = b"COL1" + struct.pack("<I", len(colrec)) + b"".join(colrec)
     write_atomic(DST / f"{path.stem}.col", gzip.compress(cdata, 6))

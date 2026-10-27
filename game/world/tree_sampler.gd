@@ -32,7 +32,8 @@ static func hash3(x: int, y: int, k: int) -> float:
 
 ## THE tree placement rule, shared by rendering (build) and collision (Trees.near), so what is
 ## drawn is what is hit. Land cell (ci, cj) of px metres with land class lc: [] when it has no
-## tree, else [east, north, height m, canopy width m].
+## tree, else [east, north, height m, canopy width m] (the broadleaf size; TreeSpecies.shape gives the
+## species and its real size).
 static func cell_tree(ci: int, cj: int, lc: int, px: float, density: float) -> PackedFloat32Array:
 	if lc <= 0 or lc == 255 or hash3(ci, cj, 1) > lc / 200.0 * 0.8 * density:
 		return PackedFloat32Array()
@@ -43,7 +44,8 @@ static func cell_tree(ci: int, cj: int, lc: int, px: float, density: float) -> P
 
 ## Worker thread. src: land-class source tile (TerrainMeta.tex_source, looked up on the main
 ## thread) and its size in metres. Returns MultiMesh.buffer data (12 xform + 4 custom floats
-## per tree), positions relative to the chunk's SW corner.
+## per tree: custom = tint, species * VARIANTS + variant, tint 2, seed), positions relative to the
+## chunk's SW corner.
 func build(x0: float, y0: float, chunk: float, px: float, src: Vector3i, src_size: float, density: float) -> PackedFloat32Array:
 	var out := PackedFloat32Array()
 	var lc := _lc_bytes(src)
@@ -66,11 +68,12 @@ func build(x0: float, y0: float, chunk: float, px: float, src: Vector3i, src_siz
 			var gi := ci0 + i
 			var gj := cj0 + j
 			var h := height_at(t[0], t[1])
-			var b := Basis(Vector3.UP, hash3(gi, gj, 6) * TAU).scaled(Vector3(t[3], t[2], t[3]))
+			var sh := TreeSpecies.shape(gi, gj, t[1], h)  # [species, variant, height, width]
+			var b := Basis(Vector3.UP, hash3(gi, gj, 6) * TAU).scaled(Vector3(sh[3], sh[2], sh[3]))
 			out.append_array([b.x.x, b.y.x, b.z.x, t[0] - x0,
 				b.x.y, b.y.y, b.z.y, h - 0.3,
 				b.x.z, b.y.z, b.z.z, -(t[1] - y0),
-				hash3(gi, gj, 7), hash3(gi, gj, 8), hash3(gi, gj, 9), hash3(gi, gj, 10)])
+				hash3(gi, gj, 7), sh[0] * TreeSpecies.VARIANTS + sh[1], hash3(gi, gj, 9), hash3(gi, gj, 10)])
 	return out
 
 
