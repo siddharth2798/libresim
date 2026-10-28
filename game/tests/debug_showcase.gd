@@ -140,11 +140,11 @@ func _flight(def: Dictionary) -> void:
 			var pn = f.get_node("UI/Panel")
 			pn.layout = int(d.panel)
 			pn._build()
-		await _wait(2.0)  # camera easing, cloud and shader warm-up
-		print("SETTLED after %.1f s (%s)" % [t, _state()])
 		if d.has("pause"):  # the full-screen pause over the frozen scene (UI/Pause was hidden by _hide_ui)
 			var pm: Control = f.get_node("UI/Pause")
 			pm.visible = false
+			pm.open()
+			pm.show_page(str(d.pause))
 		if d.has("checklist"):
 			await _show_checklist(d.checklist)
 		await _wait(2.0)  # camera easing, cloud and shader warm-up
@@ -152,9 +152,9 @@ func _flight(def: Dictionary) -> void:
 		if d.has("taxi_banner"):  # the taxi instruction right after landing: just issued, then after it faded
 			await _taxi_banner(d.taxi_banner)
 			continue
-			pm.open()
-			pm.show_page(str(d.pause))
 		await _save("" if views.size() == 1 else "_%d" % i)
+
+
 ## Follow-me car scenes: ask for taxi, optionally stand the aircraft m metres along the route (nose along
 ## it, brakes on), put the car ~55 m ahead of it and let it settle (it waits for the aircraft there).
 func _follow_me(d: Dictionary) -> void:
@@ -182,8 +182,6 @@ func _follow_me(d: Dictionary) -> void:
 		print("FOLLOW_ME no car")
 
 
-
-
 func _show_map(d: Dictionary) -> void:
 	var m: Control = f.get_node("UI/Map")
 	m.clip_contents = true  # the map draws imagery tiles past its own edge otherwise
@@ -200,13 +198,13 @@ func _show_map(d: Dictionary) -> void:
 		v["centre_on"] = d.map_centre_on
 	m.apply_view(v)
 	await _wait(1.0)
+	m.wait_imagery()  # tiles load on worker threads
+	await _wait(0.5)
 
 
 func _setup_session(def: Dictionary) -> void:
 	Session.skip_menu = true
 	Session.clean = false
-	m.wait_imagery()  # tiles load on worker threads
-	await _wait(0.5)
 	Session.shot = ""
 	Session.setup = Session.DEFAULT.duplicate(true)
 	Session.end_lesson()
@@ -268,6 +266,8 @@ func _fly(d: Dictionary) -> void:
 ## Free camera at `cam` = [forward, right, up] metres from the aircraft in its heading frame,
 ## aimed at `aim` (same frame); or a cockpit / orbit look = [yaw_deg, pitch_deg].
 func _aim_camera(cam: CameraRig, def: Dictionary) -> void:
+	var p: Vector3 = f.get_node("Fdm").position_enu()
+	var h := Props.get_f("fdm/heading_rad", 0.0)
 	if def.has("frame_vehicle"):  # frame = the ground vehicle of that kind nearest to the aircraft (AirportOps node "<kind>")
 		var best: Node3D = null
 		var bd := INF
@@ -283,8 +283,6 @@ func _aim_camera(cam: CameraRig, def: Dictionary) -> void:
 		var car: FollowMeCar = f.get_node("GroundOps")._follow
 		p = car.world_enu
 		h = car.heading
-	var p: Vector3 = f.get_node("Fdm").position_enu()
-	var h := Props.get_f("fdm/heading_rad", 0.0)
 	var fwd := Vector2(sin(h), cos(h))
 	var right := Vector2(cos(h), -sin(h))
 	if def.has("mode"):  # cockpit | chase | orbit
@@ -294,6 +292,10 @@ func _aim_camera(cam: CameraRig, def: Dictionary) -> void:
 		var a: Array = def.get("aim", [0.0, 0.0, 0.0])
 		var from := Vector3(p.x, p.y, p.z) + Vector3(fwd.x * c[0] + right.x * c[1], fwd.y * c[0] + right.y * c[1], c[2])
 		var to := Vector3(p.x, p.y, p.z) + Vector3(fwd.x * a[0] + right.x * a[1], fwd.y * a[0] + right.y * a[1], a[2])
+		if def.get("agl", false):  # cam / aim heights are metres above the ground under each point
+			var cache: TerrainTileCache = f.get_node("Terrain").cache
+			from.z = cache.height_at(from.x, from.y) + c[2]
+			to.z = cache.height_at(to.x, to.y) + a[2]
 		var d := to - from
 		if cam.mode != CameraRig.Mode.FREE:
 			cam.set_mode(CameraRig.Mode.FREE)
@@ -309,10 +311,6 @@ func _aim_camera(cam: CameraRig, def: Dictionary) -> void:
 		_fov = float(def.fov)
 	else:
 		_fov = 0.0
-		if def.get("agl", false):  # cam / aim heights are metres above the ground under each point
-			var cache: TerrainTileCache = f.get_node("Terrain").cache
-			from.z = cache.height_at(from.x, from.y) + c[2]
-			to.z = cache.height_at(to.x, to.y) + a[2]
 	if def.has("dist"):
 		cam._dist = float(def.dist)
 
@@ -359,6 +357,8 @@ func _settle() -> float:
 		quiet = 0.0 if _busy() else quiet + dt
 		await get_tree().process_frame
 	if t >= MAX_SETTLE_S:
+		push_warning("streaming did not settle in %.0f s" % MAX_SETTLE_S)
+	return t
 
 
 ## Just after landing (the aircraft stands on the runway): ATC gives "taxi to the apron". Saves the

@@ -5,7 +5,8 @@ extends RefCounted
 ##            air_kt, time_h IST, day_of_year, wind_*, visibility_m, precip ...)
 ##   lesson: training lesson id; view: cockpit | chase | orbit | ...
 ##   fly: {secs, pitch, throttle, roll, flaps}: scripted flight before the aircraft is frozen
-##   cam: [forward, right, up] metres from the aircraft in its heading frame, aim: same frame
+##   cam: [forward, right, up] metres from the aircraft in its heading frame, aim: same frame ("agl": true makes the
+##        up values metres above the ground under the camera / aim point)
 ##        (free camera); look: [yaw_deg, pitch_deg] for cockpit / orbit; fov; dist (orbit)
 ##   ui: UI elements to keep ("Hud", "Map", "Panel", "training"); map: show the moving map;
 ##   panel: 2D panel layout index (0 Full, 1 Split, 2 Compact, 3 Minimal, 4 Off)
@@ -13,11 +14,10 @@ extends RefCounted
 ##   prop_deg: fixed propeller angle; lights: {name: bool} cockpit light switches (e.g. strobe);
 ##   pilot_lesson: fly the landing lesson's scripted pilot (fly.landing) without any training UI;
 ##   variants: several camera tries from one placement (files <scene>_<n>.png), for looking around;
-##   map_zoom (m per px) and gps (direct-to ident) for the moving map
-##   pause: open the full-screen pause on that page (home | options | settings | controls | saves | failures); keep "Hud" in ui
-##   cam: [forward, right, up] metres from the aircraft in its heading frame, aim: same frame ("agl": true makes the
 ##   moving map: gps (direct-to ident) or map_route [target, next...]; map_across (nm wide, default = fit), map_heading_up, map_centre_on (ident)
 ##   taxi_banner: {stack, fade_s}: ATC gives "taxi to the apron" just after landing; saves <scene>_a (just issued) and <scene>_b (after fading); keep "Hud", "Atc", "Crash"
+##   checklist: {frac, size, opacity, collapsed, list, ticks}: open the floating checklist window (F2); keep "Panel", "Atc", "Hud" in ui to check overlaps
+##   pause: open the full-screen pause on that page (home | options | settings | controls | saves | failures); keep "Hud" in ui
 ##   follow_me: {on_route_m, secs}: ask for taxi, stand the aircraft on the route, let the follow-me car settle ahead; on_follow: cam / aim in the car's frame;
 ##   frame_vehicle: cam / aim in the frame of the nearest ground vehicle of that kind ("gpu", "fuel_truck", ...)
 ## Order and file names of the final README images are in tools/make_screenshots.sh.
@@ -26,6 +26,9 @@ const SCENES := {
 	"start_home": {"menu": "home"},
 	"start_flight": {"menu": "flight", "step": 0, "weather": "Broken",
 		"setup": {"airport": "VABB", "start": "stand", "time_h": 18.0}},
+	"start_air": {"menu": "flight", "step": 0, "setup": {"airport": "VAPO", "start": "air", "cold": true}},
+	"start_conditions": {"menu": "flight", "step": 2, "weather": "Broken",
+		"setup": {"time_h": 12.5, "wind_dir_deg": 270.0, "wind_kt": 14.0, "gust_kt": 20.0, "turbulence": 0.3}},
 	"vabb_final_golden": {"weather": "Broken", "view": "cockpit", "pilot_lesson": "landing", "prop_deg": 90.0,
 		"setup": {"airport": "VABB", "runway": "27", "start": "air", "air_ft": 350.0, "air_nm": 1.1, "air_kt": 80.0,
 			"time_h": 18.3, "wind_dir_deg": 270.0, "wind_kt": 6.0, "precip": 0.0, "visibility_m": 30000.0},
@@ -34,14 +37,7 @@ const SCENES := {
 		"setup": {"airport": "VAPO", "start": "air", "air_ft": 450.0, "air_nm": 6.0, "time_h": 17.4, "visibility_m": 30000.0},
 		"fly": {"secs": 3.0, "pitch": 0.0, "throttle": 0.6},
 		"cam": [-22.0, -9.0, 5.0], "aim": [60.0, 0.0, -8.0], "fov": 62.0},
-	"chase_close": {"weather": "Fair", "view": "chase",
-		"setup": {"airport": "VAPO", "start": "air", "air_ft": 2500.0, "air_nm": 5.0, "time_h": 16.6, "visibility_m": 30000.0},
-		"fly": {"secs": 3.0, "pitch": 0.0, "throttle": 0.7},
-		"cam": [-8.0, -5.0, 2.2], "aim": [0.5, 0.0, 0.6], "fov": 48.0},
-	"cloud_shadows": {"weather": "Scattered", "view": "chase",
-		"setup": {"airport": "VAPO", "start": "air", "air_ft": 500.0, "air_nm": 6.0, "time_h": 15.0, "visibility_m": 40000.0},
-		"fly": {"secs": 3.0, "pitch": 0.0, "throttle": 0.6},
-		"cam": [-30.0, 0.0, 20.0], "aim": [200.0, 0.0, -20.0], "fov": 70.0},
+	# WorldCover ground splat checks (low altitude, class detail visible)
 	"ground_crops": {"weather": "Fair", "view": "chase",
 		"setup": {"airport": "VANM", "runway": "26", "start": "air", "air_ft": 500.0, "air_nm": 5.0, "time_h": 16.8, "visibility_m": 30000.0},
 		"fly": {"secs": 2.0, "pitch": 0.0, "throttle": 0.6},
@@ -58,27 +54,23 @@ const SCENES := {
 		"setup": {"airport": "VAPO", "runway": "28", "start": "air", "air_ft": 450.0, "air_nm": 8.0, "time_h": 16.8, "visibility_m": 30000.0},
 		"fly": {"secs": 2.0, "pitch": 0.0, "throttle": 0.6},
 		"cam": [-30.0, -6.0, 8.0], "aim": [300.0, 0.0, -40.0], "fov": 65.0},
-	# The full-screen pause (Esc) over a frozen flight: pause = the page to show (home, options, saves, ...)
-	"pause_home": {"weather": "Fair", "view": "chase", "ui": ["Hud"], "pause": "home",
+	"chase_close": {"weather": "Fair", "view": "chase",
 		"setup": {"airport": "VAPO", "start": "air", "air_ft": 2500.0, "air_nm": 5.0, "time_h": 16.6, "visibility_m": 30000.0},
-		"fly": {"secs": 3.0, "pitch": 0.0, "throttle": 0.7}},
-	"pause_options": {"weather": "Fair", "view": "chase", "ui": ["Hud"], "pause": "options",
-		"setup": {"airport": "VAPO", "start": "air", "air_ft": 2500.0, "air_nm": 5.0, "time_h": 16.6, "visibility_m": 30000.0},
-		"fly": {"secs": 3.0, "pitch": 0.0, "throttle": 0.7}},
-	"pause_saves": {"weather": "Fair", "view": "cockpit", "ui": ["Hud"], "pause": "saves",
-		"setup": {"airport": "VAPO", "start": "air", "air_ft": 2500.0, "air_nm": 5.0, "time_h": 16.6, "visibility_m": 30000.0},
-		"fly": {"secs": 3.0, "pitch": 0.0, "throttle": 0.7}},
-	"pause_failures": {"weather": "Fair", "view": "chase", "ui": ["Hud"], "pause": "failures",
-		"setup": {"airport": "VAPO", "start": "air", "air_ft": 2500.0, "air_nm": 5.0, "time_h": 16.6, "visibility_m": 30000.0},
-		"fly": {"secs": 3.0, "pitch": 0.0, "throttle": 0.7}},
-	"pause_weather": {"weather": "Fair", "view": "chase", "ui": ["Hud"], "pause": "settings",
-		"setup": {"airport": "VAPO", "start": "air", "air_ft": 2500.0, "air_nm": 5.0, "time_h": 16.6, "visibility_m": 30000.0},
-		"fly": {"secs": 3.0, "pitch": 0.0, "throttle": 0.7}},
-	"pause_night": {"weather": "Clear", "view": "chase", "ui": ["Hud"], "pause": "controls",
-		"setup": {"airport": "VABB", "runway": "27", "start": "air", "air_ft": 1500.0, "air_nm": 4.0, "time_h": 21.0},
-		"fly": {"secs": 3.0, "pitch": 0.0, "throttle": 0.7}},
-}
-
+		"fly": {"secs": 3.0, "pitch": 0.0, "throttle": 0.7},
+		"cam": [-8.0, -5.0, 2.2], "aim": [0.5, 0.0, 0.6], "fov": 48.0},
+	"cloud_shadows": {"weather": "Scattered", "view": "chase",
+		"setup": {"airport": "VAPO", "start": "air", "air_ft": 500.0, "air_nm": 6.0, "time_h": 15.0, "visibility_m": 40000.0},
+		"fly": {"secs": 3.0, "pitch": 0.0, "throttle": 0.6},
+		"cam": [-30.0, 0.0, 20.0], "aim": [200.0, 0.0, -20.0], "fov": 70.0},
+	"ghats_chase": {"weather": "Fair", "view": "chase",
+		"setup": {"airport": "VAAV", "start": "air", "air_ft": 2200.0, "air_nm": 5.0, "time_h": 17.2, "visibility_m": 25000.0},
+		"fly": {"secs": 6.0, "pitch": 5.0, "throttle": 1.0},
+		"cam": [-26.0, -11.0, 9.0], "aim": [50.0, 0.0, -6.0], "fov": 62.0},
+	"night_approach": {"weather": "Clear", "view": "chase", "pilot_lesson": "landing", "lights": {"strobe": false},
+		"setup": {"airport": "VABB", "runway": "27", "start": "air", "air_ft": 350.0, "air_nm": 1.1, "air_kt": 80.0, "time_h": 20.2},
+		"fly": {"landing": true, "secs": 22.0},
+		"cam": [-18.0, 6.0, 4.0], "aim": [40.0, 0.0, -6.0], "fov": 62.0},
+	# sky / atmosphere checks (analytic scattering, haze matching the horizon, banding)
 	"sky_sunrise": {"weather": "Fair", "view": "chase",
 		"setup": {"airport": "VAPO", "runway": "10", "start": "air", "air_ft": 1500.0, "air_nm": 6.0, "time_h": 7.2, "visibility_m": 30000.0},
 		"fly": {"secs": 3.0, "pitch": 0.0, "throttle": 0.6},
@@ -110,6 +102,37 @@ const SCENES := {
 		"setup": {"airport": "VAPO", "runway": "28", "start": "air", "air_ft": 9500.0, "air_nm": 4.0, "air_kt": 90.0, "time_h": 10.0},
 		"fly": {"secs": 2.0, "pitch": 0.0, "throttle": 0.6},
 		"cam": [-30.0, -12.0, 6.0], "aim": [150.0, 0.0, -30.0], "fov": 65.0},
+	"vabb_terminal": {"weather": "Clear", "view": "orbit",
+		"setup": {"airport": "VABB", "start": "stand", "time_h": 18.95},
+		"cam": [-150.0, 120.0, 90.0], "aim": [40.0, -60.0, 8.0], "fov": 50.0},
+	"voci_stand": {"weather": "Fair", "view": "orbit",
+		"setup": {"airport": "VOCI", "start": "stand", "time_h": 17.7},
+		"cam": [-45.0, 20.0, 18.0], "aim": [25.0, -30.0, 8.0], "fov": 60.0},
+	"monsoon": {"weather": "Monsoon", "view": "cockpit", "pilot_lesson": "landing",
+		"setup": {"airport": "VABB", "runway": "27", "start": "air", "air_ft": 350.0, "air_nm": 1.1, "air_kt": 80.0, "time_h": 15.0},
+		"fly": {"landing": true, "secs": 22.0}},
+	"training_landing": {"lesson": "landing", "view": "cockpit", "ui": ["training", "Hud"],
+		"setup": {"air_ft": 500.0, "air_nm": 1.5},
+		"fly": {"landing": true, "secs": 24.0}},
+	"map_open": {"weather": "Fair", "view": "chase", "ui": ["Panel"], "map": true,
+		"setup": {"airport": "VAPO", "runway": "10", "start": "air", "air_ft": 2500.0, "air_nm": 3.0, "time_h": 10.0},
+		"cam": [-18.0, 11.0, 4.0], "aim": [0.0, 11.0, 0.0], "fov": 60.0},
+	"map_zoom_in": {"weather": "Fair", "view": "chase", "ui": ["Panel"], "map": true, "map_across": 1.2,
+		"setup": {"airport": "VAPO", "runway": "10", "start": "air", "air_ft": 2500.0, "air_nm": 3.0, "time_h": 10.0},
+		"cam": [-18.0, 11.0, 4.0], "aim": [0.0, 11.0, 0.0], "fov": 60.0},
+	"map_zoom_out": {"weather": "Fair", "view": "chase", "ui": ["Panel"], "map": true, "map_across": 160.0,
+		"setup": {"airport": "VAPO", "runway": "10", "start": "air", "air_ft": 2500.0, "air_nm": 3.0, "time_h": 10.0},
+		"cam": [-18.0, 11.0, 4.0], "aim": [0.0, 11.0, 0.0], "fov": 60.0},
+	"map_route": {"weather": "Fair", "view": "chase", "ui": ["Panel"], "map": true, "map_route": ["VAAV", "VAPO", "VABB"],
+		"setup": {"airport": "VANM", "runway": "08", "start": "air", "air_ft": 3500.0, "air_nm": 4.0, "time_h": 10.0},
+		"cam": [-18.0, 11.0, 4.0], "aim": [0.0, 11.0, 0.0], "fov": 60.0},
+	"map_heading_up": {"weather": "Fair", "view": "chase", "ui": ["Panel"], "map": true, "map_route": ["VAAV", "VAPO"], "map_across": 14.0, "map_heading_up": true,
+		"setup": {"airport": "VANM", "runway": "08", "start": "air", "air_ft": 3500.0, "air_nm": 4.0, "time_h": 10.0},
+		"cam": [-18.0, 11.0, 4.0], "aim": [0.0, 11.0, 0.0], "fov": 60.0},
+	"moving_map": {"weather": "Fair", "view": "chase", "ui": ["Panel"], "map": true, "panel": 2, "gps": "VAAV",
+		"setup": {"airport": "VANM", "runway": "08", "start": "air", "air_ft": 3500.0, "air_nm": 4.0, "time_h": 10.0},
+		"cam": [-18.0, 11.0, 4.0], "aim": [0.0, 11.0, 0.0], "fov": 60.0},
+	# Trees and buildings (look: close forest, Konkan palm coast, dense city district)
 	"trees_close": {"weather": "Fair", "view": "chase",
 		"setup": {"airport": "VAAV", "runway": "14", "start": "air", "air_ft": 330.0, "air_nm": 3.0, "time_h": 16.4, "visibility_m": 30000.0},
 		"fly": {"secs": 2.0, "pitch": 0.0, "throttle": 0.6},
@@ -131,21 +154,6 @@ const SCENES := {
 			{"cam": [40.0, 0.0, 35.0], "aim": [140.0, -20.0, 14.0], "fov": 62.0},
 			{"cam": [40.0, 0.0, 9.0], "aim": [140.0, -20.0, 10.0], "fov": 62.0}]},
 	# The taxi instruction after landing (<scene>_a just issued, <scene>_b after it has faded); aircraft on the runway
-	"map_open": {"weather": "Fair", "view": "chase", "ui": ["Panel"], "map": true,
-		"setup": {"airport": "VAPO", "runway": "10", "start": "air", "air_ft": 2500.0, "air_nm": 3.0, "time_h": 10.0},
-		"cam": [-18.0, 11.0, 4.0], "aim": [0.0, 11.0, 0.0], "fov": 60.0},
-	"map_zoom_in": {"weather": "Fair", "view": "chase", "ui": ["Panel"], "map": true, "map_across": 1.2,
-		"setup": {"airport": "VAPO", "runway": "10", "start": "air", "air_ft": 2500.0, "air_nm": 3.0, "time_h": 10.0},
-		"cam": [-18.0, 11.0, 4.0], "aim": [0.0, 11.0, 0.0], "fov": 60.0},
-	"map_zoom_out": {"weather": "Fair", "view": "chase", "ui": ["Panel"], "map": true, "map_across": 160.0,
-		"setup": {"airport": "VAPO", "runway": "10", "start": "air", "air_ft": 2500.0, "air_nm": 3.0, "time_h": 10.0},
-		"cam": [-18.0, 11.0, 4.0], "aim": [0.0, 11.0, 0.0], "fov": 60.0},
-	"map_route": {"weather": "Fair", "view": "chase", "ui": ["Panel"], "map": true, "map_route": ["VAAV", "VAPO", "VABB"],
-		"setup": {"airport": "VANM", "runway": "08", "start": "air", "air_ft": 3500.0, "air_nm": 4.0, "time_h": 10.0},
-		"cam": [-18.0, 11.0, 4.0], "aim": [0.0, 11.0, 0.0], "fov": 60.0},
-	"map_heading_up": {"weather": "Fair", "view": "chase", "ui": ["Panel"], "map": true, "map_route": ["VAAV", "VAPO"], "map_across": 14.0, "map_heading_up": true,
-		"setup": {"airport": "VANM", "runway": "08", "start": "air", "air_ft": 3500.0, "air_nm": 4.0, "time_h": 10.0},
-		"cam": [-18.0, 11.0, 4.0], "aim": [0.0, 11.0, 0.0], "fov": 60.0},
 	"taxi_banner": {"weather": "Fair", "view": "cockpit", "ui": ["Hud", "Atc", "Crash"],
 		"setup": {"airport": "VAPO", "runway": "28", "start": "runway", "time_h": 11.0, "visibility_m": 30000.0},
 		"taxi_banner": {"stack": true}},
@@ -153,9 +161,26 @@ const SCENES := {
 		"setup": {"airport": "VAPO", "runway": "28", "start": "runway", "time_h": 11.0, "visibility_m": 30000.0},
 		"taxi_banner": {}},
 	# The full-screen pause (Esc) over a frozen flight: pause = the page to show (home, options, saves, ...)
-	"start_air": {"menu": "flight", "step": 0, "setup": {"airport": "VAPO", "start": "air", "cold": true}},
-	"start_conditions": {"menu": "flight", "step": 2, "weather": "Broken",
-		"setup": {"time_h": 12.5, "wind_dir_deg": 270.0, "wind_kt": 14.0, "gust_kt": 20.0, "turbulence": 0.3}},
+	"pause_home": {"weather": "Fair", "view": "chase", "ui": ["Hud"], "pause": "home",
+		"setup": {"airport": "VAPO", "start": "air", "air_ft": 2500.0, "air_nm": 5.0, "time_h": 16.6, "visibility_m": 30000.0},
+		"fly": {"secs": 3.0, "pitch": 0.0, "throttle": 0.7}},
+	"pause_options": {"weather": "Fair", "view": "chase", "ui": ["Hud"], "pause": "options",
+		"setup": {"airport": "VAPO", "start": "air", "air_ft": 2500.0, "air_nm": 5.0, "time_h": 16.6, "visibility_m": 30000.0},
+		"fly": {"secs": 3.0, "pitch": 0.0, "throttle": 0.7}},
+	"pause_saves": {"weather": "Fair", "view": "cockpit", "ui": ["Hud"], "pause": "saves",
+		"setup": {"airport": "VAPO", "start": "air", "air_ft": 2500.0, "air_nm": 5.0, "time_h": 16.6, "visibility_m": 30000.0},
+		"fly": {"secs": 3.0, "pitch": 0.0, "throttle": 0.7}},
+	"pause_failures": {"weather": "Fair", "view": "chase", "ui": ["Hud"], "pause": "failures",
+		"setup": {"airport": "VAPO", "start": "air", "air_ft": 2500.0, "air_nm": 5.0, "time_h": 16.6, "visibility_m": 30000.0},
+		"fly": {"secs": 3.0, "pitch": 0.0, "throttle": 0.7}},
+	"pause_weather": {"weather": "Fair", "view": "chase", "ui": ["Hud"], "pause": "settings",
+		"setup": {"airport": "VAPO", "start": "air", "air_ft": 2500.0, "air_nm": 5.0, "time_h": 16.6, "visibility_m": 30000.0},
+		"fly": {"secs": 3.0, "pitch": 0.0, "throttle": 0.7}},
+	"pause_night": {"weather": "Clear", "view": "chase", "ui": ["Hud"], "pause": "controls",
+		"setup": {"airport": "VABB", "runway": "27", "start": "air", "air_ft": 1500.0, "air_nm": 4.0, "time_h": 21.0},
+		"fly": {"secs": 3.0, "pitch": 0.0, "throttle": 0.7}},
+
+	# The floating checklist window (F2) beside the 2D panel and the radio bar; cold-and-dark stand start
 	"checklist_default": {"weather": "Fair", "view": "chase", "ui": ["Hud", "Panel", "Atc", "Checklist"], "panel": 1, "checklist": {"list": 1, "ticks": 2},
 		"setup": {"airport": "VAPO", "start": "stand", "cold": true, "time_h": 16.6, "visibility_m": 30000.0}},
 	"checklist_full_panel": {"weather": "Fair", "view": "chase", "ui": ["Hud", "Panel", "Atc", "Checklist"], "panel": 0, "checklist": {"list": 2, "ticks": 5},
@@ -214,28 +239,3 @@ const SCENES := {
 		"fly": {"secs": 1.0, "pitch": 0.0, "throttle": 0.5},
 		"cam": [-14.0, -4.0, 3.0], "aim": [140.0, 0.0, -20.0], "fov": 66.0},
 }
-
-	"ghats_chase": {"weather": "Fair", "view": "chase",
-		"setup": {"airport": "VAAV", "start": "air", "air_ft": 2200.0, "air_nm": 5.0, "time_h": 17.2, "visibility_m": 25000.0},
-		"fly": {"secs": 6.0, "pitch": 5.0, "throttle": 1.0},
-		"cam": [-26.0, -11.0, 9.0], "aim": [50.0, 0.0, -6.0], "fov": 62.0},
-	"night_approach": {"weather": "Clear", "view": "chase", "pilot_lesson": "landing", "lights": {"strobe": false},
-		"setup": {"airport": "VABB", "runway": "27", "start": "air", "air_ft": 350.0, "air_nm": 1.1, "air_kt": 80.0, "time_h": 20.2},
-		"fly": {"landing": true, "secs": 22.0},
-		"cam": [-18.0, 6.0, 4.0], "aim": [40.0, 0.0, -6.0], "fov": 62.0},
-	"vabb_terminal": {"weather": "Clear", "view": "orbit",
-		"setup": {"airport": "VABB", "start": "stand", "time_h": 18.95},
-		"cam": [-150.0, 120.0, 90.0], "aim": [40.0, -60.0, 8.0], "fov": 50.0},
-	"voci_stand": {"weather": "Fair", "view": "orbit",
-		"setup": {"airport": "VOCI", "start": "stand", "time_h": 17.7},
-		"cam": [-45.0, 20.0, 18.0], "aim": [25.0, -30.0, 8.0], "fov": 60.0},
-	"monsoon": {"weather": "Monsoon", "view": "cockpit", "pilot_lesson": "landing",
-		"setup": {"airport": "VABB", "runway": "27", "start": "air", "air_ft": 350.0, "air_nm": 1.1, "air_kt": 80.0, "time_h": 15.0},
-		"fly": {"landing": true, "secs": 22.0}},
-	"training_landing": {"lesson": "landing", "view": "cockpit", "ui": ["training", "Hud"],
-		"setup": {"air_ft": 500.0, "air_nm": 1.5},
-		"fly": {"landing": true, "secs": 24.0}},
-	"moving_map": {"weather": "Fair", "view": "chase", "ui": ["Panel"], "map": true, "panel": 2, "gps": "VAAV",
-		"setup": {"airport": "VANM", "runway": "08", "start": "air", "air_ft": 3500.0, "air_nm": 4.0, "time_h": 10.0},
-		"cam": [-18.0, 11.0, 4.0], "aim": [0.0, 11.0, 0.0], "fov": 60.0},
-	# Trees and buildings (look: close forest, Konkan palm coast, dense city district)
