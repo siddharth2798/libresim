@@ -137,6 +137,45 @@ func test_vehicles_follow_me_car_shape_and_motion() -> String:
 	return ""
 
 
+## The jetway model must have no coincident faces (cab door drawn on its back wall flickered: z-fighting).
+## Triangle samples (centroid, near each corner) of one that lie on another's plane and inside it.
+func test_vehicles_jetway_has_no_coplanar_faces() -> String:
+	var root: Node = load("res://world/models/vehicles/jetway.glb").instantiate()
+	var tris: Array = []  # [normal, d, [a, b, c]] in model space
+	for mi in root.find_children("*", "MeshInstance3D", true, false):
+		var arr: PackedVector3Array = (mi as MeshInstance3D).mesh.surface_get_arrays(0)[Mesh.ARRAY_VERTEX]
+		var idx: PackedInt32Array = (mi as MeshInstance3D).mesh.surface_get_arrays(0)[Mesh.ARRAY_INDEX]
+		for k in range(0, idx.size(), 3):
+			var v := [arr[idx[k]], arr[idx[k + 1]], arr[idx[k + 2]]]
+			var n: Vector3 = (v[1] - v[0]).cross(v[2] - v[0])
+			if n.length() > 1e-9:
+				n = n.normalized()
+				tris.append([n, n.dot(v[0]), v])
+	root.free()
+	var bad := 0
+	for i in tris.size():
+		var a: Array = tris[i]
+		var c: Vector3 = (a[2][0] + a[2][1] + a[2][2]) / 3.0
+		for j in tris.size():
+			var b: Array = tris[j]
+			if i == j or absf((a[0] as Vector3).dot(b[0])) < 0.9995 or absf(b[0].dot(c) - b[1]) > 0.005:
+				continue
+			if _inside(c, b[2]):
+				bad += 1
+				break
+	if bad > 0:
+		return "%d jetway triangles lie on another triangle's plane (z-fighting)" % bad
+	return ""
+
+
+func _inside(p: Vector3, t: Array) -> bool:
+	var n: Vector3 = (t[1] - t[0]).cross(t[2] - t[0])
+	for k in 3:
+		if n.dot((t[(k + 1) % 3] - t[k]).cross(p - t[k])) < -1e-9:
+			return false
+	return true
+
+
 func _exit_tree() -> void:
 	GroundVehicles.release()
 	FollowMeCar.release()

@@ -14,6 +14,8 @@ These are the **unmodified original files** from FlightGear's base data package,
 The aircraft sounds taken from fgdata (wind, rumble, squeal, rain, avionics fan) are listed in `game/aircraft/c172/sounds/SOURCES.md`; the original WAV files are the shipped files themselves.
 
 ## Conversion
-Each model is converted by `blender -b --factory-startup --python tools/blender/convert_ac.py -- <file.ac> <out.glb>`, which imports the model, flattens the hierarchy and exports glTF. No geometry is changed.
+Each model is converted by `blender -b --factory-startup --python tools/blender/convert_ac.py -- <file.ac> <out.glb>`, which imports the model, flattens the hierarchy and exports glTF.
+
+**Modification (2026-10-29, GPL-2.0 notice):** `jetway.glb` was then post-processed with `tools/.venv/bin/python tools/blender/separate_coplanar_glb.py game/world/models/vehicles/jetway.glb --eps 0.02`. The cab's back wall and its door (`Entrance` mesh) lie in one plane, back to back, and the model's material is double sided, so both surfaces were drawn at the same depth and flickered (z-fighting) as the view changed. The tool moves 37 triangles by 2 cm (or a multiple of it) along their own normals so that no two faces coincide; nothing else is changed. Run it again after any re-conversion; it is idempotent. `tests/test_vehicles.gd` fails if coincident faces come back.
 
 The pushback tug, fire truck and bus originals were removed (2026-10-28): libresim now builds every ground vehicle in code.
