@@ -10,6 +10,8 @@ extends Node
 ## on the windshield it drums harder with airspeed).
 ## One-shots: engine catch / cut, touchdown squeal, switch clicks, levers.
 ## Cockpit view hears everything; outside views hear the engine louder and no clicks.
+## An aircraft whose aircraft.json "audio" has a "layers" list (the A320) uses audio_layers.gd instead and
+## none of the code below (audio_curves.gd has the schema).
 
 ## aircraft.json "audio": "engine" and "wind" override these keys one by one.
 const DEFAULTS := {
@@ -53,6 +55,12 @@ func _ready() -> void:
 	_dir = def.path("sounds")
 	if not _dir.ends_with("/"):
 		_dir += "/"
+	if def.section("audio").has("layers"):  # data-driven layer engine (audio_layers.gd); the c172 code below is not used
+		var layers := AudioLayers.new()
+		add_child(layers)
+		layers.setup(_dir, def.section("audio").layers, def.engine_count())
+		set_process(false)
+		return
 	_eng = _mapping(def, "engine")
 	_wind = _mapping(def, "wind")
 	for n in ["engine-idle", "engine", "engine-crank", "gyro", "wind1", "tires-rolling-asphalt", "rumble",

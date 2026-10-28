@@ -33,7 +33,8 @@ func _init(cfg: Dictionary) -> void:
 			"pos": Vector3(g.pos_m[0], g.pos_m[1], g.pos_m[2]),
 			"k": g.spring_n_per_m, "c": g.damping_n_s_per_m,
 			"mu_s": g.static_friction, "mu_d": g.dynamic_friction, "mu_roll": g.rolling_friction,
-			"steer": deg_to_rad(g.max_steer_deg),
+			"steer": deg_to_rad(g.max_steer_deg), "steer_spec": g.get("steer", {}),
+			"mu_brake": float(g.get("brake_mu", BRAKE_MU)), "retract": bool(g.get("retractable", false)),
 			"brake": {"LEFT": 1, "RIGHT": 2, "BOTH": 3}.get(str(g.get("brake_group", "NONE")).to_upper(), 0),
 		})
 
@@ -71,6 +72,36 @@ func main_wheels() -> Array:
 	return contacts.filter(func(c): return c.wheel and c.steer == 0.0)
 
 
+## Called by FDM.step before compute(): `f` is the FDM (retractable gear, autobrake, nose wheel
+## scheduling read the controls and speeds from it). Nothing to do for fixed gear.
+func prepare(_dt: float, _f: Object) -> void:
+	pass
+
+
+## False: the contact is not there (a retracted leg).
+func _active(_c: Dictionary) -> bool:
+	return true
+
+
+## Nose / tail wheel angle (rad) of a steered wheel.
+func _steer_angle(c: Dictionary) -> float:
+	return c.steer * steer_cmd
+
+
+## Brake demand 0..1 of a wheel's brake group (1 = left pedal, 2 = right, 3 = either).
+func _brake_input(group: int) -> float:
+	match group:
+		1: return brake_left
+		2: return brake_right
+		3: return maxf(brake_left, brake_right)
+	return 0.0
+
+
+## Braking friction coefficient of a wheel at demand b.
+func _mu_braked(c: Dictionary, b: float, _v_long: float) -> float:
+	return lerpf(c.mu_roll, c.mu_brake, b)
+
+
 ## Returns [force_body, moment_body] about the CG.
 ## pos_ned: CG position; v_b, w_b: body velocity & rates; ground_h(n, e) -> height (m, up).
 func compute(mb: MassBalance, r_bn: Basis, pos_ned: Vector3, v_b: Vector3, w_b: Vector3, ground_h: Callable) -> Array:
@@ -79,6 +110,10 @@ func compute(mb: MassBalance, r_bn: Basis, pos_ned: Vector3, v_b: Vector3, w_b: 
 	var r_nb := r_bn.transposed()
 	wow = false
 	for c in contacts:
+		if not _active(c):
+			compression[c.name] = 0.0
+			info[c.name] = {"depth": 0.0}
+			continue
 		var r_b := mb.body_of(c.pos)
 		var p := pos_ned + r_bn * r_b
 		var gd: float = -ground_h.call(p.x, p.y)  # ground "down" coordinate
@@ -96,7 +131,8 @@ func compute(mb: MassBalance, r_bn: Basis, pos_ned: Vector3, v_b: Vector3, w_b: 
 		# wheel heading in the horizontal plane
 		var fwd := r_bn * Vector3(1, 0, 0)
 		if c.wheel and c.steer > 0.0:
-			fwd = r_bn * Vector3(cos(c.steer * steer_cmd), sin(c.steer * steer_cmd), 0.0)
+			var ang := _steer_angle(c)
+			fwd = r_bn * Vector3(cos(ang), sin(ang), 0.0)
 		var f_h := Vector2(fwd.x, fwd.y).normalized()
 		var s_h := Vector2(-f_h.y, f_h.x)
 		var v_long := v_c.x * f_h.x + v_c.y * f_h.y
@@ -105,12 +141,7 @@ func compute(mb: MassBalance, r_bn: Basis, pos_ned: Vector3, v_b: Vector3, w_b: 
 		var mu_long: float = c.mu_roll
 		var mu_lat: float = lerpf(c.mu_s, c.mu_d, clampf(absf(v_lat) / 2.0, 0.0, 1.0))
 		if c.wheel:
-			var b := 0.0
-			match c.brake:
-				1: b = brake_left
-				2: b = brake_right
-				3: b = maxf(brake_left, brake_right)
-			mu_long = lerpf(c.mu_roll, BRAKE_MU, b)
+			mu_long = _mu_braked(c, _brake_input(c.brake), v_long)
 		else:
 			mu_long = c.mu_d
 			mu_lat = c.mu_d

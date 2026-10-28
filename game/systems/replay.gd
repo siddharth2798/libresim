@@ -112,7 +112,7 @@ func take_control() -> void:
 	channels.apply_resume(fr.ch, f)  # levers, engine temperatures, tanks of every unit, trim, flaps
 	if f.damage.crashed:  # taking over before the crash: aircraft as it was then
 		f.damage.reset()
-		f.gear = GearGround.new(f.cfg)
+		f.gear = Gears.make(f.cfg)
 		for u in f.units:
 			u.engine.failed = false
 	buffer.truncate_after(t)

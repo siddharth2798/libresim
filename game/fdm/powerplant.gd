@@ -13,6 +13,7 @@ var starter := false
 var fuel_ok := true
 var failed := false  # catastrophic engine failure
 var partial := false  # partial power loss: rough running at ~55 % power
+var on_ground := false  # weight on wheels (set by FDM.step; turbofan FADEC idle / reverser)
 # outputs
 var max_power := 1.0  # W (piston: rated shaft power; turbine: equivalent, for display scales)
 var max_rpm := 1.0
@@ -36,6 +37,11 @@ func update(_dt: float, _rpm: float, _pressure: float, _temperature: float, _air
 
 ## Put the engine in a running state at this fraction of its max speed (airborne and ground starts).
 func warm_start(_fraction: float) -> void:
+	pass
+
+
+## Jump to the steady state of the current levers (Trim): turbofans with spool tables settle at once.
+func snap(_pressure: float, _temperature: float, _airspeed: float) -> void:
 	pass
 
 

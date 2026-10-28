@@ -91,7 +91,7 @@ static func apply(f: FDM, d: Dictionary) -> void:
 	_put_arrays(f.fcs, d.fcs, OPTIONAL_FCS_KEYS)
 	# damage: start from a repaired aircraft, then re-break what was broken
 	f.damage.reset()
-	f.gear = GearGround.new(f.cfg)
+	f.gear = Gears.make(f.cfg)
 	for k in d.gear:
 		if k in OPTIONAL_GEAR_KEYS:
 			_put(f.gear, {k: d.gear[k]})

@@ -38,6 +38,7 @@ var wind_ned := Vector3.ZERO  # air mass velocity (m/s, NED)
 var tank_feed := PackedFloat64Array()  # share of the fuel flow drawn from each tank (fuel system), sums to 1
 var tank_leak_kgs := PackedFloat64Array()  # kg/s each tank loses to a leak
 var fuel_available := true
+var extra_burn_kgs := 0.0  # fuel burnt outside the engines (APU), kg/s, set by its system
 var time := 0.0
 
 # derived (updated every step)
@@ -65,15 +66,32 @@ func _init(aircraft: AircraftDef = null) -> void:
 	units = PowerUnit.from_config(cfg, def.section("damage").get("prop_hubs_m", []))
 	engine = units[0].engine
 	prop = units[0].thruster
-	gear = GearGround.new(cfg)
-	fcs = FlightControls.new(cfg)
+	gear = Gears.make(cfg)
+	fcs = AirlinerControls.new(cfg) if cfg.controls.flaps is Dictionary else FlightControls.new(cfg)
+	fcs.law = FbwLaw.for_def(def) if fcs is AirlinerControls else null  # aircraft.json "fcs"; null = direct control
 	damage = Damage.new(def)
 	obstacle_collision = ObstacleCollision.new(def)
 	var a: Array = cfg.metrics.aero_ref_pt_m
 	_aero_rp = Vector3(a[0], a[1], a[2])
 	tank_feed.resize(mb.tanks.size())
-	tank_feed.fill(1.0 / maxf(mb.tanks.size(), 1.0))
+	tank_feed = _default_feed()
 	tank_leak_kgs.resize(mb.tanks.size())
+
+
+## Equal share per tank, except fuel-line "pipe" tanks (capacity < 1 % of the total): plumbing, no supply.
+func _default_feed() -> PackedFloat64Array:
+	var feed := PackedFloat64Array()
+	feed.resize(mb.tanks.size())
+	var total := 0.0
+	for t in mb.tanks:
+		total += t.capacity_kg
+	var n := 0
+	for i in feed.size():
+		feed[i] = 0.0 if mb.tanks[i].capacity_kg < 0.01 * total else 1.0
+		n += 1 if feed[i] > 0.0 else 0
+	for i in feed.size():
+		feed[i] = feed[i] / maxf(n, 1.0) if n > 0 else 1.0 / maxf(feed.size(), 1.0)
+	return feed
 
 
 static func euler_to_quat(phi: float, theta: float, psi: float) -> Quaternion:
@@ -105,11 +123,16 @@ func set_airborne(n: float, e: float, alt: float, heading: float, tas: float, pi
 	w_b = Vector3.ZERO
 	_alpha_prev = pitch
 	fcs.settle()
+	fcs.restart_law()
 
 
 ## Trim for steady level flight at the current position/heading (see trim.gd).
 func trim_level(tas: float) -> void:
+	var law := fcs.law  # trim on direct control, then the law continues from the trimmed surfaces
+	fcs.law = null
 	Trim.trim_level(self, tas)
+	fcs.law = law
+	fcs.restart_law()
 
 
 ## Trim for level flight at a calibrated airspeed (iterates TAS; atmosphere and wind as set).
@@ -147,6 +170,7 @@ func set_on_ground(n: float, e: float, heading: float) -> void:
 	v_b = Vector3.ZERO
 	w_b = Vector3.ZERO
 	fcs.settle()
+	fcs.restart_law()
 
 
 func step(dt: float) -> void:
@@ -169,10 +193,15 @@ func step(dt: float) -> void:
 		fcs.flaps_powered = false
 	fcs.bank = euler().x
 	fcs.airborne = not gear.wow
+	_airliner_inputs()
+	gear.prepare(dt, self)
+	if fcs.law != null:
+		fcs.law.update(dt, self)
 	fcs.update(dt)
 	gear.steer_cmd = fcs.yaw
 	var v_induced := 0.0
 	for u in units:
+		u.engine.on_ground = gear.wow
 		u.update(dt, atmo, v_air.x, vt)
 		v_induced += u.thruster.v_induced / units.size()
 
@@ -181,7 +210,8 @@ func step(dt: float) -> void:
 		"vt": vt, "alpha": alpha, "alphadot": _alphadot, "beta": beta, "qbar": qbar,
 		"agl": maxf(agl, 0.0), "rho": atmo.density, "u": v_air.x,
 		"p": w_b.x, "q": w_b.y, "r": w_b.z, "v_induced": v_induced,
-		"elevator": fcs.elevator, "aileron": fcs.aileron, "rudder": fcs.rudder, "flap_deg": fcs.flap_deg})
+		"elevator": fcs.elevator, "aileron": fcs.aileron, "rudder": fcs.rudder, "flap_deg": fcs.flap_deg,
+		"mach": mach, "temperature": atmo.temperature, "ctx": fcs.aero_ctx()})
 	var fw: Vector3 = res[0] * LBF  # (D, Y, L)
 	var ca := cos(alpha); var sa := sin(alpha); var cb := cos(beta); var sb := sin(beta)
 	var f_aero := Vector3(
@@ -198,7 +228,7 @@ func step(dt: float) -> void:
 		var th := u.thruster
 		var po := th.p_factor_offset(v_air.x, v_air.y, v_air.z)
 		var r_eng := mb.body_of(u.pos) + Vector3(0.0, po.x, po.y)
-		var f_u := Vector3(th.thrust, 0.0, 0.0)
+		var f_u := u.thrust_dir * th.thrust
 		f_thr += f_u
 		m_thr += r_eng.cross(f_u) + Vector3(-th.sense * th.torque, 0.0, 0.0)
 		h_prop += th.angular_momentum()
@@ -234,6 +264,21 @@ func step(dt: float) -> void:
 	time += dt
 
 
+## What the airliner controls and gear need from the rest of the FDM (nothing for fixed-gear aircraft).
+func _airliner_inputs() -> void:
+	if not fcs is AirlinerControls:
+		return
+	var vn := velocity_ned()
+	fcs.ground_speed = Vector2(vn.x, vn.y).length()
+	var idle := true
+	for i in units.size():
+		var e := units[i].engine
+		var lever: float = e.lever if e is EngineTurbineFadec else e.throttle
+		fcs.thrust_lever[i] = lever
+		idle = idle and lever <= 0.05
+	fcs.thrust_idle = idle
+
+
 ## All engines' throttle levers to one position (trim, tests).
 func set_throttle(x: float) -> void:
 	for u in units:
@@ -241,7 +286,7 @@ func set_throttle(x: float) -> void:
 
 
 func _burn_fuel(dt: float) -> void:
-	var burn := 0.0
+	var burn := extra_burn_kgs
 	for u in units:
 		burn += u.engine.fuel_flow_kgs
 	burn *= dt

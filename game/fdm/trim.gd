@@ -16,6 +16,8 @@ static func _accel(f: FDM, x: Vector3, tas: float, hdg: float, base: Array) -> V
 	f._alpha_prev = x.x
 	# settle propeller RPM for this throttle/airspeed
 	f.atmo.update(-f.pos_d)
+	for u in f.units:
+		u.settle(f.atmo, tas)
 	for i in 300:
 		for u in f.units:
 			u.update(0.01, f.atmo, tas * cos(x.x), tas)

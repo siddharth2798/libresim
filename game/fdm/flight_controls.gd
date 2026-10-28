@@ -24,6 +24,10 @@ var airborne := false  # set by the FDM each step
 var flaps_powered := true
 var flap_motor_running := false
 var rudder_rigging := 0.0
+## Control law seam (fly-by-wire): an object with update(dt: float, fdm: FDM), called by FDM.step before
+## update(); AirlinerControls then takes its surface commands from the law (fcs.cmd) instead of the
+## direct stick mapping. null = direct control, which is all the C172 has.
+var law: Object = null
 var _rate := {"pitch": INF, "roll": INF, "yaw": INF}  # normalised units per second
 var act_pitch := 0.0  # rate-limited pilot commands (actuator positions, saved in situations)
 var act_roll := 0.0
@@ -44,7 +48,8 @@ func _init(cfg: Dictionary) -> void:
 	for k in ft:
 		_rate[k] = 2.0 / maxf(float(ft[k]), 1e-3)
 	var prev := 0.0
-	for s in cfg.controls.flaps:
+	var flaps: Variant = cfg.controls.flaps
+	for s in (flaps if flaps is Array else []):  # an airliner's flaps are a Dictionary (AirlinerControls)
 		_flap_detents.append(s.deg)
 		_flap_rates.append((s.deg - prev) / s.time_s if s.time_s > 0.0 else 1e3)
 		prev = s.deg
@@ -59,6 +64,12 @@ func settle() -> void:
 	act_pitch = pitch
 	act_roll = roll
 	act_yaw = yaw
+
+
+## A control law with state (FbwLaw) restarts from the current surfaces: after a reset, a trim, a load.
+func restart_law() -> void:
+	if law != null and law.has_method("restart"):
+		law.restart()
 
 
 func update(dt: float) -> void:
@@ -88,6 +99,11 @@ func _wings_level() -> float:
 	var hold := clampf(1.0 - absf(act_roll) * 5.0, 0.0, 1.0)
 	var steep := 1.0 - smoothstep(deg_to_rad(15.0), deg_to_rad(25.0), absf(bank))
 	return -roll_stability * bank * hold * steep
+
+
+## JSBSim-named values the aero model needs from the controls (surface deflections ...): none here.
+func aero_ctx() -> Dictionary:
+	return {}
 
 
 func flap_detents() -> int:
