@@ -1,7 +1,8 @@
 libresim data pack: licences of the generated map data in this folder
 
-terrain/img/     Satellite imagery tiles derived from Sentinel-2 cloudless (https://s2maps.eu)
-                 by EOX IT Services GmbH (contains modified Copernicus Sentinel data 2024).
+terrain/img/     Satellite imagery tiles derived from EOxCloudless / Sentinel-2 cloudless
+                 (https://cloudless.eox.at) by EOX IT Services GmbH
+                 (Contains modified Copernicus Sentinel data 2024).
                  Licence: CC BY-NC-SA 4.0 (https://creativecommons.org/licenses/by-nc-sa/4.0/).
                  These derived tiles are shared under the same licence. NON-COMMERCIAL use only.
 terrain/h/       Heightmap tiles derived from Copernicus GLO-30 and GLO-90 DEM:
