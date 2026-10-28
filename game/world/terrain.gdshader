@@ -142,6 +142,9 @@ vec3 ground_detail(vec3 col, vec3 wn, vec4 amp, float streak, float k) {
 	return col;
 }
 
+#include "res://world/terrain_roads.gdshaderinc"
+#include "res://world/terrain_water.gdshaderinc"
+
 void fragment() {
 	vec2 uv = img_off + vec2(UV.x, -UV.y) * img_scale;
 	vec2 lc_uv = lc_off + vec2(UV.x, -UV.y) * lc_scale;
@@ -149,6 +152,23 @@ void fragment() {
 	// Sentinel-2 mosaics are dark and slightly blue-shifted; lift for daylight.
 	col = pow(col, vec3(0.85)) * 1.15;
 	float water = smoothstep(0.88, 0.97, texture(lc_tex, lc_uv).r);
+	// road / river ribbons from the signed-distance tile (terrain_roads.gdshaderinc): crisp edges whatever the
+	// imagery shows; rivers join the water branch below, roads are painted over the ground further down
+	float ro_e = 8.0, road = 0.0, river = 0.0, bank = 0.0;
+	int ro_cls = 0;
+	float ro_aa = clamp(v_dist * 0.0011, 0.04, 1.6);  // ~ one pixel in metres
+	if (ro_on > 0.5 && v_dist < 3400.0) {
+		ro_fetch(ro_rect.xy + vec2(UV.x, -UV.y) * ro_rect.z, ro_e, ro_cls);
+		float ro_k = 1.0 - smoothstep(1500.0, 3300.0, v_dist);
+		float cover = ro_cls > 0 ? (1.0 - smoothstep(-ro_aa, ro_aa, ro_e)) * ro_k : 0.0;
+		if (ro_cls >= 10) {
+			river = cover * (1.0 - water);
+			bank = (1.0 - smoothstep(0.0, 1.5, ro_e)) * ro_k * (1.0 - cover);
+		} else {
+			road = cover;
+		}
+		water = max(water, river);
+	}
 	float land = 1.0 - water;
 	// forest floor: dense tree cover (land class 1..200) darkens and greens the imagery under the canopy;
 	// with WorldCover the tree class tint does most of this, so the density term is only a hint
@@ -182,15 +202,23 @@ void fragment() {
 	// micro: soft grain and relief within a kilometre
 	float near_k = 1.0 - smoothstep(250.0, 1400.0, v_dist);
 	vec3 wn = (INV_VIEW_MATRIX * vec4(NORMAL, 0.0)).xyz;  // ground normal, render frame (x east, y up)
-	if (near_k > 0.0 && land > 0.0) {
+	if (near_k > 0.0 && land * (1.0 - road) > 0.0) {
 		vec2 q = v_en * 0.8;
 		float grain = (fbm(q) - 0.5) * 0.5 + (fbm(v_en * 0.15) - 0.5) * 0.9;
-		col *= 1.0 + grain * 0.22 * land * near_k * c_amp.x;
+		col *= 1.0 + grain * 0.22 * land * (1.0 - road) * near_k * c_amp.x;
 		vec2 e = vec2(0.6, 0.0);
 		vec2 mg = vec2(fbm(q + e.xy) - fbm(q - e.xy), fbm(q + e.yx) - fbm(q - e.yx));
-		NORMAL = normalize(NORMAL + (VIEW_MATRIX * vec4(-mg.x, 0.0, mg.y, 0.0)).xyz * 0.25 * land * near_k * (0.5 + 0.5 * c_amp.x));
+		NORMAL = normalize(NORMAL + (VIEW_MATRIX * vec4(-mg.x, 0.0, mg.y, 0.0)).xyz * 0.25 * land * (1.0 - 0.8 * road) * near_k * (0.5 + 0.5 * c_amp.x));
 	}
 	col = ground_detail(col, wn, c_amp, c_streak, cls_k);
+	col *= 1.0 - 0.3 * bank;  // wet river bank
+	float rough = 0.95;
+	float spec = 0.1;
+	if (road > 0.0) {
+		col = mix(col, road_surface(ro_cls, ro_e + RO_HW[ro_cls], ro_aa, v_dist, v_en), road);
+		rough = mix(rough, 0.72, road);
+		spec = mix(spec, 0.2, road);
+	}
 	// cloud shadows: where the sun's ray to this ground point crosses the cloud layer's coverage noise
 	if (cloud_shadow.z > 0.0 && cloud_sun.y > 0.08) {
 		float t = (cloud_shadow.x + 360.0 - v_alt) / cloud_sun.y;
@@ -201,21 +229,31 @@ void fragment() {
 			col *= 1.0 - 0.55 * sh * (1.0 - 0.6 * water);
 		}
 	}
-	float rough = 0.95;
-	float spec = 0.1;
 	if (water > 0.0) {
-		vec2 g = wave_grad(v_en, TIME) * 1.4 * (1.0 - smoothstep(150.0, 2500.0, v_dist));
+		vec4 sd4 = texture(sd_tex, lc_uv);
+		float sea = 1.0 - river / max(water, 0.001);  // 0 on river ribbons, which have no shore data
+		float sd_m = sd4.r * 255.0 - 128.0;
+		float chop = mix(0.28, 1.0, smoothstep(0.08, 0.4, sd4.g));  // sheltered water is calmer
+		vec2 g = wave_grad(v_en, TIME) * 1.4 * chop * (1.0 - smoothstep(150.0, 2500.0, v_dist));
 		vec3 nw = normalize(vec3(-g.x, 1.0, g.y));  // render frame: x east, y up, z south
 		vec3 nv = normalize((VIEW_MATRIX * vec4(nw, 0.0)).xyz);
 		float fres = pow(1.0 - clamp(dot(nv, VIEW), 0.0, 1.0), 4.0);
 		vec3 deep = vec3(0.05, 0.13, 0.15);  // Arabian Sea: grey-green-blue
-		vec3 shallow = col * 0.75;  // keep the satellite tint near coasts and creeks
+		vec3 sat = col * 0.75;  // keep the satellite tint near coasts and creeks
+		vec3 base = mix(mix(deep, sat, 0.4), vec3(0.045, 0.085, 0.065), 1.0 - sea);  // green-brown ribbons
+		// shoals: turquoise near the shore (blended with what the imagery shows), deep offshore
+		float shoal = exp(-max(sd_m, 0.0) / 55.0) * sea;
+		base = mix(base, mix(vec3(0.05, 0.26, 0.25), col * 0.9, 0.45), shoal * 0.8);
 		vec3 sky = mix(sky_top_color, fog_color, 0.35);
-		vec3 wcol = mix(mix(deep, shallow, 0.4), sky, clamp(fres * 0.75 + 0.04, 0.0, 0.85));
+		vec3 wcol = mix(base, sky, clamp(fres * 0.75 + 0.04, 0.0, 0.85));
 		col = mix(col, wcol, water);
+		float foam = shore_foam(sd_m, sd4.g, v_en, v_dist, TIME) * sea * water;
+		col = mix(col, vec3(0.92, 0.95, 0.96), foam);
 		NORMAL = normalize(mix(NORMAL, nv, water));
 		rough = mix(rough, 0.06 + 0.14 * precip, water);  // rain roughens the surface
+		rough = mix(rough, 0.75, foam);
 		spec = mix(spec, 0.6, water);
+		spec = mix(spec, 0.15, foam);
 	}
 	// wet ground: darker, glossier, with standing water on flat ground
 	float wet = wetness * (1.0 - water);

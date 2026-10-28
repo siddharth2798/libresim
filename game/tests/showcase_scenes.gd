@@ -197,6 +197,24 @@ const SCENES := {
 			{"cam": [0.0, 16.0, 6.0], "aim": [0.0, 0.0, 1.5], "fov": 60.0}]},
 
 	# Roads, rivers, shore foam and water depth colour (terrain ribbons, tools/20, 21)
+	"coast_juhu": {"weather": "Fair", "view": "chase",
+		"setup": {"airport": "VABB", "runway": "09", "start": "air", "air_ft": 500.0, "air_nm": 1.7, "time_h": 16.0, "visibility_m": 30000.0},
+		"fly": {"secs": 2.0, "pitch": 0.0, "throttle": 0.6},
+		"cam": [-26.0, -10.0, 8.0], "aim": [60.0, 0.0, -10.0], "fov": 66.0},
+	"coast_juhu_low": {"weather": "Fair", "view": "chase",
+		"setup": {"airport": "VABB", "runway": "09", "start": "air", "air_ft": 120.0, "air_nm": 1.45, "time_h": 16.0, "visibility_m": 30000.0},
+		"fly": {"secs": 2.0, "pitch": 0.0, "throttle": 0.5},
+		"cam": [-16.0, -4.0, 2.5], "aim": [120.0, 0.0, -4.0], "fov": 66.0},
+	"coast_kochi": {"weather": "Fair", "view": "chase",
+		"setup": {"airport": "VOCC", "runway": "13", "start": "air", "air_ft": 500.0, "air_nm": 3.0, "time_h": 16.0, "visibility_m": 30000.0},
+		"fly": {"secs": 2.0, "pitch": 0.0, "throttle": 0.6},
+		"cam": [-24.0, -9.0, 6.0], "aim": [80.0, 0.0, -10.0], "fov": 66.0},
+	"roads_low": {"weather": "Fair", "view": "chase",
+		"setup": {"airport": "VANM", "runway": "26", "start": "air", "air_ft": 260.0, "air_nm": 2.0, "time_h": 16.0, "visibility_m": 30000.0},
+		"fly": {"secs": 1.0, "pitch": 0.0, "throttle": 0.5},
+		"cam": [-14.0, -4.0, 3.0], "aim": [140.0, 0.0, -20.0], "fov": 66.0},
+}
+
 	"ghats_chase": {"weather": "Fair", "view": "chase",
 		"setup": {"airport": "VAAV", "start": "air", "air_ft": 2200.0, "air_nm": 5.0, "time_h": 17.2, "visibility_m": 25000.0},
 		"fly": {"secs": 6.0, "pitch": 5.0, "throttle": 1.0},

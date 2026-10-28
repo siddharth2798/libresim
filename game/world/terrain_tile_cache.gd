@@ -1,7 +1,7 @@
 class_name TerrainTileCache
 extends RefCounted
 ## Loads heightmap (.r16), imagery (.dds, BC1), land-class (.r8.gz) and WorldCover
-## class (wc/, .r8.gz, same source tile as lc) tiles on
+## class (wc/, .r8.gz) and shore distance + openness (sd/, .rg8.gz) tiles, both with the same source tile as lc, on
 ## worker threads and turns them into textures on the main thread. Heights and
 ## textures are cached separately: a tile without imagery / land class (flags in
 ## TerrainMeta) shares its nearest ancestor's textures, which are loaded once.
@@ -24,7 +24,7 @@ var h_offset: float
 var levels: Array = []  # TerrainMeta.levels (merged base + regions)
 
 var _h := {}  # Vector3i -> {state, htex, used}
-var _t := {}  # Vector3i -> {state, itex, lctex, lcimg, wctex, used}   (texture source tiles)
+var _t := {}  # Vector3i -> {state, itex, lctex, lcimg, wctex, sdtex, used}   (texture source tiles)
 var _tiles := {}  # Vector3i -> composite {htex, itex, lctex, wctex, img_src, lc_src, used, ents}
 var _tasks := {}  # Vector4i(kind, level, tx, ty) -> WorkerThreadPool task id
 var _done: Array = []  # [kind, key, Image a, Image b]
@@ -35,6 +35,7 @@ var _now := 0  # ms, stamped once per process(); entry 'used' times use it
 var _fallback_img: ImageTexture
 var _fallback_lc: ImageTexture
 var _fallback_wc: ImageTexture  # 1x1 class 0: the shader's per-class ground detail does nothing
+var _fallback_sd: ImageTexture  # 1x1 deep (+127 m) and open: no shore foam, open-sea waves
 
 
 func _init() -> void:
@@ -49,6 +50,9 @@ func _init() -> void:
 	var lci := Image.create(4, 4, false, Image.FORMAT_R8)
 	_fallback_lc = ImageTexture.create_from_image(lci)
 	_fallback_wc = ImageTexture.create_from_image(Image.create(1, 1, false, Image.FORMAT_R8))
+	var sdi := Image.create(1, 1, false, Image.FORMAT_RG8)
+	sdi.fill(Color(1, 1, 0))
+	_fallback_sd = ImageTexture.create_from_image(sdi)
 
 
 func level_size(level: int) -> float:
@@ -63,7 +67,7 @@ func min_max(level: int, tx: int, ty: int) -> Vector2:
 	return tmeta.min_max(level, tx, ty)
 
 
-## Returns {htex, itex, lctex, wctex, img_src, lc_src} once the tile's heights and its
+## Returns {htex, itex, lctex, wctex, sdtex, img_src, lc_src} once the tile's heights and its
 ## (possibly borrowed) textures are ready; otherwise starts loading and returns {}.
 func get_tile(level: int, tx: int, ty: int) -> Dictionary:
 	var key := Vector3i(level, tx, ty)
@@ -87,6 +91,7 @@ func get_tile(level: int, tx: int, ty: int) -> Dictionary:
 	c = {"htex": h.htex, "itex": ti.itex if ti != null and ti.itex else _fallback_img,
 		"lctex": tl.lctex if tl != null and tl.lctex else _fallback_lc,
 		"wctex": tl.wctex if tl != null and tl.wctex else _fallback_wc,
+		"sdtex": tl.sdtex if tl != null and tl.sdtex else _fallback_sd,
 		"img_src": isrc, "lc_src": lsrc, "used": _now, "ents": ents}
 	_tiles[key] = c
 	return c
@@ -138,7 +143,13 @@ func _load_t(key: Vector3i, fl: int) -> void:
 		var wb := FileAccess.get_file_as_bytes(wcp).decompress_dynamic(-1, FileAccess.COMPRESSION_GZIP)
 		if wb.size() == IMG_N * IMG_N:
 			wc = Image.create_from_data(IMG_N, IMG_N, false, Image.FORMAT_R8, wb)
-	_finish([1, key, img, lc, wc])
+	var sd: Image = null
+	var sdp := Paths.data(base % ["sd", key.x, key.y, key.z] + ".rg8.gz")
+	if fl & TerrainMeta.HAS_LC and FileAccess.file_exists(sdp):
+		var sb := FileAccess.get_file_as_bytes(sdp).decompress_dynamic(-1, FileAccess.COMPRESSION_GZIP)
+		if sb.size() == IMG_N * IMG_N * 2:
+			sd = Image.create_from_data(IMG_N, IMG_N, false, Image.FORMAT_RG8, sb)
+	_finish([1, key, img, lc, wc, sd])
 
 
 func _finish(item: Array) -> void:
@@ -170,6 +181,7 @@ func process() -> int:
 			e.lctex = ImageTexture.create_from_image(item[3]) if item[3] else null
 			e.lcimg = item[3]  # CPU copy for landclass_at()
 			e.wctex = ImageTexture.create_from_image(item[4]) if item[4] else null
+			e.sdtex = ImageTexture.create_from_image(item[5]) if item[5] else null
 		e.state = 1
 	if _frame % 60 == 0:
 		for store in [_h, _t, _tiles]:
