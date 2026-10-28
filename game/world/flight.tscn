@@ -1,4 +1,4 @@
-[gd_scene load_steps=55 format=3]
+[gd_scene load_steps=56 format=3]
 
 [ext_resource type="Script" path="res://world/flight.gd" id="1"]
 [ext_resource type="Script" path="res://world/terrain_quadtree.gd" id="2"]
@@ -49,6 +49,7 @@
 [ext_resource type="Script" path="res://world/touchdown_fx.gd" id="47"]
 [ext_resource type="Script" path="res://training/training_session.gd" id="48"]
 [ext_resource type="Script" path="res://systems/aircraft_systems.gd" id="49"]
+[ext_resource type="Script" path="res://systems/icing.gd" id="icing_sys"]
 
 [sub_resource type="ShaderMaterial" id="sky_mat"]
 shader = ExtResource("28")
@@ -146,6 +147,9 @@ script = ExtResource("11")
 
 [node name="Vacuum" type="Node" parent="Systems"]
 script = ExtResource("12")
+
+[node name="Icing" type="Node" parent="Systems"]
+script = ExtResource("icing_sys")
 
 [node name="Failures" type="Node" parent="Systems"]
 script = ExtResource("37")

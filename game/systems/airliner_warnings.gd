@@ -12,6 +12,7 @@ extends Node
 ## Reads: engines/<n>/{running, n2}, controls/engine_master_<n>, controls/throttle_1, controls/{parking_brake,
 ##   autobrake, spoilers_armed, signs/seatbelts, signs/no_smoking, lights/landing}, failures/engine_fire[_<n>],
 ##   fdm/{wow, agl_m, cas_mps, mach, gear_pos, flap_lever, speedbrake, stall_warning}, hyd/low_{g, b, y},
+##   icing/ice_detected, controls/anti_ice/{wing, eng_1, eng_2} (memo ICE DETECTED / ANTI ICE),
 ##   systems/electrical/{ac1_on, ac2_on, gen1_on, gen2_on, emer}, fuel/low_{left, right}, apu/running.
 ## Publishes ewd/warnings and ewd/memo (arrays of [text, colour]: what EWD draws), ewd/warnings_text and
 ##   ewd/memo_text (the same lines joined with "\n"), ewd/master_warning (any red), ewd/master_caution (any amber).
@@ -166,4 +167,9 @@ func _memo() -> Array:
 		m.append(["PARK BRK", "green"])
 	if Props.get_b("apu/running"):
 		m.append(["APU AVAIL", "green"])
+	var anti_ice: bool = Props.get_b("controls/anti_ice/wing") or Props.get_b("controls/anti_ice/eng_1") or Props.get_b("controls/anti_ice/eng_2")
+	if Props.get_b("icing/ice_detected"):  # systems/icing.gd: amber until an anti-ice is on
+		m.append(["ICE DETECTED", "green" if anti_ice else "amber"])
+	if anti_ice:
+		m.append(["ANTI ICE", "green"])
 	return m

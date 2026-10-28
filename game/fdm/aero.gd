@@ -18,6 +18,8 @@ var stall_hyst := 0.0
 var ctx := {}  # JSBSim property name -> value, filled each step
 var coeffs := {}  # last value of each named term (debug / instruments)
 var _clsq := 0.0  # aero/cl-squared: JSBSim derives it from the lift of the previous evaluation
+## Ice / rain on the airframe (fdm/environment_effects.gd); null or inactive = the tables' own forces, bit for bit.
+var effects: EnvironmentEffects = null
 
 ## Tests (and aircraft that opt in) set this: a property name the context does not hold is then an
 ## error (Expr.unknown + push_error) instead of silently 0.0, which the C172 keeps.
@@ -97,7 +99,10 @@ func evaluate(s: Dictionary) -> Array:
 		sums[axis] = total
 	var q_s: float = ctx["aero/qbar-psf"] * ctx["metrics/Sw-sqft"]
 	_clsq = pow(sums.LIFT / q_s, 2.0) if q_s > 1e-6 else 0.0
-	return [Vector3(sums.DRAG, sums.SIDE, sums.LIFT), Vector3(sums.ROLL, sums.PITCH, sums.YAW)]
+	var fw := Vector3(sums.DRAG, sums.SIDE, sums.LIFT)
+	if effects != null and effects.active:
+		fw = effects.shape_forces(fw, alpha, alpha_max, q_s)
+	return [fw, Vector3(sums.ROLL, sums.PITCH, sums.YAW)]
 
 
 ## Reynolds number on the mean chord: V * c / nu, Sutherland viscosity.

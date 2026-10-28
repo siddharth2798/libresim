@@ -13,6 +13,7 @@ const AUTO_COORD := 0.5  # rudder per unit aileron (FlightGear auto-coordination
 @export var buildings_path: NodePath
 
 var fdm: FDM
+var env_fx: EnvironmentEffects  # ice and rain on the airframe and engines (made on the first tick)
 var paused := false
 var replaying := false  # replay (systems/replay.gd) drives the state; physics holds
 var _prev_pos := PackedFloat64Array([0.0, 0.0, 0.0])  # ENU at previous tick (64-bit: Vector3 is float32)
@@ -156,6 +157,9 @@ func _read_controls(dt: float) -> void:
 		e.failed = Props.get_b("failures/engine" + n) or fdm.damage.struck.has(i)
 		e.partial = Props.get_b("failures/engine_partial" + n)
 	FdmAirlinerProps.read(fdm)
+	if env_fx == null:
+		env_fx = EnvironmentEffects.new(Icing.params(fdm.def))
+	env_fx.update(fdm)  # icing/* and environment/precip -> drag, lift, power scales
 	c.flaps_powered = Props.get_b("systems/electrical/flaps_powered", true) and not Props.get_b("failures/flaps")
 	var feed = Props.get_v("fuel/feed", null)  # per tank, from the fuel system
 	var leak = Props.get_v("fuel/leak_kgs", null)

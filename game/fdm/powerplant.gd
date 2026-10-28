@@ -14,6 +14,10 @@ var fuel_ok := true
 var failed := false  # catastrophic engine failure
 var partial := false  # partial power loss: rough running at ~55 % power
 var on_ground := false  # weight on wheels (set by FDM.step; turbofan FADEC idle / reverser)
+# environment effects (fdm/environment_effects.gd: inlet ice, bleed air, rain); neutral = 1 / 0 and changes nothing
+var power_scale := 1.0  # power (piston) or thrust (turbine) multiplier
+var n1_scale := 1.0  # turbine: scales the N1 the FADEC commands
+var egt_add_k := 0.0  # turbine: EGT rise at a running engine, K
 # outputs
 var max_power := 1.0  # W (piston: rated shaft power; turbine: equivalent, for display scales)
 var max_rpm := 1.0

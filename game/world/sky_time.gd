@@ -170,6 +170,7 @@ func _update_clouds(dt: float, occl: float, rain: float, hor: Color, light: floa
 	var w := FloatingOrigin.to_world(cam.global_position)
 	var wind: Vector3 = Weather._from_dir_to_ned(Props.get_f("weather/aloft_dir_deg"), Props.get_f("weather/aloft_kt") * Units.KT)
 	_drift -= Vector2(wind.y, wind.x) * dt  # field moves with the wind
+	Props.set_v("environment/cloud_drift", _drift)  # the cloud physics (world/cloud_physics.gd) uses the same field
 	var day: float = _sky.get_shader_parameter("day")
 	var sun_col := _sun.light_color * clampf(_sun.light_energy, 0.15 * (1.0 - occl) + 0.02, 1.2)
 	var light_dir := _sun.global_transform.basis.z

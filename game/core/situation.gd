@@ -95,6 +95,12 @@ static func apply(root: Node, d: Dictionary) -> String:
 	for k in d.props:
 		props[k] = _dec(d.props[k])
 	Props.restore(props)
+	for k in ["weather/convection", "weather/storms"]:  # saved before the cloud physics: none
+		if not props.has(k):
+			Props.set_v(k, 0.0)
+	for k in ["convection", "storms"]:
+		if not d.setup.has(k):
+			Session.setup[k] = 0.0
 	Props.set_v("failures/event", "")
 	Props.set_v("controls/starter", false)
 	for k in ["ops/stand", "ops/taxi_route"]:

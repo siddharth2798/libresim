@@ -14,6 +14,9 @@ const SLIDERS := {  # key: [label, min, max, step, format]
 	"visibility_m": ["Visibility", 800.0, 40000.0, 200.0, "%.1f km"],
 	"precip": ["Rain", 0.0, 1.0, 0.05, "%d %%"],
 	"turbulence": ["Turbulence", 0.0, 1.0, 0.05, "%d %%"],
+	"convection": ["Thermals (day heating)", 0.0, 1.0, 0.05, "%d %%"],
+	"storms": ["Storm cells (heavy rain only)", 0.0, 1.0, 0.05, "%d %%"],
+	"icing": ["Icing (supercooled water)", 0.0, 1.0, 0.05, "%d %%"],
 	"qnh_hpa": ["QNH", 990.0, 1035.0, 1.0, "%d hPa"],
 	"temp_c": ["Temperature (sea level)", 5.0, 45.0, 1.0, "%d °C"],
 	"time_h": ["Time of day (IST)", 0.0, 24.0, 0.25, ""],
@@ -43,9 +46,9 @@ func _ready() -> void:
 		Session.apply_weather_preset(n)
 		_sync())
 	weather.add_child(_weather_row)
-	for k in ["cloud_cover", "cloud_base_ft", "visibility_m", "precip", "turbulence", "qnh_hpa", "temp_c"]:
+	for k in ["cloud_cover", "cloud_base_ft", "visibility_m", "precip", "turbulence", "convection", "storms", "icing", "qnh_hpa", "temp_c"]:
 		_slider(weather, k)
-	weather.add_child(MenuTheme.note("Rain: Broken = passing showers, Overcast = drizzle, Monsoon = heavy rain under a low deck with gusty south-westerlies (and the odd lightning flash). Winter haze = Mumbai's smoggy Dec–Feb mornings."))
+	weather.add_child(MenuTheme.note("Rain: Broken = passing showers, Overcast = drizzle, Monsoon = heavy rain under a low deck with gusty south-westerlies (and the odd lightning flash). Winter haze = Mumbai's smoggy Dec–Feb mornings. Thermals: the sun lifts the air under cumulus and sinks it between (not at night, weak over water); storm cells (microbursts with outflow shear) only occur in heavy monsoon-like rain. Icing: ice forms in cloud where the air is between +2 and −20 °C, which in the tropics means above about 5,000 m (FL165); the C172 only has pitot heat, the A320 has anti-ice."))
 	var time := _column("Time & date")
 	_time_row = PresetRow.new().setup(TIMES.map(func(x): return x[0]), 3)
 	_time_row.picked.connect(func(n): _put("time_h", preset_time(_time_value(n), float(Session.setup.day_of_year))))
@@ -108,12 +111,12 @@ static func _time_value(name: String) -> float:
 
 ## Which preset row entry the values in `s` (a Session.setup) match, or "" for custom values.
 ## The highlight is derived from the values, so it can never lie after a slider, a field or
-## a loaded setup changed them. Weather ignores turbulence: the wind presets set it too.
+## a loaded setup changed them. Weather ignores turbulence (the wind presets set it too), icing, thermals and storms (old setups have none).
 static func weather_match(s: Dictionary) -> String:
 	for n in Session.WEATHER:
 		var ok := true
 		for k in Session.WEATHER[n]:
-			if k != "turbulence" and absf(float(s[k]) - float(Session.WEATHER[n][k])) > 0.001:
+			if k not in ["turbulence", "icing", "convection", "storms"] and absf(float(s.get(k, 0.0)) - float(Session.WEATHER[n][k])) > 0.001:
 				ok = false
 		if ok:
 			return n
@@ -186,7 +189,7 @@ func _sync() -> void:
 		var f: String = SLIDERS[k][4]
 		match k:
 			"time_h": _val[k].text = "%02d:%02d" % [int(x), int(fmod(x, 1.0) * 60.0)]
-			"cloud_cover", "turbulence", "precip": _val[k].text = f % int(x * 100.0)
+			"cloud_cover", "turbulence", "precip", "icing", "convection", "storms": _val[k].text = f % int(x * 100.0)
 			"visibility_m": _val[k].text = f % (x / 1000.0)
 			_: _val[k].text = f % int(x)
 	var wx := weather_match(s)

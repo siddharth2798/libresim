@@ -28,6 +28,9 @@ extends RefCounted
 ##            fuel_kg_per_gal, cruise_gph, reserve_gal, fuel_slider {min, max, step, unit},
 ##            stations [{key (Session.setup), label, max, step, masses [config point-mass names]}]
 ##   failures optional {"disabled": [failure ids]} (systems/failure_catalog.gd)
+##   icing    optional {protection: none | pitot_only | wing_and_engine, drag_k, clmax_k, power_loss_k, egt_k, pitot_heat_prop,
+##            wing_anti_ice_prop, engine_anti_ice_prop, bleed_wing, bleed_engine, rain_cl_k, rain_cd_k, rain_n1_k}: ice and rain
+##            (systems/icing.gd DEFAULTS, fdm/environment_effects.gd); absent = the C172's numbers
 ## The flight-model numbers (aero, mass, gear, tanks, engines) are in config.json and aero.json.
 
 const ROOT := "res://aircraft/"

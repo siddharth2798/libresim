@@ -3,19 +3,23 @@ extends Node
 ## Offline weather. Settings live in Props "weather/*" (UI edits them):
 ##   wind_dir_deg (from, true), wind_kt (surface, 10 m), aloft_dir_deg, aloft_kt (above ~1500 m AGL),
 ##   gust_kt (peak), turbulence (0..1), visibility_m, cloud_base_ft (AMSL), cloud_cover (0..1),
-##   qnh_hpa, temp_c (sea level), precip (rain 0..1; drawn by WeatherFx).
+##   qnh_hpa, temp_c (sea level), precip (rain 0..1; drawn by WeatherFx),
+##   convection (thermals 0..1), storms (microburst cells 0..1, monsoon-like weather only).
 ## Each physics tick publishes environment/wind_ned (incl. gusts, Dryden-style
-## turbulence and terrain-induced ridge lift / lee sink), qnh_pa, delta_t.
+## turbulence, terrain-induced ridge lift / lee sink and the cloud physics of
+## world/cloud_physics.gd: thermals, cloud / storm turbulence, microburst winds), qnh_pa, delta_t.
 
 const DEFAULTS := {
 	"wind_dir_deg": 270.0, "wind_kt": 8.0, "aloft_dir_deg": 280.0, "aloft_kt": 15.0,
 	"gust_kt": 0.0, "turbulence": 0.15, "visibility_m": 20000.0,
 	"cloud_base_ft": 4500.0, "cloud_cover": 0.3, "qnh_hpa": 1012.0, "temp_c": 30.0, "precip": 0.0,
+	"convection": 0.0, "storms": 0.0,  # off unless set (old setups and saves behave as before)
 }
 const Z0 := 0.15  # surface roughness (m)
 const TURB_L := 250.0  # turbulence length scale (m)
 
 var terrain: TerrainQuadtree
+var cloud := CloudPhysics.new()  # clouds as physics at the aircraft (thermals, cloud / storm turbulence, microbursts)
 var _turb := Vector3.ZERO
 var _gust := 0.0
 var _gust_target := 0.0
@@ -74,13 +78,15 @@ func _physics_process(dt: float) -> void:
 		mech = absf(lift) * 0.5 + w_en.length() * Vector2(gx, gy).length() * decay * 0.6
 	# Dryden-like turbulence: first-order filtered noise, scale grows near the ground
 	var intensity := Props.get_f("weather/turbulence")
-	var sigma := intensity * (1.0 + wind.length() * 0.15) * (1.4 if agl < 300.0 else 1.0) + mech * 0.3
+	var cx := cloud.update(dt, pos, agl, terrain)
+	var sigma: float = intensity * cx.turb_scale * (1.0 + wind.length() * 0.15) * (1.4 if agl < 300.0 else 1.0) + mech * 0.3
+	sigma = maxf(sigma, cx.turb_floor)  # a storm core shakes whatever the slider says
 	var tau := TURB_L / tas
 	var k := sqrt(2.0 * dt / tau)
 	_turb.x += -_turb.x * dt / tau + sigma * k * _rng.randfn()
 	_turb.y += -_turb.y * dt / tau + sigma * k * _rng.randfn()
 	_turb.z += -_turb.z * dt / tau + sigma * 0.7 * k * _rng.randfn()
-	var w := wind + _turb + Vector3(0.0, 0.0, -lift)
+	var w: Vector3 = wind + _turb + Vector3(0.0, 0.0, -lift) + cx.wind  # + thermal / storm outflow and downdraft
 	if agl < 2.0:
 		w.z = 0.0
 	Props.set_v("environment/wind_ned", w)

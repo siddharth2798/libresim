@@ -4,7 +4,7 @@ extends Control
 ## top-centre (below the flight-data bar). Levels: INFO (blue), CAUTION (amber),
 ## WARNING (red). Identical messages merge ("×3") instead of piling up; cards fade out.
 ## Sources polled here (modules only talk via Props): damage/events, damage/last_touchdown
-## (landing debrief), failures/event. Persistent banners: STALL, ENGINE STOPPED hint.
+## (landing debrief), failures/event, icing/* (ui/icing_notices.gd). Persistent banners: STALL, ENGINE STOPPED hint.
 ## Other UI can call post() directly, or hand over a finished card with adopt() (the radio's message card).
 
 enum { INFO, CAUTION, WARNING }
@@ -20,7 +20,11 @@ var _hint: Label
 var _events_seen := 0
 var _seen_td := {}
 var _failed := {}  # failure id -> true while failed
+var _ice := IcingNotices.new()
 var _pulse := 0.0
+var _clock := 0.0
+var _in_cloud := false  # last state announced
+var _said := {}  # text -> clock time it was last posted (each message at most once per 20 s)
 
 
 func _ready() -> void:
@@ -166,6 +170,7 @@ func _drop(c: Dictionary) -> void:
 
 func _process(dt: float) -> void:
 	_poll_sources()
+	_poll_weather(dt)
 	for c in _cards.duplicate():
 		c.t -= dt
 		c.panel.modulate.a = clampf(c.t / 0.6, 0.0, 1.0)
@@ -204,10 +209,34 @@ func _poll_sources() -> void:
 			_failed[id] = true
 		else:
 			_failed.erase(id)
+	for c in _ice.poll(AircraftDef.current().section("icing").get("protection", "") == "wing_and_engine"):
+		if tell:
+			post(c[0], c[1], c[2], c[3])
 	var td: Dictionary = Props.get_v("damage/last_touchdown", {})
 	if not td.is_empty() and td.get("air_time", 0.0) > 8.0 and not _seen_td.has(td.n):
 		_seen_td[td.n] = true
 		_touchdown(td)
+
+
+## Cloud and storm notes (cloud physics, world/cloud_physics.gd); off with the notify option.
+func _poll_weather(dt: float) -> void:
+	_clock += dt
+	if not bool(Session.setup.get("notify", true)):
+		return
+	var inside := Props.get_b("environment/ac_in_cloud")
+	if inside != _in_cloud and _quiet("cloud_in" if inside else "cloud_out"):
+		_in_cloud = inside
+		post("Entering cloud" if inside else "Leaving cloud", "", INFO, "cloud")
+	if Props.get_f("environment/storm_shear_mps") > 7.0 and _quiet("shear"):
+		post("Wind shear", "Storm outflow and downdraft: add power, hold speed, get out", WARNING, "shear")
+
+
+## True (and stamps the time) if `what` was not posted in the last 20 s.
+func _quiet(what: String) -> bool:
+	if _clock - float(_said.get(what, -99.0)) < 20.0:
+		return false
+	_said[what] = _clock
+	return true
 
 
 func _touchdown(td: Dictionary) -> void:

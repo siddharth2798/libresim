@@ -82,10 +82,12 @@ func update(dt: float, rpm: float, p_amb: float, t_amb: float, airspeed: float) 
 	var p_ind := _k_power * mdot_air * mf * spark * maxf(1.0 - MAP_ZERO / map_pa, 0.0) if running else 0.0
 	if partial:
 		p_ind *= lerpf(0.9, 0.55, throttle) * (1.0 + randf_range(-0.12, 0.12))  # misfiring: power drops (most at high power) and shakes
-	fuel_flow_kgs = mdot_air * far if running else 0.0
+	fuel_flow_kgs = mdot_air * far * power_scale if running else 0.0
 	var omega := maxf(rpm, 1.0) * TAU / 60.0
 	var p_fric := FRICTION_FRAC * max_power * rpm / max_rpm  # ~constant friction torque
 	power_w = p_ind - p_fric - _pumping(map_pa, p_amb, rpm)
+	if power_w > 0.0:
+		power_w *= power_scale  # inlet ice / filter blockage (environment effects): the shaft power, 1.0 = unchanged
 	torque = power_w / omega
 	if rpm < 5.0:
 		torque = 0.0  # no stiction model; starter breaks away instantly

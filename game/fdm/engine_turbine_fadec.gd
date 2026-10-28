@@ -101,7 +101,7 @@ func update(dt: float, _rpm: float, p_amb: float, t_amb: float, airspeed: float)
 		var mil: float = (thrust_sl - idle_t) * Table.lookup(_cfg.thrust_table, _env) * loss
 		var spooled := clampf(n2 / idle_n2, 0.0, 1.0)
 		t = idle_t * spooled * spooled + mil * f * f
-		thrust_n = t * (1.0 - 2.0 * reverser_pos)
+		thrust_n = t * power_scale * (1.0 - 2.0 * reverser_pos)  # power_scale: inlet ice / bleed air (environment effects)
 		var k: float = Table.lookup(_cfg.tsfc_table, _env) if _cfg.has("tsfc_table") else 1.0
 		fuel_flow_kgs = tsfc * k * t * sqrt(t_amb / 288.15)
 	else:
@@ -127,7 +127,7 @@ func _spin(dt: float, mach: float) -> void:
 			n2 = minf(n2 + ACCEL_N2 * dt, idle_n2)
 			n1 = idle_n1 * pow(n2 / idle_n2, 2.5)
 		else:
-			_target_pct = clampf(fadec.n1_target(lever, flex_temp_c > 0.0, reverser_pos >= 0.95), 0.0, max_n1 * 100.0)
+			_target_pct = clampf(fadec.n1_target(lever, flex_temp_c > 0.0, reverser_pos >= 0.95), 0.0, max_n1 * 100.0) * n1_scale
 			var pct := n1 * 100.0
 			var up: bool = _target_pct > pct
 			var rate := Table.eval2(_cfg.n1_spool_up_rate_table if up else _cfg.n1_spool_down_rate_table, pct)
@@ -147,7 +147,7 @@ func _spin(dt: float, mach: float) -> void:
 func _temperatures(dt: float, t_amb: float, f: float) -> void:
 	var egt_target := t_amb
 	if running:
-		egt_target = EGT_IDLE + (EGT_TOGA - EGT_IDLE) * f + 120.0 * clampf(1.0 - n2 / idle_n2, 0.0, 1.0)
+		egt_target = EGT_IDLE + (EGT_TOGA - EGT_IDLE) * f + 120.0 * clampf(1.0 - n2 / idle_n2, 0.0, 1.0) + egt_add_k
 	var tau := 4.0 if egt_target > egt_k else 25.0
 	egt_k = lerpf(egt_k, egt_target, clampf(dt / tau, 0.0, 1.0))
 	cht_k = egt_k

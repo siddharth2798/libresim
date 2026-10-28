@@ -147,7 +147,8 @@
    "flaps",
    "trim",
    "brakes",
-   "parking_brake"
+   "parking_brake",
+   "anti_ice"
   ],
   "levers": {
    "throttle": {
@@ -1956,6 +1957,18 @@
   "straight_m": 40.0,
   "radius_m": 30.0,
   "speed_mps": 1.6
+ },
+ "icing": {
+  "protection": "wing_and_engine",
+  "drag_k": 0.008,
+  "clmax_k": 0.2,
+  "power_loss_k": 0.2,
+  "egt_k": 60.0,
+  "pitot_heat_prop": "controls/anti_ice/probe",
+  "wing_anti_ice_prop": "controls/anti_ice/wing",
+  "engine_anti_ice_prop": "controls/anti_ice/eng_%d",
+  "bleed_wing": 0.015,
+  "bleed_engine": 0.02
  },
  "payload": {
   "fuel_unit": "kg",

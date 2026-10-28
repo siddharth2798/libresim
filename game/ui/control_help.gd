@@ -26,6 +26,7 @@ const FLIGHT := [
 	["engine_master", ["engine_master_1", "engine_master_2"], " / ", "engine 1 / 2 master"],
 	["engine_mode", ["engine_mode_next"], "", "engine mode"],
 	["apu", ["apu_master", "apu_start"], " · ", "APU master · start"],
+	["anti_ice", ["anti_ice_wing", "anti_ice_eng_1", "anti_ice_eng_2"], " · ", "anti-ice: wing · eng 1 · eng 2"],
 	["fcu", ["fcu_ap1", "fcu_ap2", "fcu_athr", "fcu_loc", "fcu_appr"], " ", "AP1 AP2 A/THR LOC APPR"],
 	["fcu", ["fcu_spd_down", "fcu_spd_up"], " / ", "FCU speed"],
 	["fcu", ["fcu_hdg_left", "fcu_hdg_right"], " / ", "FCU heading"],

@@ -14,6 +14,7 @@ extends RefCounted
 ##   controls/rudder_trim -1..1          controls/tiller -1..1 (nosewheel, + = right)
 ##   controls/reverse_<n> 0..1           (per engine n >= 1; reverse thrust selected, fraction of REV MAX)
 ##   controls/throttle, throttle_<n>     see engine_levers.gd (n = 1 mirrors the shared one)
+##   controls/anti_ice/{wing, eng_<n>} bool (probe heat, controls/anti_ice/probe, stays on: systems/icing.gd)
 ##   controls/fcu/ap1, ap2, athr, loc, appr (bool toggles)
 ##   controls/fcu/spd_kt, hdg_deg, alt_ft, vs_fpm (set-points in pilot units, like adf/freq_khz)
 
@@ -42,6 +43,7 @@ const GROUPS := {
 	"apu": ["apu_master", "apu_start"],
 	"rudder_trim": ["rudder_trim_left", "rudder_trim_right", "rudder_trim_axis"],
 	"tiller": ["tiller"],
+	"anti_ice": ["anti_ice_wing", "anti_ice_eng_1", "anti_ice_eng_2"],
 	"fcu": ["fcu_ap1", "fcu_ap2", "fcu_athr", "fcu_loc", "fcu_appr", "fcu_spd_up", "fcu_spd_down",
 		"fcu_hdg_right", "fcu_hdg_left", "fcu_alt_up", "fcu_alt_down", "fcu_vs_up", "fcu_vs_down"],
 }
@@ -51,6 +53,7 @@ const TOGGLES := {
 	"parking_brake": "controls/parking_brake",
 	"engine_master_1": "controls/engine_master_1", "engine_master_2": "controls/engine_master_2",
 	"apu_master": "controls/apu_master",
+	"anti_ice_wing": "controls/anti_ice/wing", "anti_ice_eng_1": "controls/anti_ice/eng_1", "anti_ice_eng_2": "controls/anti_ice/eng_2",
 	"fcu_ap1": "controls/fcu/ap1", "fcu_ap2": "controls/fcu/ap2", "fcu_athr": "controls/fcu/athr",
 	"fcu_loc": "controls/fcu/loc", "fcu_appr": "controls/fcu/appr",
 }
@@ -80,6 +83,7 @@ const SEEDS := {
 	"speedbrake": {"controls/speedbrake": 0.0}, "gear": {"controls/gear": 1}, "autobrake": {"controls/autobrake": 0},
 	"engine_mode": {"controls/engine_mode": 0}, "apu": {"controls/apu_master": false, "controls/apu_start": false},
 	"rudder_trim": {"controls/rudder_trim": 0.0}, "tiller": {"controls/tiller": 0.0},
+	"anti_ice": {"controls/anti_ice/wing": false, "controls/anti_ice/eng_1": false, "controls/anti_ice/eng_2": false, "controls/anti_ice/probe": true},
 	"fcu": {"controls/fcu/ap1": false, "controls/fcu/ap2": false, "controls/fcu/athr": false, "controls/fcu/loc": false,
 		"controls/fcu/appr": false, "controls/fcu/spd_kt": 250.0, "controls/fcu/hdg_deg": 0.0,
 		"controls/fcu/alt_ft": 10000.0, "controls/fcu/vs_fpm": 0.0},

@@ -5,6 +5,8 @@ extends Node
 ##   failures/pitot_blocked  - pitot + drain blocked: pitot pressure frozen (ASI acts as altimeter)
 ##   failures/static_blocked - static port blocked: static pressure frozen
 ##   systems/alternate_static - cabin static source: reads ~ -0.1 inHg low (higher alt/IAS)
+##   icing/pitot_blocked, icing/static_blocked (systems/icing.gd) act like the two failures; ice on the static
+##   port does not matter with the alternate static source selected
 ## Publishes systems/pitot_static/{pitot_pa, static_pa}.
 
 const ALT_STATIC_DP := -0.1 * 3386.389  # cabin pressure slightly below ambient
@@ -60,14 +62,14 @@ func _physics_process(_dt: float) -> void:
 	ias *= clampf(cos(alpha) ** 2, 0.0, 1.0)
 	var qc := _qc_from_cas(ias)
 	var stat := p + (ALT_STATIC_DP if Props.get_b("systems/alternate_static") else 0.0)
-	if Props.get_b("failures/static_blocked"):
+	if Props.get_b("failures/static_blocked") or (Props.get_b("icing/static_blocked") and not Props.get_b("systems/alternate_static")):
 		if _static_frozen == 0.0:
 			_static_frozen = stat
 		stat = _static_frozen
 	else:
 		_static_frozen = 0.0
 	var pitot := p + qc
-	if Props.get_b("failures/pitot_blocked"):
+	if Props.get_b("failures/pitot_blocked") or Props.get_b("icing/pitot_blocked"):
 		if _pitot_frozen == 0.0:
 			_pitot_frozen = pitot
 		pitot = _pitot_frozen

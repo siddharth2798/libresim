@@ -161,6 +161,7 @@ func _reset() -> void:
 	if (_cold or _stand_ref != "") and _air_ft <= 0.0:  # parked at a stand = always cold & dark
 		_cold_and_dark()
 	$Systems/Failures.restart()
+	$Systems/Icing.reset()
 	$Training.restart()
 
 

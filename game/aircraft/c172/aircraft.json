@@ -119,6 +119,10 @@
 	},
 	"ground": {"tow_ahead_m": 3.2, "ahead_m": 3.3, "behind_m": 7.4, "across_m": 6.7, "height_m": 2.5},
 	"pushback": {"straight_m": 30.0, "radius_m": 18.0, "speed_mps": 1.4},
+	"icing": {
+		"protection": "pitot_only", "drag_k": 0.011, "clmax_k": 0.22, "power_loss_k": 0.25, "egt_k": 0.0,
+		"pitot_heat_prop": "controls/electrical/pitot_heat", "engine_anti_ice_prop": "controls/alt_air"
+	},
 	"payload": {
 		"fuel_kg_per_gal": 2.72, "cruise_gph": 9.0, "reserve_gal": 3.0,
 		"fuel_slider": {"min": 3.0, "max": 28.0, "step": 1.0, "unit": "gal"},

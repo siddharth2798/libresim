@@ -12,10 +12,13 @@ const SLIDERS := [
 	["Wind aloft from", "weather/aloft_dir_deg", 0.0, 360.0, 10.0, "°"],
 	["Wind aloft", "weather/aloft_kt", 0.0, 60.0, 1.0, "kt"],
 	["Turbulence", "weather/turbulence", 0.0, 1.0, 0.05, ""],
+	["Thermals", "weather/convection", 0.0, 1.0, 0.05, ""],
+	["Storm cells", "weather/storms", 0.0, 1.0, 0.05, ""],
 	["Visibility", "weather/visibility_m", 500.0, 40000.0, 500.0, "m"],
 	["Cloud base (AMSL)", "weather/cloud_base_ft", 1000.0, 12000.0, 100.0, "ft"],
 	["Cloud cover", "weather/cloud_cover", 0.0, 1.0, 0.05, ""],
 	["Rain", "weather/precip", 0.0, 1.0, 0.05, ""],
+	["Icing (supercooled water)", "weather/icing", 0.0, 1.0, 0.05, ""],
 	["QNH", "weather/qnh_hpa", 980.0, 1040.0, 1.0, "hPa"],
 	["Temperature (sea level)", "weather/temp_c", -5.0, 45.0, 1.0, "°C"],
 ]

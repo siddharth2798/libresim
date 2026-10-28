@@ -14,7 +14,8 @@ const DEFAULT := {
 	"weather": "Fair", "time_h": 10.0, "time_rate": 1.0, "day_of_year": 45.0,
 	"wind_dir_deg": 270.0, "wind_kt": 8.0, "gust_kt": 0.0, "turbulence": 0.15,
 	"visibility_m": 20000.0, "cloud_cover": 0.3, "cloud_base_ft": 4500.0,
-	"qnh_hpa": 1012.0, "temp_c": 30.0, "precip": 0.0,
+	"qnh_hpa": 1012.0, "temp_c": 30.0, "precip": 0.0, "icing": 0.0,
+	"convection": 0.5, "storms": 0.0,  # thermals / microburst cells (0 in setups saved before the cloud physics)
 	"failures": {},  # id -> [mode index (FailureCatalog.MODES), value]
 	"random": {"enabled": false, "count": 1, "from_min": 2.0, "to_min": 30.0,
 		"categories": ["Engine", "Fuel", "Electrical", "Vacuum & gyros", "Pitot-static", "Flight controls", "Avionics"]},
@@ -23,17 +24,18 @@ const DEFAULT := {
 }
 ## Weather presets: name -> weather/* values (wind is chosen separately).
 ## precip: rain 0..1 (below 0.3 it comes and goes in showers; visibility_m is between showers).
+## icing: supercooled water available in cloud 0..1 (systems/icing.gd); it only ices where the air is below +2 C (the tropics: above ~5000 m).
 const WEATHER := {
-	"Clear": {"cloud_cover": 0.0, "cloud_base_ft": 6000.0, "visibility_m": 40000.0, "turbulence": 0.05, "precip": 0.0},
-	"Fair": {"cloud_cover": 0.3, "cloud_base_ft": 4500.0, "visibility_m": 20000.0, "turbulence": 0.15, "precip": 0.0},
-	"Scattered": {"cloud_cover": 0.5, "cloud_base_ft": 3000.0, "visibility_m": 15000.0, "turbulence": 0.2, "precip": 0.0},
-	"Broken": {"cloud_cover": 0.75, "cloud_base_ft": 2500.0, "visibility_m": 10000.0, "turbulence": 0.3, "precip": 0.12},
-	"Overcast": {"cloud_cover": 0.95, "cloud_base_ft": 1800.0, "visibility_m": 7000.0, "turbulence": 0.3, "precip": 0.3},
-	"Winter haze": {"cloud_cover": 0.05, "cloud_base_ft": 5000.0, "visibility_m": 3000.0, "turbulence": 0.05, "precip": 0.0},
-	"Monsoon": {"cloud_cover": 1.0, "cloud_base_ft": 1200.0, "visibility_m": 5000.0, "turbulence": 0.55, "precip": 0.9},
+	"Clear": {"cloud_cover": 0.0, "cloud_base_ft": 6000.0, "visibility_m": 40000.0, "turbulence": 0.05, "precip": 0.0, "icing": 0.0, "convection": 0.2, "storms": 0.0},
+	"Fair": {"cloud_cover": 0.3, "cloud_base_ft": 4500.0, "visibility_m": 20000.0, "turbulence": 0.15, "precip": 0.0, "icing": 0.0, "convection": 0.5, "storms": 0.0},
+	"Scattered": {"cloud_cover": 0.5, "cloud_base_ft": 3000.0, "visibility_m": 15000.0, "turbulence": 0.2, "precip": 0.0, "icing": 0.2, "convection": 0.7, "storms": 0.0},
+	"Broken": {"cloud_cover": 0.75, "cloud_base_ft": 2500.0, "visibility_m": 10000.0, "turbulence": 0.3, "precip": 0.12, "icing": 0.4, "convection": 0.6, "storms": 0.0},
+	"Overcast": {"cloud_cover": 0.95, "cloud_base_ft": 1800.0, "visibility_m": 7000.0, "turbulence": 0.3, "precip": 0.3, "icing": 0.5, "convection": 0.1, "storms": 0.0},
+	"Winter haze": {"cloud_cover": 0.05, "cloud_base_ft": 5000.0, "visibility_m": 3000.0, "turbulence": 0.05, "precip": 0.0, "icing": 0.2, "convection": 0.1, "storms": 0.0},
+	"Monsoon": {"cloud_cover": 1.0, "cloud_base_ft": 1200.0, "visibility_m": 5000.0, "turbulence": 0.55, "precip": 0.9, "icing": 0.7, "convection": 0.5, "storms": 0.7},
 }
 const WEATHER_KEYS := ["wind_dir_deg", "wind_kt", "gust_kt", "turbulence", "visibility_m",
-	"cloud_cover", "cloud_base_ft", "qnh_hpa", "temp_c", "time_h", "time_rate", "day_of_year", "precip"]
+	"cloud_cover", "cloud_base_ft", "qnh_hpa", "temp_c", "time_h", "time_rate", "day_of_year", "precip", "icing", "convection", "storms"]
 
 var setup := {}
 ## Training: lesson id ("" = free flight) and assist level (full | light | off). A lesson
@@ -65,6 +67,9 @@ func _load() -> void:
 		for k in d:
 			if setup.has(k):
 				setup[k] = d[k]
+	for k in ["convection", "storms"]:  # a setup saved before the cloud physics: no thermals, no storms
+		if not d.has(k):
+			setup[k] = 0.0
 
 
 ## Start a lesson: remember the free-flight setup, then let `fn` overwrite it for the lesson.
@@ -135,6 +140,7 @@ func _parse_cmdline() -> void:
 			"day": setup.day_of_year = float(v)  # day of the year (moon phase, sun times)
 			"vis": setup.visibility_m = float(v)
 			"rain": setup.precip = clampf(float(v), 0.0, 1.0)  # --rain=0..1
+			"icing": setup.icing = clampf(float(v), 0.0, 1.0)  # --icing=0..1 (supercooled water in cloud)
 			"wind": _wind(v)
 			"clouds": _clouds(v)
 			"weather":

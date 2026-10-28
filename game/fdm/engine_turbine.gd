@@ -61,7 +61,7 @@ func update(dt: float, _rpm: float, p_amb: float, t_amb: float, airspeed: float)
 	var wind := clampf(airspeed / 120.0, 0.0, 1.0) * 0.12  # N1 it windmills at
 	var target := wind
 	if running:
-		target = idle_n1 + (1.0 - idle_n1) * clampf(throttle, 0.0, 1.0)
+		target = (idle_n1 + (1.0 - idle_n1) * clampf(throttle, 0.0, 1.0)) * n1_scale
 	elif starter:
 		target = maxf(start_n1, wind)
 	var tau := spool_up_s if target > n1 else spool_down_s
@@ -71,12 +71,13 @@ func update(dt: float, _rpm: float, p_amb: float, t_amb: float, airspeed: float)
 		var x := clampf((n1 - idle_n1) / (1.0 - idle_n1), 0.0, 1.05)
 		thrust_n = thrust_sl * lapse * (0.04 + 0.96 * pow(x, 1.4))
 		fuel_flow_kgs = tsfc * thrust_n
+		thrust_n *= power_scale  # inlet ice / bleed air (environment effects): less thrust for the same fuel
 	else:
 		thrust_n = -windmill_drag * clampf(airspeed / 100.0, 0.0, 1.0) * minf(n1 / 0.1, 1.0)
 		fuel_flow_kgs = 0.0
 	power_w = maxf(thrust_n, 0.0) * airspeed
 	torque = 0.0
-	var egt_target := t_amb + (600.0 * n1 if running else 0.0)
+	var egt_target := t_amb + (600.0 * n1 + egt_add_k if running else 0.0)
 	egt_k = lerpf(egt_k, egt_target, clampf(dt * 0.5, 0.0, 1.0))
 	cht_k = egt_k
 	oil_temp_k = lerpf(oil_temp_k, t_amb + 60.0 * n1, clampf(dt * 0.01, 0.0, 1.0))
