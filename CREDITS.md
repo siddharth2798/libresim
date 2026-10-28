@@ -20,16 +20,16 @@ libresim itself is licensed under **GPL-2.0-or-later** (see `LICENSE`). Licence 
 - **Tuning values from the c172p team's files:** the control actuator travel times (elevator 0.30 s, aileron and rudder 0.15 s) from `c172p.xml`, and the engine and wind sound volume and pitch curves in `game/aircraft/c172/aircraft_audio.gd` from `c172-sound.xml`. Numbers only, no code. Source and licence as for the c172p model above (GPL-2.0-or-later).
 
 ### Airport vehicles and jetways
-- **From FlightGear fgdata** (https://gitlab.com/flightgear/fgdata, release/2024.1), FlightGear contributors, GPL-2.0. Converted to glTF; originals are in `third_party/fgdata/`:
-  - Goldhofer pushback tug
-  - Oshkosh TI-1500 fire truck
+- **From FlightGear fgdata** (https://gitlab.com/flightgear/fgdata, release/2024.1), FlightGear contributors, GPL-2.0. Converted to glTF; the original is in `third_party/fgdata/`:
   - generic jetway
-  - bus (used as an apron bus)
-- **Made for libresim in Blender** by the libresim contributors (`tools/blender/make_ground_vehicles.py`), GPL-2.0-or-later:
+- **Made for libresim** by the libresim contributors, GPL-2.0-or-later, built in code (`game/world/ground_vehicles.gd`, `vehicle_geo.gd`, `vehicle_parts.gd`, `veh_*.gd`, `follow_me_*.gd`; no imported models):
+  - follow-me car (generic pickup)
+  - pushback tug
   - fuel truck
   - ground power unit
   - baggage tug and carts
-  - follow-me car
+  - apron bus
+  - rescue fire truck
 
 ### Sounds
 All sounds are real recordings, listed file by file in `game/aircraft/c172/sounds/SOURCES.md`:

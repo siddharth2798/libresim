@@ -160,8 +160,7 @@ $PY tools/apron_roughness.py       # optional QA: stand-area relief, apron polyg
 # Aircraft 3D models (FlightGear c172p, GPL), already committed as .glb; only needed to regenerate:
 blender -b --factory-startup --python tools/blender/convert_c172p.py            # exterior.glb
 blender -b --factory-startup --python tools/blender/convert_c172p_interior.py   # interior.glb
-blender -b --factory-startup --python tools/blender/make_ground_vehicles.py       # our own service vehicles
-# fgdata vehicles: blender -b --factory-startup --python tools/blender/convert_ac.py -- <in.ac> <out.glb>
+# fgdata jetway: blender -b --factory-startup --python tools/blender/convert_ac.py -- <in.ac> <out.glb>
 $PY tools/07_preview.py 1          # -> data/processed/preview_L1.png  (sanity check)
 $PY tools/08_jsbsim_reference.py   # optional: standalone JSBSim climb numbers for comparison
 $PY tools/18_compare_fdm.py        # optional: fly 11 scripted manoeuvres in our FDM and JSBSim c172p,
