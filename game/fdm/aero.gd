@@ -1,6 +1,6 @@
 class_name Aero
 extends RefCounted
-## Evaluates the JSBSim-derived aero model (aircraft/c172/c172_aero.json, built by
+## Evaluates the JSBSim-derived aero model (aircraft/<id>/aero.json, built by
 ## tools/06_jsbsim_to_json.py). Expressions use JSBSim names and imperial units;
 ## this class converts in and out so the rest of the FDM stays SI.
 

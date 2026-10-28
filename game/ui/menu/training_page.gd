@@ -28,7 +28,10 @@ var _assist := "full"
 
 func _ready() -> void:
 	add_theme_constant_override("separation", 24)
-	_lessons = TrainingLogic.load_lessons()
+	# the lessons written for the chosen aircraft; if it has none (a new aircraft), all of them, and
+	# starting one switches to the aircraft it is written for
+	var mine := TrainingLogic.lessons_for(str(Session.setup.get("aircraft", AircraftDef.DEFAULT_ID)))
+	_lessons = mine if not mine.is_empty() else TrainingLogic.load_lessons()
 	var left := VBoxContainer.new()
 	left.custom_minimum_size = Vector2(300, 0)
 	left.add_theme_constant_override("separation", 10)
@@ -112,5 +115,5 @@ func start() -> void:
 	if _lessons.is_empty():
 		return
 	var l: Dictionary = _lessons[_sel]
-	Session.begin_lesson(l.id, l.setup, _assist)
+	TrainingLogic.begin(l, _assist)
 	start_requested.emit()

@@ -1,6 +1,9 @@
 class_name AircraftAudio
 extends Node
-## Real recorded C172 sounds (aircraft/c172/sounds, see SOURCES.md) driven by Props.
+## Recorded aircraft sounds (the aircraft's sounds/ folder, e.g. aircraft/c172/sounds, see SOURCES.md)
+## driven by Props. A sound the folder lacks is simply silent, so a partial set works. The engine
+## and wind mappings are the aircraft.json "audio" section (defaults below = c172p); the engine
+## loops follow engine 1 (props engine/rpm, engine/running).
 ## Loops: engine idle/run (volume & pitch from RPM, mappings after the c172p
 ## sound config), starter crank, gyro spin, wind (airspeed), tyre roll + rumble
 ## (ground speed), stall horn, flap motor, trim wheel, avionics fan, rain (environment/precip;
@@ -8,8 +11,27 @@ extends Node
 ## One-shots: engine catch / cut, touchdown squeal, switch clicks, levers.
 ## Cockpit view hears everything; outside views hear the engine louder and no clicks.
 
-const DIR := "res://aircraft/c172/sounds/"
+## aircraft.json "audio": "engine" and "wind" override these keys one by one.
+const DEFAULTS := {
+	"engine": {
+		"idle_fade_from_rpm": 900.0, "idle_fade_span_rpm": 500.0,  # idle loop fades out over this rpm range
+		"idle_volume": 0.9, "idle_pitch_rpm": 700.0,               # pitch = rpm / idle_pitch_rpm (0.6..1.6)
+		"run_slope": 0.000294118, "run_offset": 0.205882353,       # run loop volume = rpm * slope + offset
+		"run_min": 0.5, "run_max": 0.95,
+		"run_start_rpm": 600.0, "run_ramp_rpm": 400.0,             # run loop fades in over this rpm range
+		"pitch_slope": 0.000434783, "pitch_offset": 0.01,          # run loop pitch = rpm * slope + offset
+		"windmill_min_rpm": 200.0, "windmill_rpm": 2500.0,         # engine off but turning: quiet noise
+	},
+	"wind": {
+		"slope": 0.0015, "min": 0.03, "max": 0.25,                 # volume from true airspeed (kt)
+		"alt_slope": 0.000015,                                     # fades with altitude (ft)
+		"pitch_slope": 0.0035, "pitch_offset": 1.25,
+	},
+}
 
+var _dir := ""  # sounds folder with trailing slash
+var _eng := {}
+var _wind := {}
 var _loops := {}  # name -> AudioStreamPlayer
 var _shots := {}
 var _prev := {}
@@ -27,6 +49,12 @@ const BUS := {"engine-idle": "Engine", "engine": "Engine", "engine-crank": "Engi
 
 func _ready() -> void:
 	AudioSettings.apply()
+	var def := AircraftDef.current()
+	_dir = def.path("sounds")
+	if not _dir.ends_with("/"):
+		_dir += "/"
+	_eng = _mapping(def, "engine")
+	_wind = _mapping(def, "wind")
 	for n in ["engine-idle", "engine", "engine-crank", "gyro", "wind1", "tires-rolling-asphalt", "rumble",
 			"stall2", "flaps-motor", "trim", "avionics-400Hz", "rain", "rain-windshield"]:
 		_loops[n] = _player(n, true)
@@ -34,9 +62,16 @@ func _ready() -> void:
 		_shots[n] = _player(n, false)
 
 
+func _mapping(def: AircraftDef, key: String) -> Dictionary:
+	var d: Dictionary = DEFAULTS[key].duplicate()
+	d.merge(def.section("audio").get(key, {}), true)
+	return d
+
+
 func _player(n: String, loop: bool) -> AudioStreamPlayer:
 	var p := AudioStreamPlayer.new()
-	var s: AudioStreamWAV = load(DIR + n + ".wav")
+	var path := _dir + n + ".wav"
+	var s: AudioStreamWAV = load(path) if ResourceLoader.exists(path) else null
 	if loop and s:
 		s = s.duplicate()
 		s.loop_mode = AudioStreamWAV.LOOP_FORWARD
@@ -46,7 +81,7 @@ func _player(n: String, loop: bool) -> AudioStreamPlayer:
 	p.volume_db = -80.0
 	p.bus = BUS.get(n, "Cockpit")
 	add_child(p)
-	if loop:
+	if loop and s:
 		p.play()
 	return p
 
@@ -60,7 +95,8 @@ func _loop(n: String, vol: float, pitch := 1.0) -> void:
 func _shot(n: String, vol := 1.0) -> void:
 	var p: AudioStreamPlayer = _shots[n]
 	p.volume_db = linear_to_db(vol)
-	p.play()
+	if p.stream:
+		p.play()
 
 
 func _process(dt: float) -> void:
@@ -72,12 +108,13 @@ func _process(dt: float) -> void:
 	var wow := Props.get_b("fdm/wow")
 	var outside := 1.0 if cockpit else 1.3
 	# engine: idle loop fades out as the run loop takes over (c172p mapping)
-	var idle_fade := clampf(1.0 - (rpm - 900.0) / 500.0, 0.0, 1.0) if running else 0.0
-	var run_vol := clampf(rpm * 0.000294118 + 0.205882353, 0.5, 0.95) * clampf((rpm - 600.0) / 400.0, 0.0, 1.0) if running else 0.0
-	if not running and rpm > 200.0:  # windmilling / spinning down: quiet engine noise
-		run_vol = clampf(rpm / 2500.0, 0.0, 0.4) * 0.5
-	_loop("engine-idle", idle_fade * 0.9 * outside, clampf(rpm / 700.0, 0.6, 1.6))
-	_loop("engine", run_vol * outside, rpm * 0.000434783 + 0.01)
+	var e := _eng
+	var idle_fade := clampf(1.0 - (rpm - e.idle_fade_from_rpm) / e.idle_fade_span_rpm, 0.0, 1.0) if running else 0.0
+	var run_vol := clampf(rpm * e.run_slope + e.run_offset, e.run_min, e.run_max) * clampf((rpm - e.run_start_rpm) / e.run_ramp_rpm, 0.0, 1.0) if running else 0.0
+	if not running and rpm > e.windmill_min_rpm:  # windmilling / spinning down: quiet engine noise
+		run_vol = clampf(rpm / e.windmill_rpm, 0.0, 0.4) * 0.5
+	_loop("engine-idle", idle_fade * e.idle_volume * outside, clampf(rpm / e.idle_pitch_rpm, 0.6, 1.6))
+	_loop("engine", run_vol * outside, rpm * e.pitch_slope + e.pitch_offset)
 	var cranking := Props.get_b("controls/starter") and Props.get_b("systems/electrical/starter_ok", true) and not running
 	_loop("engine-crank", 0.6 if cranking else 0.0)
 	if running and not _prev.get("running", running):
@@ -91,7 +128,8 @@ func _process(dt: float) -> void:
 	_loop("avionics-400Hz", 0.03 if cockpit and Props.get_b("systems/electrical/avionics_powered") else 0.0)
 	# wind & ground
 	var alt_ft := Units.m_to_ft(Props.get_f("fdm/alt_m"))
-	_loop("wind1", clampf(kt * 0.0015, 0.03, 0.25) * clampf(1.0 - alt_ft * 0.000015, 0.1, 1.0) * (1.0 if cockpit else 1.6), kt * 0.0035 + 1.25)  # c172p mapping
+	var w := _wind
+	_loop("wind1", clampf(kt * w.slope, w.min, w.max) * clampf(1.0 - alt_ft * w.alt_slope, 0.1, 1.0) * (1.0 if cockpit else 1.6), kt * w.pitch_slope + w.pitch_offset)
 	var roll := clampf(log(1.0 + gs) * 0.25, 0.0, 1.0) if wow else 0.0
 	_loop("tires-rolling-asphalt", roll * 0.7)
 	_loop("rumble", roll * 0.5)

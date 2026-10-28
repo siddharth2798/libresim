@@ -317,6 +317,6 @@ func _physics_process(dt: float) -> void:
 	f.w_b = Vector3.ZERO
 	if _tug:
 		var nose := Vector2(sin(hdg), cos(hdg))
-		var tp := pos + nose * 3.2
+		var tp := pos + nose * float(AircraftDef.current().section("ground").get("tow_ahead_m", 3.2))  # tug position ahead of the CG
 		_tug.position = FloatingOrigin.to_render(Vector3(tp.x, tp.y, terrain.height_at(tp.x, tp.y)))
 		_tug.rotation.y = -hdg

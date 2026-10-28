@@ -3,38 +3,51 @@ extends Node3D
 ## Exterior lights driven by Props controls/lights/* and bus power:
 ## nav (red left tip, green right tip, white tail), beacon (red, fin top, flashing),
 ## strobes (white wingtip double-flash), taxi + landing spot lights (cowling).
+## Positions come from aircraft.json "lights" (AircraftDef): every list entry is a light,
+##   nav     [{"pos": [x,y,z], "side": "left|right|tail", "color": "red|green|white", "size", "range", "omni_off"}]
+##   beacon  [{...}]  flashing red (an airliner has two)      strobe  [{...}]  double-flash white
+##   lamps   [{"switch": "landing|taxi", "pos", "energy", "range", "angle", "beam", "tilt"}]  spot lights
+## pos = structural metres (x aft, y right, z up); omni_off = offset of the skin-lighting omni in local
+## render axes (x right, y up, z aft); size = halo scale; range = omni range (m); tilt = deg down from the nose.
 ## Each light = emissive bulb (day and night) + additive halo billboard with a minimum
 ## pixel size (world/light_point.gdshader, night only) + a small shadowless OmniLight that
 ## lights the aircraft's own skin (AIRCRAFT_LAYER only, off in daylight). A faint
 ## camera-side fill keeps the airframe readable against dark terrain in outside views.
-## Rules and timing: light_logic.gd. Built by C172Model with its structural->local converter.
+## Rules and timing: light_logic.gd. Built by AircraftModel with its structural->local converter.
 
 const HALO_SHADER := preload("res://world/light_point.gdshader")
-const BEAM_SHADER := preload("res://aircraft/c172/light_beam.gdshader")
+const BEAM_SHADER := preload("res://aircraft/common/light_beam.gdshader")
 const RED := Color(1.0, 0.08, 0.04)
 const GREEN := Color(0.1, 1.0, 0.35)
 const WHITE := Color(1.0, 0.97, 0.9)
 const STROBE := Color(0.92, 0.95, 1.0)
 const LAMP := Color(1.0, 0.93, 0.8)
+const COLORS := {"red": RED, "green": GREEN, "white": WHITE, "strobe": STROBE, "lamp": LAMP}
+const SIDES := {"left": 0, "right": 1, "tail": 2}  # LightLogic.nav_sector index
 
-var _nav: Array = []      # [bulb, halo material, omni]
-var _strobes: Array = []
-var _beacon: Array
-var _lamps: Array = []    # [SpotLight3D, halo material, beam material, bulb, beam, LandingPool]
+var _nav: Array = []      # [bulb, halo material, omni, side index for LightLogic.nav_sector]
+var _strobes: Array = []  # [bulb, halo material, omni]
+var _beacons: Array = []
+var _lamps: Array = []    # [SpotLight3D, halo material, beam material, bulb, beam, LandingPool, switch name]
 var _fill: OmniLight3D
 var _t := 0.0
 
 
-func build(s: Callable) -> void:
-	_nav.append(_point(s.call(Vector3(1.1, -5.5, 1.5)), RED, 1.0, 2.6, Vector3(0.25, 0.1, 0)))
-	_nav.append(_point(s.call(Vector3(1.1, 5.5, 1.5)), GREEN, 1.0, 2.6, Vector3(-0.25, 0.1, 0)))
-	_nav.append(_point(s.call(Vector3(6.6, 0.0, 0.7)), WHITE, 0.9, 1.8, Vector3(0, 0.15, 0.1)))
-	_beacon = _point(s.call(Vector3(6.55, 0.0, 2.05)), RED, 1.2, 2.5, Vector3(0, 0.15, 0))  # on the model's BeaconMount (fin top)
-	_strobes.append(_point(s.call(Vector3(1.15, -5.52, 1.5)), STROBE, 1.2, 7.0, Vector3(0.6, 0.4, 0)))
-	_strobes.append(_point(s.call(Vector3(1.15, 5.52, 1.5)), STROBE, 1.2, 7.0, Vector3(-0.6, 0.4, 0)))
-	# both lamps sit behind the model's landinglightcover (left wing leading edge, local x -3.0..-2.65, y 0.5, z -0.14)
-	_lamps.append(_lamp(s.call(Vector3(0.91, -2.93, 1.48)), 20.0, 900.0, 11.0, 26.0, 9.0))  # landing
-	_lamps.append(_lamp(s.call(Vector3(0.91, -2.77, 1.48)), 8.0, 300.0, 28.0, 14.0, 14.0))  # taxi
+## cfg = the aircraft's "lights" section (see the header); s converts structural metres to local.
+func build(s: Callable, cfg: Dictionary) -> void:
+	for d in cfg.get("nav", []):
+		var pt := _light(s, d, WHITE, 1.0, 2.5)
+		pt.append(SIDES.get(str(d.get("side", "tail")), 2))
+		_nav.append(pt)
+	for d in cfg.get("beacon", []):
+		_beacons.append(_light(s, d, RED, 1.2, 2.5))
+	for d in cfg.get("strobe", []):
+		_strobes.append(_light(s, d, STROBE, 1.2, 7.0))
+	for d in cfg.get("lamps", []):
+		var lamp := _lamp(s.call(_vec(d.pos)), float(d.get("energy", 10.0)), float(d.get("range", 300.0)),
+			float(d.get("angle", 20.0)), float(d.get("beam", 20.0)), float(d.get("tilt", 10.0)))
+		lamp.append(str(d.get("switch", "landing")))
+		_lamps.append(lamp)
 	_fill = OmniLight3D.new()
 	_fill.light_color = Color(0.72, 0.8, 1.0)
 	_fill.omni_range = 26.0
@@ -44,6 +57,15 @@ func build(s: Callable) -> void:
 	_fill.shadow_enabled = false
 	_fill.visible = false
 	add_child(_fill)
+
+
+func _vec(a: Array) -> Vector3:
+	return Vector3(a[0], a[1], a[2])
+
+
+func _light(s: Callable, d: Dictionary, default_color: Color, size: float, rng: float) -> Array:
+	var c: Color = COLORS.get(str(d.get("color", "")), default_color)
+	return _point(s.call(_vec(d.pos)), c, float(d.get("size", size)), float(d.get("range", rng)), _vec(d.get("omni_off", [0, 0.1, 0])))
 
 
 ## Put every mesh under `root` on the aircraft render layer (lit by the omni lights here).
@@ -162,16 +184,16 @@ func _process(dt: float) -> void:
 	var v := _view()
 	var agl := Props.get_f("fdm/agl_m", 100.0)
 	var nav := 1.0 if pw and Props.get_b("controls/lights/nav") else 0.0
-	for i in _nav.size():
-		_drive(_nav[i], nav, 4.0, night * LightLogic.nav_sector(i, v.x), (0.4 if i == 2 else 1.4) * night)
+	for n in _nav:
+		_drive(n, nav, 4.0, night * LightLogic.nav_sector(n[3], v.x), (0.4 if n[3] == 2 else 1.4) * night)
 	var bcn := LightLogic.beacon_level(_t) if pw and Props.get_b("controls/lights/beacon") else 0.0
-	_drive(_beacon, bcn, 8.0, 0.15 + 0.85 * night, 0.6 * night)
+	for b in _beacons:
+		_drive(b, bcn, 8.0, 0.15 + 0.85 * night, 0.6 * night)
 	var stb := 1.0 if pw and Props.get_b("controls/lights/strobe") and LightLogic.strobe_on(_t) else 0.0
 	for st in _strobes:
 		_drive(st, stb, 30.0, 0.4 + 1.6 * night, 6.0 * night)
-	for i in _lamps.size():
-		var lp: Array = _lamps[i]
-		var on := pw and Props.get_b("controls/lights/" + ("landing" if i == 0 else "taxi"))
+	for lp in _lamps:
+		var on := pw and Props.get_b("controls/lights/" + lp[6])
 		var sp: SpotLight3D = lp[0]
 		sp.visible = on
 		var facing := pow(maxf(cos(deg_to_rad(v.x)), 0.0), 3.0)

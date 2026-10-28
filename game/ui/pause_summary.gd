@@ -3,18 +3,13 @@ extends VBoxContainer
 ## cards, (the hotkeys are on the Controls & keys page). refresh(flight) re-reads the values each time it opens.
 ## The static helpers give the header's context line.
 
-const AIRCRAFT := "res://aircraft/c172/aircraft.json"
 const CARDS := ["ALTITUDE", "HEIGHT", "AIRSPEED", "HEADING", "WIND", "VISIBILITY", "LOCAL TIME", "FLIGHT TIME"]
 
-static var _aircraft_name := ""
 var _vals := {}
 
 
 static func aircraft_name() -> String:
-	if _aircraft_name == "":
-		var d = Paths.load_res_json(AIRCRAFT)
-		_aircraft_name = str(d.name) if d is Dictionary and d.has("name") else "Cessna 172"
-	return _aircraft_name
+	return AircraftDef.current().display_name()
 
 
 static func clock() -> String:

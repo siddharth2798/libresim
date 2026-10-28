@@ -1,7 +1,7 @@
 class_name PitotStatic
 extends Node
 ## Pitot-static system: pitot (total) and static pressures seen by the
-## instruments, with C172S position error and failure modes:
+## instruments, with position error and failure modes:
 ##   failures/pitot_blocked  - pitot + drain blocked: pitot pressure frozen (ASI acts as altimeter)
 ##   failures/static_blocked - static port blocked: static pressure frozen
 ##   systems/alternate_static - cabin static source: reads ~ -0.1 inHg low (higher alt/IAS)
@@ -9,22 +9,34 @@ extends Node
 
 const ALT_STATIC_DP := -0.1 * 3386.389  # cabin pressure slightly below ambient
 
-## C172S POH airspeed calibration (flaps up): KCAS -> KIAS correction (kt), by KCAS
-const POS_ERR_KCAS := [50.0, 60.0, 70.0, 80.0, 100.0, 120.0, 140.0, 160.0]
-const POS_ERR_DKT := [-6.0, -3.0, -1.0, 0.0, 1.0, 1.0, 1.0, 1.0]
+## Airspeed calibration (flaps up): KCAS -> KIAS correction (kt), by KCAS. Comes from the aircraft's
+## aircraft.json "systems.pitot_static": {"pos_err_kcas": [...], "pos_err_dkt": [...]} (C172S POH);
+## without it there is no position error.
+var _err_kcas: Array = []
+var _err_dkt: Array = []
+var _loaded := false
 
 var _pitot_frozen := 0.0
 var _static_frozen := 0.0
 
 
+func _load_def() -> void:
+	_loaded = true
+	var ps: Dictionary = AircraftDef.current().section("systems").get("pitot_static", {})
+	_err_kcas = ps.get("pos_err_kcas", [])
+	_err_dkt = ps.get("pos_err_dkt", [])
+
+
 func _physics_process(_dt: float) -> void:
+	if not _loaded:
+		_load_def()
 	var p := Props.get_f("atmosphere/pressure_pa", 101325.0)
 	var cas := Props.get_f("fdm/cas_mps")
 	var tas := Props.get_f("fdm/tas_mps")
 	var alpha := absf(Props.get_f("fdm/alpha_rad"))
 	# Indicated (instrument) airspeed incl. position error, converted back to impact pressure.
 	var kcas := cas / Units.KT
-	var dkt := _interp(kcas, POS_ERR_KCAS, POS_ERR_DKT) if kcas > 20.0 else 0.0
+	var dkt := _interp(kcas, _err_kcas, _err_dkt) if kcas > 20.0 and not _err_kcas.is_empty() else 0.0
 	var ias := maxf(cas + dkt * Units.KT, 0.0)
 	# pitot loses pressure at large angles of attack / sideslip (cos^2 law, crude)
 	ias *= clampf(cos(alpha) ** 2, 0.0, 1.0)

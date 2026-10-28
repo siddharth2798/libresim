@@ -9,12 +9,14 @@ const G := 9.80665
 const LBF := 4.4482216
 const LBF_FT := 1.3558179
 
+var def: AircraftDef
 var cfg: Dictionary
 var atmo := AtmosphereISA.new()
 var mb: MassBalance
 var aero: Aero
-var engine: EnginePiston
-var prop: Propeller
+var units: Array[PowerUnit] = []  # every engine with its thruster (PowerUnit)
+var engine: Powerplant  # engine 1 (units[0]); the single engine of most aircraft
+var prop: Thruster  # its propeller / jet
 var gear: GearGround
 var fcs: FlightControls
 var ground_height: Callable = func(_n: float, _e: float) -> float: return 0.0
@@ -22,8 +24,8 @@ var surface: Callable = func(_n: float, _e: float) -> int: return 0  # land clas
 ## Solids near a point: (east, north, radius, alt_lo, alt_hi) -> Array of ObstacleShapes records.
 var obstacles: Callable = func(_e: float, _n: float, _r: float, _lo: float, _hi: float) -> Array: return []
 var in_corridor: Callable = func(_e: float, _n: float) -> bool: return false  # on a taxiway / runway (see ObstacleCollision)
-var obstacle_collision := ObstacleCollision.new()
-var damage := Damage.new()
+var obstacle_collision: ObstacleCollision
+var damage: Damage
 
 # state
 var pos_n := 0.0
@@ -33,11 +35,9 @@ var v_b := Vector3.ZERO
 var w_b := Vector3.ZERO
 var q := Quaternion.IDENTITY
 var wind_ned := Vector3.ZERO  # air mass velocity (m/s, NED)
-var feed_left := 0.5  # fuel feed fractions (fuel system)
-var feed_right := 0.5
+var tank_feed := PackedFloat64Array()  # share of the fuel flow drawn from each tank (fuel system), sums to 1
+var tank_leak_kgs := PackedFloat64Array()  # kg/s each tank loses to a leak
 var fuel_available := true
-var leak_left_kgs := 0.0
-var leak_right_kgs := 0.0
 var time := 0.0
 
 # derived (updated every step)
@@ -54,21 +54,26 @@ var accel_b := Vector3.ZERO  # specific force (what an accelerometer feels), bod
 var _alpha_prev := 0.0
 var _alphadot := 0.0
 var _aero_rp: Vector3
-var _eng_pos: Vector3
 
 
-func _init(aircraft_dir := "res://aircraft/c172") -> void:
-	cfg = Paths.load_res_json(aircraft_dir + "/c172_config.json")
+## The aircraft in `aircraft` (null: the one chosen on the start screen, Session.setup.aircraft).
+func _init(aircraft: AircraftDef = null) -> void:
+	def = aircraft if aircraft else AircraftDef.current()
+	cfg = def.config()
 	mb = MassBalance.new(cfg)
-	aero = Aero.new(aircraft_dir + "/c172_aero.json", cfg.metrics)
-	engine = EnginePiston.new(cfg.engine)
-	prop = Propeller.new(cfg.propeller, cfg.engine)
+	aero = Aero.new(def.path("aero"), cfg.metrics)
+	units = PowerUnit.from_config(cfg, def.section("damage").get("prop_hubs_m", []))
+	engine = units[0].engine
+	prop = units[0].thruster
 	gear = GearGround.new(cfg)
 	fcs = FlightControls.new(cfg)
+	damage = Damage.new(def)
+	obstacle_collision = ObstacleCollision.new(def)
 	var a: Array = cfg.metrics.aero_ref_pt_m
 	_aero_rp = Vector3(a[0], a[1], a[2])
-	var e: Array = cfg.engine.pos_m
-	_eng_pos = Vector3(e[0], e[1], e[2])
+	tank_feed.resize(mb.tanks.size())
+	tank_feed.fill(1.0 / maxf(mb.tanks.size(), 1.0))
+	tank_leak_kgs.resize(mb.tanks.size())
 
 
 static func euler_to_quat(phi: float, theta: float, psi: float) -> Quaternion:
@@ -122,11 +127,17 @@ func trim_level_cas(cas_target: float) -> void:
 func set_on_ground(n: float, e: float, heading: float) -> void:
 	pos_n = n; pos_e = e
 	var wheels: Array = gear.contacts.filter(func(c): return c.wheel)
-	var nose: Dictionary = wheels.filter(func(c): return c.steer > 0.0)[0]
-	var main: Dictionary = wheels.filter(func(c): return c.steer == 0.0)[0]
-	var bn := mb.body_of(nose.pos)
-	var bm := mb.body_of(main.pos)
-	var pitch := atan2(bn.z - bm.z, bn.x - bm.x)  # nose-up until both wheel heights match
+	var steered: Array = gear.steered_wheels()
+	var mains: Array = gear.main_wheels()
+	if steered.is_empty() or mains.is_empty():  # a castoring wheel or a single gear line: lie level
+		steered = [wheels[0]]
+		mains = [wheels[-1]]
+	var bn := mb.body_of(steered[0].pos)
+	var bm := Vector3.ZERO
+	for c in mains:
+		bm += mb.body_of(c.pos) / mains.size()
+	# sit with both wheel lines at the same height: dz * cos(pitch) = dx * sin(pitch) (nose or tailwheel)
+	var pitch := atan((bn.z - bm.z) / (bn.x - bm.x)) if absf(bn.x - bm.x) > 1e-3 else 0.0
 	q = euler_to_quat(0.0, pitch, heading)
 	var r_bn := Basis(q)
 	var low := -INF
@@ -160,14 +171,16 @@ func step(dt: float) -> void:
 	fcs.airborne = not gear.wow
 	fcs.update(dt)
 	gear.steer_cmd = fcs.yaw
-	engine.update(dt, prop.rpm, atmo.pressure, atmo.temperature, vt)
-	prop.update(dt, engine.torque, v_air.x, atmo.density, atmo.sound_speed)
+	var v_induced := 0.0
+	for u in units:
+		u.update(dt, atmo, v_air.x, vt)
+		v_induced += u.thruster.v_induced / units.size()
 
 	# --- aerodynamics (wind axes -> body), moments about the aero ref point
 	var res: Array = aero.evaluate({
 		"vt": vt, "alpha": alpha, "alphadot": _alphadot, "beta": beta, "qbar": qbar,
 		"agl": maxf(agl, 0.0), "rho": atmo.density, "u": v_air.x,
-		"p": w_b.x, "q": w_b.y, "r": w_b.z, "v_induced": prop.v_induced,
+		"p": w_b.x, "q": w_b.y, "r": w_b.z, "v_induced": v_induced,
 		"elevator": fcs.elevator, "aileron": fcs.aileron, "rudder": fcs.rudder, "flap_deg": fcs.flap_deg})
 	var fw: Vector3 = res[0] * LBF  # (D, Y, L)
 	var ca := cos(alpha); var sa := sin(alpha); var cb := cos(beta); var sb := sin(beta)
@@ -177,11 +190,18 @@ func step(dt: float) -> void:
 		-fw.x * sa * cb - fw.y * sa * sb - fw.z * ca)
 	var m_aero: Vector3 = res[1] * LBF_FT + mb.body_of(_aero_rp).cross(f_aero)
 
-	# --- propulsion
-	var po := prop.p_factor_offset(v_air.x, v_air.y, v_air.z)
-	var r_eng := mb.body_of(_eng_pos) + Vector3(0.0, po.x, po.y)
-	var f_thr := Vector3(prop.thrust, 0.0, 0.0)
-	var m_thr := r_eng.cross(f_thr) + Vector3(-prop.sense * prop.torque, 0.0, 0.0)
+	# --- propulsion (every engine: thrust at its own point, reaction torque, gyroscopic momentum)
+	var f_thr := Vector3.ZERO
+	var m_thr := Vector3.ZERO
+	var h_prop := 0.0
+	for u in units:
+		var th := u.thruster
+		var po := th.p_factor_offset(v_air.x, v_air.y, v_air.z)
+		var r_eng := mb.body_of(u.pos) + Vector3(0.0, po.x, po.y)
+		var f_u := Vector3(th.thrust, 0.0, 0.0)
+		f_thr += f_u
+		m_thr += r_eng.cross(f_u) + Vector3(-th.sense * th.torque, 0.0, 0.0)
+		h_prop += th.angular_momentum()
 
 	# --- ground
 	var gr: Array = gear.compute(mb, r_bn, Vector3(pos_n, pos_e, pos_d), v_b, w_b,
@@ -200,7 +220,7 @@ func step(dt: float) -> void:
 	load_factor = -accel_b.z / G
 	flight_load_factor = -(f_aero + f_thr).z / (mb.mass * G)
 	var a_b := (f_ext + f_grav) / mb.mass - w_b.cross(v_b)
-	var h := mb.inertia * w_b + Vector3(prop.angular_momentum(), 0.0, 0.0)
+	var h := mb.inertia * w_b + Vector3(h_prop, 0.0, 0.0)
 	var w_dot := mb.inertia_inv * (m_tot - w_b.cross(h))
 	v_b += a_b * dt
 	w_b += w_dot * dt
@@ -214,12 +234,22 @@ func step(dt: float) -> void:
 	time += dt
 
 
+## All engines' throttle levers to one position (trim, tests).
+func set_throttle(x: float) -> void:
+	for u in units:
+		u.engine.throttle = x
+
+
 func _burn_fuel(dt: float) -> void:
-	var burn := engine.fuel_flow_kgs * dt
-	var l: Dictionary = mb.tanks[0]  # JSBSim tank 0 = left (y < 0)
-	var r: Dictionary = mb.tanks[1]
-	l.contents_kg = maxf(l.contents_kg - burn * feed_left - leak_left_kgs * dt, 0.0)
-	r.contents_kg = maxf(r.contents_kg - burn * feed_right - leak_right_kgs * dt, 0.0)
+	var burn := 0.0
+	for u in units:
+		burn += u.engine.fuel_flow_kgs
+	burn *= dt
+	for i in mb.tanks.size():
+		var t: Dictionary = mb.tanks[i]
+		t.contents_kg = maxf(t.contents_kg - burn * tank_feed[i] - tank_leak_kgs[i] * dt, 0.0)
 	if int(time / dt) % 120 == 0:
 		mb.update()
-	engine.fuel_ok = fuel_available and mb.fuel_kg() > 0.0
+	var ok := fuel_available and mb.fuel_kg() > 0.0
+	for u in units:
+		u.engine.fuel_ok = ok

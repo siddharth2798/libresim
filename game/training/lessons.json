@@ -1,8 +1,9 @@
 {
-  "_doc": "Training lessons. Each step: text (instruction), hint, done (conditions that all hold), hold (s), any_order (true: also counts when its conditions already hold while an earlier step is current; earlier steps are ticked off; absolute metrics only), warn [{when, say, level}], track [{name, metric, reduce}], record [{name, metric}], gauges [{label, metric, min, max, target, tol, unit}]. Conditions are [metric, op, value]; ops >= <= > < == abs< abs> between. Metrics: ias gs agl alt vs hdg bank pitch throttle rpm flaps wow brake pitch_in along (m past the threshold) cross (m right of the centreline) gp gp_dev dist (m before the threshold) rem (m of runway left), and d_<metric> = change since the step began (d_hdg is wrapped to +/-180). Grades: [{label, source rec|trk, name, good [lo,hi], ok [lo,hi], unit}]. abort: [{steps [first, last] (0-based, while that step is current), when (conditions, all hold), for (s), reason, tip}]: the lesson ends as 'not completed' (reason, what to improve, Try again) when a rule holds for that long; {step} / {n} in the reason are the current step's title / number. incomplete: title of that card.",
+  "_doc": "Training lessons. aircraft [ids] (optional) = the aircraft the lesson is written for; absent = any; starting it from another aircraft switches to the first id. Each step: text (instruction), hint, done (conditions that all hold), hold (s), any_order (true: also counts when its conditions already hold while an earlier step is current; earlier steps are ticked off; absolute metrics only), warn [{when, say, level}], track [{name, metric, reduce}], record [{name, metric}], gauges [{label, metric, min, max, target, tol, unit}]. Conditions are [metric, op, value]; ops >= <= > < == abs< abs> between. Metrics: ias gs agl alt vs hdg bank pitch throttle rpm flaps wow brake pitch_in along (m past the threshold) cross (m right of the centreline) gp gp_dev dist (m before the threshold) rem (m of runway left), and d_<metric> = change since the step began (d_hdg is wrapped to +/-180). Grades: [{label, source rec|trk, name, good [lo,hi], ok [lo,hi], unit}]. abort: [{steps [first, last] (0-based, while that step is current), when (conditions, all hold), for (s), reason, tip}]: the lesson ends as 'not completed' (reason, what to improve, Try again) when a rule holds for that long; {step} / {n} in the reason are the current step's title / number. incomplete: title of that card.",
   "lessons": [
     {
       "id": "takeoff",
+      "aircraft": ["c172"],
       "title": "Takeoff",
       "summary": "Line up, take off straight, rotate at the right speed and climb away at Vy.",
       "learn": ["Using full power and keeping straight with the rudder", "Rotating at 55 knots", "Climbing at 74 knots (Vy)"],
@@ -47,6 +48,7 @@
     },
     {
       "id": "cruise",
+      "aircraft": ["c172"],
       "title": "Cruise",
       "summary": "Level flight, cruise power, trim, a standard turn, and climbs and descents.",
       "learn": ["Holding altitude with small pitch changes", "Setting cruise power and trimming hands-off", "Turning without losing height", "Climbing and descending by a set amount"],
@@ -95,6 +97,7 @@
     },
     {
       "id": "landing",
+      "aircraft": ["c172"],
       "title": "Landing",
       "summary": "Fly a stable approach on the 3° glide path, flare and land on the runway.",
       "learn": ["Setting up speed and flaps", "Following the glide path and centreline", "The flare and a smooth touchdown", "Rolling out straight"],

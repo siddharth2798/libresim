@@ -1,6 +1,9 @@
 class_name FailureCatalog
 extends RefCounted
-## Every failure the C172 can simulate. Each id is a Props flag "failures/<id>" that the
+## Every failure an aircraft can simulate. CATEGORIES is the full list (C172); categories() is the
+## list for the aircraft being flown: its aircraft.json "failures": {"disabled": [ids]} removes
+## entries (and categories left empty), and each engine beyond the first adds "engine_<n>" and
+## "engine_partial_<n>" (FdmNode reads failures/engine_<n> and failures/engine_partial_<n>). Each id is a Props flag "failures/<id>" that the
 ## owning module reads (engine_piston/fdm_node, systems/*, instruments/gyros, avionics/*).
 ## Used by the flight-setup failures page, the in-flight failures panel (F9) and the
 ## random-failure scheduler (systems/failure_manager.gd).
@@ -53,33 +56,72 @@ const MODES := ["Off", "At start", "After time", "Above altitude", "Above airspe
 const MODE_UNITS := ["", "", "min", "ft AGL", "kt"]
 
 
-static func all_ids() -> Array:
+static var _cache := {}  # aircraft id -> categories()
+
+
+## CATEGORIES adapted to the current aircraft (see the header). Same structure as CATEGORIES.
+static func categories() -> Array:
+	var def := AircraftDef.current()
+	var n := def.engine_count()
+	var key := "%s/%d" % [def.id, n]
+	if _cache.has(key):
+		return _cache[key]
+	var off: Array = def.section("failures").get("disabled", [])
 	var out := []
 	for c in CATEGORIES:
+		var items := []
+		for f in c[1]:
+			if not (f[0] in off):
+				items.append(f)
+		if c[0] == "Engine" and n > 1:
+			var first := []
+			var more := []
+			for f in items:
+				if f[0] == "engine":
+					first.append(["engine", "Engine 1 failure (total)"])
+				elif f[0] == "engine_partial":
+					first.append(["engine_partial", "Engine 1 partial power loss / rough running"])
+				else:
+					more.append(f)
+			for e in range(2, n + 1):
+				if not ("engine" in off):
+					first.append(["engine_%d" % e, "Engine %d failure (total)" % e])
+				if not ("engine_partial" in off):
+					first.append(["engine_partial_%d" % e, "Engine %d partial power loss / rough running" % e])
+			items = first + more
+		if not items.is_empty():
+			out.append([c[0], items])
+	_cache[key] = out
+	return out
+
+
+static func all_ids() -> Array:
+	var out := []
+	for c in categories():
 		for f in c[1]:
 			out.append(f[0])
 	return out
 
 
 static func label(id: String) -> String:
-	for c in CATEGORIES:
+	for c in categories():
 		for f in c[1]:
 			if f[0] == id:
 				return f[1]
 	return id
 
 
-static func ids_in(categories: Array) -> Array:
+static func ids_in(cats: Array) -> Array:
 	var out := []
-	for c in CATEGORIES:
-		if c[0] in categories:
+	for c in categories():
+		if c[0] in cats:
 			for f in c[1]:
 				out.append(f[0])
 	return out
 
 
 static func category_names() -> Array:
-	return CATEGORIES.map(func(c): return c[0])
+	return categories().map(func(c): return c[0])
 
 
 ## Clear every failure flag (repair all).

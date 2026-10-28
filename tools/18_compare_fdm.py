@@ -2,7 +2,7 @@
 Usage: 18_compare_fdm.py [--out /tmp/fdm_compare] [--no-godot] [--engine io360|io320] [--rig 0.035,0.005]
 Runs game/tests/fdm_compare.gd (ours_<m>.csv), flies the same pilot laws in JSBSim (jsb_<m>.csv), then
 writes metrics.md + PNG plots (fdm_compare_metrics.py). --engine io360 (default) swaps JSBSim's 160 hp
-IO-320 for engIO360C; --rig = JSBSim roll/yaw trim (pilot convention), default ours (c172_config.json).
+IO-320 for engIO360C; --rig = JSBSim roll/yaw trim (pilot convention), default ours (config.json).
 """
 import argparse
 import json
@@ -285,7 +285,7 @@ def main():
     if not a.no_godot:
         subprocess.run([str(GODOT), "--headless", "--path", str(c.ROOT / "game"), "-s",
                         "res://tests/fdm_compare.gd", "--", f"--out={out}"], check=True)
-    cfg = json.loads((c.ROOT / "game" / "aircraft" / "c172" / "c172_config.json").read_text())["controls"]
+    cfg = json.loads((c.ROOT / "game" / "aircraft" / "c172" / "config.json").read_text())["controls"]
     rig = [float(x) for x in a.rig.split(",")] if a.rig else [cfg.get("aileron_rigging", 0.0), cfg.get("rudder_rigging", 0.0)]
     root = jsbsim_root(out, a.engine)
     h0 = setup_ground(root, rig).agl

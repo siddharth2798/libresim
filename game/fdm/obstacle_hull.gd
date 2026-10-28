@@ -1,8 +1,9 @@
 class_name ObstacleHull
 extends RefCounted
-## The aircraft's solid outline: line segments (aircraft/c172/c172_hull.json) covering the
-## prop disc, cowling, fuselage, wings, struts, wheels and tail. Replaces the old handful of
+## The aircraft's solid outline: line segments (the aircraft's hull.json, e.g. aircraft/c172/hull.json)
+## covering the prop disc, cowling, fuselage, wings, struts, wheels and tail. Replaces the old handful of
 ## contact points: a 6 m house or a tree fits between a wingtip and the CG, a segment does not.
+## An aircraft without a hull.json gets a rough one from its config (wing line, fuselage, gear).
 
 var names := PackedStringArray()  # part name per segment ("right wingtip", "nose", ...)
 var _a := PackedVector3Array()  # segment ends, structural metres (x aft, y right, z up)
@@ -13,8 +14,12 @@ var _radius := 0.0
 var _cg := Vector3(INF, 0.0, 0.0)
 
 
-func _init(path := "res://aircraft/c172/c172_hull.json") -> void:
-	var d: Dictionary = Paths.load_res_json(path)
+func _init(def: AircraftDef = null) -> void:
+	if def == null:
+		def = AircraftDef.current()
+	var d := def.json("hull")
+	if d.is_empty():
+		d = fallback(def.config())
 	for pl in d.polylines:
 		var pts: Array = pl.pts
 		if pl.get("closed", false):
@@ -27,6 +32,28 @@ func _init(path := "res://aircraft/c172/c172_hull.json") -> void:
 				names.append(nm)
 				_a.append(_pt(pts[i], side == 1))
 				_b.append(_pt(pts[i + 1], side == 1))
+
+
+## Hull data (same format as hull.json) from a flight-model config: the wing as one line at the
+## aero reference point, the fuselage from the nose to the tail, and each gear contact as a point.
+static func fallback(cfg: Dictionary) -> Dictionary:
+	var m: Dictionary = cfg.metrics
+	var rp: Array = m.aero_ref_pt_m
+	var half: float = float(m.wingspan_m) * 0.5
+	var xs := [float(rp[0])]
+	for g in cfg.gear:
+		xs.append(float(g.pos_m[0]))
+	var x_min: float = xs.min() - 1.0
+	var x_max: float = xs.max() + 1.0
+	var z: float = float(rp[2])
+	var out := [
+		{"part": "wing", "pts": [[rp[0], -half, z], [rp[0], half, z]]},
+		{"part": "fuselage", "pts": [[x_min, 0.0, z * 0.5], [x_max, 0.0, z * 0.5]]},
+	]
+	for g in cfg.gear:
+		var p: Array = g.pos_m
+		out.append({"part": str(g.name).to_lower().replace("_", " "), "pts": [p, [p[0], p[1], float(p[2]) + 0.3]]})
+	return {"polylines": out}
 
 
 static func _pt(p: Array, flip: bool) -> Vector3:

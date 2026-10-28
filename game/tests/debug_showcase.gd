@@ -210,10 +210,10 @@ func _setup_session(def: Dictionary) -> void:
 	Session.end_lesson()
 	if def.has("lesson"):  # the lesson shows its card and markers; "pilot_lesson" only flies it (no training UI)
 		var lesson := TrainingLogic.find(def.lesson)
-		Session.begin_lesson(lesson.id, lesson.setup, "full")
+		TrainingLogic.begin(lesson, "full")
 	elif def.has("pilot_lesson"):
 		var lesson := TrainingLogic.find(def.pilot_lesson)
-		Session.begin_lesson(lesson.id, lesson.setup, "off")
+		TrainingLogic.begin(lesson, "off")
 	if def.has("weather"):  # after the lesson, which brings its own
 		Session.apply_weather_preset(def.weather)
 	for k in def.get("setup", {}):
@@ -321,7 +321,7 @@ func _pre_draw() -> void:
 	var cam: CameraRig = f.get_node("Camera")
 	if _fov > 0.0 and cam.mode == CameraRig.Mode.FREE:
 		cam.fov = _fov
-	var model: C172Model = f.get_node("Aircraft")
+	var model: AircraftModel = f.get_node("Aircraft")
 	if _prop_deg >= 0.0 and model._pivots.has("prop"):
 		model._pivots.prop[0].transform.basis = model._pivots.prop[1] * Basis(Vector3.RIGHT, deg_to_rad(_prop_deg))
 

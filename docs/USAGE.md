@@ -117,7 +117,7 @@ $PY tools/05_airports_navaids.py   # -> data/processed/airports.json, navaids.js
 $PY tools/04_osm_extract.py        # -> data/processed/osm/ (runways, roads, water, buildings) both regions, western+southern pbf ~6.5 min ([--thin] corridor density policy)
 $PY tools/02_dem_tiles.py          # -> data/processed/terrain/h/  (heightmaps, runways flattened); corridor ~2 min
 $PY tools/03_imagery_tiles.py      # -> data/processed/terrain/img/ BC1 .dds tiles (needs s2.tif; corridor: s2_corridor.vrt) ~15 s + 2 min
-$PY tools/06_jsbsim_to_json.py     # -> game/aircraft/c172/c172_aero.json, c172_config.json (committed)
+$PY tools/06_jsbsim_to_json.py     # [aircraft id, default c172] -> game/aircraft/<id>/aero.json, config.json (committed)
 $PY tools/09_runways.py            # -> data/processed/runways.json (merged runways + taxiways; after 02 & 04)
 $PY tools/10_buildings.py          # -> data/processed/buildings/ 3D building meshes in the BLD2 layout (after 02, 04; roofs from s2.tif / corridor s2_corridor.vrt; skips tiles without heights; parapets, hip roofs and rooftop boxes come from `tools/building_geom.py`) ~2.5 min on 8 processes, 364 MB + 79 MB collision, 33.7M vertices
 $PY tools/11_landclass.py          # -> data/processed/terrain/lc/ land-class masks: water + tree density (after 02-04) ~30 s + 2 min
@@ -633,15 +633,70 @@ The runner prints PASS/FAIL per test and exits non-zero on failure. The run must
 | Glide ratio, engine off | 8.6 | ~9 |
 | Hands-off after trimming | ±33 ft over 60 s | stable |
 
+### Adding an aircraft
+
+An aircraft is a folder `game/aircraft/<id>/`; nothing else in the game names an aircraft. Everything is read through `AircraftDef` (`game/aircraft/aircraft_def.gd`: `load_def(id)`, `current()`, `path(key)`, `config()`, `section(name)`, `section_or(name, defaults)`; an unknown id falls back to the c172). Generic code (cockpit, lights, audio, glass, reflections) is in `game/aircraft/common/`, the model loader is `game/aircraft/aircraft_model.gd`. Folder layout:
+
+```
+game/aircraft/<id>/
+  aircraft.json    what the game shows and needs: name, specs, limits, systems, ... (sections below)
+  config.json      flight model: mass, gear, tanks, engines, controls
+  aero.json        aerodynamic tables (JSBSim form, tools/06_jsbsim_to_json.py)
+  hull.json        collision outline (optional)   checklists.json   panel.json   (optional)
+  models/exterior.glb, models/interior.glb, sounds/   (optional; a placeholder airframe is drawn without a glb)
+```
+
+Each file name can be overridden with a `files` map in `aircraft.json` (`{"config": "other.json"}`).
+
+`aircraft.json` sections (`AircraftDef` header lists the same): `model` (glb pivots), `cockpit` (gauge spots, eye), `lights`, `audio`, `limits` (V-speeds, load limits), `damage` (touchdown thresholds, propeller hubs), `systems` (electrical, fuel, pitot-static), `ground` (below), `payload` (start-screen stations), `failures` (optional allow-list). Details of each are in the two "Aircraft data" sections above. `ground`: the footprint stands, taxi corridors and jetways are sized for, structural-frame metres about the CG: `ahead_m` (3.3, forward incl. margin), `behind_m` (7.4, to the tail), `across_m` (6.7, half span) and `height_m` (2.5, what a jetway or tunnel must clear). Defaults are the C172's. `ground` also takes `tow_ahead_m` (tug position ahead of the CG during pushback) and `min_runway_m` (the start screen marks shorter runways "too short for this aircraft"). Other top-level keys: `radio_type` (how the pilot calls the aircraft on the radio, e.g. "Cessna 172", used by the `{type}` slot in `atc/phraseology.json`), `cameras` (`chase` [back, up], `wing`, `tail` [x, y, z], `orbit_m`; default: the C172's scaled by wingspan), `start` (`pitch_trim` of a parked start), and in `limits`: `vr_kias` (Rotate call) and `vs0_kias` (Airspeed-alive call).
+
+`config.json` engines. The older single-engine form `{"engine": {...}, "propeller": {...}}` is one piston engine. For any number of engines use a list (each engine carries its own `propeller` block, copy it per engine):
+
+```json
+"engines": [
+  {"type": "piston", "pos_m": [-0.96, -1.6, 0.68], "maxhp": 180, "...": "as the c172 engine block", "propeller": {"diameter_m": 1.9, "...": "..."}},
+  {"type": "turbine", "pos_m": [1.0, 1.6, 0.9], "thrust_n": 12000, "max_rpm": 100, "idle_n1": 0.22,
+   "spool_up_s": 5, "spool_down_s": 3, "tsfc_kg_per_n_s": 1.6e-5, "alt_exponent": 0.8, "mach_lapse": 0.3, "windmill_drag_n": 36, "start_n1": 0.25}
+]
+```
+
+`pos_m` is the thrust point in structural metres (x aft, y right, z up). `type` is `piston` (engine plus propeller, `fdm/engine_piston.gd`) or `turbine` (no propeller; `fdm/engine_turbine.gd`: N1 spool, thrust from N1 with density and Mach lapse, fuel flow = `tsfc * thrust`, windmilling drag when failed or out of fuel). Optional `cruise_rpm` / `start_rpm` set the thruster speed of an airborne / ground start. Engine 1 has the controls `controls/throttle`, `mixture`, `starter`; engines 2..N use `controls/throttle_2` ... (falling back to the engine-1 lever) and `failures/engine_2` ... `tanks` is any list (`pos_m`, `capacity_kg`, `contents_kg`); a tank's side (left / right / centre) comes from its y position, and the fuel system (`systems.fuel.feed`: `selector` or `all`) decides which tanks feed.
+
+`gear` entries take an optional `role`: wheels `nose`, `main` or `tail`; structure points `wingtip`, `tail_skid` or `skid`. When it is missing it is derived: a steered wheel ahead of the fixed wheels is `nose`, behind them `tail` (a taildragger; it uses the weaker-leg limits of the nose wheel), structure points by name (`TIP`, `TAIL`). `brake_group` is `LEFT`, `RIGHT`, `BOTH` or `NONE` (which pedal brakes the wheel).
+
+`config.json` and `aero.json` of a JSBSim-based aircraft come from `tools/06_jsbsim_to_json.py [id]`: add an entry to `SPECS` (JSBSim aircraft, engine and propeller file names, rigging, gear damping, V-speeds, ...) and run `$PY tools/06_jsbsim_to_json.py <id>` (default `c172`; the committed c172 files regenerate byte for byte). Aircraft built another way write the two JSON files by hand. Tests: `tests/test_generic_aircraft.gd` builds a twin piston, a taildragger and a twin turbine from the c172 data in code (`AircraftDef.make`), a good template for checking a new configuration.
+
 ### Tuning the aircraft
 
 The aircraft's behaviour is data, so you can tune it without touching code:
 
-- `game/aircraft/c172/c172_config.json`: mass, inertia, gear springs and friction, surface limits, flap timing, engine and prop. `propeller.ct_factor_vs_j` (a thrust multiplier versus advance ratio) and `cp_factor` are the main performance knobs.
-- `game/aircraft/c172/c172_aero.json`: aerodynamic coefficient tables and constants, from JSBSim.
+- `game/aircraft/c172/config.json`: mass, inertia, gear springs and friction, surface limits, flap timing, engine and prop. `propeller.ct_factor_vs_j` (a thrust multiplier versus advance ratio) and `cp_factor` are the main performance knobs.
+- `game/aircraft/c172/aero.json`: aerodynamic coefficient tables and constants, from JSBSim.
 - Both files are regenerated by `tools/06_jsbsim_to_json.py`, so put permanent tuning changes in that script (or stop regenerating the files).
 - `controls.full_travel_s`: the actuator rate limits (seconds for full −1..1 travel; pitch 0.3, roll and yaw 0.15, from FlightGear's c172p).
 - Re-run the test cards and `tools/18_compare_fdm.py` after any change.
+
+### Aircraft data: limits, systems, payload
+
+Numbers that belong to one aircraft are in its `aircraft.json` (read through `AircraftDef`, `game/aircraft/aircraft_def.gd`); the scripts hold only defaults. Sections:
+
+- `limits`: `vne_kias`, `vd_kias`, `vfe_kias` (`[[max flap deg, KIAS], ...]`), `g_pos`, `g_neg` (damage model), `vs0_kias`, `vs1_kias`, `vno_kias`, `asi_min_kias`, `asi_max_kias` (airspeed indicator arcs and scale; the white arc ends at the last `vfe_kias` speed), `tach` (`max_rpm`, `green` `[lo, hi]`, `red`) and `gauges` (`fuel_gal`, `oil_temp_f`, `oil_press_psi`, `egt_f`, `fuel_flow_gph`, `suction_inhg`, `ammeter_a`, each `{min, max, green: [lo, hi], red}`; `red` optional, a gauge left out is not shown on the engine strip).
+- `damage`: touchdown and gear thresholds (`hard_landing_ms`, `collapse_ms`, `nose_collapse_ms`, `collapse_drop_m`, `side_damage_ms`, `side_collapse_ms`, `main_load_w`, `nose_load_w`) and `prop_hubs_m` (one `[x, y, z]` structural position per engine, for the prop-strike check).
+- `systems.electrical`: `battery_ah`, `alt_max_a`, `alt_rpm_min`, `alt_rpm_ramp`, `bus_volts`, `bat_v_empty`, `bat_v_full`, `bat_ohm`, `charge_gain`, `charge_min_a`, `starter_a`, `flap_motor_a`, `low_volts`, `powered_volts`, `starter_min_volts`, `loads` (amps per consumer). Defaults are the C172's, in `systems/electrical.gd`.
+- `systems.pitot_static`: `pos_err_kcas` and `pos_err_dkt` (airspeed position error table, kt; none = no error).
+- `systems.fuel`: see `systems/fuel.gd`.
+- `payload`: `fuel_kg_per_gal`, `cruise_gph` and `reserve_gal` (endurance estimate on the aircraft page), `fuel_slider` (`min`, `max`, `step`, `unit`; the fuel per tank) and `stations`, a list of `{key, label, max, step, masses}`. `key` is the `Session.setup` entry (kept in saved flights), `masses` the names of the `config.json` point masses the station's kg is split over. W&B, the start screen and the flight loading all read this list.
+- `failures`: optional `{"disabled": [ids]}` to remove failures from the catalogue (`systems/failure_catalog.gd`); engines 2..N get `engine_<n>` / `engine_partial_<n>` automatically.
+
+### Aircraft data: model, cockpit, lights, audio
+
+The look and sound of an aircraft is data too. Files are found by `AircraftDef.path(key)`: `models/exterior.glb`, `models/interior.glb`, `sounds/`, `panel.json` in the aircraft's folder (override any of them with a `files` map in `aircraft.json`). Without an exterior glb a `PlaceholderAirframe` (`game/aircraft/placeholder_airframe.gd`) is drawn from `config.json` (wingspan, chord, tail arm, gear contacts, one propeller or nacelle per engine), with moving control surfaces. Generic code is in `game/aircraft/common/`, `aircraft_model.gd` and `ui/instrument_panel.gd`.
+
+- `model`: `surfaces` is `{pivot: {drive, sign}}`: the glb node `pivot_<pivot>` turns about its X axis by `sign` times the control position (`drive` = `elevator`, `aileron`, `rudder` in radians, or `flap_deg`); `propellers` is a list of `{pivot, engine (0 = engine 1), sign, visual_rate}` (spin = `sign * rpm/60 * TAU * dt * visual_rate`); optional `origin_m` places the glb's origin (default `metrics.vrp_m`). The glb uses FlightGear's model frame (x aft, y right, z up from the origin). A missing pivot is skipped.
+- `cockpit`: `eye` (model frame), `panel_mesh` (the panel's mesh node, so gauge quads clear its bezels) and `spots`, `{item: {pos, size, round}}`, where on the interior glb each panel item is shown (`pos` model frame, `size` = face width in m). Without an interior glb, or without spots, a flat placeholder panel is used.
+- `panel.json`: the instrument panel layout: `cell`, `pad`, `switch_h` (px), `radio_w` (cells), `cols`, `rows`, `gauges` (`{name: {script, cell: [col, row], meta}}`, scripts in `ui/gauges/`) and the optional `strip` (`{script, cell, span}`), `switches` and `radios` items. The item names are what `cockpit.spots` and the 2D overlay layouts (`ui/panel_overlay.gd`) refer to.
+- `lights`: `nav` (`{pos, side: left|right|tail, color: red|green|white, size, range, omni_off}`), `beacon` and `strobe` (same fields; several allowed), `lamps` (`{switch: landing|taxi, pos, energy, range, angle, beam, tilt}`). Positions are structural metres (x aft, y right, z up).
+- `audio`: `engine` and `wind` mappings (volume / pitch against rpm and airspeed; keys and defaults at the top of `common/aircraft_audio.gd`). The wav files come from the `sounds/` folder; a file that is not there is just silent.
 
 ---
 
@@ -743,10 +798,10 @@ More in the same spirit: **cloud shadows** (`CloudLayer._publish_shadow` publish
 
 To use your own models instead of the converted FlightGear ones:
 
-1. Model in Blender in metres, with **−Z forward, +Y up, origin at the C172's CG**. The CG is about 1.0 m aft of the JSBSim datum; see `mass.empty_cg_m` in `c172_config.json`. Export glTF (`.glb`) to `game/aircraft/c172/exterior.glb` and `cockpit.glb`.
+1. Model in Blender in metres, with **−Z forward, +Y up, origin at the C172's CG**. The CG is about 1.0 m aft of the JSBSim datum; see `mass.empty_cg_m` in `config.json`. Export glTF (`.glb`) to `game/aircraft/c172/exterior.glb` and `cockpit.glb`.
 2. Name animated parts `elevator`, `rudder`, `aileron_L`, `aileron_R`, `flap_L`, `flap_R` and `prop`, with pivots on their hinge lines.
 3. In the cockpit model, leave a flat panel face with UVs covering 0–1. Assign it a material whose albedo is the panel SubViewport texture (see `Cockpit.build`), so the existing gauges and clickable knobs keep working.
-4. Instantiate the `.glb` files in `C172Model.build()` instead of the `_box()` calls (a few lines of code).
+4. Put the `.glb` files in `models/` of the aircraft folder; `AircraftModel` uses them when present (see "Aircraft data: model, cockpit, lights, audio"), else a generic placeholder airframe sized from `config.json`.
 
 The FlightGear c172p model (GPL) is fine as a private, local stand-in while you build your own, but don't redistribute it.
 
@@ -773,7 +828,8 @@ game/         Godot project
   ui/         hud, camera_rig, perf_overlay, instrument_panel + gauges/, panel_overlay
   systems/    pitot_static, vacuum, electrical, fuel
   instruments/ air-data, gyro, compass, engine gauge models (publish instruments/* props)
-  aircraft/c172/  aero + config JSON (from JSBSim; edit to tune), placeholder model, procedural engine sound
+  aircraft/<id>/ one aircraft: aircraft.json, config.json + aero.json (from JSBSim; edit to tune), panel.json, models/, sounds/
+  aircraft/common/ code shared by all aircraft (cockpit, lights, audio, reflections); aircraft_def.gd reads an aircraft folder
 docs/USAGE.md this file
 ```
 

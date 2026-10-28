@@ -14,7 +14,7 @@ func _ready() -> void:
 	list.size_flags_horizontal = SIZE_EXPAND_FILL
 	add_child(list)
 	var s: Dictionary = Session.setup
-	for c in FailureCatalog.CATEGORIES:
+	for c in FailureCatalog.categories():
 		list.add_child(MenuTheme.heading(c[0]))
 		var g := GridContainer.new()
 		g.columns = 3

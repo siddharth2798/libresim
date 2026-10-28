@@ -74,13 +74,14 @@ func add_jetway(n: Node3D, ground: float) -> void:
 		ObstacleRegistry.add(group, rec)
 
 
-## Does a part of the raster that a C172 (2.5 m high) would hit stand in a corridor? Then that jetway
+## Does a part of the raster that the aircraft (ground.height_m, 2.5 m for the C172) would hit stand in a corridor? Then that jetway
 ## (a misplaced OSM way) is drawn but not solid, so stands and taxiways stay usable.
 static func _low_part_in_corridor(rec: Dictionary) -> bool:
 	var o: Vector2 = rec.o
 	var cell: float = rec.cell
+	var height: float = AircraftDef.current().section_or("ground", {"height_m": 2.5}).height_m
 	for k in rec.zmax.size():
-		if rec.zmax[k] > -INF and rec.zmin[k] < 2.5 + rec.base:
+		if rec.zmax[k] > -INF and rec.zmin[k] < height + rec.base:
 			var c := o + Vector2(k % int(rec.nx) + 0.5, k / int(rec.nx) + 0.5) * cell
 			if ObstacleRegistry.in_corridor(c.x, c.y):
 				return true

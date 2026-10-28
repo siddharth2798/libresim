@@ -6,7 +6,7 @@ extends Node3D
 ## above the airframe. It is re-captured only when ReflectionPolicy says the picture changed, never
 ## every frame (a capture draws the scenery six times). Box projection is off: far scenery has no
 ## parallax, so the cubemap serves a 1.2 km box and the aircraft needs no per-frame probe motion.
-## Preset: ReflectionPolicy.PRESETS (Low off). Built by C172Model.
+## Preset: ReflectionPolicy.PRESETS (Low off). Built by AircraftModel.
 
 const BOX := Vector3(1200.0, 600.0, 1200.0)
 const HIDDEN_LAYER := 1 << 10  # interior, bulbs, ...: not captured, still lit like layer 1

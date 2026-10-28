@@ -218,7 +218,7 @@ static func _meta(root: Node, enu: Vector3) -> Dictionary:
 		"date": "%04d-%02d-%02d %02d:%02d" % [t.year, t.month, t.day, t.hour, t.minute],
 		"airport": nearest_airport(root, enu), "alt_ft": Units.m_to_ft(fn.fdm.altitude()),
 		"agl_ft": Units.m_to_ft(fn.fdm.agl), "ias_kt": Props.get_f("instruments/asi_kt", Units.mps_to_kt(fn.fdm.cas)),
-		"on_ground": fn.fdm.gear.wow, "aircraft": str(Session.setup.get("aircraft", "c172"))}
+		"on_ground": fn.fdm.gear.wow, "aircraft": str(Session.setup.get("aircraft", AircraftDef.DEFAULT_ID))}
 
 
 ## Props values: JSON-native bools / floats / strings as they are, anything else

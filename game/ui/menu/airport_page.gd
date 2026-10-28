@@ -160,9 +160,11 @@ func _select(a: Dictionary, user := true) -> void:
 		rl.append("%s/%s  %d m" % [r.ends[0].ident, r.ends[1].ident, int(r.length)])
 	_info.text = "%s\n%s\nElevation %d ft · %d stands\n%s" % [a.icao, a.name, int(Units.m_to_ft(a.elev_m)), a.stands.size(), "\n".join(rl)]
 	_rwy.clear()
+	var min_len := float(AircraftDef.load_def(str(s.get("aircraft", AircraftDef.DEFAULT_ID))).section("ground").get("min_runway_m", 0.0))
 	for r in a.runways:
 		for e in r.ends:
-			_rwy.add_item("Runway %s  (%d m)" % [e.ident, int(r.length)])
+			var short := " — too short for this aircraft" if float(r.length) < min_len else ""
+			_rwy.add_item("Runway %s  (%d m)%s" % [e.ident, int(r.length), short])
 			_rwy.set_item_metadata(_rwy.item_count - 1, e.ident)
 			if e.ident == s.runway:
 				_rwy.select(_rwy.item_count - 1)

@@ -1,34 +1,18 @@
 class_name Cockpit
 extends Node3D
-## 3D cockpit. With models/interior.glb (FlightGear c172p interior, GPL-2.0-or-later)
-## the live gauges from the InstrumentPanel SubViewport are mapped onto small quads
-## at the real instrument positions; otherwise a placeholder panel quad + frame is used.
-## Mouse clicks on any gauge quad are forwarded to the SubViewport (knobs work).
-## Child of C172Model (local: -Z nose, +Y up, origin = CG).
+## 3D cockpit. With the aircraft's interior glb (def.path("interior"), e.g. the FlightGear c172p
+## interior, GPL-2.0-or-later) and spots, the live gauges from the InstrumentPanel SubViewport are
+## mapped onto small quads at the real instrument positions; otherwise a placeholder panel quad +
+## frame is used. Mouse clicks on any gauge quad are forwarded to the SubViewport (knobs work).
+## Child of AircraftModel (local: -Z nose, +Y up, origin = CG).
+## aircraft.json "cockpit":
+##   eye         [x, y, z] pilot eye in the glb's model frame (x aft, y right, z up from the model origin)
+##   panel_mesh  name of the gauge panel's mesh node (round gauges are lifted clear of its bezels)
+##   spots       {item name: {"pos": [x,y,z] model frame, "size": face width m, "round": bool}}
+## Item names are the InstrumentPanel ones (panel.json): gauges, "radios", "strip", "switches".
 
 const REFRESH := 1.0 / 30.0
-const INTERIOR := "res://aircraft/c172/models/interior.glb"
-## FlightGear model-frame centres (x aft, y right, z up) + face size (m) per panel item.
-const SPOTS := {
-	"asi": [Vector3(-0.364, -0.3115, 0.129), 0.080],
-	"ai": [Vector3(-0.364, -0.2215, 0.1286), 0.080],
-	"alt": [Vector3(-0.363, -0.1324, 0.1303), 0.080],
-	"tc": [Vector3(-0.365, -0.3111, 0.0293), 0.080],
-	"hi": [Vector3(-0.365, -0.2216, 0.0289), 0.080],
-	"vsi": [Vector3(-0.3656, -0.1324, 0.0284), 0.080],
-	"tach": [Vector3(-0.3636, -0.3119, -0.0787), 0.076],
-	"vor1": [Vector3(-0.364, -0.0414, 0.1307), 0.080],
-	"vor2": [Vector3(-0.3646, -0.0409, 0.0274), 0.080],
-	"adf": [Vector3(-0.3639, -0.0412, -0.0765), 0.080],
-	"radios": [Vector3(-0.354, 0.1165, 0.047), 0.16],
-	"strip": [Vector3(-0.362, 0.33, 0.06), 0.16],
-	"switches": [Vector3(-0.352, -0.19, -0.168), 0.40],
-}
-## Round gauges (the other items are radios and switch strips with their own plates).
-const GAUGES := ["asi", "ai", "alt", "tc", "hi", "vsi", "tach", "vor1", "vor2", "adf"]
 const FACE_GAP := 0.0015  # gauge quads sit this far in front of the panel's frontmost surface (m)
-## Pilot eye in the FlightGear model frame (left seat).
-const EYE_FG := Vector3(0.33, -0.22, 0.31)
 
 var viewport: SubViewport
 var panel_ui: InstrumentPanel
@@ -36,10 +20,13 @@ var eye := Vector3.ZERO  # local, for the camera
 var interior: Node3D
 var _quads: Array = []  # [MeshInstance3D, Rect2 panel px]
 var _acc := 0.0
+var _panel_mesh := ""
 var _frame := StandardMaterial3D.new()
 
 
-func build(model: C172Model, fallback_eye: Vector3) -> void:
+func build(model: AircraftModel, fallback_eye: Vector3) -> void:
+	var def := model.def
+	var cfg := def.section("cockpit")
 	viewport = SubViewport.new()
 	viewport.size = Vector2i(InstrumentPanel.natural_size())
 	viewport.render_target_update_mode = SubViewport.UPDATE_ONCE
@@ -47,20 +34,27 @@ func build(model: C172Model, fallback_eye: Vector3) -> void:
 	panel_ui = InstrumentPanel.new()
 	panel_ui.size = InstrumentPanel.natural_size()
 	viewport.add_child(panel_ui)
-	if ResourceLoader.exists(INTERIOR):
-		interior = (load(INTERIOR) as PackedScene).instantiate()
+	var rects := InstrumentPanel.rects()
+	var spots: Dictionary = cfg.get("spots", {})
+	_panel_mesh = str(cfg.get("panel_mesh", ""))
+	eye = fallback_eye
+	if ResourceLoader.exists(def.path("interior")):
+		interior = (load(def.path("interior")) as PackedScene).instantiate()
 		interior.transform = model.fg_transform()
 		add_child(interior)
-		C172Model.fix_glass(interior)
-		var rects := InstrumentPanel.rects()
-		eye = model.fg_to_local(EYE_FG)
+		AircraftModel.fix_glass(interior)
+		if cfg.has("eye"):
+			eye = model.fg_to_local(_vec(cfg.eye))
+	if interior != null and not spots.is_empty():
 		var front := _panel_front()
-		for k in SPOTS:
+		for k in spots:
+			if not rects.has(k):
+				continue
 			var r: Rect2 = rects[k]
-			var w: float = SPOTS[k][1]
-			var pos := model.fg_to_local(SPOTS[k][0]) + Vector3(0, 0, 0.004)
+			var w: float = spots[k].size
+			var pos := model.fg_to_local(_vec(spots[k].pos)) + Vector3(0, 0, 0.004)
 			var s := 1.0
-			if k in GAUGES and not is_nan(front) and front + FACE_GAP > pos.z:
+			if spots[k].get("round", false) and not is_nan(front) and front + FACE_GAP > pos.z:
 				# the panel's bezels stand proud of the nominal face plane and would clip the gauge:
 				# lift the quad clear of them and shrink it so it looks the same size from the eye
 				var lifted := Vector3(pos.x, pos.y, front + FACE_GAP)
@@ -69,17 +63,21 @@ func build(model: C172Model, fallback_eye: Vector3) -> void:
 			_add_quad(pos, Vector2(w, w * r.size.y / r.size.x) * s, r, Basis())
 	else:
 		_build_placeholder(fallback_eye)
-		eye = fallback_eye
 	var lighting := CockpitLighting.new()
 	add_child(lighting)
-	var rects := InstrumentPanel.rects()
-	lighting.setup(_quads, [rects.get("radios")] if interior else [], eye)
+	lighting.setup(_quads, [rects["radios"]] if interior != null and not spots.is_empty() and rects.has("radios") else [], eye)
+
+
+func _vec(a: Array) -> Vector3:
+	return Vector3(a[0], a[1], a[2])
 
 
 ## Local z of the frontmost (toward the pilot) point of the gauge panel mesh, NAN if there is none.
 func _panel_front() -> float:
 	var best := NAN
-	for mi in interior.find_children("panel_1_gauges", "MeshInstance3D", true, false):
+	if _panel_mesh == "":
+		return NAN
+	for mi in interior.find_children(_panel_mesh, "MeshInstance3D", true, false):
 		var t: Transform3D = (mi as MeshInstance3D).transform
 		var p := mi.get_parent()
 		while p != null and p != interior:

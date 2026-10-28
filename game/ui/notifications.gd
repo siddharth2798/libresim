@@ -177,7 +177,7 @@ func _process(dt: float) -> void:
 	_stall.modulate.a = 0.75 + 0.25 * sin(_pulse)
 	var hint := ""
 	if not crashed and not Props.get_b("engine/running") and Props.get_f("engine/rpm") < 300.0 and not Props.get_b("failures/engine"):
-		hint = "Engine stopped — mixture rich, magnetos BOTH (M), hold S to start"
+		hint = "Engine stopped — mixture rich, magnetos BOTH (M), hold S to start" if AircraftDef.current().engine_type() == "piston" else "Engine stopped — hold S to start"
 	_hint.text = hint
 
 

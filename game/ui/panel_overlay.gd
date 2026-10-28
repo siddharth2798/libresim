@@ -31,22 +31,26 @@ func setup(c: Cockpit, rig: CameraRig) -> void:
 	_build()
 
 
+## Union of the panel items in `names` that this aircraft's panel has (empty Rect2 if none).
 func _region(names: Array) -> Rect2:
 	var r := InstrumentPanel.rects()
-	var out: Rect2 = r[names[0]]
+	var out := Rect2()
+	var first := true
 	for n in names:
-		out = out.merge(r[n])
-	return out.grow(6)
+		if not r.has(n):
+			continue
+		out = r[n] if first else out.merge(r[n])
+		first = false
+	return Rect2() if first else out.grow(6)
 
 
-## Layout spec: [[region names], anchor ("bl","br","bc","tr","rc"), height as fraction of screen]
+## Layout spec: [[region names], anchor ("bl","br","bc","tr","rc"), height as fraction of screen],
+## from the aircraft's panel.json "overlay" (layout name -> pieces).
 func _spec() -> Array:
-	match LAYOUTS[layout]:
-		"Full": return [[["asi", "ai", "alt", "vor1", "tc", "hi", "vsi", "vor2", "tach", "strip", "adf", "radios", "switches"], "bc", 0.42]]
-		"Split": return [[["asi", "ai", "alt", "tc", "hi", "vsi"], "bl", 0.30], [["vor1", "vor2", "adf"], "br", 0.42], [["radios"], "tr", 0.40]]
-		"Compact": return [[["asi", "ai", "alt", "tc", "hi", "vsi"], "bl", 0.22]]
-		"Minimal": return [[["asi", "ai", "alt"], "tr", 0.12]]
-	return []
+	var out := []
+	for piece in InstrumentPanel.layout().get("overlay", {}).get(LAYOUTS[layout], []):
+		out.append([piece.items, piece.anchor, piece.height])
+	return out
 
 
 func _build() -> void:
@@ -58,6 +62,8 @@ func _build() -> void:
 	var vs := get_viewport().get_visible_rect().size
 	for s in _spec():
 		var reg := _region(s[0])
+		if reg.size.x <= 0.0:
+			continue  # none of these items on this aircraft's panel
 		var tex := AtlasTexture.new()
 		tex.atlas = cockpit.viewport.get_texture()
 		tex.region = reg

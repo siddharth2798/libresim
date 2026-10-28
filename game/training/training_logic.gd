@@ -15,6 +15,27 @@ static func load_lessons() -> Array:
 	return j.lessons if j is Dictionary else []
 
 
+## Does this lesson suit the aircraft? A lesson's optional "aircraft" list names the aircraft ids it is
+## written for (V-speeds, fuel, procedures); no list = any aircraft.
+static func suits(lesson: Dictionary, aircraft_id: String) -> bool:
+	var list: Array = lesson.get("aircraft", [])
+	return list.is_empty() or aircraft_id in list
+
+
+## The lessons written for this aircraft, in order.
+static func lessons_for(aircraft_id: String) -> Array:
+	return load_lessons().filter(func(l): return suits(l, aircraft_id))
+
+
+## Start a lesson (Session.begin_lesson). If the current aircraft is not one it is written for, the
+## flight is set up with the first aircraft it lists; end_lesson() restores the pilot's own choice.
+static func begin(lesson: Dictionary, assist: String) -> void:
+	Session.begin_lesson(lesson.id, lesson.setup, assist)
+	var current := str(Session.setup.get("aircraft", AircraftDef.DEFAULT_ID))
+	if not suits(lesson, current):
+		Session.setup.aircraft = str(lesson.aircraft[0])
+
+
 static func find(id: String) -> Dictionary:
 	for l in load_lessons():
 		if l.id == id:

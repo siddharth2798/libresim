@@ -121,13 +121,14 @@ func take_control() -> void:
 	f.engine.cht_k = g.call("engine/cht_k", f.engine.cht_k)
 	f.engine.oil_temp_k = g.call("engine/oil_temp_k", f.engine.oil_temp_k)
 	f.engine.oil_press_pa = g.call("engine/oil_press_pa", f.engine.oil_press_pa)
-	f.mb.tanks[0].contents_kg = g.call("fuel/left_kg", f.mb.tanks[0].contents_kg)
-	f.mb.tanks[1].contents_kg = g.call("fuel/right_kg", f.mb.tanks[1].contents_kg)
+	f.mb.set_side_kg("left", g.call("fuel/left_kg", f.mb.side_kg("left")))
+	f.mb.set_side_kg("right", g.call("fuel/right_kg", f.mb.side_kg("right")))
 	f.mb.update()
 	if f.damage.crashed:  # taking over before the crash: aircraft as it was then
 		f.damage.reset()
 		f.gear = GearGround.new(f.cfg)
-		f.engine.failed = false
+		for u in f.units:
+			u.engine.failed = false
 	buffer.truncate_after(t)
 	clock = t
 	_next_sample = t + 1.0 / RATE_HZ

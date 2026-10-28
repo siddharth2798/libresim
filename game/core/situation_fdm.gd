@@ -12,8 +12,7 @@ const ENGINE_KEYS := ["throttle", "mixture", "magnetos", "starter", "fuel_ok", "
 const PROP_KEYS := ["rpm", "thrust", "torque", "v_induced", "advance_ratio"]
 const FCS_KEYS := ["pitch", "roll", "yaw", "pitch_trim", "flap_cmd", "flaps_powered", "flap_motor_running",
 	"elevator", "aileron", "rudder", "flap_deg", "act_pitch", "act_roll", "act_yaw"]
-const FDM_KEYS := ["pos_n", "pos_e", "pos_d", "feed_left", "feed_right", "fuel_available", "leak_left_kgs",
-	"leak_right_kgs", "time", "alpha", "beta", "vt", "cas", "qbar", "mach", "agl", "load_factor",
+const FDM_KEYS := ["pos_n", "pos_e", "pos_d", "fuel_available", "time", "alpha", "beta", "vt", "cas", "qbar", "mach", "agl", "load_factor",
 	"flight_load_factor", "_alpha_prev", "_alphadot"]
 const DAMAGE_KEYS := ["crash_reason", "prop_destroyed", "flaps_jammed", "structure_damaged", "hard_landings",
 	"_overspeed_t", "_flap_t", "_air_time"]
@@ -33,8 +32,12 @@ static func capture(f: FDM) -> Dictionary:
 	d.qnh_pa = f.atmo.qnh_pa
 	d.delta_t = f.atmo.delta_t
 	d.stall_hyst = f.aero.stall_hyst
-	d.engine = _pick(f.engine, ENGINE_KEYS)
+	d.engine = _pick(f.engine, ENGINE_KEYS + f.engine.extra_state_keys())
 	d.prop = _pick(f.prop, PROP_KEYS)
+	d.units = f.units.slice(1).map(func(u): return {"engine": _pick(u.engine, ENGINE_KEYS + u.engine.extra_state_keys()),
+		"prop": _pick(u.thruster, PROP_KEYS)})  # engines 2..n (engine 1 is "engine" / "prop", as in older saves)
+	d.tank_feed = Array(f.tank_feed)
+	d.tank_leak_kgs = Array(f.tank_leak_kgs)
 	d.fcs = _pick(f.fcs, FCS_KEYS)
 	d.gear = {"steer_cmd": f.gear.steer_cmd, "brake_left": f.gear.brake_left,
 		"brake_right": f.gear.brake_right, "wow": f.gear.wow}
@@ -48,6 +51,7 @@ static func capture(f: FDM) -> Dictionary:
 	d.damage = _pick(dm, DAMAGE_KEYS)
 	d.damage.events = Array(dm.events)
 	d.damage.gear_failed = dm.gear_failed.keys()
+	d.damage.struck = dm.struck.keys()
 	d.damage.last_touchdown = dm.last_touchdown.duplicate()
 	d.damage.was_touching = dm._was_touching.duplicate()
 	return d
@@ -67,6 +71,14 @@ static func apply(f: FDM, d: Dictionary) -> void:
 	f.aero.stall_hyst = d.get("stall_hyst", 0.0)
 	_put(f.engine, d.engine)
 	_put(f.prop, d.prop)
+	var more: Array = d.get("units", [])
+	for i in mini(more.size(), f.units.size() - 1):
+		_put(f.units[i + 1].engine, more[i].engine)
+		_put(f.units[i + 1].thruster, more[i].prop)
+	for i in mini(d.get("tank_feed", []).size(), f.tank_feed.size()):
+		f.tank_feed[i] = float(d.tank_feed[i])
+	for i in mini(d.get("tank_leak_kgs", []).size(), f.tank_leak_kgs.size()):
+		f.tank_leak_kgs[i] = float(d.tank_leak_kgs[i])
 	_put(f.fcs, d.fcs)
 	# damage: start from a repaired aircraft, then re-break what was broken
 	f.damage.reset()
@@ -81,6 +93,8 @@ static func apply(f: FDM, d: Dictionary) -> void:
 	f.damage.events.assign(dd.get("events", []))
 	f.damage.last_touchdown = dd.get("last_touchdown", {}).duplicate()
 	f.damage._was_touching = dd.get("was_touching", {}).duplicate()
+	for i in dd.get("struck", []):
+		f.damage.struck[int(i)] = true
 	# mass & balance
 	var mb := f.mb
 	var tanks: Array = d.mb.tanks

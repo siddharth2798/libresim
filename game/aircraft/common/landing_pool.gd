@@ -1,10 +1,10 @@
 class_name LandingPool
 extends MeshInstance3D
-## Lit patch on the ground ahead of a landing or taxi light (aircraft/c172/ground_pool.gdshader).
+## Lit patch on the ground ahead of a landing or taxi light (aircraft/common/ground_pool.gdshader).
 ## Laid flat on the ground under the aircraft (fdm/agl_m), yawed with the heading, fading out
 ## as the aircraft climbs away from the ground. The real SpotLight3D still lights objects.
 
-const SHADER := preload("res://aircraft/c172/ground_pool.gdshader")
+const SHADER := preload("res://aircraft/common/ground_pool.gdshader")
 const FADE_AGL := Vector2(25.0, 90.0)  # m: full below, gone above
 
 var near_m := 6.0

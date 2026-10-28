@@ -1,5 +1,5 @@
 class_name EnginePiston
-extends RefCounted
+extends Powerplant
 ## Normally aspirated, fuel-injected piston engine (Lycoming IO-360, 180 hp).
 ## Power scales with air mass flow (MAP, RPM, manifold temperature) times a
 ## mixture-efficiency curve, minus friction. Calibrated so full throttle at
@@ -23,32 +23,10 @@ const FIRE_DELAY_S := 1.0  # it turns over this long before it catches (a windmi
 const WINDMILL_RPM := 300.0
 const MAP_ZERO := 4.0 * 3386.389  # IMEP ~ k * (MAP - MAP_ZERO): low-MAP inefficiency
 
-var max_power: float
-var max_rpm: float
-var idle_rpm: float
 var displacement: float  # m^3
 var _k_power: float  # W per (kg/s air) at best power
 var spark_drop: float
 var _fire_t := 0.0  # s the engine has been turning above FIRE_RPM with spark, fuel and mixture
-
-# inputs
-var throttle := 0.0
-var mixture := 1.0
-var magnetos := 3
-var starter := false
-var fuel_ok := true
-var failed := false  # catastrophic engine failure
-var partial := false  # partial power loss: rough running at ~55 % power
-# outputs
-var running := false
-var map_pa := 101325.0
-var fuel_flow_kgs := 0.0
-var power_w := 0.0
-var egt_k := 288.0
-var cht_k := 288.0
-var oil_temp_k := 288.0
-var oil_press_pa := 0.0
-var torque := 0.0  # N*m on the crankshaft
 
 
 func _init(cfg: Dictionary) -> void:

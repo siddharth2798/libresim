@@ -10,9 +10,13 @@ const REST_STEP := 0.0003  # m per step (0.07 m/s): the aircraft is parked, or w
 const TELEPORT := 25.0  # m per step: a teleport (placement, situation load), not motion
 const FORGIVE_R := 6.0  # a forgiven overlap holds while the CG stays this close to where it began
 
-var hull := ObstacleHull.new()
+var hull: ObstacleHull
 var _ignored := {}  # record id -> CG position (Vector2) when its overlap was forgiven
 var _last := Vector2(INF, INF)
+
+
+func _init(def: AircraftDef = null) -> void:
+	hull = ObstacleHull.new(def)
 
 
 ## {} or {part, label, kind} for the first contact.

@@ -113,7 +113,7 @@ func _press(a: String) -> void:
 		"flaps_up":
 			Props.set_v("controls/flaps", maxi(flaps - 1, 0))
 		"flaps_down":
-			Props.set_v("controls/flaps", mini(flaps + 1, 3))
+			Props.set_v("controls/flaps", mini(flaps + 1, int(Props.get_v("fdm/flap_detents", 4)) - 1))
 		"parking_brake":
 			Props.set_v("controls/parking_brake", not Props.get_b("controls/parking_brake"))
 		"magnetos_next":

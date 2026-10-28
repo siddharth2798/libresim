@@ -12,13 +12,13 @@ static func _accel(f: FDM, x: Vector3, tas: float, hdg: float, base: Array) -> V
 	f.fcs.pitch_trim = x.y
 	f.fcs.pitch = 0.0
 	f.fcs.settle()
-	f.engine.throttle = x.z
+	f.set_throttle(x.z)
 	f._alpha_prev = x.x
 	# settle propeller RPM for this throttle/airspeed
 	f.atmo.update(-f.pos_d)
 	for i in 300:
-		f.engine.update(0.01, f.prop.rpm, f.atmo.pressure, f.atmo.temperature, tas)
-		f.prop.update(0.01, f.engine.torque, tas * cos(x.x), f.atmo.density, f.atmo.sound_speed)
+		for u in f.units:
+			u.update(0.01, f.atmo, tas * cos(x.x), tas)
 	var v0 := f.v_b
 	var w0 := f.w_b
 	var dt := 1e-3

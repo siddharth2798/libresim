@@ -19,12 +19,113 @@
 	"pilot_kg": 81.6,
 	"max_baggage_kg": 54.0,
 	"tank_gal": 28.0,
+	"radio_type": "Cessna 172",
+	"cameras": {"chase": [16.0, 4.0], "wing": [-5.6, 0.9, 1.6], "tail": [0.0, 2.4, 6.8], "orbit_m": 18.0},
+	"start": {"pitch_trim": -0.05},
+	"model": {
+		"surfaces": {
+			"aileron_L": {"drive": "aileron", "sign": 1},
+			"aileron_R": {"drive": "aileron", "sign": -1},
+			"elevator_L": {"drive": "elevator", "sign": -1},
+			"elevator_R": {"drive": "elevator", "sign": -1},
+			"rudder": {"drive": "rudder", "sign": -1},
+			"flaps": {"drive": "flap_deg", "sign": 1}
+		},
+		"propellers": [{"pivot": "prop", "engine": 0, "sign": -1, "visual_rate": 0.13}]
+	},
+	"cockpit": {
+		"eye": [0.33, -0.22, 0.31],
+		"panel_mesh": "panel_1_gauges",
+		"spots": {
+			"asi": {"pos": [-0.364, -0.3115, 0.129], "size": 0.080, "round": true},
+			"ai": {"pos": [-0.364, -0.2215, 0.1286], "size": 0.080, "round": true},
+			"alt": {"pos": [-0.363, -0.1324, 0.1303], "size": 0.080, "round": true},
+			"tc": {"pos": [-0.365, -0.3111, 0.0293], "size": 0.080, "round": true},
+			"hi": {"pos": [-0.365, -0.2216, 0.0289], "size": 0.080, "round": true},
+			"vsi": {"pos": [-0.3656, -0.1324, 0.0284], "size": 0.080, "round": true},
+			"tach": {"pos": [-0.3636, -0.3119, -0.0787], "size": 0.076, "round": true},
+			"vor1": {"pos": [-0.364, -0.0414, 0.1307], "size": 0.080, "round": true},
+			"vor2": {"pos": [-0.3646, -0.0409, 0.0274], "size": 0.080, "round": true},
+			"adf": {"pos": [-0.3639, -0.0412, -0.0765], "size": 0.080, "round": true},
+			"radios": {"pos": [-0.354, 0.1165, 0.047], "size": 0.16},
+			"strip": {"pos": [-0.362, 0.33, 0.06], "size": 0.16},
+			"switches": {"pos": [-0.352, -0.19, -0.168], "size": 0.40}
+		}
+	},
+	"lights": {
+		"nav": [
+			{"pos": [1.1, -5.5, 1.5], "side": "left", "color": "red", "size": 1.0, "range": 2.6, "omni_off": [0.25, 0.1, 0]},
+			{"pos": [1.1, 5.5, 1.5], "side": "right", "color": "green", "size": 1.0, "range": 2.6, "omni_off": [-0.25, 0.1, 0]},
+			{"pos": [6.6, 0.0, 0.7], "side": "tail", "color": "white", "size": 0.9, "range": 1.8, "omni_off": [0, 0.15, 0.1]}
+		],
+		"beacon": [
+			{"pos": [6.55, 0.0, 2.05], "color": "red", "size": 1.2, "range": 2.5, "omni_off": [0, 0.15, 0]}
+		],
+		"strobe": [
+			{"pos": [1.15, -5.52, 1.5], "color": "strobe", "size": 1.2, "range": 7.0, "omni_off": [0.6, 0.4, 0]},
+			{"pos": [1.15, 5.52, 1.5], "color": "strobe", "size": 1.2, "range": 7.0, "omni_off": [-0.6, 0.4, 0]}
+		],
+		"lamps": [
+			{"switch": "landing", "pos": [0.91, -2.93, 1.48], "energy": 20, "range": 900, "angle": 11, "beam": 26, "tilt": 9},
+			{"switch": "taxi", "pos": [0.91, -2.77, 1.48], "energy": 8, "range": 300, "angle": 28, "beam": 14, "tilt": 14}
+		]
+	},
+	"audio": {
+		"engine": {
+			"idle_fade_from_rpm": 900.0, "idle_fade_span_rpm": 500.0, "idle_volume": 0.9, "idle_pitch_rpm": 700.0,
+			"run_slope": 0.000294118, "run_offset": 0.205882353, "run_min": 0.5, "run_max": 0.95,
+			"run_start_rpm": 600.0, "run_ramp_rpm": 400.0, "pitch_slope": 0.000434783, "pitch_offset": 0.01,
+			"windmill_min_rpm": 200.0, "windmill_rpm": 2500.0
+		},
+		"wind": {"slope": 0.0015, "min": 0.03, "max": 0.25, "alt_slope": 0.000015, "pitch_slope": 0.0035, "pitch_offset": 1.25}
+	},
+	"limits": {
+		"vne_kias": 163.0, "vd_kias": 185.0, "vfe_kias": [[10.5, 110.0], [1000.0, 85.0]], "g_pos": 3.8, "g_neg": -1.52,
+		"vs0_kias": 40.0, "vr_kias": 55.0, "vs1_kias": 48.0, "vno_kias": 129.0, "asi_min_kias": 40.0, "asi_max_kias": 200.0,
+		"tach": {"max_rpm": 3500.0, "green": [2100.0, 2700.0], "red": 2700.0},
+		"gauges": {
+			"fuel_gal": {"min": 0.0, "max": 28.0, "green": [3.0, 28.0]},
+			"oil_temp_f": {"min": 50.0, "max": 260.0, "green": [100.0, 245.0], "red": 245.0},
+			"oil_press_psi": {"min": 0.0, "max": 115.0, "green": [50.0, 90.0], "red": 115.0},
+			"egt_f": {"min": 800.0, "max": 1700.0, "green": [800.0, 1700.0]},
+			"fuel_flow_gph": {"min": 0.0, "max": 20.0, "green": [0.0, 20.0]},
+			"suction_inhg": {"min": 0.0, "max": 7.0, "green": [4.5, 5.5]},
+			"ammeter_a": {"min": -60.0, "max": 60.0, "green": [-60.0, 60.0]}
+		}
+	},
+	"damage": {
+		"hard_landing_ms": 3.0, "collapse_ms": 4.6, "nose_collapse_ms": 2.6, "collapse_drop_m": 0.35,
+		"side_damage_ms": 3.0, "side_collapse_ms": 5.0, "main_load_w": 3.0, "nose_load_w": 1.6,
+		"prop_hubs_m": [[-0.88, 0.0, 0.926]]
+	},
+	"systems": {
+		"pitot_static": {
+			"pos_err_kcas": [50.0, 60.0, 70.0, 80.0, 100.0, 120.0, 140.0, 160.0],
+			"pos_err_dkt": [-6.0, -3.0, -1.0, 0.0, 1.0, 1.0, 1.0, 1.0]
+		},
+		"electrical": {
+			"battery_ah": 35.0, "alt_max_a": 60.0, "alt_rpm_min": 700.0, "alt_rpm_ramp": 600.0, "bus_volts": 28.5,
+			"bat_v_empty": 23.2, "bat_v_full": 25.6, "bat_ohm": 0.05, "charge_gain": 40.0, "charge_min_a": 0.5,
+			"starter_a": 150.0, "flap_motor_a": 15.0, "low_volts": 24.5, "powered_volts": 20.0, "starter_min_volts": 15.0,
+			"loads": {"base": 3.0, "avionics": 6.0, "pitot_heat": 10.0, "nav": 2.0, "beacon": 1.5, "strobe": 2.5, "taxi": 4.0, "landing": 7.0, "panel": 1.0}
+		}
+	},
+	"ground": {"tow_ahead_m": 3.2, "ahead_m": 3.3, "behind_m": 7.4, "across_m": 6.7, "height_m": 2.5},
+	"payload": {
+		"fuel_kg_per_gal": 2.72, "cruise_gph": 9.0, "reserve_gal": 3.0,
+		"fuel_slider": {"min": 3.0, "max": 28.0, "step": 1.0, "unit": "gal"},
+		"stations": [
+			{"key": "copilot_kg", "label": "Front passenger", "max": 120.0, "step": 5.0, "masses": ["Co-Pilot"]},
+			{"key": "rear_kg", "label": "Rear passengers (total)", "max": 220.0, "step": 5.0, "masses": ["Left Passenger", "Right Passenger"]},
+			{"key": "baggage_kg", "label": "Baggage", "max": 54.0, "step": 2.0, "masses": ["Baggage"]}
+		]
+	},
 	"cg_envelope": {
 		"source": "Cessna 172S POH section 2 (CG limits) / section 6 (CG envelope chart)",
 		"units": "points are [CG inches aft of datum, weight lb]; datum = front face of firewall (POH station 0)",
 		"datum_offset_in": 0.0,
 		"datum_note": "POH inches = JSBSim c172p structural x (in) + datum_offset_in. The c172p frame is already firewall-referenced: empty CG 41.0 in (POH C172S basic empty arm is typically 38-41 in), baggage 95 in (POH 95), front seats 36 in (POH 37, range 34-46), rear seats 70 in (POH 73). Fuel tank arm is 56 in in the c172p data vs 48 in in the C172S POH; W&B uses the config stations so it matches what the FDM flies.",
-		"config": "c172_config.json",
+		"config": "config.json",
 		"fuel_kg_per_gal": 2.72,
 		"landing_fuel_gal_per_tank": 5.0,
 		"max_lb": 2550.0,

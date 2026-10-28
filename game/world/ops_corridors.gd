@@ -1,14 +1,14 @@
 class_name OpsCorridors
 extends RefCounted
-## Where a C172 is meant to be on an airport, as ObstacleRegistry corridors: every stand (parked
+## Where the aircraft is meant to be on an airport, as ObstacleRegistry corridors: every stand (parked
 ## footprint plus the pushback swing, see PushbackPath), every taxiway edge and every runway strip.
 ## Two uses: (1) OSM buildings and trees are forgiven while the aircraft's CG is inside one (their
 ## footprints are not survey-grade, normal ground operations must never crash); (2) ground dressing
 ## that would sit in one (parked vehicles, masts, windsocks) is dropped, drawn or not.
 
-const AHEAD := 3.3  # C172 footprint about the CG (m) plus 1.2 m margin: forward ...
-const BEHIND := 7.4  # ... aft (rudder) ...
-const ACROSS := 6.7  # ... and half span
+## Footprint about the CG (m) plus a 1.2 m margin: forward, aft (tail) and half span. The aircraft's
+## aircraft.json "ground" section overrides them (ahead_m, behind_m, across_m); these are the C172's.
+const FOOTPRINT := {"ahead_m": 3.3, "behind_m": 7.4, "across_m": 6.7}
 const TAXI_HALF := 8.0  # half width of a taxiway corridor
 const RUNWAY_MARGIN := 10.0  # beyond the runway edge
 
@@ -17,6 +17,10 @@ const RUNWAY_MARGIN := 10.0  # beyond the runway edge
 static func register(icao: String, ops: Dictionary, runways: Array) -> void:
 	var group := "corridor:" + icao
 	ObstacleRegistry.remove_corridors(group)
+	var fp := AircraftDef.current().section_or("ground", FOOTPRINT)
+	var ahead: float = fp.ahead_m
+	var behind: float = fp.behind_m
+	var across: float = fp.across_m
 	for s in ops.get("stands", []):
 		var p0 := Vector2(s.x, s.y)
 		var h0 := deg_to_rad(float(s.heading_deg))
@@ -27,8 +31,8 @@ static func register(icao: String, ops: Dictionary, runways: Array) -> void:
 			for d in ds:
 				var pose := PushbackPath.pose(p0, h0, side, d)
 				var hd: float = pose[1]
-				var c: Vector2 = pose[0] + Vector2(sin(hd), cos(hd)) * ((AHEAD - BEHIND) * 0.5)
-				ObstacleRegistry.add_corridor(group, ObstacleShapes.box(c, (AHEAD + BEHIND) * 0.5, ACROSS, hd, 0.0, 0.0, ""))
+				var c: Vector2 = pose[0] + Vector2(sin(hd), cos(hd)) * ((ahead - behind) * 0.5)
+				ObstacleRegistry.add_corridor(group, ObstacleShapes.box(c, (ahead + behind) * 0.5, across, hd, 0.0, 0.0, ""))
 	var taxi: Dictionary = ops.get("taxi", {})
 	var nodes: Dictionary = taxi.get("nodes", {})
 	for e in taxi.get("edges", []):

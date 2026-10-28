@@ -5,7 +5,7 @@ extends ChecklistWindow
 ## when the aircraft state matches; the others tick on click (or Enter = next unticked item,
 ## Shift+Enter = take the last manual tick back). The first open item is highlighted and scrolled
 ## into view; collapsed, the window shows it as one line. Ctrl+PgUp/PgDn switch lists, F2 shows
-## and hides the window, Shift+F2 collapses it. Data: aircraft/c172/checklists.json.
+## and hides the window, Shift+F2 collapses it. Data: the aircraft's checklists.json.
 
 const HILITE := Color(0.25, 0.5, 0.9, 0.5)
 const DONE_COL := Color(0.55, 1.0, 0.6)
@@ -22,7 +22,7 @@ var _plain := StyleBoxEmpty.new()
 
 func _ready() -> void:
 	super()
-	var d = Paths.load_res_json("res://aircraft/c172/checklists.json")
+	var d = Paths.load_res_json(AircraftDef.current().path("checklists"))
 	lists = d.lists if d else []
 	_hilite.bg_color = HILITE
 	_hilite.set_corner_radius_all(5)

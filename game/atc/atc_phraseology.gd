@@ -8,7 +8,7 @@ extends RefCounted
 const PATH := "res://atc/phraseology.json"
 ## Every slot a template may use, with a sample value (also used by the template check in the tests).
 const SAMPLE := {
-	"callsign": "VT-FSM", "fac": "Pune Tower", "fac2": "Pune Ground", "apt": "Pune", "rwy": "09L",
+	"type": "Cessna 172", "callsign": "VT-FSM", "fac": "Pune Tower", "fac2": "Pune Ground", "apt": "Pune", "rwy": "09L",
 	"wind": [270.0, 12.0, 20.0], "qnh": 1012.0, "squawk": "4521", "info": "Alpha", "vis": 8000.0, "temp": 31.0,
 	"clouds": ["scattered", 3000.0], "alt": 2500.0, "alt_limit": 2000.0, "freq": 118.1, "freq2": 121.9, "freq3": 121.9,
 	"pos": "8 miles south-west of the field", "where": "stand 12", "join": "join left-hand downwind runway 09L",
@@ -84,7 +84,10 @@ func fill(tpl: String, slots: Dictionary, spoken := false) -> String:
 			break
 		out += _lit(tpl.substr(i, a - i), spoken)
 		var name := tpl.substr(a + 1, b - a - 1)
-		out += _slot(name, slots[name], spoken) if slots.has(name) else "{%s}" % name
+		if name == "type" and not slots.has(name):  # the aircraft's radio name ("Cessna 172"), aircraft.json radio_type
+			out += _lit(str(AircraftDef.current().data.get("radio_type", "aircraft")), spoken)
+		else:
+			out += _slot(name, slots[name], spoken) if slots.has(name) else "{%s}" % name
 		i = b + 1
 	return _tidy(out)
 

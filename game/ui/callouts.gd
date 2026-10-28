@@ -8,9 +8,11 @@ extends Control
 var _state := CalloutLogic.new_state()
 var _label: Label
 var _t := 0.0
+var _limits := {}  # the aircraft's speeds (aircraft.json limits)
 
 
 func _ready() -> void:
+	_limits = AircraftDef.current().section("limits")
 	add_to_group("callouts")
 	set_anchors_and_offsets_preset(PRESET_FULL_RECT)
 	mouse_filter = MOUSE_FILTER_IGNORE
@@ -46,7 +48,8 @@ func _process(dt: float) -> void:
 	var calls := CalloutLogic.step(_state, {
 		"ias": Units.mps_to_kt(Props.get_f("fdm/cas_mps")), "agl": Units.m_to_ft(Props.get_f("fdm/agl_m")),
 		"vs": Units.mps_to_fpm(Props.get_f("fdm/vs_mps")), "wow": Props.get_b("fdm/wow"),
-		"bank": rad_to_deg(Props.get_f("fdm/roll_rad")), "throttle": Props.get_f("controls/throttle")},
+		"bank": rad_to_deg(Props.get_f("fdm/roll_rad")), "throttle": Props.get_f("controls/throttle"),
+		"alive_kt": float(_limits.get("vs0_kias", CalloutLogic.ALIVE_KT)), "rotate_kt": float(_limits.get("vr_kias", CalloutLogic.ROTATE_KT))},
 		Time.get_ticks_msec() / 1000.0)
 	for c in calls:
 		_show(c[0], int(c[1]))

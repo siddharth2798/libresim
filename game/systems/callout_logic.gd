@@ -7,8 +7,8 @@ extends RefCounted
 ## Pure logic, no nodes: step() takes the state dict and the current inputs and returns the
 ## calls to make now as [[text, level], ...] (level 0 = info, 1 = caution).
 
-const ALIVE_KT := 40.0       # airspeed alive
-const ROTATE_KT := 55.0      # Vr
+const ALIVE_KT := 40.0       # airspeed alive (default; the input "alive_kt" is the aircraft's vs0)
+const ROTATE_KT := 55.0      # Vr (default; the input "rotate_kt" is the aircraft's limits.vr_kias)
 const HEIGHTS := [500, 100, 50, 30, 20, 10]  # ft AGL
 const WORDS := {500: "Five hundred", 100: "One hundred", 50: "Fifty", 30: "Thirty", 20: "Twenty", 10: "Ten"}
 const COOLDOWN := 4.0        # s between repeats of the same caution
@@ -31,10 +31,10 @@ static func step(s: Dictionary, i: Dictionary, now: float) -> Array:
 		s.rotate = false
 		s.positive = false
 	if wow and i.throttle > 0.75:
-		if not s.alive and ias >= ALIVE_KT:
+		if not s.alive and ias >= float(i.get("alive_kt", ALIVE_KT)):
 			s.alive = true
 			out.append(["Airspeed alive", 0])
-		if s.alive and not s.rotate and ias >= ROTATE_KT:
+		if s.alive and not s.rotate and ias >= float(i.get("rotate_kt", ROTATE_KT)):
 			s.rotate = true
 			out.append(["Rotate", 0])
 	if not wow and s.rotate and not s.positive and vs > 200.0 and agl > 10.0:

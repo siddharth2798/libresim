@@ -279,7 +279,9 @@
    0.67564
   ],
   "p_factor": 5.0,
-  "sense": 1.0
+  "sense": 1.0,
+  "cruise_rpm": 2300.0,
+  "start_rpm": 800.0
  },
  "propeller": {
   "diameter_m": 1.905,

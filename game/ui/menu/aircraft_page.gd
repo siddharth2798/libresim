@@ -4,8 +4,6 @@ extends HBoxContainer
 
 signal changed
 
-const KG_PER_GAL := 2.72  # avgas, 6.0 lb/US gal
-
 var _list: ItemList
 var _name: Label
 var _cat: Label
@@ -17,6 +15,7 @@ var _chart: Control
 var _cfg := {}
 var _ac := {}
 var _sliders := {}
+var _fuel_box: VBoxContainer  # the fuel and payload sliders (rebuilt for each aircraft)
 
 
 func _ready() -> void:
@@ -56,10 +55,9 @@ func _ready() -> void:
 	right.add_theme_constant_override("separation", 6)
 	add_child(right)
 	right.add_child(MenuTheme.heading("Fuel & payload"))
-	_slider(right, "Fuel per tank", "fuel_gal", 3.0, 28.0, 1.0, "gal")
-	_slider(right, "Front passenger", "copilot_kg", 0.0, 120.0, 5.0, "kg")
-	_slider(right, "Rear passengers (total)", "rear_kg", 0.0, 220.0, 5.0, "kg")
-	_slider(right, "Baggage", "baggage_kg", 0.0, 54.0, 2.0, "kg")
+	_fuel_box = VBoxContainer.new()
+	_fuel_box.add_theme_constant_override("separation", 6)
+	right.add_child(_fuel_box)
 	_weight = Label.new()
 	_weight.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_weight.add_theme_font_size_override("font_size", 14)
@@ -68,18 +66,13 @@ func _ready() -> void:
 	_chart.set_script(load("res://ui/menu/wb_chart.gd"))
 	_chart.size_flags_vertical = SIZE_EXPAND_FILL
 	right.add_child(_chart)
-	var dir := DirAccess.open("res://aircraft")
-	if dir:
-		for d in dir.get_directories():
-			var f := "res://aircraft/%s/aircraft.json" % d
-			if FileAccess.file_exists(f):
-				var j = JSON.parse_string(FileAccess.get_file_as_string(f))
-				if j is Dictionary:
-					var i := _list.add_item(j.name)
-					_list.set_item_metadata(i, j)
-					if j.id == Session.setup.aircraft:
-						_list.select(i)
-						_show(j)
+	for id in AircraftDef.list_ids():
+		var j: Dictionary = AircraftDef.load_def(id).data
+		var i := _list.add_item(j.get("name", id))
+		_list.set_item_metadata(i, j)
+		if j.get("id", id) == Session.setup.aircraft:
+			_list.select(i)
+			_show(j)
 	_list.item_selected.connect(func(i):
 		Session.setup.aircraft = _list.get_item_metadata(i).id
 		_show(_list.get_item_metadata(i)))
@@ -101,7 +94,7 @@ func _slider(parent: Control, label: String, key: String, lo: float, hi: float, 
 	sl.min_value = lo
 	sl.max_value = hi
 	sl.step = step
-	sl.value = float(Session.setup[key])
+	sl.value = float(Session.setup.get(key, 0.0))
 	v.text = "%.0f %s" % [sl.value, unit]
 	sl.value_changed.connect(func(x):
 		Session.setup[key] = x
@@ -111,8 +104,21 @@ func _slider(parent: Control, label: String, key: String, lo: float, hi: float, 
 	_sliders[key] = sl
 
 
+## The fuel and payload sliders of this aircraft (aircraft.json "payload": fuel_slider and stations).
+func _build_sliders(pl: Dictionary) -> void:
+	for c in _fuel_box.get_children():
+		_fuel_box.remove_child(c)
+		c.queue_free()
+	_sliders.clear()
+	var f: Dictionary = pl.get("fuel_slider", {"min": 0.0, "max": 20.0, "step": 1.0, "unit": "gal"})
+	_slider(_fuel_box, "Fuel per tank", "fuel_gal", f.min, f.max, f.step, f.get("unit", "gal"))
+	for st in pl.get("stations", []):
+		_slider(_fuel_box, st.label, st.key, 0.0, st.max, st.step, "kg")
+
+
 func _show(j: Dictionary) -> void:
 	_ac = j
+	_build_sliders(j.get("payload", {}))
 	_cfg = WeightBalance.load_config(j)
 	_name.text = j.name
 	_cat.text = j.get("category", "")
@@ -138,12 +144,16 @@ func _update_weight() -> void:
 	if _ac.is_empty():
 		return
 	var s: Dictionary = Session.setup
-	var fuel := 2.0 * float(s.fuel_gal) * KG_PER_GAL
-	var w: float = float(_ac.empty_kg) + float(_ac.pilot_kg) + float(s.copilot_kg) + float(s.rear_kg) + float(s.baggage_kg) + fuel
+	var pl: Dictionary = _ac.get("payload", {})
+	var tanks := maxi((_cfg.get("tanks", []) as Array).size(), 1)
+	var gal := float(tanks) * float(s.fuel_gal)  # total fuel, all tanks
+	var w: float = float(_ac.empty_kg) + float(_ac.pilot_kg) + gal * WeightBalance.kg_per_gal(_ac)
+	for st in pl.get("stations", []):
+		w += float(s.get(st.key, 0.0))
 	var over := w > float(_ac.mtow_kg)
 	var txt := "Weight %d kg (%d lb), max %d\nFuel %d gal ≈ %.1f h at 75 %% power" % [
 		int(w), int(w / 0.4536), int(_ac.mtow_kg),
-		int(2.0 * float(s.fuel_gal)), maxf(2.0 * float(s.fuel_gal) - 3.0, 0.0) / 9.0]
+		int(gal), maxf(gal - float(pl.get("reserve_gal", 3.0)), 0.0) / float(pl.get("cruise_gph", 9.0))]
 	var wb := WeightBalance.compute(_ac, s, _cfg)
 	var bad := over
 	if not wb.is_empty():

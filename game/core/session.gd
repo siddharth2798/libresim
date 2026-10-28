@@ -144,7 +144,7 @@ func _parse_cmdline() -> void:
 		if lesson.is_empty():
 			push_warning("unknown lesson: " + parts[0])
 		else:
-			begin_lesson(lesson.id, lesson.setup, parts[1] if parts.size() > 1 else "full")
+			TrainingLogic.begin(lesson, parts[1] if parts.size() > 1 else "full")
 			skip_menu = true
 
 

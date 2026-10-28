@@ -243,3 +243,29 @@ func test_training_crash_card_and_retry_reset() -> String:
 	if fresh.done or fresh.step != 0 or not fresh.aborted.is_empty() or not fresh.rec.is_empty():
 		return "a new run must be clean"
 	return ""
+
+
+func test_training_lessons_are_offered_per_aircraft() -> String:
+	var all := TrainingLogic.load_lessons()
+	if TrainingLogic.lessons_for("c172").size() != all.size():
+		return "every shipped lesson is written for the c172"
+	if TrainingLogic.lessons_for("twin").any(func(l): return l.has("aircraft") and not "twin" in l.aircraft):
+		return "a lesson for the c172 must not be offered for another aircraft"
+	var any := {"id": "x"}
+	if not (TrainingLogic.suits(any, "a320") and TrainingLogic.suits({"aircraft": []}, "a320")):
+		return "a lesson without an aircraft list suits any aircraft"
+	if TrainingLogic.suits({"aircraft": ["c172"]}, "twin") or not TrainingLogic.suits({"aircraft": ["c172", "twin"]}, "twin"):
+		return "suits() must test the list"
+	var had: String = Session.setup.get("aircraft", "c172")
+	Session.setup.aircraft = "twin"
+	var lesson := TrainingLogic.find("takeoff")
+	TrainingLogic.begin(lesson, "full")
+	var started: String = Session.setup.aircraft
+	Session.end_lesson()
+	var restored: String = Session.setup.aircraft
+	Session.setup.aircraft = had
+	if started != "c172":
+		return "starting a c172 lesson from another aircraft must switch to the c172 (got %s)" % started
+	if restored != "twin":
+		return "end_lesson must give the pilot's aircraft back (got %s)" % restored
+	return ""

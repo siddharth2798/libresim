@@ -33,8 +33,9 @@ func _ready() -> void:
 	for h in halves:
 		cols.add_child(h)
 	var n := 0
-	for c in FailureCatalog.CATEGORIES:
-		var col: VBoxContainer = halves[0 if n < 4 else 1]
+	var cats := FailureCatalog.categories()
+	for c in cats:
+		var col: VBoxContainer = halves[0 if n < ceili(cats.size() / 2.0) else 1]
 		n += 1
 		var cl := Label.new()
 		cl.text = c[0]

@@ -39,7 +39,7 @@ func _unhandled_key_input(e: InputEvent) -> void:
 		return
 	var flaps: int = Props.get_v("controls/flaps", 0)
 	if _on(e, "flaps_down"):
-		Props.set_v("controls/flaps", mini(flaps + 1, 3))
+		Props.set_v("controls/flaps", mini(flaps + 1, int(Props.get_v("fdm/flap_detents", 4)) - 1))
 	if _on(e, "flaps_up"):
 		Props.set_v("controls/flaps", maxi(flaps - 1, 0))
 	if _on(e, "mouse_yoke"):

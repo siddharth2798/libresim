@@ -8,8 +8,8 @@ const DT := 1.0 / 120.0
 
 
 func _engine() -> Array:
-	var cfg: Dictionary = Paths.load_res_json("res://aircraft/c172/c172_config.json")
-	return [EnginePiston.new(cfg.engine), Propeller.new(cfg.propeller, cfg.engine)]
+	var u := PowerUnit.from_config(AircraftDef.load_def("c172").config())[0]
+	return [u.engine, u.thruster]
 
 
 ## Crank for `seconds` (starter held until it fires, then released). Returns {rpm, running, fire_t}.

@@ -12,7 +12,10 @@ const DAMP_RAMP := 0.03  # m: damping builds up over the first 3 cm of compressi
                          # first contact is not an instant c*v force step
 const BRAKE_MU := 0.45  # effective max braking friction, dry asphalt (tyre + anti-skid-free brakes)
 
-var contacts: Array = []  # {name, wheel, pos_struct, k, c, mu_s, mu_d, mu_roll, steer, brake}
+## Contact roles (config "role", else derived from the contact): nose / main / tail for wheels
+## (tail = a tailwheel behind the mains), wingtip / tail_skid / skid for structure points.
+## "brake_group" LEFT / RIGHT / BOTH picks which brake pedal slows a wheel.
+var contacts: Array = []  # {name, wheel, role, pos, k, c, mu_s, mu_d, mu_roll, steer, brake}
 var steer_cmd := 0.0  # -1..1 (right pedal positive)
 var brake_left := 0.0
 var brake_right := 0.0
@@ -22,15 +25,50 @@ var info := {}  # name -> {depth, vz (NED, + down), force, n, e} for the damage 
 
 
 func _init(cfg: Dictionary) -> void:
+	var main_x := _main_x(cfg)
 	for g in cfg.gear:
+		var wheel: bool = g.type == "BOGEY"
 		contacts.append({
-			"name": g.name, "wheel": g.type == "BOGEY",
+			"name": g.name, "wheel": wheel, "role": str(g.get("role", _role(g, wheel, main_x))),
 			"pos": Vector3(g.pos_m[0], g.pos_m[1], g.pos_m[2]),
 			"k": g.spring_n_per_m, "c": g.damping_n_s_per_m,
 			"mu_s": g.static_friction, "mu_d": g.dynamic_friction, "mu_roll": g.rolling_friction,
 			"steer": deg_to_rad(g.max_steer_deg),
-			"brake": 1 if g.name == "LEFT_MAIN" else (2 if g.name == "RIGHT_MAIN" else 0),
+			"brake": {"LEFT": 1, "RIGHT": 2, "BOTH": 3}.get(str(g.get("brake_group", "NONE")).to_upper(), 0),
 		})
+
+
+## Mean x (structural, aft positive) of the fixed wheels: the nose / tail split.
+static func _main_x(cfg: Dictionary) -> float:
+	var sum := 0.0
+	var n := 0
+	for g in cfg.gear:
+		if g.type == "BOGEY" and float(g.max_steer_deg) == 0.0:
+			sum += float(g.pos_m[0])
+			n += 1
+	return sum / n if n > 0 else 0.0
+
+
+static func _role(g: Dictionary, wheel: bool, main_x: float) -> String:
+	if wheel:
+		if float(g.max_steer_deg) == 0.0:
+			return "main"
+		return "nose" if float(g.pos_m[0]) < main_x else "tail"
+	var n := str(g.name).to_upper()
+	if n.contains("TIP"):
+		return "wingtip"
+	if n.contains("TAIL"):
+		return "tail_skid"
+	return "skid"
+
+
+## Wheels on the steered end (nose or tail) and on the fixed mains, for placing the aircraft.
+func steered_wheels() -> Array:
+	return contacts.filter(func(c): return c.wheel and c.steer > 0.0)
+
+
+func main_wheels() -> Array:
+	return contacts.filter(func(c): return c.wheel and c.steer == 0.0)
 
 
 ## Returns [force_body, moment_body] about the CG.
@@ -67,7 +105,11 @@ func compute(mb: MassBalance, r_bn: Basis, pos_ned: Vector3, v_b: Vector3, w_b: 
 		var mu_long: float = c.mu_roll
 		var mu_lat: float = lerpf(c.mu_s, c.mu_d, clampf(absf(v_lat) / 2.0, 0.0, 1.0))
 		if c.wheel:
-			var b := brake_left if c.brake == 1 else (brake_right if c.brake == 2 else 0.0)
+			var b := 0.0
+			match c.brake:
+				1: b = brake_left
+				2: b = brake_right
+				3: b = maxf(brake_left, brake_right)
 			mu_long = lerpf(c.mu_roll, BRAKE_MU, b)
 		else:
 			mu_long = c.mu_d
