@@ -121,6 +121,8 @@ func _flight(def: Dictionary) -> void:
 	var fdm: FdmNode = f.get_node("Fdm")
 	if def.has("fly"):
 		await _fly(def.fly)
+	if def.has("follow_me"):
+		await _follow_me(def.follow_me)
 	fdm.paused = true  # camera and aircraft stand still while the world streams in
 	var cam: CameraRig = f.get_node("Camera")
 	var views: Array = def.get("variants", [{}])  # several camera tries from one placement (look, then keep one)
@@ -153,6 +155,33 @@ func _flight(def: Dictionary) -> void:
 			pm.open()
 			pm.show_page(str(d.pause))
 		await _save("" if views.size() == 1 else "_%d" % i)
+## Follow-me car scenes: ask for taxi, optionally stand the aircraft m metres along the route (nose along
+## it, brakes on), put the car ~55 m ahead of it and let it settle (it waits for the aircraft there).
+func _follow_me(d: Dictionary) -> void:
+	var g: GroundOps = f.get_node("GroundOps")
+	g.request_taxi()
+	await _wait(1.0)
+	if d.has("on_route_m") and not g._route.is_empty():
+		var r := g._route_at(float(d.on_route_m))
+		var fd: FDM = f.get_node("Fdm").fdm
+		fd.pos_e = r[0].x
+		fd.pos_n = r[0].y
+		var e := fd.euler()
+		fd.q = FDM.euler_to_quat(e.x, e.y, r[1])
+		fd.v_b = Vector3.ZERO
+		fd.w_b = Vector3.ZERO
+		Props.set_v("controls/parking_brake", true)
+		g._follow_s = float(d.on_route_m) + 55.0
+	await _wait(float(d.get("secs", 12.0)))
+	if g._follow != null:  # where the car stands relative to the aircraft's nose
+		var ap: Vector3 = f.get_node("Fdm").position_enu()
+		var rel := Vector2(g._follow.world_enu.x - ap.x, g._follow.world_enu.y - ap.y)
+		var hd := Props.get_f("fdm/heading_rad", 0.0)
+		print("FOLLOW_ME car %.0f m ahead, %.0f m right of the aircraft" % [rel.dot(Vector2(sin(hd), cos(hd))), rel.dot(Vector2(cos(hd), -sin(hd)))])
+	else:
+		print("FOLLOW_ME no car")
+
+
 
 
 func _show_map(d: Dictionary) -> void:
@@ -239,6 +268,21 @@ func _fly(d: Dictionary) -> void:
 ## Free camera at `cam` = [forward, right, up] metres from the aircraft in its heading frame,
 ## aimed at `aim` (same frame); or a cockpit / orbit look = [yaw_deg, pitch_deg].
 func _aim_camera(cam: CameraRig, def: Dictionary) -> void:
+	if def.has("frame_vehicle"):  # frame = the ground vehicle of that kind nearest to the aircraft (AirportOps node "<kind>")
+		var best: Node3D = null
+		var bd := INF
+		for n in f.get_node("AirportOps").find_children(str(def.frame_vehicle), "Node3D", true, false):
+			var d := (n as Node3D).global_position.distance_to(FloatingOrigin.to_render(p))
+			if d < bd:
+				bd = d
+				best = n
+		if best != null:
+			p = FloatingOrigin.to_world(best.global_position)
+			h = -best.global_rotation.y
+	if def.get("on_follow", false) and f.get_node("GroundOps")._follow != null:  # frame = the follow-me car's
+		var car: FollowMeCar = f.get_node("GroundOps")._follow
+		p = car.world_enu
+		h = car.heading
 	var p: Vector3 = f.get_node("Fdm").position_enu()
 	var h := Props.get_f("fdm/heading_rad", 0.0)
 	var fwd := Vector2(sin(h), cos(h))

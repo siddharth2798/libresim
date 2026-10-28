@@ -58,6 +58,7 @@ func _h(x: float, y: float) -> float:
 
 
 func _process(dt: float) -> void:
+	GroundVehicles.tick(dt)
 	_timer -= dt
 	if _timer <= 0.0:
 		_timer = 1.0
@@ -110,6 +111,7 @@ func _build(icao: String) -> void:
 
 
 func _exit_tree() -> void:
+	GroundVehicles.release()
 	for icao in _solids:
 		_solids[icao].clear()
 	for icao in _corridors:
@@ -139,9 +141,10 @@ func _scene(name: String) -> PackedScene:
 
 ## Place a vehicle model at world (east, north) facing heading (rad, compass), with a model yaw offset.
 func _place(root: Node3D, name: String, p: Vector2, heading: float, yaw_off := 0.0) -> Node3D:
-	var n: Node3D = _scene(name).instantiate()
+	var ours := GroundVehicles.has(name)  # built in code (world/ground_vehicles.gd), faces -Z
+	var n: Node3D = GroundVehicles.make(name) if ours else _scene(name).instantiate()
 	n.position = _local(p.x, p.y, 0.0)
-	n.rotation.y = -heading + yaw_off
+	n.rotation.y = -heading + (0.0 if ours else yaw_off)
 	root.add_child(n)
 	if not _cur.add_model(name, n, _h(p.x, p.y)):  # it would sit in a C172 stand's way: leave it out
 		n.queue_free()
