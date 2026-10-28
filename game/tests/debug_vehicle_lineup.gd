@@ -1,14 +1,12 @@
 extends Node3D
 ## Debug: the ground vehicles side by side on a plain ground, with a few close-ups, saved as PNGs.
-##   FREESIM_SHOTS=<dir> godot --audio-driver Dummy --path game --windowed res://tests/debug_vehicle_lineup.tscn -- [--old] [--night] [--only=fuel_truck]
-## --old shows the previous imported models (world/models/vehicles/*.glb), for before / after pictures.
+##   FREESIM_SHOTS=<dir> godot --audio-driver Dummy --path game --windowed res://tests/debug_vehicle_lineup.tscn -- [--night] [--only=fuel_truck]
 const KINDS := ["fuel_truck", "gpu", "baggage_tug", "baggage_cart", "apron_bus", "fire_truck", "pushback_tug", "follow_me"]
 
 
 func _ready() -> void:
 	AudioServer.set_bus_mute(0, true)
 	var out := OS.get_environment("FREESIM_SHOTS")
-	var old := "--old" in OS.get_cmdline_user_args()
 	var night := "--night" in OS.get_cmdline_user_args()
 	var only := ""
 	for a in OS.get_cmdline_user_args():
@@ -42,9 +40,9 @@ func _ready() -> void:
 	var i := 0
 	for k in KINDS:
 		var n: Node3D
-		if k == "follow_me" and not old:
+		if k == "follow_me":
 			n = FollowMeCar.new()
-		elif old or not GroundVehicles.has(k):
+		elif not GroundVehicles.has(k):
 			var packed: PackedScene = load("res://world/models/vehicles/%s.glb" % k)
 			n = packed.instantiate()
 			if k in ["apron_bus", "fire_truck", "pushback_tug"]:
@@ -59,14 +57,14 @@ func _ready() -> void:
 		i += 1
 		add_child(n)
 		nodes[k] = n
-	if "follow_me" in nodes and not old:
+	if "follow_me" in nodes:
 		print("TRIS follow_me %d" % (FollowMeShell.triangles(FollowMeCar._shell) + 4 * FollowMeShell.triangles(FollowMeCar._wheel)))
 	var cam := Camera3D.new()
 	cam.fov = 40
 	add_child(cam)
 	await get_tree().create_timer(1.5).timeout
 	DirAccess.make_dir_recursive_absolute(out)
-	var tag := ("old" if old else "new") + ("_night" if night else "")
+	var tag := "new" + ("_night" if night else "")
 	var shots := {}
 	for k in KINDS:
 		if only != "" and k != only:

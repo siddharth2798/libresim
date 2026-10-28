@@ -20,9 +20,8 @@ static var _night_timer := 0.0
 static var _t := 0.0
 
 
-## Debug: FREESIM_OLD_VEHICLES=1 brings back the previous imported models at the stands (before / after pictures).
 static func has(kind: String) -> bool:
-	return kind in KINDS and (kind == "pushback_tug" or OS.get_environment("FREESIM_OLD_VEHICLES") == "")
+	return kind in KINDS
 
 
 static func materials() -> void:

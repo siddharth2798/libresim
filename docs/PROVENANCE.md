@@ -17,7 +17,7 @@ It does **reuse FlightGear-project and JSBSim material as data**, and by size th
 
 Where the derived material is:
 - The **3D Cessna 172P exterior, cockpit, textures and 23 sounds** are from the FlightGear c172p aircraft (GPL-2.0-or-later). Textures and sounds are byte-identical copies; the `.glb` models are Blender conversions of the `.ac` models.
-- Four **airport models** (pushback tug, fire truck, jetway, bus) and 7 **sounds** are from FlightGear's `fgdata` (GPL-2.0).
+- One **airport model** (the jetway) and 7 **sounds** are from FlightGear's `fgdata` (GPL-2.0). (Update 2026-10-28: the other three fgdata models, pushback tug, fire truck and bus, and their textures were removed when every ground vehicle was rebuilt in code; the audit tables below describe the earlier state.)
 - The **aerodynamic model, mass, inertia, gear, tank, engine and propeller data** are JSBSim's `c172p`, `engIO360C` and `prop_75in2f` files (LGPL-2.1), converted to JSON. All 335 numbers in `c172_aero.json` and all 112 propeller table values appear verbatim in the JSBSim files.
 
 Everything that makes it a program is original: the 6-DOF integrator, piston engine, gear, systems, instruments, radios and GPS, ATC, training, weather, terrain streaming, UI and tests. The one honest nuance is that the flight dynamics **data** and the aircraft **model** are not ours, and three small files (`aero.gd`, `table.gd`, `propeller.gd`, 173 code lines) are re-implementations of how JSBSim evaluates that data.
