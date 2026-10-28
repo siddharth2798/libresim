@@ -21,7 +21,7 @@ var _line: MeshInstance3D
 var _banner: TaxiBanner  # the instruction on screen (a fading card, ui/taxi_banner.gd)
 var _push := {}  # active pushback state
 var _tug: Node3D
-var _follow: Node3D  # follow-me car leading along the taxi route
+var _follow: FollowMeCar  # follow-me car leading along the taxi route
 var _follow_s := 0.0  # its distance along the route (m)
 var _route_len: PackedFloat32Array = []  # cumulative distance at each route point
 var _mat := StandardMaterial3D.new()
@@ -214,7 +214,7 @@ func _process(_dt: float) -> void:
 func _spawn_follow_me() -> void:
 	if _follow:
 		_follow.queue_free()
-	_follow = (load("res://world/models/vehicles/follow_me.glb") as PackedScene).instantiate()
+	_follow = FollowMeCar.new()
 	add_child(_follow)
 	_follow_s = 40.0
 
@@ -245,8 +245,7 @@ func _update_follow_me(dt: float, here_s: float) -> void:
 		return
 	var r := _route_at(minf(_follow_s, total))
 	var p: Vector2 = r[0]
-	_follow.position = FloatingOrigin.to_render(Vector3(p.x, p.y, terrain.height_at(p.x, p.y)))
-	_follow.rotation.y = -r[1]
+	_follow.place(p.x, p.y, r[1], dt, terrain.height_at)
 
 
 func start_pushback() -> void:
@@ -281,12 +280,14 @@ func _end_push(msg: String) -> void:
 	_say(msg)
 
 
+func _exit_tree() -> void:
+	FollowMeCar.release()
+
+
 func _spawn_tug() -> void:
-	# FlightGear Goldhofer towbarless tug (GPL, fgdata); its model faces -X
+	# our own pushback tug (world/veh_tug.gd), facing the aircraft's heading
 	var holder := Node3D.new()
-	var tug: Node3D = (load("res://world/models/vehicles/pushback_tug.glb") as PackedScene).instantiate()
-	tug.rotation.y = -PI / 2
-	holder.add_child(tug)
+	holder.add_child(GroundVehicles.make("pushback_tug"))
 	_tug = holder
 	add_child(_tug)
 

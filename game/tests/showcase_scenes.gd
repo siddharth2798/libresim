@@ -18,6 +18,8 @@ extends RefCounted
 ##   cam: [forward, right, up] metres from the aircraft in its heading frame, aim: same frame ("agl": true makes the
 ##   moving map: gps (direct-to ident) or map_route [target, next...]; map_across (nm wide, default = fit), map_heading_up, map_centre_on (ident)
 ##   taxi_banner: {stack, fade_s}: ATC gives "taxi to the apron" just after landing; saves <scene>_a (just issued) and <scene>_b (after fading); keep "Hud", "Atc", "Crash"
+##   follow_me: {on_route_m, secs}: ask for taxi, stand the aircraft on the route, let the follow-me car settle ahead; on_follow: cam / aim in the car's frame;
+##   frame_vehicle: cam / aim in the frame of the nearest ground vehicle of that kind ("gpu", "fuel_truck", ...)
 ## Order and file names of the final README images are in tools/make_screenshots.sh.
 
 const SCENES := {
@@ -167,6 +169,34 @@ const SCENES := {
 
 	# Follow-me car: taxi requested from a stand, the car waits ~55 m ahead of the aircraft (cam / aim are in the
 	# car's frame, forward / right / up above the ground; "on_follow")
+	"followme_tq": {"weather": "Fair", "view": "chase", "follow_me": {"on_route_m": 60.0}, "on_follow": true, "agl": true,
+		"setup": {"airport": "VABB", "start": "stand", "time_h": 11.0, "visibility_m": 20000.0},
+		"cam": [7.0, 4.5, 2.2], "aim": [0.0, 0.0, 1.2], "fov": 40.0},
+	"followme_side": {"weather": "Fair", "view": "chase", "follow_me": {"on_route_m": 60.0}, "on_follow": true, "agl": true,
+		"setup": {"airport": "VABB", "start": "stand", "time_h": 11.0, "visibility_m": 20000.0},
+		"cam": [0.0, 9.0, 1.4], "aim": [0.0, 0.0, 1.1], "fov": 38.0},
+	"followme_night": {"weather": "Clear", "view": "chase", "follow_me": {"on_route_m": 60.0}, "on_follow": true, "agl": true,
+		"setup": {"airport": "VABB", "start": "stand", "time_h": 19.8, "visibility_m": 20000.0},
+		"cam": [-8.0, 3.5, 2.0], "aim": [0.0, 0.0, 1.3], "fov": 40.0},
+	"followme_cockpit": {"weather": "Fair", "view": "cockpit", "follow_me": {"on_route_m": 15.0}, "prop_deg": 45.0,
+		"setup": {"airport": "VABB", "start": "stand", "time_h": 11.0, "visibility_m": 20000.0},
+		"variants": [{"look": [0.0, 1.5], "fov": 45.0}, {"look": [-20.0, 1.5], "fov": 45.0}, {"look": [20.0, 1.5], "fov": 45.0}]},
+
+	# Ground vehicles on a busy apron (GPU, baggage tug and carts, fuel truck, bus): three views from one placement
+	"apron_vabb": {"weather": "Fair", "view": "chase", "agl": true,
+		"setup": {"airport": "VABB", "start": "stand", "stand": "Bay V15", "time_h": 11.0, "visibility_m": 20000.0},
+		"frame_vehicle": "fuel_truck",
+		"variants": [{"cam": [-16.0, 14.0, 4.5], "aim": [0.0, 0.0, 1.5], "fov": 55.0},
+			{"cam": [14.0, -11.0, 3.0], "aim": [0.0, 0.0, 1.5], "fov": 50.0},
+			{"cam": [0.0, 16.0, 6.0], "aim": [0.0, 0.0, 1.5], "fov": 60.0}]},
+	"apron_voci": {"weather": "Fair", "view": "chase", "agl": true,
+		"setup": {"airport": "VOCI", "start": "stand", "stand": "3", "time_h": 11.0, "visibility_m": 20000.0},
+		"frame_vehicle": "fuel_truck",
+		"variants": [{"cam": [-16.0, 14.0, 4.5], "aim": [0.0, 0.0, 1.5], "fov": 55.0},
+			{"cam": [14.0, -11.0, 3.0], "aim": [0.0, 0.0, 1.5], "fov": 50.0},
+			{"cam": [0.0, 16.0, 6.0], "aim": [0.0, 0.0, 1.5], "fov": 60.0}]},
+
+	# Roads, rivers, shore foam and water depth colour (terrain ribbons, tools/20, 21)
 	"ghats_chase": {"weather": "Fair", "view": "chase",
 		"setup": {"airport": "VAAV", "start": "air", "air_ft": 2200.0, "air_nm": 5.0, "time_h": 17.2, "visibility_m": 25000.0},
 		"fly": {"secs": 6.0, "pitch": 5.0, "throttle": 1.0},

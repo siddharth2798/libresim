@@ -411,7 +411,7 @@ cd game
 **Ground vehicles:**
 - **At jetway gates:** a ground power unit at the nose, a baggage tug with carts aft, and a fuel truck on some stands. The jetways are the real FlightGear model, laid along the OSM jetbridge.
 - **Elsewhere:** fuel trucks at some GA and remote stands, apron buses, and a fire truck by the tower.
-- **Pushback:** uses a Goldhofer tug.
+- **Pushback:** a yellow towbarless-style tug.
 - **Follow-me car:** when you request taxi (T), it drives ahead of you along the route, waits if you fall behind, and turns off at the hold-short point.
 
 **Not yet:** moving service vehicles, AI traffic (ATC stage A2) and recorded radio voices with real radio effects (stage A3).
@@ -421,6 +421,7 @@ cd game
 - **Detailed area:** about 145 × 115 km, with 30 m terrain and 10 m imagery.
 - **Outer ring:** coarser real data (90 m terrain, 80 m imagery) out to about 245 km, reaching Nashik, Ahmednagar, Satara, Kolhapur and the Konkan coast.
 - **Beyond that,** to about 490 km, the terrain is filled from the nearest real data with generated relief and texture, so there is no edge.
+- **How they look:** every vehicle is built in code (`world/ground_vehicles.gd`, `vehicle_geo.gd`, `vehicle_parts.gd`, one `veh_*.gd` per type; no imported models; 2 to 5 thousand triangles each): fuel truck, GPU, baggage tractor and cart, apron bus, rescue and fire-fighting truck (red, roof turret) and pushback tug, with glossy clearcoat paint, rubber tyres with tread, glass, reflective bands and chevrons, a little dirt, and beacons that flash at night. The **follow-me car** (`follow_me_car.gd`) is a generic yellow double-cab pickup with a chequered FOLLOW ME board and amber light bar on the roof (the two sides flash in turn), headlamps, and brake lamps that light whenever it slows or waits. Its wheels turn with its speed and steer into corners, the body leans a little under acceleration and in turns, and it follows the ground slope. `tests/debug_vehicle_lineup.tscn` shows them all side by side (`-- --old` shows the previous models, `-- --night` the night look).
 
 ### Landing, takeoff and damage (realism)
 
