@@ -1,50 +1,54 @@
 # Airbus A320 for libresim: plan
 
-Status: plan only (PLAN.md §8a "Airbus A320 (final stages)" and M10). Nothing built yet.
+Status (2026-10-28): P0 (decisions, licence, docs) done; P1 (data pipeline) partly done (fetch, converter, tests done; reference runs, data notes, run.sh wiring open); P2 partly done (see below); everything else open. The A320 is the forcing function for making the game data-driven per aircraft (`AircraftDef`, `aircraft.json`): each fix below is a data-driven mechanism (a new `aircraft.json` section or hook) with the C172 behaviour kept identical and its tests green. Background and the licence audit: `docs/LICENSING.md`, `third_party/a320-family/SOURCE.md`.
 
-## Source: FlightGear "A320-family" (GitHub `legoboyvdlp/A320-family`, mirrored at git.nayala.duckdns.org/fly/A320-family)
+## Source: FlightGear "A320-family" (https://github.com/legoboyvdlp/A320-family, branch `dev`)
+- A complete A320 for FlightGear: A320-200 (CFM56-5B4, IAE V2527) and A320neo (LEAP-1A26, PW1127G). The repository is public; development is "on hold awaiting refactoring".
+- Pinned commit: `fec1ecba767c8fffd145337b27012e89c01e3ade` (`tools/22_a320_fetch.sh`, sparse checkout to `data/raw/fg/a320`, about 2.5 MB: `FDE/ Engines/ Systems/`, top-level files, `Docs/THANKS.md`).
+- Layout we use: `FDE/` (JSBSim flight dynamics: aero, mass, gear, metrics), `Engines/` (JSBSim turbofans), `Systems/` (JSBSim systems: FBW, FADEC, FCS, spoilers, fuel, hydraulic, electrical, APU), later `Models/` (AC3D exterior and flight deck). Not fetched: `Sounds/`, `Fonts/`, `Nasal/`, `WebPanel/`.
+- What the converter takes and what it leaves: `tools/A320_DATA_NOTES.md`.
 
-- A very complete A320 for FlightGear: variants A320-200 (CFM56-5B4, IAE V2527) and A320neo (LEAP-1A26, PW1127G).
-- Licence: **GNU GPL version 2** (README.copyright.md: "under the terms of version 2", no "or later"). Copyright Josh Davidson (flight dynamics lead), Jonathan Redpath, merspieler, Matthew Maring, Thorsten Herrmann, Semir Gebran, and the contributors of the 3D, sound and display work (see its `Docs` and `README.copyright.md`).
-- Layout we care about: `FDE/` (JSBSim flight dynamics: aero, mass, gear), `Engines/` (JSBSim turbofans), `Systems/` (JSBSim systems: FBW, FADEC, FCS, fuel, hydraulic, electrical, APU, FWC), `Models/` (AC3D exterior and flight deck, animations), `Sounds/` (engine, cockpit, GPWS, hydraulic), `Nasal/` (displays, MCDU, FMGC logic).
-- The repo is about 700 MB (liveries, textures, sounds). We fetch only what we need (sparse checkout, like `data/raw/fg/c172p`).
-- Licence handling: libresim code is GPL-2.0-or-later, and docs/LICENSING.md already vendors GPL-2.0-only fgdata models, so the precedent exists. The A320 data and model are GPL-2.0-only; the combined distribution is then GPL-2.0. **Recommendation:** ship the A320 as a separate "aircraft pack" (downloaded by `run.sh`, not in the base release), so the base stays GPL-2.0-or-later and the pack is clearly GPL-2.0 with its authors credited.
-- Real airline liveries are trademarks: use the generic/house livery only.
+## Licence verdict (from the audit of the repository)
+- Licence is **GPL-2.0 only** (`LICENSE`, `README.copyright.md`: "version 2", no "or later"; the maintainer confirms it in PR #425). Shipping it with libresim makes the combined distribution GPL-2.0 (libresim is v2-or-later: allowed; it cannot become GPLv3). A separate downloadable pack does not remove that, it only isolates it; we do not rely on an "aggregate" argument.
+- **Used under GPL-2.0 with notices:** the JSBSim FDE, engine and system XML (data): upstream copyright lines kept, licence text shipped, a prominent dated notice of changes (`third_party/a320-family/SOURCE.md` change log, `derived_from` in every generated file), source published.
+- **Used under the repository's published GPL-2.0, with residual provenance risk:** the 3D models and textures (the base aircraft is Immersive Design Group's A32X; its original repository has no licence statement and the model headers could not be read). Decision taken by the project owner: no provenance question is sent upstream; we rely on the published licence and comply with it fully. Blender edits are for quality, polygon budget and trademark hygiene, never to disguise the source. Mitigation is structural: the A320 is a separate, withdrawable pack and its model is replaceable by an own generic twin-jet (P8 path B) without code changes, because it is all `aircraft.json` data.
+- **Not cleared, not fetched, not shipped, not credited as used:** all sounds (no per-file provenance, TTS voices of an unchecked service, two sound PRs rejected over provenance), all fonts (the ECAM font is credited only as "GPL" and comes from FlyByWire, whose tree is GPLv3 code plus CC-BY-NC assets), Nasal / Canvas / WebPanel code (a GDScript port that follows it closely would be a GPL-2.0-only derivative: we write our own from public behaviour), the splash screen, the CC0 sample listed in `THANKS.md`.
+- **Not OK:** real airline liveries (AAL, AUA, DAL, SWR are shipped upstream), Airbus / airline / engine-maker logos and decals, navdata, anything from FlyByWire A32NX.
+- **Trademarks:** "Airbus" and "A320" are Airbus trademarks. The UI says "A320-family twin-jet airliner" with a non-affiliation disclaimer, generic house livery, logos stripped from textures.
 
-## Scope (recommended: "flyable A320")
+## Scope (decision: "flyable A320")
+In: A320-200 CFM first (neo and IAE later); exterior and flight-deck model; FDM from the JSBSim data; CFM56 turbofan with FADEC-like thrust and lever detents; hand-written fly-by-wire normal law with protections; AP / FD / ATHR with FCU modes (HDG, ALT, V/S, SPD/MACH, LOC, APPR with the existing ILS); slats / flaps, spoilers and speedbrake, reversers, autobrake, nosewheel steering; PFD, ND, E/WD, SD, FCU, pedestal, MCDU-lite; simplified APU / electrical / fuel / hydraulics as state plus failures; own or verified sounds; start-screen entry, checklists, training lessons.
+Out for now: full FWC / ECAM logic, pressurisation and oxygen, full FMGC with SIDs / STARs, cabin and passengers, the neo and IAE variants.
 
-In: A320-200 CFM first (neo later); exterior + flight deck model; FDM from the JSBSim data; CFM56 turbofan with FADEC-like thrust and thrust-lever detents; fly-by-wire normal law with protections; autopilot and flight director (FCU modes: HDG, ALT, V/S, SPD/MACH, LOC, APPR with the ILS we already have); autothrust; slats/flaps, spoilers and speedbrake, reversers, autobrake, nosewheel steering; PFD, ND, engine/warning and system displays (ECAM-lite); FCU, pedestal and a MCDU-lite (INIT, F-PLN, PERF); simplified APU/electrical/fuel/hydraulics as state plus failures; real sounds; start-screen entry, checklists, training lessons.
+## Phases (order: P0, P1, P2 first; P3 to P7 can then run in parallel; P8 needs Blender)
 
-Out for now: full FWC/ECAM logic, pressurisation and oxygen, full FMGC with SIDs/STARs, cabin, passengers animations, the neo and IAE variants.
-
-## Phases
-
-| # | Phase | Deliverable / exit test | Size |
-|---|-------|-------------------------|------|
-| P0 | Decisions + licence | Scope, pack vs bundle, credits and LICENSING rows written | S |
-| P1 | Data tools | `tools/19_a320_fetch.sh` (sparse checkout to `data/raw/fg/a320`), extend `06_jsbsim_to_json.py` for the A320 FDE and CFM56 engine tables; JSBSim reference runs (`08_jsbsim_reference.py` style): stall speeds, Vref at 64 t, takeoff roll, climb rate, cruise fuel flow | M |
-| P2 | FDM generalisation (**partly done**: `FDM.new(AircraftDef)` for any aircraft folder; engine interface `Powerplant` / `Thruster` / `PowerUnit` with a piston+prop and a simple turbine/jet engine `engine_turbine.gd`; N engines and N tanks with per-engine controls and failures; gear `role` / `brake_group`; tested by `tests/test_generic_aircraft.gd`. Still open: fan/core turbofan curves, autobrake, slats, spoilers, reversers, APU) | `FDM` loads any aircraft folder; powerplant interface (piston+prop / turbofan); gear config (bogies, steering, autobrake); flaps and slats detents; spoilers; reversers; fuel tanks and APU. **C172 test cards stay green.** A320 test cards match JSBSim | L |
-| P3 | Flight control laws + autopilot | FBW normal law (load-factor and roll-rate command, protections: alpha, bank, pitch, overspeed), ground/flare modes; autothrust; AP/FD with FCU modes. **Spike (2 days):** a small interpreter for JSBSim `fcs` components to run `a320-fbw.xml` directly (best fidelity); fall back to hand-written laws if it does not pay off | XL |
-| P4 | 3D model | AC3D to glb (`tools/blender/convert_ac.py`), exterior and flight deck, animated surfaces, gear, doors, engine fans; generic livery; lights through `aircraft_lights.gd` | L |
-| P5 | Cockpit + displays | Cockpit camera and clickable items (reuse the C172 interaction and zoom); PFD, ND (with route), E/WD, SD drawn in Godot SubViewports on the screen meshes; FCU, pedestal, MCDU-lite; sidestick and thrust-lever input mapping (joystick bindings already exist) | XL |
-| P6 | Sounds | Data-driven per-aircraft sound set (generalise `aircraft_audio.gd`); real recordings from the A320-family set (GPL, credited per file in `sounds/SOURCES.md`) | M |
-| P7 | Game integration | Aircraft card on the start screen (specs, minimum runway, only suitable airports offered), loadsheet-lite and fuel, checklists, failures (engine fire/failure, hydraulic), damage tuning for 70 t, pushback and jetway with an A320, A320 training lessons (takeoff, ILS approach), ATC airline phraseology | L |
-| P8 | QA + release | Unit tests, e2e scenarios, frame-time budget in the cockpit, docs (USAGE, handbook, LICENSING, CREDITS, F12 credits screen), pack build in `tools/package` | M |
-
-Order: P0, P1, P2 first (no visible change, but everything else depends on them), then P3 and P4 in parallel (different files), P5 after both, then P6 to P8.
+| # | Phase | Deliverable / exit test | Status |
+|---|-------|-------------------------|--------|
+| P0 | Decisions, licence gate, docs | This plan; `third_party/a320-family/` (LICENSE, README.copyright.md, THANKS.md, SOURCE.md with pinned commit and change log); rows in `docs/LICENSING.md`; `CREDITS.md` entry (the F12 screen shows CREDITS.md as is). No provenance question sent upstream | **done** |
+| P1 | Data pipeline | `tools/22_a320_fetch.sh` (pinned sparse checkout, optional `run.sh --a320`); `tools/06_jsbsim_to_json.py a320` -> `game/aircraft/a320/{config,aero}.json` (turbofan tables, 3-D tables, full operator set, retractable gear, flap / slat / spoiler data, tanks, point masses); `tools/23_a320_reference.py` -> `tools/a320_reference.json` (JSBSim oracle numbers); `tools/test_jsb_convert.py`; `tools/A320_DATA_NOTES.md` | **partly done**: fetch + converter + tests exist; reference script, notes and `run.sh --a320` still open |
+| P2 | FDM generalisation (**partly done**: `FDM.new(AircraftDef)` for any aircraft folder; engine interface `Powerplant` / `Thruster` / `PowerUnit`; piston + prop and a simple turbine `engine_turbine.gd`; N engines and N tanks with per-engine controls and failures; gear `role` / `brake_group`; `tests/test_generic_aircraft.gd`) | Open: aero inputs (mach, slat, spoiler, speedbrake, gear position, ground effect, new operators and 3-D tables in `aero.gd`, error on unknown names in tests); turbine thrust tables vs Mach / altitude / N1, TSFC, N2 / EGT, FADEC detents, reverse thrust, relight / start; per-surface outputs, THS trim, flap / slat detents, speedbrake; gear retract / extend, bogies, steering model, autobrake, anti-skid, per-aircraft brake mu; hand-written normal law `fdm/fbw_law.gd` tuned against the JSBSim reference (JSBSim as oracle, not interpreted at runtime); systems (APU, hydraulics, electrical, fuel transfer, autoflight). **C172 test cards stay green**; A320 test cards match the JSBSim reference | partly done |
+| P3 | Controls | `aircraft.json` `controls` section (actions, axis -> property map, lever detents); per-engine lever writers (`controls/throttle_1` and `_2`); table-driven `joystick_controls.gd` and key handlers; new actions (thrust detents + reverse, speedbrake, gear, autobrake, engine master / mode, APU, rudder trim, tiller, FCU); controls page, HUD card and key reference filtered by aircraft | open |
+| P4 | Gauges and displays | `panel.json` loader with non-square rects and `span`; full-rect display scripts `ui/displays/` (PFD, ND, E/WD, SD, FCU, MCDU-lite) through the existing SubViewport -> quad -> click-forwarding pipeline; new publishers (air data, Vls / Vsw / Vmax, radio altitude, ADIRS attitude, per-engine N1 / N2 / EGT / FF / oil, FMA / FD). Our own open fonts only; written from public behaviour, not ported from Nasal | open |
+| P5 | Replay and saves | `ReplayChannels` from an `aircraft.json` `replay` section (`engines/{n}/...`), C172 channel list unchanged; situations get `engines/ ap/ apu/ fcu/` prefixes and a generic `save_state()/load_state()` hook on systems; gear / slat / spoiler in saved state | open |
+| P6 | Ground ops | `pushback {straight_m, radius_m, speed_mps}` data; tug size; `ground.cg_to_door_m`; taxi half-width and max speed; follow-me gap; service-vehicle offsets; jetway docking (can slip); stand class and runway filtering (`min_runway_m`: the A320 needs about 1,800 to 2,100 m; VABB, VAPO, VOCI qualify) | open |
+| P7 | ATC airline profile | `aircraft.json` `atc {profile: airline, wake, telephony, callsign_style}`; airline calls (IFR clearance, start-up and pushback, taxi, line-up, takeoff, departure, climb / descend, ILS approach, vacate / stand); fictional telephony, no real airline names; the GA profile and its tests unchanged | open |
+| P8 | Model, cockpit, sounds | Blender setup first (not installed; plus the AC3D importer): scripted headless conversions in `tools/blender/`. Path A (default): convert and improve the upstream model under its published GPL-2.0 (pivots, PBR materials, normals / UVs, GPU budget, screen meshes for PFD / ND / EWD / SD, generic livery, no marks, registration areas), `Models/` added to the sparse checkout. Path B (fallback if a rights-holder objects or the result is poor): own generic twin-jet from scratch (`tools/blender/build_airliner.py`). Sounds: own recordings or verified CC0 / CC-BY only, per-file `sounds/SOURCES.md`; per-engine mixing in `aircraft_audio.gd` | open |
+| P9 | Game integration | `aircraft.json` / `config.json` / `aero.json` (limits per setting, damage thresholds for about 70 t, payload in kg, fixed `registration`, `radio_type`, cameras, ground footprint 37.6 x 34.1 x 11.8 m); per-aircraft callouts (V1, rotate, 100 kt, retard, minimums); airliner failure list; checklists (any / all and per-engine conditions); training lessons; aircraft page fuel in kg | open |
+| P10 | QA, packaging, release | `tools/package/make_pack.sh` for a separate A320 pack (own LICENSE GPL-2.0, `README.copyright.md`, NOTICE, source offer); `run.sh` optional download; docs (USAGE "Adding an aircraft", handbook, F12 credits) | open |
 
 ## Risks
+1. **Displays and MCDU** are Nasal / Canvas code upstream, so they are re-implemented in Godot (P4). Biggest unknown; PFD and E/WD first, ND and MCDU after.
+2. **FBW parity:** the laws live in JSBSim systems XML fed by Nasal properties. Decision: hand-written normal law with JSBSim as the oracle. The P1 spike (`tools/A320_DATA_NOTES.md`) says what running `a320-fbw.xml` headless needs, if the interpreter route is ever revisited.
+3. **Model conversion:** FlightGear effects and shaders are lost; materials need rework. Polygon count and texture size need a budget for integrated GPUs.
+4. **Licence:** GPL-2.0-only plus the residual model provenance risk (above). Keep the pack separable and credit every author.
+5. **Runways:** the A320 needs about 1,800 m or more; short fields must not be offered.
+6. Scope creep: scope frozen as above before P3.
 
-1. **Displays and MCDU** are Nasal/Canvas code in FlightGear, so they must be re-implemented in Godot (P5). Biggest unknown; start with PFD and E/WD, add ND and MCDU after.
-2. **FBW parity** with FlightGear: the laws live in JSBSim systems XML fed by Nasal properties. The P3 spike decides between an interpreter and hand-written laws.
-3. **Model conversion:** FlightGear effects and shaders are lost in conversion; materials need rework (as for the c172p). Polygon count and texture size need a budget for integrated GPUs.
-4. **Licence:** GPL-2.0-only (above). Keep the pack separable and credit every author.
-5. **Runways:** the A320 needs about 1,800 m or more. VABB, VAPO and VOCI qualify; short fields must not be offered.
-6. Scope creep: freeze the scope above before P3.
-
-## Decisions needed
-
-1. Scope: "flyable A320" as above (recommended), or full systems depth.
-2. Variant: A320-200 CFM first (recommended).
-3. Packaging: separate downloadable pack (recommended) or bundled in the base release.
-4. Cockpit: clickable switches (recommended for the pedestal, FCU and overhead essentials) or keys only.
+## Decisions (taken)
+1. Model route: use the upstream model under its published GPL-2.0, improved in Blender, notices kept, in a separate withdrawable pack; own generic twin-jet as the fallback.
+2. Control laws: hand-written normal law, JSBSim as oracle (not an interpreter).
+3. Scope: "flyable A320" (FBW, AP / FD / ATHR, PFD / ND / EWD / SD, FCU, MCDU-lite).
+4. Naming: "A320-family twin-jet airliner" in the UI with a non-affiliation disclaimer, generic livery.
+5. Packaging: separate GPL-2.0 pack.
+6. Variant: A320-200 CFM56 first; neo / IAE later.
+7. Provenance: no upstream question; rely on the published licence and comply with it fully.

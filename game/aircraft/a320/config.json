@@ -1,0 +1,2706 @@
+{
+ "name": "A320-family twin-jet airliner (FlightGear A320-family JSBSim FDE, CFM56-5B4)",
+ "derived_from": {
+  "upstream": "https://github.com/legoboyvdlp/A320-family",
+  "commit": "fec1ecba767c8fffd145337b27012e89c01e3ade",
+  "files": [
+   "FDE/A320-200-CFM.xml",
+   "FDE/Config/*.xml",
+   "Engines/cfm56-5b4_*.xml",
+   "Engines/APS3200.xml",
+   "Systems/a320-fcs.xml",
+   "Systems/a320-spoilers.xml",
+   "Systems/a320-cfm56-5b4-engine-fadec.xml",
+   "A320-200-CFM-set.xml (options/maxflap)"
+  ],
+  "copyright": "Copyright (c) 2025 Josh Davidson, Jonathan Redpath, merspieler, Matthew Maring, Thorsten Herrmann, Semir Gebran",
+  "license": "GPL-2.0-only",
+  "modified": "2026-10-28 by libresim (tools/06_jsbsim_to_json.py a320): units converted to SI, XML -> JSON, see third_party/a320-family/SOURCE.md"
+ },
+ "license": "GPL-2.0-only (see third_party/a320-family/)",
+ "metrics": {
+  "wing_area_m2": 122.6125031616,
+  "wingspan_m": 35.74084800000001,
+  "chord_m": 7.677912000000001,
+  "aero_ref_pt_m": [
+   -2.2658,
+   0.0,
+   -0.934
+  ],
+  "eyepoint_m": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "vrp_m": [
+   0.0,
+   0.0,
+   -0.83109
+  ]
+ },
+ "mass": {
+  "empty_kg": 43277.021225515,
+  "empty_cg_m": [
+   -2.4335,
+   0.0,
+   -0.934
+  ],
+  "inertia_kgm2": {
+   "ixx": 962211.7967534501,
+   "iyy": 2490740.6163142,
+   "izz": 1887463.9961899,
+   "ixz": 0.0
+  },
+  "point_masses": [
+   {
+    "name": "Forward Cabin",
+    "kg": 2674.38061352,
+    "pos_m": [
+     -10.8,
+     0.0,
+     0.39
+    ]
+   },
+   {
+    "name": "Center Cabin",
+    "kg": 3291.26623672,
+    "pos_m": [
+     -3.3,
+     0.0,
+     0.39
+    ]
+   },
+   {
+    "name": "Aft Cabin",
+    "kg": 3016.84285287,
+    "pos_m": [
+     4.9,
+     0.0,
+     0.39
+    ]
+   },
+   {
+    "name": "Fwd Cargo",
+    "kg": 1360.77711,
+    "pos_m": [
+     -6.8,
+     0.0,
+     -1.0
+    ]
+   },
+   {
+    "name": "Aft Cargo",
+    "kg": 1360.77711,
+    "pos_m": [
+     4.2,
+     0.0,
+     -1.0
+    ]
+   },
+   {
+    "name": "Aft Bulk Cargo",
+    "kg": 0.0,
+    "pos_m": [
+     8.2,
+     0.0,
+     -1.0
+    ]
+   }
+  ]
+ },
+ "gear": [
+  {
+   "name": "NOSE_LG",
+   "type": "BOGEY",
+   "pos_m": [
+    -13.6519,
+    0.0,
+    -4.35683
+   ],
+   "static_friction": 1.4,
+   "dynamic_friction": 0.6,
+   "rolling_friction": 0.02,
+   "spring_n_per_m": 488822.7776355,
+   "damping_n_s_per_m": 151265.8035585,
+   "max_steer_deg": 75.0,
+   "brake_group": "NONE",
+   "retractable": true,
+   "cornering_coeff": {
+    "row": null,
+    "col": null,
+    "cols": null,
+    "rows": [],
+    "data": []
+   }
+  },
+  {
+   "name": "LEFT_MLG",
+   "type": "BOGEY",
+   "pos_m": [
+    -1.1393,
+    -4.32562,
+    -4.35908
+   ],
+   "static_friction": 0.4,
+   "dynamic_friction": 0.6,
+   "rolling_friction": 0.02,
+   "spring_n_per_m": 941773.7419428,
+   "damping_n_s_per_m": 241952.3161791,
+   "max_steer_deg": 0.0,
+   "brake_group": "LEFT",
+   "retractable": true,
+   "cornering_coeff": {
+    "row": null,
+    "col": null,
+    "cols": null,
+    "rows": [],
+    "data": []
+   }
+  },
+  {
+   "name": "RIGHT_MLG",
+   "type": "BOGEY",
+   "pos_m": [
+    -1.1393,
+    4.32562,
+    -4.35908
+   ],
+   "static_friction": 0.4,
+   "dynamic_friction": 0.6,
+   "rolling_friction": 0.02,
+   "spring_n_per_m": 941773.7419428,
+   "damping_n_s_per_m": 241952.3161791,
+   "max_steer_deg": 0.0,
+   "brake_group": "RIGHT",
+   "retractable": true,
+   "cornering_coeff": {
+    "row": null,
+    "col": null,
+    "cols": null,
+    "rows": [],
+    "data": []
+   }
+  },
+  {
+   "name": "NOSE_1",
+   "type": "STRUCTURE",
+   "pos_m": [
+    -18.8029,
+    0.0,
+    -0.86913
+   ],
+   "static_friction": 1.0,
+   "dynamic_friction": 0.4,
+   "rolling_friction": 0.4,
+   "spring_n_per_m": 729695.145,
+   "damping_n_s_per_m": 729695.145,
+   "max_steer_deg": 0.0,
+   "brake_group": "NONE",
+   "retractable": false,
+   "cornering_coeff": null
+  },
+  {
+   "name": "NOSE_2",
+   "type": "STRUCTURE",
+   "pos_m": [
+    -15.86,
+    0.0,
+    1.41537
+   ],
+   "static_friction": 1.0,
+   "dynamic_friction": 0.4,
+   "rolling_friction": 0.4,
+   "spring_n_per_m": 729695.145,
+   "damping_n_s_per_m": 729695.145,
+   "max_steer_deg": 0.0,
+   "brake_group": "NONE",
+   "retractable": false,
+   "cornering_coeff": null
+  },
+  {
+   "name": "BOTTOM_1",
+   "type": "STRUCTURE",
+   "pos_m": [
+    -14.0535,
+    0.0,
+    -2.2431
+   ],
+   "static_friction": 1.0,
+   "dynamic_friction": 0.4,
+   "rolling_friction": 0.4,
+   "spring_n_per_m": 729695.145,
+   "damping_n_s_per_m": 729695.145,
+   "max_steer_deg": 0.0,
+   "brake_group": "NONE",
+   "retractable": false,
+   "cornering_coeff": null
+  },
+  {
+   "name": "BOTTOM_2",
+   "type": "STRUCTURE",
+   "pos_m": [
+    6.78689,
+    0.0,
+    -2.19094
+   ],
+   "static_friction": 1.0,
+   "dynamic_friction": 0.4,
+   "rolling_friction": 0.4,
+   "spring_n_per_m": 729695.145,
+   "damping_n_s_per_m": 729695.145,
+   "max_steer_deg": 0.0,
+   "brake_group": "NONE",
+   "retractable": false,
+   "cornering_coeff": null
+  },
+  {
+   "name": "TOP_1",
+   "type": "STRUCTURE",
+   "pos_m": [
+    -12.2837,
+    0.0,
+    1.91891
+   ],
+   "static_friction": 1.0,
+   "dynamic_friction": 0.4,
+   "rolling_friction": 0.4,
+   "spring_n_per_m": 729695.145,
+   "damping_n_s_per_m": 729695.145,
+   "max_steer_deg": 0.0,
+   "brake_group": "NONE",
+   "retractable": false,
+   "cornering_coeff": null
+  },
+  {
+   "name": "TOP_2",
+   "type": "STRUCTURE",
+   "pos_m": [
+    9.32421,
+    0.0,
+    1.90163
+   ],
+   "static_friction": 1.0,
+   "dynamic_friction": 0.4,
+   "rolling_friction": 0.4,
+   "spring_n_per_m": 729695.145,
+   "damping_n_s_per_m": 729695.145,
+   "max_steer_deg": 0.0,
+   "brake_group": "NONE",
+   "retractable": false,
+   "cornering_coeff": null
+  },
+  {
+   "name": "ENG_1",
+   "type": "STRUCTURE",
+   "pos_m": [
+    -5.35132,
+    -5.63082,
+    -3.2689
+   ],
+   "static_friction": 1.0,
+   "dynamic_friction": 0.4,
+   "rolling_friction": 0.4,
+   "spring_n_per_m": 729695.145,
+   "damping_n_s_per_m": 729695.145,
+   "max_steer_deg": 0.0,
+   "brake_group": "NONE",
+   "retractable": false,
+   "cornering_coeff": null
+  },
+  {
+   "name": "ENG_2",
+   "type": "STRUCTURE",
+   "pos_m": [
+    -5.35132,
+    5.63082,
+    -3.2689
+   ],
+   "static_friction": 1.0,
+   "dynamic_friction": 0.4,
+   "rolling_friction": 0.4,
+   "spring_n_per_m": 729695.145,
+   "damping_n_s_per_m": 729695.145,
+   "max_steer_deg": 0.0,
+   "brake_group": "NONE",
+   "retractable": false,
+   "cornering_coeff": null
+  },
+  {
+   "name": "TAIL_1",
+   "type": "STRUCTURE",
+   "pos_m": [
+    18.7563,
+    0.0,
+    0.87243
+   ],
+   "static_friction": 1.0,
+   "dynamic_friction": 0.4,
+   "rolling_friction": 0.4,
+   "spring_n_per_m": 729695.145,
+   "damping_n_s_per_m": 729695.145,
+   "max_steer_deg": 0.0,
+   "brake_group": "NONE",
+   "retractable": false,
+   "cornering_coeff": null
+  },
+  {
+   "name": "TAIL_2",
+   "type": "STRUCTURE",
+   "pos_m": [
+    17.0302,
+    0.0,
+    7.74793
+   ],
+   "static_friction": 1.0,
+   "dynamic_friction": 0.4,
+   "rolling_friction": 0.4,
+   "spring_n_per_m": 729695.145,
+   "damping_n_s_per_m": 729695.145,
+   "max_steer_deg": 0.0,
+   "brake_group": "NONE",
+   "retractable": false,
+   "cornering_coeff": null
+  },
+  {
+   "name": "WING_TIP_1",
+   "type": "STRUCTURE",
+   "pos_m": [
+    2.48627,
+    -16.9301,
+    0.34704
+   ],
+   "static_friction": 1.0,
+   "dynamic_friction": 0.4,
+   "rolling_friction": 0.4,
+   "spring_n_per_m": 729695.145,
+   "damping_n_s_per_m": 729695.145,
+   "max_steer_deg": 0.0,
+   "brake_group": "NONE",
+   "retractable": false,
+   "cornering_coeff": null
+  },
+  {
+   "name": "WING_TIP_2",
+   "type": "STRUCTURE",
+   "pos_m": [
+    2.48627,
+    16.9301,
+    0.34704
+   ],
+   "static_friction": 1.0,
+   "dynamic_friction": 1.0,
+   "rolling_friction": 1.0,
+   "spring_n_per_m": 729695.145,
+   "damping_n_s_per_m": 729695.145,
+   "max_steer_deg": 0.0,
+   "brake_group": "NONE",
+   "retractable": false,
+   "cornering_coeff": null
+  }
+ ],
+ "tanks": [
+  {
+   "name": "Outer Left Wing Tank",
+   "pos_m": [
+    -2.4335,
+    -7.0291,
+    -0.75
+   ],
+   "capacity_kg": 690.82117951,
+   "contents_kg": 690.82117951,
+   "density_kg_per_l": 0.8040353272963764,
+   "unusable_l": 4.0,
+   "priority": 1
+  },
+  {
+   "name": "Inner Left Wing Tank",
+   "pos_m": [
+    -2.4335,
+    -4.1029,
+    -0.75
+   ],
+   "capacity_kg": 5711.612443421501,
+   "contents_kg": 2030.7330404900001,
+   "density_kg_per_l": 0.8040353272963764,
+   "unusable_l": 28.0,
+   "priority": 1
+  },
+  {
+   "name": "Center Tank",
+   "pos_m": [
+    -2.4335,
+    0.0,
+    -0.75
+   ],
+   "capacity_kg": 6632.8812265100005,
+   "contents_kg": 19.05087954,
+   "density_kg_per_l": 0.8040353272963764,
+   "unusable_l": 23.2,
+   "priority": 1
+  },
+  {
+   "name": "Inner Right Wing Tank",
+   "pos_m": [
+    -2.4335,
+    4.1029,
+    -0.75
+   ],
+   "capacity_kg": 5711.612443421501,
+   "contents_kg": 2030.7330404900001,
+   "density_kg_per_l": 0.8040353272963764,
+   "unusable_l": 28.0,
+   "priority": 1
+  },
+  {
+   "name": "Outer Right Wing Tank",
+   "pos_m": [
+    -2.4335,
+    7.0291,
+    -0.75
+   ],
+   "capacity_kg": 690.82117951,
+   "contents_kg": 690.82117951,
+   "density_kg_per_l": 0.8040353272963764,
+   "unusable_l": 4.0,
+   "priority": 1
+  },
+  {
+   "name": "Engine 1 Pipes",
+   "pos_m": [
+    -2.4335,
+    0.0,
+    -0.75
+   ],
+   "capacity_kg": 4.535923700000001,
+   "contents_kg": 0.0,
+   "density_kg_per_l": 0.8040353272963764,
+   "unusable_l": 0.0,
+   "priority": 1
+  },
+  {
+   "name": "Engine 2 Pipes",
+   "pos_m": [
+    -2.4335,
+    0.0,
+    -0.75
+   ],
+   "capacity_kg": 4.535923700000001,
+   "contents_kg": 0.0,
+   "density_kg_per_l": 0.8040353272963764,
+   "unusable_l": 0.0,
+   "priority": 1
+  },
+  {
+   "name": "APU Pipes",
+   "pos_m": [
+    -2.4335,
+    0.0,
+    -0.75
+   ],
+   "capacity_kg": 4.535923700000001,
+   "contents_kg": 0.0,
+   "density_kg_per_l": 0.8040353272963764,
+   "unusable_l": 0.0,
+   "priority": 1
+  }
+ ],
+ "unusable_fuel_kg": 70.112,
+ "engines": [
+  {
+   "type": "turbine",
+   "model": "CFM56-5B4",
+   "thrust_n": 120101.9836120335,
+   "max_rpm": 100.0,
+   "idle_n1": 0.18899999999999997,
+   "max_n1": 1.04,
+   "idle_n2": 0.594,
+   "max_n2": 1.05,
+   "tsfc_kg_per_n_s": 1.5437370446471416e-05,
+   "pos_m": [
+    -5.34904,
+    -2.8775,
+    -1.04768
+   ],
+   "orient_deg": {
+    "roll": 0.0,
+    "pitch": 2.0,
+    "yaw": 1.0
+   },
+   "n1_spool_up_rate_table": {
+    "row": "propulsion/engine[0]/n1",
+    "col": null,
+    "cols": null,
+    "rows": [
+     24.0,
+     28.0,
+     46.0,
+     68.0,
+     80.0,
+     94.0,
+     103.0
+    ],
+    "data": [
+     [
+      1.1
+     ],
+     [
+      2.9
+     ],
+     [
+      9.7
+     ],
+     [
+      15.4
+     ],
+     [
+      19.6
+     ],
+     [
+      21.4
+     ],
+     [
+      23.6
+     ]
+    ]
+   },
+   "n1_spool_down_rate_table": {
+    "row": "propulsion/engine[0]/n1",
+    "col": null,
+    "cols": null,
+    "rows": [
+     24.0,
+     28.0,
+     46.0,
+     68.0,
+     80.0,
+     94.0,
+     103.0
+    ],
+    "data": [
+     [
+      1.1
+     ],
+     [
+      2.9
+     ],
+     [
+      9.7
+     ],
+     [
+      15.4
+     ],
+     [
+      19.6
+     ],
+     [
+      21.4
+     ],
+     [
+      23.6
+     ]
+    ]
+   },
+   "spool_up_s": 5.74,
+   "spool_down_s": 5.74,
+   "thrust_table": {
+    "row": "velocities/mach",
+    "col": "atmosphere/density-altitude",
+    "cols": [
+     -10000.0,
+     0.0,
+     10000.0,
+     20000.0,
+     30000.0,
+     45000.0,
+     52000.0
+    ],
+    "rows": [
+     0.0,
+     0.2,
+     0.4,
+     0.6,
+     0.8,
+     0.9,
+     1.0,
+     1.2
+    ],
+    "data": [
+     [
+      1.21,
+      1.0,
+      0.74,
+      0.532,
+      0.334,
+      0.221,
+      0.0
+     ],
+     [
+      1.171,
+      0.974,
+      0.709,
+      0.504,
+      0.309,
+      0.204,
+      0.0
+     ],
+     [
+      1.15,
+      0.957,
+      0.692,
+      0.494,
+      0.311,
+      0.209,
+      0.0
+     ],
+     [
+      1.164,
+      0.941,
+      0.714,
+      0.494,
+      0.309,
+      0.208,
+      0.0
+     ],
+     [
+      1.189,
+      0.971,
+      0.735,
+      0.507,
+      0.306,
+      0.207,
+      0.0
+     ],
+     [
+      1.192,
+      0.976,
+      0.732,
+      0.501,
+      0.293,
+      0.194,
+      0.0
+     ],
+     [
+      1.181,
+      0.951,
+      0.702,
+      0.459,
+      0.243,
+      0.156,
+      0.0
+     ],
+     [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+     ]
+    ]
+   },
+   "idle_thrust_table": {
+    "row": "velocities/mach",
+    "col": "atmosphere/density-altitude",
+    "cols": [
+     -10000.0,
+     0.0,
+     10000.0,
+     20000.0,
+     30000.0,
+     45000.0,
+     52000.0
+    ],
+    "rows": [
+     0.0,
+     0.2,
+     0.4,
+     0.5,
+     0.6,
+     0.8,
+     1.0,
+     1.2
+    ],
+    "data": [
+     [
+      0.0398,
+      0.0474,
+      0.0544,
+      0.0594,
+      0.0654,
+      0.0694,
+      0.0
+     ],
+     [
+      0.0223,
+      0.0311,
+      0.0375,
+      0.0464,
+      0.0557,
+      0.0603,
+      0.0
+     ],
+     [
+      0.0,
+      0.0104,
+      0.0177,
+      0.0312,
+      0.0434,
+      0.0507,
+      0.0
+     ],
+     [
+      0.0,
+      0.0,
+      0.0087,
+      0.0226,
+      0.0358,
+      0.0452,
+      0.0
+     ],
+     [
+      0.0,
+      0.0,
+      0.0,
+      0.0144,
+      0.0282,
+      0.0394,
+      0.0
+     ],
+     [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0138,
+      0.0244,
+      0.0
+     ],
+     [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0113,
+      0.0
+     ],
+     [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+     ]
+    ]
+   },
+   "reverser_loss_table": {
+    "row": "/engines/engine[0]/reverser-pos-norm",
+    "col": null,
+    "cols": null,
+    "rows": [
+     0.01,
+     1.0
+    ],
+    "data": [
+     [
+      1.0
+     ],
+     [
+      0.65
+     ]
+    ]
+   },
+   "rated_thrust_factor": "/systems/fadec/limit/rated-thrust-factor",
+   "jsbsim": {
+    "ignitionn1": 1.7,
+    "ignitionn2": 28.5,
+    "n1spinup": 0.11,
+    "n2spinup": 1.845,
+    "n1spindown": 9.5,
+    "n2spindown": 9.5,
+    "n1startrate": 0.503,
+    "n2startrate": 1.127,
+    "bleed": 0.0,
+    "augmented": 0.0,
+    "injected": 0.0
+   },
+   "feed_tanks": [
+    5
+   ]
+  },
+  {
+   "type": "turbine",
+   "model": "CFM56-5B4",
+   "thrust_n": 120101.9836120335,
+   "max_rpm": 100.0,
+   "idle_n1": 0.18899999999999997,
+   "max_n1": 1.04,
+   "idle_n2": 0.594,
+   "max_n2": 1.05,
+   "tsfc_kg_per_n_s": 1.5437370446471416e-05,
+   "pos_m": [
+    -5.34904,
+    2.8775,
+    -1.04768
+   ],
+   "orient_deg": {
+    "roll": 0.0,
+    "pitch": 2.0,
+    "yaw": -1.0
+   },
+   "n1_spool_up_rate_table": {
+    "row": "propulsion/engine[1]/n1",
+    "col": null,
+    "cols": null,
+    "rows": [
+     24.0,
+     28.0,
+     46.0,
+     68.0,
+     80.0,
+     94.0,
+     103.0
+    ],
+    "data": [
+     [
+      1.1
+     ],
+     [
+      2.9
+     ],
+     [
+      9.7
+     ],
+     [
+      15.4
+     ],
+     [
+      19.6
+     ],
+     [
+      21.4
+     ],
+     [
+      23.6
+     ]
+    ]
+   },
+   "n1_spool_down_rate_table": {
+    "row": "propulsion/engine[1]/n1",
+    "col": null,
+    "cols": null,
+    "rows": [
+     24.0,
+     28.0,
+     46.0,
+     68.0,
+     80.0,
+     94.0,
+     103.0
+    ],
+    "data": [
+     [
+      1.1
+     ],
+     [
+      2.9
+     ],
+     [
+      9.7
+     ],
+     [
+      15.4
+     ],
+     [
+      19.6
+     ],
+     [
+      21.4
+     ],
+     [
+      23.6
+     ]
+    ]
+   },
+   "spool_up_s": 5.74,
+   "spool_down_s": 5.74,
+   "thrust_table": {
+    "row": "velocities/mach",
+    "col": "atmosphere/density-altitude",
+    "cols": [
+     -10000.0,
+     0.0,
+     10000.0,
+     20000.0,
+     30000.0,
+     45000.0,
+     52000.0
+    ],
+    "rows": [
+     0.0,
+     0.2,
+     0.4,
+     0.6,
+     0.8,
+     0.9,
+     1.0,
+     1.2
+    ],
+    "data": [
+     [
+      1.21,
+      1.0,
+      0.74,
+      0.532,
+      0.334,
+      0.221,
+      0.0
+     ],
+     [
+      1.171,
+      0.974,
+      0.709,
+      0.504,
+      0.309,
+      0.204,
+      0.0
+     ],
+     [
+      1.15,
+      0.957,
+      0.692,
+      0.494,
+      0.311,
+      0.209,
+      0.0
+     ],
+     [
+      1.164,
+      0.941,
+      0.714,
+      0.494,
+      0.309,
+      0.208,
+      0.0
+     ],
+     [
+      1.189,
+      0.971,
+      0.735,
+      0.507,
+      0.306,
+      0.207,
+      0.0
+     ],
+     [
+      1.192,
+      0.976,
+      0.732,
+      0.501,
+      0.293,
+      0.194,
+      0.0
+     ],
+     [
+      1.181,
+      0.951,
+      0.702,
+      0.459,
+      0.243,
+      0.156,
+      0.0
+     ],
+     [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+     ]
+    ]
+   },
+   "idle_thrust_table": {
+    "row": "velocities/mach",
+    "col": "atmosphere/density-altitude",
+    "cols": [
+     -10000.0,
+     0.0,
+     10000.0,
+     20000.0,
+     30000.0,
+     45000.0,
+     52000.0
+    ],
+    "rows": [
+     0.0,
+     0.2,
+     0.4,
+     0.5,
+     0.6,
+     0.8,
+     1.0,
+     1.2
+    ],
+    "data": [
+     [
+      0.0398,
+      0.0474,
+      0.0544,
+      0.0594,
+      0.0654,
+      0.0694,
+      0.0
+     ],
+     [
+      0.0223,
+      0.0311,
+      0.0375,
+      0.0464,
+      0.0557,
+      0.0603,
+      0.0
+     ],
+     [
+      0.0,
+      0.0104,
+      0.0177,
+      0.0312,
+      0.0434,
+      0.0507,
+      0.0
+     ],
+     [
+      0.0,
+      0.0,
+      0.0087,
+      0.0226,
+      0.0358,
+      0.0452,
+      0.0
+     ],
+     [
+      0.0,
+      0.0,
+      0.0,
+      0.0144,
+      0.0282,
+      0.0394,
+      0.0
+     ],
+     [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0138,
+      0.0244,
+      0.0
+     ],
+     [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0113,
+      0.0
+     ],
+     [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+     ]
+    ]
+   },
+   "reverser_loss_table": {
+    "row": "/engines/engine[1]/reverser-pos-norm",
+    "col": null,
+    "cols": null,
+    "rows": [
+     0.01,
+     1.0
+    ],
+    "data": [
+     [
+      1.0
+     ],
+     [
+      0.65
+     ]
+    ]
+   },
+   "rated_thrust_factor": "/systems/fadec/limit/rated-thrust-factor",
+   "jsbsim": {
+    "ignitionn1": 1.7,
+    "ignitionn2": 28.5,
+    "n1spinup": 0.11,
+    "n2spinup": 1.845,
+    "n1spindown": 9.5,
+    "n2spindown": 9.5,
+    "n1startrate": 0.503,
+    "n2startrate": 1.127,
+    "bleed": 0.0,
+    "augmented": 0.0,
+    "injected": 0.0
+   },
+   "feed_tanks": [
+    6
+   ]
+  }
+ ],
+ "apu": {
+  "model": "APS3200",
+  "thrust_n": 1187.6751712745533,
+  "tsfc_kg_per_n_s": 1.4162725180249005e-05,
+  "feed_tanks": [
+   7
+  ],
+  "note": "upstream JSBSim engine #3 (APS3200); an APU system (systems/apu.gd) uses it, not the flight model"
+ },
+ "controls": {
+  "surfaces": {
+   "aileron-l": {
+    "output": "/systems/fcs/aileron-l/final-deg",
+    "lag_rad_s": 26.5,
+    "rate_deg_s": 82.0,
+    "max_deg": 25.0,
+    "clip_deg": null
+   },
+   "aileron-r": {
+    "output": "/systems/fcs/aileron-r/final-deg",
+    "lag_rad_s": 26.5,
+    "rate_deg_s": 82.0,
+    "max_deg": 25.0,
+    "clip_deg": null
+   },
+   "elevator-l": {
+    "output": "/systems/fcs/elevator-l/final-deg",
+    "lag_rad_s": 26.5,
+    "rate_deg_s": 82.0,
+    "max_deg": 30.0,
+    "clip_deg": [
+     -30.0,
+     15.0
+    ]
+   },
+   "elevator-r": {
+    "output": "/systems/fcs/elevator-r/final-deg",
+    "lag_rad_s": 26.5,
+    "rate_deg_s": 82.0,
+    "max_deg": 30.0,
+    "clip_deg": [
+     -30.0,
+     15.0
+    ]
+   },
+   "stabilizer": {
+    "output": "/systems/fcs/stabilizer/final-deg",
+    "lag_rad_s": 22.5,
+    "rate_deg_s": 0.25,
+    "max_deg": 13.5,
+    "clip_deg": [
+     -13.5,
+     4.0
+    ]
+   },
+   "rudder": {
+    "output": "/systems/fcs/rudder/final-deg",
+    "lag_rad_s": 25.5,
+    "rate_deg_s": 25.0,
+    "max_deg": 25.0,
+    "clip_deg": null
+   }
+  },
+  "flaps": {
+   "detents": [
+    {
+     "lever": "0",
+     "slat_deg": 0.0,
+     "flap_deg": 0.0
+    },
+    {
+     "lever": "1",
+     "slat_deg": 18.0,
+     "flap_deg": 0.0
+    },
+    {
+     "lever": "1+F",
+     "slat_deg": 18.0,
+     "flap_deg": 10.0
+    },
+    {
+     "lever": "2",
+     "slat_deg": 22.0,
+     "flap_deg": 15.0
+    },
+    {
+     "lever": "3",
+     "slat_deg": 22.0,
+     "flap_deg": 20.0
+    },
+    {
+     "lever": "FULL",
+     "slat_deg": 27.0,
+     "flap_deg": 35.0
+    }
+   ],
+   "flap_max_deg": 40.0,
+   "slat_max_deg": 27.0,
+   "flap_rate_deg_s": 1.16666666,
+   "slat_rate_deg_s": 1.35,
+   "full_flap_deg_for_this_engine_set": 35.0,
+   "note": "JSBSim fcs/flap-pos-deg and fcs/slat-pos-deg; aero tables use them (+ slat-pos-norm)"
+  },
+  "gear_transit": {
+   "nose": {
+    "down_s": 12.0,
+    "up_s": 10.5
+   },
+   "left_main": {
+    "down_s": 16.0,
+    "up_s": 9.0
+   },
+   "right_main": {
+    "down_s": 16.0,
+    "up_s": 9.0
+   }
+  },
+  "spoilers": {
+   "lever_input_table": {
+    "row": "/controls/flight/speedbrake-fixed",
+    "col": null,
+    "cols": null,
+    "rows": [
+     0.1,
+     0.45,
+     0.55,
+     0.9
+    ],
+    "data": [
+     [
+      0.0
+     ],
+     [
+      0.5
+     ],
+     [
+      0.5
+     ],
+     [
+      1.0
+     ]
+    ]
+   },
+   "main_cmd_table": {
+    "row": "spoilers/lever-cmd",
+    "col": null,
+    "cols": null,
+    "rows": [],
+    "data": []
+   },
+   "max_deg": 50.0,
+   "panels_per_wing": 5,
+   "rate_deg_s": 35.0,
+   "lag_rad_s": 26.5,
+   "outputs": {
+    "left": "fcs/spoiler-left-deg",
+    "right": "fcs/spoiler-right-deg",
+    "symmetrical": "fcs/spoiler-symmetrical-deg"
+   },
+   "note": "ground spoilers (all 5 panels) / speedbrake (panels 2-4) / roll spoilers: upstream logic is in a320-spoilers.xml (not converted)"
+  }
+ },
+ "fadec_limits": {
+  "rated-thrust-n1": {
+   "name": "/systems/fadec/limit/rated-thrust-n1",
+   "desc": "",
+   "f": {
+    "table": {
+     "row": "/position/altitude-ft",
+     "col": "propulsion/tat-c",
+     "cols": [
+      -45.0,
+      -15.0,
+      15.0,
+      45.0,
+      75.0
+     ],
+     "rows": [
+      -2000.0,
+      0.0,
+      10000.0,
+      45000.0
+     ],
+     "data": [
+      [
+       76.8,
+       81.6,
+       86.2,
+       90.7,
+       95.2
+      ],
+      [
+       79.5,
+       84.5,
+       89.2,
+       93.8,
+       98.4
+      ],
+      [
+       84.7,
+       88.2,
+       92.8,
+       95.8,
+       99.8
+      ],
+      [
+       81.8,
+       85.4,
+       90.4,
+       95.0,
+       99.2
+      ]
+     ]
+    }
+   }
+  },
+  "toga-table": {
+   "name": "/systems/fadec/limit/toga-table",
+   "desc": "",
+   "f": {
+    "table": {
+     "row": "/position/altitude-ft",
+     "col": "propulsion/tat-c",
+     "cols": [
+      -45.0,
+      -35.0,
+      -25.0,
+      -15.0,
+      -5.0,
+      5.0,
+      15.0,
+      25.0,
+      35.0,
+      45.0,
+      55.0,
+      65.0,
+      75.0
+     ],
+     "rows": [
+      -2000.0,
+      -1000.0,
+      0.0,
+      1000.0,
+      2000.0,
+      3000.0,
+      4000.0,
+      5000.0,
+      6000.0,
+      7000.0,
+      8000.0,
+      9000.0,
+      10000.0,
+      11000.0,
+      12000.0,
+      13000.0,
+      14000.0
+     ],
+     "data": [
+      [
+       76.8,
+       78.4,
+       80.1,
+       81.6,
+       83.2,
+       84.7,
+       86.2,
+       87.7,
+       89.2,
+       90.7,
+       90.7,
+       89.3,
+       88.2
+      ],
+      [
+       78.1,
+       79.8,
+       81.4,
+       83.0,
+       84.7,
+       86.2,
+       87.7,
+       89.3,
+       90.7,
+       92.2,
+       91.5,
+       90.0,
+       88.7
+      ],
+      [
+       79.5,
+       81.2,
+       82.9,
+       84.5,
+       86.1,
+       87.6,
+       89.2,
+       90.7,
+       92.2,
+       93.8,
+       92.1,
+       90.6,
+       89.1
+      ],
+      [
+       80.1,
+       81.9,
+       83.5,
+       85.2,
+       86.8,
+       88.3,
+       89.9,
+       91.4,
+       92.9,
+       93.8,
+       92.2,
+       90.4,
+       89.2
+      ],
+      [
+       80.7,
+       82.5,
+       84.2,
+       85.8,
+       87.4,
+       88.9,
+       90.5,
+       92.0,
+       93.6,
+       93.8,
+       92.1,
+       90.4,
+       89.3
+      ],
+      [
+       81.3,
+       83.1,
+       84.7,
+       86.4,
+       88.1,
+       89.6,
+       91.1,
+       92.7,
+       94.2,
+       93.8,
+       92.0,
+       90.4,
+       89.3
+      ],
+      [
+       82.0,
+       83.7,
+       85.4,
+       87.0,
+       88.7,
+       90.2,
+       91.7,
+       93.3,
+       94.8,
+       93.8,
+       91.8,
+       90.5,
+       89.4
+      ],
+      [
+       82.7,
+       84.4,
+       86.1,
+       87.7,
+       89.3,
+       90.9,
+       92.3,
+       93.9,
+       95.4,
+       93.7,
+       91.6,
+       90.5,
+       89.4
+      ],
+      [
+       83.2,
+       84.9,
+       86.6,
+       88.2,
+       89.9,
+       91.4,
+       92.8,
+       94.4,
+       95.4,
+       93.7,
+       91.6,
+       90.5,
+       89.3
+      ],
+      [
+       83.9,
+       85.7,
+       87.3,
+       89.0,
+       90.6,
+       92.2,
+       93.7,
+       95.2,
+       95.5,
+       93.5,
+       91.6,
+       90.6,
+       89.8
+      ],
+      [
+       84.6,
+       86.4,
+       88.1,
+       89.8,
+       91.4,
+       93.0,
+       94.5,
+       96.1,
+       95.3,
+       93.3,
+       91.7,
+       90.6,
+       90.6
+      ],
+      [
+       85.0,
+       86.8,
+       88.5,
+       90.2,
+       91.8,
+       93.4,
+       95.0,
+       96.5,
+       95.2,
+       93.3,
+       91.8,
+       90.8,
+       90.8
+      ],
+      [
+       85.3,
+       87.1,
+       88.9,
+       90.6,
+       92.2,
+       93.9,
+       95.4,
+       96.8,
+       95.0,
+       93.3,
+       92.0,
+       90.9,
+       90.9
+      ],
+      [
+       86.0,
+       87.8,
+       89.5,
+       91.2,
+       92.9,
+       94.5,
+       96.1,
+       97.0,
+       95.0,
+       93.3,
+       92.1,
+       92.1,
+       92.1
+      ],
+      [
+       86.6,
+       88.4,
+       90.2,
+       91.9,
+       93.6,
+       95.2,
+       96.7,
+       96.9,
+       94.9,
+       93.3,
+       92.3,
+       92.3,
+       92.3
+      ],
+      [
+       87.0,
+       88.8,
+       90.6,
+       92.3,
+       94.0,
+       95.6,
+       97.2,
+       96.7,
+       94.9,
+       93.3,
+       92.4,
+       92.4,
+       92.4
+      ],
+      [
+       87.4,
+       89.3,
+       91.0,
+       92.7,
+       94.4,
+       96.1,
+       97.6,
+       96.6,
+       94.9,
+       93.4,
+       92.5,
+       92.5,
+       92.5
+      ]
+     ]
+    }
+   }
+  },
+  "flex-table": {
+   "name": "/systems/fadec/limit/flex-table",
+   "desc": "",
+   "f": {
+    "op": "min",
+    "args": [
+     {
+      "p": "/systems/fadec/limit/toga-table"
+     },
+     {
+      "table": {
+       "row": "/position/altitude-ft",
+       "col": "/systems/fadec/limit/flex-temp-input",
+       "cols": [
+        -45.0,
+        -35.0,
+        -25.0,
+        -15.0,
+        -5.0,
+        5.0,
+        15.0,
+        25.0,
+        35.0,
+        45.0,
+        55.0,
+        65.0,
+        75.0
+       ],
+       "rows": [
+        -2000.0,
+        -1000.0,
+        0.0,
+        1000.0,
+        2000.0,
+        3000.0,
+        4000.0,
+        5000.0,
+        6000.0,
+        7000.0,
+        8000.0,
+        9000.0,
+        10000.0,
+        11000.0,
+        12000.0,
+        13000.0,
+        14000.0
+       ],
+       "data": [
+        [
+         76.8,
+         78.4,
+         80.1,
+         81.6,
+         83.2,
+         84.7,
+         86.2,
+         87.7,
+         89.2,
+         90.7,
+         90.7,
+         89.3,
+         88.2
+        ],
+        [
+         78.1,
+         79.8,
+         81.4,
+         83.0,
+         84.7,
+         86.2,
+         87.7,
+         89.3,
+         90.7,
+         92.2,
+         91.5,
+         90.0,
+         88.7
+        ],
+        [
+         79.5,
+         81.2,
+         82.9,
+         84.5,
+         86.1,
+         87.6,
+         89.2,
+         90.7,
+         92.2,
+         93.8,
+         92.1,
+         90.6,
+         89.1
+        ],
+        [
+         80.1,
+         81.9,
+         83.5,
+         85.2,
+         86.8,
+         88.3,
+         89.9,
+         91.4,
+         92.9,
+         93.8,
+         92.2,
+         90.4,
+         89.2
+        ],
+        [
+         80.7,
+         82.5,
+         84.2,
+         85.8,
+         87.4,
+         88.9,
+         90.5,
+         92.0,
+         93.6,
+         93.8,
+         92.1,
+         90.4,
+         89.3
+        ],
+        [
+         81.3,
+         83.1,
+         84.7,
+         86.4,
+         88.1,
+         89.6,
+         91.1,
+         92.7,
+         94.2,
+         93.8,
+         92.0,
+         90.4,
+         89.3
+        ],
+        [
+         82.0,
+         83.7,
+         85.4,
+         87.0,
+         88.7,
+         90.2,
+         91.7,
+         93.3,
+         94.8,
+         93.8,
+         91.8,
+         90.5,
+         89.4
+        ],
+        [
+         82.7,
+         84.4,
+         86.1,
+         87.7,
+         89.3,
+         90.9,
+         92.3,
+         93.9,
+         95.4,
+         93.7,
+         91.6,
+         90.5,
+         89.4
+        ],
+        [
+         83.2,
+         84.9,
+         86.6,
+         88.2,
+         89.9,
+         91.4,
+         92.8,
+         94.4,
+         95.4,
+         93.7,
+         91.6,
+         90.5,
+         89.3
+        ],
+        [
+         83.9,
+         85.7,
+         87.3,
+         89.0,
+         90.6,
+         92.2,
+         93.7,
+         95.2,
+         95.5,
+         93.5,
+         91.6,
+         90.6,
+         89.8
+        ],
+        [
+         84.6,
+         86.4,
+         88.1,
+         89.8,
+         91.4,
+         93.0,
+         94.5,
+         96.1,
+         95.3,
+         93.3,
+         91.7,
+         90.6,
+         90.6
+        ],
+        [
+         85.0,
+         86.8,
+         88.5,
+         90.2,
+         91.8,
+         93.4,
+         95.0,
+         96.5,
+         95.2,
+         93.3,
+         91.8,
+         90.8,
+         90.8
+        ],
+        [
+         85.3,
+         87.1,
+         88.9,
+         90.6,
+         92.2,
+         93.9,
+         95.4,
+         96.8,
+         95.0,
+         93.3,
+         92.0,
+         90.9,
+         90.9
+        ],
+        [
+         86.0,
+         87.8,
+         89.5,
+         91.2,
+         92.9,
+         94.5,
+         96.1,
+         97.0,
+         95.0,
+         93.3,
+         92.1,
+         92.1,
+         92.1
+        ],
+        [
+         86.6,
+         88.4,
+         90.2,
+         91.9,
+         93.6,
+         95.2,
+         96.7,
+         96.9,
+         94.9,
+         93.3,
+         92.3,
+         92.3,
+         92.3
+        ],
+        [
+         87.0,
+         88.8,
+         90.6,
+         92.3,
+         94.0,
+         95.6,
+         97.2,
+         96.7,
+         94.9,
+         93.3,
+         92.4,
+         92.4,
+         92.4
+        ],
+        [
+         87.4,
+         89.3,
+         91.0,
+         92.7,
+         94.4,
+         96.1,
+         97.6,
+         96.6,
+         94.9,
+         93.4,
+         92.5,
+         92.5,
+         92.5
+        ]
+       ]
+      }
+     }
+    ]
+   }
+  },
+  "mct-table": {
+   "name": "/systems/fadec/limit/mct-table",
+   "desc": "",
+   "f": {
+    "table": {
+     "row": "/position/altitude-ft",
+     "col": "propulsion/tat-c",
+     "layer": "velocities/mach",
+     "cols": [
+      -65.0,
+      -35.0,
+      -5.0,
+      25.0,
+      55.0
+     ],
+     "layers": [
+      0.3,
+      0.4,
+      0.5,
+      0.6,
+      0.7,
+      0.8
+     ],
+     "data": [
+      [
+       [
+        73.3,
+        78.1,
+        82.6,
+        87.1,
+        84.1
+       ],
+       [
+        76.3,
+        81.3,
+        85.8,
+        87.4,
+        86.3
+       ],
+       [
+        80.5,
+        85.4,
+        90.0,
+        88.5,
+        89.4
+       ],
+       [
+        83.0,
+        87.8,
+        92.3,
+        88.0,
+        91.8
+       ]
+      ],
+      [
+       [
+        72.8,
+        77.5,
+        82.0,
+        86.3,
+        84.3
+       ],
+       [
+        75.7,
+        80.5,
+        85.0,
+        87.8,
+        85.6
+       ],
+       [
+        79.6,
+        84.5,
+        89.0,
+        88.8,
+        88.4
+       ],
+       [
+        83.4,
+        88.3,
+        91.8,
+        89.3,
+        92.1
+       ],
+       [
+        84.8,
+        89.9,
+        92.8,
+        89.8,
+        92.1
+       ]
+      ],
+      [
+       [
+        72.1,
+        76.8,
+        81.3,
+        85.5,
+        84.8
+       ],
+       [
+        74.8,
+        79.7,
+        84.2,
+        88.4,
+        84.9
+       ],
+       [
+        78.8,
+        83.6,
+        88.2,
+        89.3,
+        87.5
+       ],
+       [
+        81.5,
+        86.3,
+        90.7,
+        88.8,
+        90.1
+       ],
+       [
+        82.5,
+        87.6,
+        90.9,
+        87.7,
+        91.5
+       ],
+       [
+        84.1,
+        89.0,
+        89.9,
+        89.6,
+        93.4
+       ]
+      ],
+      [
+       [
+        73.8,
+        78.5,
+        83.0,
+        87.3,
+        85.1
+       ],
+       [
+        77.3,
+        82.1,
+        86.6,
+        89.3,
+        85.9
+       ],
+       [
+        79.9,
+        84.7,
+        89.1,
+        88.9,
+        89.3
+       ],
+       [
+        81.8,
+        86.8,
+        89.8,
+        88.8,
+        90.4
+       ],
+       [
+        82.1,
+        87.0,
+        89.3,
+        87.5,
+        91.3
+       ]
+      ],
+      [
+       [
+        77.7,
+        82.3,
+        86.7,
+        88.5,
+        85.9
+       ],
+       [
+        79.8,
+        84.8,
+        88.5,
+        88.8,
+        88.3
+       ],
+       [
+        79.8,
+        84.7,
+        89.1,
+        88.2,
+        88.9
+       ],
+       [
+        83.4,
+        88.3,
+        86.7,
+        87.8,
+        90.5
+       ],
+       [
+        83.3,
+        88.1,
+        85.8,
+        87.7,
+        90.3
+       ],
+       [
+        84.3,
+        88.2,
+        85.3,
+        87.3,
+        89.8
+       ]
+      ],
+      [
+       [
+        77.6,
+        82.5,
+        87.0,
+        87.5,
+        86.0
+       ],
+       [
+        79.6,
+        82.8,
+        86.3,
+        85.5,
+        86.1
+       ],
+       [
+        80.7,
+        85.5,
+        86.3,
+        84.9,
+        88.8
+       ],
+       [
+        80.6,
+        85.3,
+        85.3,
+        84.8,
+        88.7
+       ],
+       [
+        81.6,
+        86.3,
+        84.9,
+        84.3,
+        88.2
+       ]
+      ]
+     ],
+     "rows": null,
+     "layer_rows": [
+      [
+       0.0,
+       5000.0,
+       10000.0,
+       15000.0
+      ],
+      [
+       0.0,
+       5000.0,
+       10000.0,
+       15000.0,
+       20000.0
+      ],
+      [
+       0.0,
+       5000.0,
+       10000.0,
+       15000.0,
+       20000.0,
+       25000.0
+      ],
+      [
+       5000.0,
+       10000.0,
+       15000.0,
+       20000.0,
+       25000.0
+      ],
+      [
+       15000.0,
+       20000.0,
+       25000.0,
+       35000.0,
+       39000.0,
+       45000.0
+      ],
+      [
+       20000.0,
+       25000.0,
+       35000.0,
+       39000.0,
+       45000.0
+      ]
+     ]
+    }
+   }
+  },
+  "climb-table": {
+   "name": "/systems/fadec/limit/climb-table",
+   "desc": "",
+   "f": {
+    "table": {
+     "row": "/position/altitude-ft",
+     "col": "propulsion/tat-c",
+     "layer": "velocities/mach",
+     "cols": [
+      -65.0,
+      -35.0,
+      -5.0,
+      25.0,
+      55.0
+     ],
+     "layers": [
+      0.4,
+      0.6,
+      0.8,
+      0.85
+     ],
+     "data": [
+      [
+       [
+        71.5,
+        76.2,
+        80.6,
+        83.5,
+        81.5
+       ],
+       [
+        73.7,
+        78.4,
+        82.8,
+        84.1,
+        83.5
+       ],
+       [
+        75.6,
+        80.3,
+        84.7,
+        85.1,
+        84.6
+       ],
+       [
+        78.3,
+        83.1,
+        87.6,
+        85.9,
+        86.4
+       ]
+      ],
+      [
+       [
+        69.7,
+        74.2,
+        78.6,
+        82.7,
+        81.0
+       ],
+       [
+        72.9,
+        77.4,
+        81.7,
+        84.8,
+        82.5
+       ],
+       [
+        74.7,
+        79.5,
+        83.9,
+        84.8,
+        84.2
+       ],
+       [
+        78.7,
+        83.4,
+        87.8,
+        85.6,
+        86.9
+       ],
+       [
+        81.0,
+        85.8,
+        88.1,
+        86.4,
+        88.4
+       ]
+      ],
+      [
+       [
+        74.5,
+        79.2,
+        83.5,
+        84.6,
+        83.6
+       ],
+       [
+        76.0,
+        80.8,
+        85.1,
+        83.5,
+        84.9
+       ],
+       [
+        79.6,
+        84.3,
+        85.1,
+        83.7,
+        85.9
+       ],
+       [
+        79.5,
+        84.2,
+        84.2,
+        83.7,
+        85.8
+       ],
+       [
+        80.5,
+        85.1,
+        83.3,
+        83.2,
+        85.5
+       ]
+      ],
+      [
+       [
+        75.2,
+        79.9,
+        84.2,
+        83.5,
+        84.0
+       ],
+       [
+        78.1,
+        83.6,
+        85.0,
+        82.2,
+        83.8
+       ],
+       [
+        77.9,
+        83.5,
+        84.0,
+        82.1,
+        83.7
+       ],
+       [
+        79.2,
+        83.8,
+        83.7,
+        81.7,
+        83.6
+       ]
+      ]
+     ],
+     "rows": null,
+     "layer_rows": [
+      [
+       5000.0,
+       8000.0,
+       10000.0,
+       14000.0
+      ],
+      [
+       5000.0,
+       10000.0,
+       14000.0,
+       20000.0,
+       25000.0
+      ],
+      [
+       20000.0,
+       25000.0,
+       35000.0,
+       39000.0,
+       45000.0
+      ],
+      [
+       25000.0,
+       35000.0,
+       39000.0,
+       45000.0
+      ]
+     ]
+    }
+   }
+  },
+  "idle-table": {
+   "name": "/systems/fadec/limit/idle-table",
+   "desc": "",
+   "f": {
+    "op": "ifthen",
+    "args": [
+     {
+      "op": "eq",
+      "args": [
+       {
+        "p": "gear/unit[0]/WOW"
+       },
+       0.0
+      ]
+     },
+     {
+      "table": {
+       "row": "velocities/mach",
+       "col": "/controls/flight/flaps-input",
+       "cols": [
+        0.0,
+        1.0
+       ],
+       "rows": [
+        0.08,
+        0.21,
+        0.5,
+        0.7,
+        0.9
+       ],
+       "data": [
+        [
+         18.9,
+         18.9
+        ],
+        [
+         24.9,
+         28.5
+        ],
+        [
+         31.1,
+         35.9
+        ],
+        [
+         33.5,
+         38.0
+        ],
+        [
+         34.8,
+         39.0
+        ]
+       ]
+      }
+     },
+     0.0
+    ]
+   }
+  },
+  "mrev-table": {
+   "name": "/systems/fadec/limit/mrev-table",
+   "desc": "",
+   "f": {
+    "table": {
+     "row": "/position/altitude-ft",
+     "col": "propulsion/tat-c",
+     "cols": [
+      -65.0,
+      -35.0,
+      -5.0,
+      25.0,
+      55.0
+     ],
+     "rows": [
+      0.0,
+      10000.0
+     ],
+     "data": [
+      [
+       62.4,
+       66.2,
+       69.9,
+       73.5,
+       72.2
+      ],
+      [
+       70.6,
+       74.2,
+       77.6,
+       80.2,
+       79.7
+      ]
+     ]
+    }
+   }
+  }
+ },
+ "unconverted": [
+  {
+   "where": "fde system",
+   "name": "a320-core",
+   "why": "JSBSim system (control laws / systems): written in GDScript with JSBSim as oracle"
+  },
+  {
+   "where": "fde system",
+   "name": "glass-effect",
+   "why": "JSBSim system (control laws / systems): written in GDScript with JSBSim as oracle"
+  },
+  {
+   "where": "fde system",
+   "name": "a320-fbw",
+   "why": "JSBSim system (control laws / systems): written in GDScript with JSBSim as oracle"
+  },
+  {
+   "where": "fde system",
+   "name": "a320-fcs",
+   "why": "JSBSim system (control laws / systems): written in GDScript with JSBSim as oracle"
+  },
+  {
+   "where": "fde system",
+   "name": "a320-cfm56-5b4-engine-fadec",
+   "why": "JSBSim system (control laws / systems): written in GDScript with JSBSim as oracle"
+  },
+  {
+   "where": "fde system",
+   "name": "a320-fuel",
+   "why": "JSBSim system (control laws / systems): written in GDScript with JSBSim as oracle"
+  },
+  {
+   "where": "fde system",
+   "name": "a320-fwc",
+   "why": "JSBSim system (control laws / systems): written in GDScript with JSBSim as oracle"
+  },
+  {
+   "where": "fde system",
+   "name": "a320-fwc-phases",
+   "why": "JSBSim system (control laws / systems): written in GDScript with JSBSim as oracle"
+  },
+  {
+   "where": "fde system",
+   "name": "a320-spoilers",
+   "why": "JSBSim system (control laws / systems): written in GDScript with JSBSim as oracle"
+  },
+  {
+   "where": "fde system",
+   "name": "a320-electrical",
+   "why": "JSBSim system (control laws / systems): written in GDScript with JSBSim as oracle"
+  },
+  {
+   "where": "fde system",
+   "name": "a320-hydraulic",
+   "why": "JSBSim system (control laws / systems): written in GDScript with JSBSim as oracle"
+  },
+  {
+   "where": "fde system",
+   "name": "a320-pneumatic",
+   "why": "JSBSim system (control laws / systems): written in GDScript with JSBSim as oracle"
+  },
+  {
+   "where": "fde system",
+   "name": "a320-aircond",
+   "why": "JSBSim system (control laws / systems): written in GDScript with JSBSim as oracle"
+  },
+  {
+   "where": "fde system",
+   "name": "a320-ignition",
+   "why": "JSBSim system (control laws / systems): written in GDScript with JSBSim as oracle"
+  },
+  {
+   "where": "fde system",
+   "name": "a320-lights",
+   "why": "JSBSim system (control laws / systems): written in GDScript with JSBSim as oracle"
+  },
+  {
+   "where": "fde system",
+   "name": "a320-indicators",
+   "why": "JSBSim system (control laws / systems): written in GDScript with JSBSim as oracle"
+  },
+  {
+   "where": "fde system",
+   "name": "a320-engine-fire",
+   "why": "JSBSim system (control laws / systems): written in GDScript with JSBSim as oracle"
+  },
+  {
+   "where": "fde system",
+   "name": "a320-adr",
+   "why": "JSBSim system (control laws / systems): written in GDScript with JSBSim as oracle"
+  },
+  {
+   "where": "fde system",
+   "name": "a320-apu",
+   "why": "JSBSim system (control laws / systems): written in GDScript with JSBSim as oracle"
+  },
+  {
+   "where": "fde system",
+   "name": "a320-oxygen",
+   "why": "JSBSim system (control laws / systems): written in GDScript with JSBSim as oracle"
+  },
+  {
+   "where": "fde system",
+   "name": "a320-fmgc",
+   "why": "JSBSim system (control laws / systems): written in GDScript with JSBSim as oracle"
+  },
+  {
+   "where": "fde system",
+   "name": "a320-misc",
+   "why": "JSBSim system (control laws / systems): written in GDScript with JSBSim as oracle"
+  },
+  {
+   "where": "fde system",
+   "name": "a320-audio",
+   "why": "JSBSim system (control laws / systems): written in GDScript with JSBSim as oracle"
+  },
+  {
+   "where": "fde system",
+   "name": "a320-draims",
+   "why": "JSBSim system (control laws / systems): written in GDScript with JSBSim as oracle"
+  },
+  {
+   "where": "fde system",
+   "name": "a320-cockpit",
+   "why": "JSBSim system (control laws / systems): written in GDScript with JSBSim as oracle"
+  },
+  {
+   "where": "external_reactions",
+   "name": "tractor",
+   "why": "pushback tug force: libresim has its own pushback"
+  }
+ ]
+}
