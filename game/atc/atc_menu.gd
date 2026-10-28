@@ -10,7 +10,7 @@ static func build(c: AtcController, w: Dictionary) -> Array:
 	var out := []
 	var ids := AtcState.available(c.s, w)
 	for id in ids:
-		out.append({"id": id, "label": label(id, w, str(c.s.state)), "kind": "call"})
+		out.append({"id": id, "label": label(id, w, str(c.s.state), c.profile), "kind": "call"})
 	var t := {} if c.assist else _tune_entry(w, ids)
 	if not t.is_empty():
 		out.append(t)
@@ -20,8 +20,8 @@ static func build(c: AtcController, w: Dictionary) -> Array:
 
 
 ## Plain-language text of a call ("Ask Ground for taxi"); `st` is the state (lined up changes "ready").
-static func label(id: String, w: Dictionary, st := "") -> String:
-	var d: Dictionary = AtcState.INTENTS[id]
+static func label(id: String, w: Dictionary, st := "", profile := "ga") -> String:
+	var d := AtcState.intent(id, profile)
 	if str(w.get("ctl", "")) == "uncontrolled":
 		return str(d.get("blind", "Blind call: " + id))
 	var who := str(AtcFacilities.WORD.get(AtcFacilities.role_for(w, str(d.service)), "ATC"))

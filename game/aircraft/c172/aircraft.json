@@ -20,8 +20,15 @@
 	"max_baggage_kg": 54.0,
 	"tank_gal": 28.0,
 	"radio_type": "Cessna 172",
+	"atc": {"profile": "ga", "wake": "L"},
 	"cameras": {"chase": [16.0, 4.0], "wing": [-5.6, 0.9, 1.6], "tail": [0.0, 2.4, 6.8], "orbit_m": 18.0},
+	"registration": {"source": "callsign", "texture": "models/exterior_fuselage.png", "targets": [
+		{"erase": [1322, 296, 256, 74], "text": [1330, 302, 240, 62], "align": "center", "color": [0.64, 0.647, 0.625], "italic": true},
+		{"erase": [302, 1402, 256, 74], "text": [310, 1408, 240, 62], "align": "center", "color": [0.64, 0.647, 0.625], "italic": true}]},
 	"start": {"pitch_trim": -0.05},
+	"controls": {
+		"actions": ["throttle", "mixture", "trim", "flaps", "brakes", "parking_brake", "magnetos", "starter", "fuel_selector", "fuel_shutoff"]
+	},
 	"model": {
 		"surfaces": {
 			"aileron_L": {"drive": "aileron", "sign": 1},
@@ -111,6 +118,7 @@
 		}
 	},
 	"ground": {"tow_ahead_m": 3.2, "ahead_m": 3.3, "behind_m": 7.4, "across_m": 6.7, "height_m": 2.5},
+	"pushback": {"straight_m": 30.0, "radius_m": 18.0, "speed_mps": 1.4},
 	"payload": {
 		"fuel_kg_per_gal": 2.72, "cruise_gph": 9.0, "reserve_gal": 3.0,
 		"fuel_slider": {"min": 3.0, "max": 28.0, "step": 1.0, "unit": "gal"},

@@ -37,8 +37,9 @@ func setup(t: TerrainQuadtree) -> void:
 			_built[k].position += d2)
 
 
-## Stand lookup: by ref ("Bay 40", "GA3"), or "" -> first gate with a jetbridge, else first stand.
-func find_stand(icao: String, ref: String) -> Dictionary:
+## Stand lookup: by ref ("Bay 40", "GA3"), or "" -> the aircraft's default stand (GroundChoice.default_stand:
+## for stand_class "any" the first gate with a jetbridge, else the first stand; airliners: a gate; GA: a tie-down).
+func find_stand(icao: String, ref: String, stand_class := "") -> Dictionary:
 	var a: Dictionary = data.get(icao, {})
 	var stands: Array = a.get("stands", [])
 	if stands.is_empty():
@@ -47,10 +48,7 @@ func find_stand(icao: String, ref: String) -> Dictionary:
 		for s in stands:
 			if str(s.ref).to_lower().replace(" ", "") == ref.to_lower().replace(" ", ""):
 				return s
-	for s in stands:
-		if s.jetbridge:
-			return s
-	return stands[0]
+	return GroundChoice.default_stand(stands, stand_class if stand_class != "" else str(GroundParams.ground().stand_class))
 
 
 func _h(x: float, y: float) -> float:
@@ -152,47 +150,64 @@ func _place(root: Node3D, name: String, p: Vector2, heading: float, yaw_off := 0
 	return n
 
 
-## Ground-service vehicles around a stand (stand heading = aircraft nose direction).
+## Legacy service-vehicle offsets [forward, right] from the stand point (made for the C172's stands).
+const SERVICE := {"gpu": [1.0, -5.0], "baggage": [-12.0, 9.0], "fuel_gate": [-3.0, -14.0], "fuel_ramp": [-2.0, -12.0], "bus": [0.0, 16.0]}
+
+
+## Ground-service vehicles around a stand (stand heading = aircraft nose direction). An aircraft with a
+## ground.service block (keys gpu, baggage, fuel, bus; [forward, right] from the L1 door) gets them there
+## (GroundParams.door_point), so they sit clear of its larger footprint; otherwise the legacy offsets
+## from the stand point.
 func _service_vehicles(root: Node3D, s: Dictionary, i: int) -> void:
 	var hd := deg_to_rad(float(s.heading_deg))
 	var fwd := Vector2(sin(hd), cos(hd))
 	var right := Vector2(fwd.y, -fwd.x)
-	var c := Vector2(s.x, s.y)
+	var own: Dictionary = GroundParams.ground().get("service", {})
+	var c := GroundParams.door_point(s) if not own.is_empty() else Vector2(s.x, s.y)
+	var at := func(key: String, legacy: String) -> Vector2:
+		var o: Array = own.get(key, SERVICE[legacy])
+		return c + fwd * float(o[0]) + right * float(o[1])
 	if s.jetbridge:
-		_place(root, "gpu", c + fwd * 1.0 - right * 5.0, hd)
-		_place(root, "baggage_tug", c - fwd * 12.0 + right * 9.0, hd + PI / 2)
-		_place(root, "baggage_cart", c - fwd * 12.0 + right * 13.0, hd + PI / 2)
-		_place(root, "baggage_cart", c - fwd * 12.0 + right * 17.0, hd + PI / 2)
+		_place(root, "gpu", at.call("gpu", "gpu"), hd)
+		var bag: Vector2 = at.call("baggage", "baggage")
+		_place(root, "baggage_tug", bag, hd + PI / 2)
+		_place(root, "baggage_cart", bag + right * 4.0, hd + PI / 2)
+		_place(root, "baggage_cart", bag + right * 8.0, hd + PI / 2)
 		if i % 3 == 0:
-			_place(root, "fuel_truck", c - fwd * 3.0 - right * 14.0, hd)
+			_place(root, "fuel_truck", at.call("fuel", "fuel_gate"), hd)
 	elif i % 6 == 0:
-		_place(root, "fuel_truck", c - fwd * 2.0 - right * 12.0, hd)
+		_place(root, "fuel_truck", at.call("fuel", "fuel_ramp"), hd)
 	elif i % 9 == 4 and str(s.ref).begins_with("GA") == false:
-		_place(root, "apron_bus", c + right * 16.0, hd, FG_YAW)
+		_place(root, "apron_bus", at.call("bus", "bus"), hd, FG_YAW)
 
 
 func _local(x: float, y: float, up: float) -> Vector3:
 	return Vector3(x, _h(x, y) + up, -y)
 
 
+## Lead-in line, stop bar and number of a stand, sized by the aircraft: the line is at least 28 m, else 1.5
+## x its length; the bar is at the nose wheel (ground.nose_gear_m ahead of the CG, 0 for the C172).
 func _stand_marking(root: Node3D, s: Dictionary) -> void:
 	var hd := deg_to_rad(float(s.heading_deg))
 	var fwd := Vector2(sin(hd), cos(hd))
+	var g := GroundParams.ground()
+	var lead_len := maxf(28.0, 1.5 * (float(g.ahead_m) + float(g.behind_m)))
+	var bar := GroundParams.cg_at_stand(s) + fwd * float(g.nose_gear_m)
 	var lead := MeshInstance3D.new()
 	var m := BoxMesh.new()
-	m.size = Vector3(0.25, 0.02, 28.0)
+	m.size = Vector3(0.25, 0.02, lead_len)
 	lead.mesh = m
 	lead.material_override = _yellow
-	var c := Vector2(s.x, s.y) - fwd * 14.0
+	var c := bar - fwd * lead_len * 0.5
 	lead.position = _local(c.x, c.y, 0.18)
 	lead.rotation.y = -hd + PI
 	root.add_child(lead)
 	var stop := MeshInstance3D.new()
 	var sm := BoxMesh.new()
-	sm.size = Vector3(3.0, 0.02, 0.3)
+	sm.size = Vector3(maxf(3.0, 0.3 * float(g.across_m)), 0.02, 0.3)
 	stop.mesh = sm
 	stop.material_override = _yellow
-	stop.position = _local(s.x, s.y, 0.18)
+	stop.position = _local(bar.x, bar.y, 0.18)
 	stop.rotation.y = -hd
 	root.add_child(stop)
 	var lbl := Label3D.new()
@@ -201,7 +216,7 @@ func _stand_marking(root: Node3D, s: Dictionary) -> void:
 	lbl.pixel_size = 0.02
 	lbl.modulate = Color(0.95, 0.78, 0.15)
 	lbl.rotation = Vector3(-PI / 2, -hd, 0)
-	var p := Vector2(s.x, s.y) - fwd * 6.0
+	var p := bar - fwd * maxf(6.0, 0.2 * lead_len)
 	lbl.position = _local(p.x, p.y, 0.2)
 	root.add_child(lbl)
 

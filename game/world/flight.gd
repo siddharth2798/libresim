@@ -108,7 +108,7 @@ func _reset() -> void:
 	elif _stand_ref != "":
 		var st: Dictionary = $AirportOps.find_stand(_apt, "" if _stand_ref == "*" else _stand_ref)
 		if not st.is_empty():
-			p = Vector2(st.x, st.y)
+			p = GroundParams.cg_at_stand(st)  # a gate's point is the door: the CG sits ground.cg_to_door_m behind it
 			hdg = float(st.heading_deg)
 			FloatingOrigin.set_origin(p)
 			Props.set_v("ops/stand", "%s %s%s" % [_apt, st.ref, " (jetbridge)" if st.jetbridge else ""])

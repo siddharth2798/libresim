@@ -15,9 +15,13 @@ extends RefCounted
 ##   damage   touchdown and gear thresholds, propeller hub positions (damage.gd)
 ##   systems  electrical / fuel / pitot_static numbers (systems/*.gd, keys in each script's header)
 ##   radio_type  how the pilot calls the aircraft on the radio ("Cessna 172", atc/atc_phraseology.gd)
+##   atc      {profile: "ga" | "airline", wake: L | M | H | J, and for an airline telephony (fictional name),
+##            flight_no, callsign_style: "airline"}: how ATC talks to the aircraft (atc/atc_profile.gd)
 ##   cameras  chase / wing / tail / orbit view positions (ui/camera_rig.gd), see camera()
+##   registration  tail number painted at flight start: {source: callsign | fixed, text, texture, targets: [{erase, text, align, color, italic}]} (common/registration_paint.gd)
 ##   start    pitch_trim of a parked start (world/flight.gd)
-##   ground   footprint, height, tow point, optional min_runway_m (the start screen flags shorter runways) for stands, taxi corridors and jetways (world/ops_*.gd)
+##   ground   footprint, height, tow point, optional min_runway_m (the start screen flags shorter runways) for stands, taxi corridors and jetways (world/ops_*.gd); all keys in world/ground_params.gd
+##   pushback  straight_m, radius_m, speed_mps of the pushback path (world/pushback_path.gd)
 ##   payload  start-screen fuel slider and stations (ui/menu/aircraft_page.gd, weight_balance.gd):
 ##            fuel_kg_per_gal, cruise_gph, reserve_gal, fuel_slider {min, max, step, unit},
 ##            stations [{key (Session.setup), label, max, step, masses [config point-mass names]}]

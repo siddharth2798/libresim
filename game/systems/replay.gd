@@ -41,7 +41,7 @@ func _ready() -> void:
 
 func setup(node: FdmNode) -> void:
 	fdm_node = node
-	channels = ReplayChannels.new()
+	channels = ReplayChannels.new(node.fdm.def if node and node.fdm else null, node.fdm if node else null)
 	buffer = ReplayBuffer.new(channels.kinds, minutes * 60.0, RATE_HZ)
 	_publish()
 
@@ -75,7 +75,7 @@ func can_replay() -> bool:
 func start_replay(from_seconds_ago := 60.0) -> bool:
 	if active or not can_replay():
 		return false
-	_live = ReplayChannels.save_live(fdm_node.fdm)
+	_live = channels.save_live(fdm_node.fdm)
 	_live_props = {}
 	for k in channels.keys + ["fdm/position_enu", "fdm/body_rates", "fdm/accel_body"]:
 		_live_props[k] = Props.get_v(k)
@@ -94,7 +94,7 @@ func start_replay(from_seconds_ago := 60.0) -> bool:
 func stop_replay() -> void:
 	if not active:
 		return
-	ReplayChannels.restore_live(fdm_node.fdm, _live)
+	channels.restore_live(fdm_node.fdm, _live)
 	for k in _live_props:
 		if _live_props[k] != null:
 			Props.set_v(k, _live_props[k])
@@ -107,23 +107,9 @@ func take_control() -> void:
 		return
 	var fr := buffer.sample(t)
 	var f := fdm_node.fdm
-	channels.apply_state(fr, f)  # position, attitude, recorded velocity, body rates, rpm
+	channels.apply_state(fr, f)  # position, attitude, recorded velocity, body rates, per-engine rpm
 	channels.apply_props(fr)  # controls/*, switches, instruments
-	var c: PackedFloat32Array = fr.ch
-	var g := func(k: String, d: Variant) -> Variant:
-		var v: Variant = channels.prop_value(c, k)
-		return d if v == null else v
-	f.fcs.pitch_trim = g.call("controls/pitch_trim", f.fcs.pitch_trim)
-	f.fcs.flap_cmd = g.call("controls/flaps", f.fcs.flap_cmd)
-	f.engine.throttle = g.call("controls/throttle", f.engine.throttle)
-	f.engine.mixture = g.call("controls/mixture", f.engine.mixture)
-	f.engine.egt_k = g.call("engine/egt_k", f.engine.egt_k)
-	f.engine.cht_k = g.call("engine/cht_k", f.engine.cht_k)
-	f.engine.oil_temp_k = g.call("engine/oil_temp_k", f.engine.oil_temp_k)
-	f.engine.oil_press_pa = g.call("engine/oil_press_pa", f.engine.oil_press_pa)
-	f.mb.set_side_kg("left", g.call("fuel/left_kg", f.mb.side_kg("left")))
-	f.mb.set_side_kg("right", g.call("fuel/right_kg", f.mb.side_kg("right")))
-	f.mb.update()
+	channels.apply_resume(fr.ch, f)  # levers, engine temperatures, tanks of every unit, trim, flaps
 	if f.damage.crashed:  # taking over before the crash: aircraft as it was then
 		f.damage.reset()
 		f.gear = GearGround.new(f.cfg)

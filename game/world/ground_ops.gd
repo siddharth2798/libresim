@@ -4,11 +4,9 @@ extends Node3D
 ## T: A* route from the aircraft to the into-wind runway's threshold over the OSM
 ##    taxi graph; drawn as a green line with chevrons, instruction shown on screen.
 ##    T again clears it. Reaching the end shows "Hold short runway NN".
-## P: pushback tug: straight back 30 m, then a 90 deg swing (tail toward the taxiway);
-##    the aircraft is moved kinematically (as a real tug does), brakes must be off.
-##    P again stops the push.
-
-const PUSH_SPEED := 1.4
+## P: pushback tug: straight back, then a 90 deg swing (tail toward the taxiway), path and speed from
+##    aircraft.json "pushback" (GroundParams); the aircraft is moved kinematically (as a real tug does),
+##    brakes must be off. P again stops the push.
 
 var ops: AirportOps
 var airports: AirportBuilder
@@ -23,6 +21,9 @@ var _push := {}  # active pushback state
 var _tug: Node3D
 var _follow: FollowMeCar  # follow-me car leading along the taxi route
 var _follow_s := 0.0  # its distance along the route (m)
+var _gap := 35.0  # follow-me car's target gap ahead of the CG (it starts gap + 5 m ahead)
+var _pb := GroundParams.PUSHBACK  # pushback path and speed
+var _tow_ahead := 3.2  # tug origin ahead of the CG
 var _route_len: PackedFloat32Array = []  # cumulative distance at each route point
 var _mat := StandardMaterial3D.new()
 
@@ -32,6 +33,9 @@ func setup(o: AirportOps, ab: AirportBuilder, fn: FdmNode, t: TerrainQuadtree, u
 	airports = ab
 	fdm_node = fn
 	terrain = t
+	_gap = GroundParams.follow_gap_m()
+	_pb = GroundParams.pushback()
+	_tow_ahead = float(GroundParams.ground().tow_ahead_m)
 	_mat.albedo_color = Color(0.2, 1.0, 0.35)
 	_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	_mat.emission_enabled = true
@@ -69,7 +73,7 @@ func _best_runway_end(icao: String) -> Dictionary:
 		for e in r.ends:
 			var hd := deg_to_rad(float(e.heading_true))
 			var head := -(wind.x * cos(hd) + wind.y * sin(hd))  # headwind component
-			var score: float = head + float(r.length) / 1000.0
+			var score: float = GroundChoice.runway_score(head, float(r.length))  # headwind + length, short runways last
 			if score > bs:
 				bs = score
 				best = e
@@ -108,16 +112,17 @@ func request_taxi() -> void:
 	Props.set_v("ops/taxi_route", _route_txt)
 
 
-## ATC "taxi to the apron" after landing: route to the nearest stand (a ramp stand is preferred
-## over a gate with a jetbridge). Returns the instruction text, "" if there is none.
+## ATC "taxi to the apron" after landing: route to the nearest stand (ramp stands before jetbridge gates;
+## the other way round for stand_class "gate"). Returns the instruction text, "" if there is none.
 func request_taxi_to_stand() -> String:
 	var icao := _airport_here()
 	var p := fdm_node.position_enu()
 	var here := Vector2(p.x, p.y)
 	var best := {}
 	var bd := INF
+	var cls := str(GroundParams.ground().stand_class)
 	for s in ops.data.get(icao, {}).get("stands", []):
-		var d := here.distance_to(Vector2(s.x, s.y)) + (400.0 if s.jetbridge else 0.0)
+		var d := here.distance_to(Vector2(s.x, s.y)) + GroundChoice.taxi_penalty(s, cls)
 		if d < bd:
 			bd = d
 			best = s
@@ -159,31 +164,7 @@ func clear_route() -> void:
 func _draw_route() -> void:
 	if _line:
 		_line.queue_free()
-	var verts := PackedVector3Array()
-	for i in range(_route.size() - 1):
-		var a: Vector2 = _route[i]
-		var b: Vector2 = _route[i + 1]
-		var d := (b - a).normalized()
-		var sd := Vector2(d.y, -d.x) * 0.35
-		var n := maxi(int(a.distance_to(b) / 8.0), 1)
-		for k in n:
-			var p0 := a.lerp(b, float(k) / n)
-			var p1 := a.lerp(b, float(k + 1) / n)
-			var h0 := terrain.height_at(p0.x, p0.y) + 0.25
-			var h1 := terrain.height_at(p1.x, p1.y) + 0.25
-			for v in [p0 - sd, p0 + sd, p1 + sd, p0 - sd, p1 + sd, p1 - sd]:
-				var h: float = h0 if v.distance_to(p0) < v.distance_to(p1) else h1
-				verts.append(Vector3(v.x, h, -v.y))
-	var arr := []
-	arr.resize(Mesh.ARRAY_MAX)
-	arr[Mesh.ARRAY_VERTEX] = verts
-	var m := ArrayMesh.new()
-	m.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arr)
-	_line = MeshInstance3D.new()
-	_line.mesh = m
-	_line.material_override = _mat
-	_line.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	_line.position = FloatingOrigin.to_render(Vector3.ZERO)
+	_line = RouteLine.build(_route, terrain.height_at, _mat)
 	add_child(_line)
 
 
@@ -216,7 +197,7 @@ func _spawn_follow_me() -> void:
 		_follow.queue_free()
 	_follow = FollowMeCar.new()
 	add_child(_follow)
-	_follow_s = 40.0
+	_follow_s = _gap + 5.0
 
 
 ## Point and heading (compass rad) at distance s along the route.
@@ -237,15 +218,14 @@ func _update_follow_me(dt: float, here_s: float) -> void:
 		return
 	var total: float = _route_len[-1]
 	var gap := _follow_s - here_s
-	var v := clampf((gap - 35.0) * -0.3 + 7.0, 0.0, 9.0) if gap < 60.0 else 0.0  # wait if too far ahead
-	_follow_s = minf(_follow_s + v * dt, total + 30.0)
-	if _follow_s > total + 25.0:  # peel off after the hold point
+	var v := clampf((gap - _gap) * -0.3 + 7.0, 0.0, 9.0) if gap < _gap + 25.0 else 0.0  # wait if too far ahead
+	_follow_s = minf(_follow_s + v * dt, total + _gap - 5.0)
+	if _follow_s > total + _gap - 10.0:  # peel off after the hold point
 		_follow.queue_free()
 		_follow = null
 		return
 	var r := _route_at(minf(_follow_s, total))
-	var p: Vector2 = r[0]
-	_follow.place(p.x, p.y, r[1], dt, terrain.height_at)
+	_follow.place(r[0].x, r[0].y, r[1], dt, terrain.height_at)
 
 
 func start_pushback() -> void:
@@ -258,9 +238,8 @@ func start_pushback() -> void:
 		return
 	var e := f.euler()
 	var p := fdm_node.position_enu()
-	# swing the tail toward the nearest taxi node
 	var icao := _airport_here()
-	var side := 1.0
+	var side := 1.0  # swing the tail toward the nearest taxi node
 	if icao != "":
 		var r := ops.route(icao, Vector2(p.x, p.y), Vector2(p.x, p.y))
 		if not r.is_empty():
@@ -284,11 +263,9 @@ func _exit_tree() -> void:
 	FollowMeCar.release()
 
 
-func _spawn_tug() -> void:
-	# our own pushback tug (world/veh_tug.gd), facing the aircraft's heading
-	var holder := Node3D.new()
-	holder.add_child(GroundVehicles.make("pushback_tug"))
-	_tug = holder
+func _spawn_tug() -> void:  # world/veh_tug.gd, sized by ground.tug_scale
+	_tug = Node3D.new()
+	_tug.add_child(GroundVehicles.make("pushback_tug", float(GroundParams.ground().tug_scale)))
 	add_child(_tug)
 
 
@@ -301,13 +278,13 @@ func _physics_process(dt: float) -> void:
 		return
 	if f.gear.brake_left > 0.5 or f.gear.brake_right > 0.5:
 		return  # brakes on: tug stalls
-	_push.s += PUSH_SPEED * dt
+	_push.s += float(_pb.speed_mps) * dt
 	var s: float = _push.s
 	var h0: float = _push.hdg0
-	var pose := PushbackPath.pose(_push.p0, h0, _push.side, s)
+	var pose := PushbackPath.pose(_push.p0, h0, _push.side, s, _pb.straight_m, _pb.radius_m)
 	var pos: Vector2 = pose[0]
 	var hdg: float = pose[1]
-	if s >= PushbackPath.length() - 1e-3 * PushbackPath.RADIUS:
+	if s >= PushbackPath.length(_pb.straight_m, _pb.radius_m) - 1e-3 * float(_pb.radius_m):
 		_end_push("Pushback complete — set parking brake, start engine, then T for taxi")
 	f.pos_e = pos.x
 	f.pos_n = pos.y
@@ -317,6 +294,6 @@ func _physics_process(dt: float) -> void:
 	f.w_b = Vector3.ZERO
 	if _tug:
 		var nose := Vector2(sin(hdg), cos(hdg))
-		var tp := pos + nose * float(AircraftDef.current().section("ground").get("tow_ahead_m", 3.2))  # tug position ahead of the CG
+		var tp := pos + nose * _tow_ahead  # tug position ahead of the CG
 		_tug.position = FloatingOrigin.to_render(Vector3(tp.x, tp.y, terrain.height_at(tp.x, tp.y)))
 		_tug.rotation.y = -hdg

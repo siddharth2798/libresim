@@ -3,7 +3,8 @@ extends HBoxContainer
 ## joysticks / gamepads, one row per action with Bind (capture the next axis moved
 ## > 0.5 or button pressed), invert / range / deadzone / curve and a live bar, reset
 ## to gamepad or joystick defaults, rebindable flight keys
-## (key_bindings_section.gd) and the other hotkeys. Saves on every change.
+## (key_bindings_section.gd) and the other hotkeys. Saves on every change. Only the actions the
+## aircraft offers (aircraft_controls.gd) are listed; the rest stay in the saved profile.
 
 signal changed
 
@@ -12,6 +13,7 @@ const CAPTURE_S := 10.0
 const MAX_BUTTONS := 40
 
 var bindings_path := InputBindings.PATH
+var controls: AircraftControls  # set before adding to the tree; default = the current aircraft
 var table := {}
 var _rows := {}  # action -> row
 var _devices: Label
@@ -24,6 +26,8 @@ var _base_btn := {}  # Vector2i(device, button) -> pressed when capture started
 
 func _ready() -> void:
 	add_theme_constant_override("separation", 16)
+	if controls == null:
+		controls = AircraftControls.current()
 	table = InputBindings.load_from(bindings_path)
 	var col := VBoxContainer.new()
 	col.size_flags_horizontal = SIZE_EXPAND_FILL
@@ -49,18 +53,20 @@ func _ready() -> void:
 	_status = MenuTheme.note("Bind, then move an axis or press a button (Esc cancels). Keyboard keeps working for anything not bound.")
 	col.add_child(_status)
 	col.add_child(MenuTheme.heading("Axes"))
-	for a in InputBindings.AXES:
+	for a in controls.axes():
 		_add_row(col, a)
 	col.add_child(MenuTheme.heading("Buttons"))
-	for a in InputBindings.BUTTONS:
+	for a in controls.buttons():
 		_add_row(col, a)
 	var keys := VBoxContainer.new()
 	keys.set_script(load("res://ui/menu/key_bindings_section.gd"))
+	keys.set("controls", controls)
 	keys.connect("changed", func(): changed.emit())
 	col.add_child(keys)
 	col.add_child(MenuTheme.heading("Other keys"))
 	var kb := GridContainer.new()
 	kb.set_script(load("res://ui/menu/keyboard_reference.gd"))
+	kb.set("controls", controls)
 	col.add_child(kb)
 	Input.joy_connection_changed.connect(func(_d, _c): _list_devices())
 	_list_devices()
@@ -93,7 +99,8 @@ func _reset(profile: String) -> void:
 	for a in d:
 		table[a].clear()
 		table[a].merge(d[a])  # keep the row's dictionary reference
-		_rows[a].refresh()
+		if _rows.has(a):
+			_rows[a].refresh()
 	_status.text = "Reset to %s defaults." % profile
 	_save()
 

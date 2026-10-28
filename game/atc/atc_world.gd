@@ -4,7 +4,8 @@ extends RefCounted
 ## flat dictionary (metres, seconds, degrees as noted), which the controller, the monitor
 ## and the facility rules work on. Tests pass hand-made dictionaries (blank() + overrides).
 ## env = make_env(airports, coms, runways, ops): NavDatabase.airports / .coms,
-## AirportBuilder.data.runways and AirportOps.data.
+## AirportBuilder.data.runways and AirportOps.data, optional ils = NavDatabase.ils (airline phrases:
+## ILS or visual approach, destination airport).
 
 const GROUND_RANGE := 8000.0   # m: airport context while on the ground
 const AIR_RANGE := 80000.0     # m: nearest airport while flying
@@ -18,17 +19,17 @@ static func blank() -> Dictionary:
 		"wind_dir": 270.0, "wind_kt": 8.0, "gust_kt": 0.0, "qnh": 1012.0, "vis": 20000.0, "temp": 30.0,
 		"cloud_cover": 0.3, "cloud_base_ft": 4500.0, "precip": 0.0,
 		"apt": "", "apt_name": "", "apt_type": "", "apt_pos": Vector2.ZERO, "apt_dist": 1e9, "apt_dist_nm": 1e9,
-		"coms": [], "ctl": "none", "rwy": "", "rwy_hdg": 0.0,
+		"ils": [], "dest": "", "coms": [], "ctl": "none", "rwy": "", "rwy_hdg": 0.0,
 		"on_runway": false, "aligned": false, "rwy_dist": 1e9, "appr": {}, "hold_dist": 1e9,
 		"at_stand": false, "where": "the apron", "rwy_free": true, "taxi_route": "",
 	}
 
 
-static func make_env(airports: Array, coms: Dictionary, runways: Array, ops: Dictionary) -> Dictionary:
+static func make_env(airports: Array, coms: Dictionary, runways: Array, ops: Dictionary, ils := []) -> Dictionary:
 	var has_rwy := {}
 	for r in runways:
 		has_rwy[r.airport] = true
-	return {"airports": airports, "coms": coms, "runways": runways, "ops": ops, "has_rwy": has_rwy}
+	return {"airports": airports, "coms": coms, "runways": runways, "ops": ops, "has_rwy": has_rwy, "ils": ils}
 
 
 static func snapshot(env: Dictionary, t: float) -> Dictionary:
@@ -62,6 +63,8 @@ static func snapshot(env: Dictionary, t: float) -> Dictionary:
 		w.apt_dist = ap.dist
 		w.apt_dist_nm = ap.dist / 1852.0
 		w.coms = env.coms.get(icao, [])
+		w.ils = env.get("ils", []).filter(func(i): return str(i.airport) == icao).map(func(i): return str(i.runway))
+		w.dest = AtcProfile.dest_for(env, icao, w.apt_pos)
 		w.ctl = AtcFacilities.control_mode(w.coms, w.apt_type, icao)
 		var rwys: Array = env.runways.filter(func(r): return r.airport == icao)
 		geometry(w, rwys, env.ops.get(icao, {}))
@@ -109,8 +112,9 @@ static func geometry(w: Dictionary, rwys: Array, ops: Dictionary) -> void:
 			var hd := float(e.heading_true)
 			var fwd := Vector2(sin(deg_to_rad(hd)), cos(deg_to_rad(hd)))
 			var head := float(w.wind_kt) * cos(deg_to_rad(float(w.wind_dir) - hd))
-			if head + float(r.length) / 1000.0 > best_score:
-				best_score = head + float(r.length) / 1000.0
+			var score := GroundChoice.runway_score(head, float(r.length))  # too short for the aircraft: last
+			if score > best_score:
+				best_score = score
 				w.rwy = str(e.ident)
 				w.rwy_hdg = hd
 			var rel := p - Vector2(e.x, e.y)

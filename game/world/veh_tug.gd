@@ -1,7 +1,8 @@
 class_name VehTug
 extends RefCounted
 ## Aircraft pushback tug (towbarless style): low yellow body, glazed cab at the front, nose-gear cradle
-## arms at the rear (toward the aircraft), beacon, hazard chevrons. About 4.6 x 2.3 x 2.4 m. Generic.
+## arms at the rear (toward the aircraft), beacon, hazard chevrons. About 4.6 x 2.3 x 2.4 m, scaled
+## for bigger aircraft by GroundVehicles.make(kind, size) (ground.tug_scale; the cradle is at z +2.9 m x size). Generic.
 
 
 static func build(g: VehicleGeo, gl: VehicleGeo) -> void:

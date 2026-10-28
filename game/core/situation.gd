@@ -3,8 +3,8 @@ extends RefCounted
 ## Saved flight situations ("save flight" / "load flight"), milestone M8.
 ## capture() snapshots a running flight scene (world/flight.tscn) into a JSON-safe
 ## Dictionary: FDM state (core/situation_fdm.gd), the pilot's controls / radios /
-## failures / weather / instrument settings from Props, the systems' and gyros'
-## internal state, the failure scheduler, the camera and the Session setup.
+## failures / weather / instrument settings from Props, the systems' (core/situation_systems.gd,
+## group "saveable") and the gyros' internal state, the failure scheduler, the camera and the Session setup.
 ## apply() puts it all back. Files: user://saves/<name>.json + <name>.png (320x180).
 ## A crashed aircraft cannot be saved.
 
@@ -12,7 +12,7 @@ const VERSION := 1
 const QUICK := "quicksave"
 ## Props saved with a situation (everything else is recomputed by the modules each tick).
 const PROP_PREFIXES := ["controls/", "failures/", "weather/", "instruments/", "systems/", "fuel/",
-	"engine/", "fdm/", "atmosphere/", "environment/", "atc/"]
+	"engine/", "fdm/", "atmosphere/", "environment/", "atc/", "engines/", "ap/", "apu/", "fcu/", "hyd/"]
 
 ## Set by the start screen's saves page; world/flight.gd loads it at the end of _ready.
 static var pending_load := ""
@@ -66,13 +66,7 @@ static func capture(root: Node) -> Dictionary:
 		"enu": [enu.x, enu.y, enu.z],
 		"fdm": capture_fdm(f),
 		"props": props,
-		"systems": {
-			"soc": root.get_node("Systems/Electrical").soc,
-			"suction": root.get_node("Systems/Vacuum").suction,
-			"fuel_line": root.get_node("Systems/Fuel")._line,
-			"pitot_frozen": root.get_node("Systems/PitotStatic")._pitot_frozen,
-			"static_frozen": root.get_node("Systems/PitotStatic")._static_frozen,
-		},
+		"systems": SituationSystems.capture(root),
 		"gyros": {"down": SituationFdm.vec(gy._down), "ai_spin": gy._ai_spin, "hi_spin": gy._hi_spin,
 			"hi_offset": gy._hi_offset, "hi_drift_dir": gy._hi_drift_dir, "tc": gy._tc, "ball": gy._ball},
 		"compass": {"card": cmp._card, "rate": cmp._rate},
@@ -114,12 +108,7 @@ static func apply(root: Node, d: Dictionary) -> String:
 	_settle_on_terrain(f, d.fdm)
 	fn._snap()
 	fn._publish()  # damage/*, fdm/* etc. consistent even while paused
-	var s: Dictionary = d.systems
-	root.get_node("Systems/Electrical").soc = float(s.soc)
-	root.get_node("Systems/Vacuum").suction = float(s.suction)
-	root.get_node("Systems/Fuel")._line = float(s.fuel_line)
-	root.get_node("Systems/PitotStatic")._pitot_frozen = float(s.pitot_frozen)
-	root.get_node("Systems/PitotStatic")._static_frozen = float(s.static_frozen)
+	SituationSystems.apply(root, d.get("systems", {}))
 	var gy: GyroInstruments = root.get_node("Instruments/Gyros")
 	var g: Dictionary = d.gyros
 	gy._down = SituationFdm.to_vec(g.down)

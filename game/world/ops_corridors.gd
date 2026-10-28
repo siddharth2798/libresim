@@ -7,29 +7,31 @@ extends RefCounted
 ## that would sit in one (parked vehicles, masts, windsocks) is dropped, drawn or not.
 
 ## Footprint about the CG (m) plus a 1.2 m margin: forward, aft (tail) and half span. The aircraft's
-## aircraft.json "ground" section overrides them (ahead_m, behind_m, across_m); these are the C172's.
+## aircraft.json "ground" section overrides them (ahead_m, behind_m, across_m, taxi_half_m); these are the C172's.
+## The pushback swing is sampled along the aircraft's own path ("pushback" section).
 const FOOTPRINT := {"ahead_m": 3.3, "behind_m": 7.4, "across_m": 6.7}
 const TAXI_HALF := 8.0  # half width of a taxiway corridor
 const RUNWAY_MARGIN := 10.0  # beyond the runway edge
 
 
-## ops: one airport of airport_ops.json ({stands, taxi: {nodes, edges}}); runways: its runways.json entries.
-static func register(icao: String, ops: Dictionary, runways: Array) -> void:
+## ops: one airport of airport_ops.json ({stands, taxi: {nodes, edges}}); runways: its runways.json entries;
+## aircraft: null = the current one (tests pass their own).
+static func register(icao: String, ops: Dictionary, runways: Array, aircraft: AircraftDef = null) -> void:
 	var group := "corridor:" + icao
 	ObstacleRegistry.remove_corridors(group)
-	var fp := AircraftDef.current().section_or("ground", FOOTPRINT)
+	var def := aircraft if aircraft != null else AircraftDef.current()
+	var fp := def.section_or("ground", FOOTPRINT)
 	var ahead: float = fp.ahead_m
 	var behind: float = fp.behind_m
 	var across: float = fp.across_m
+	var taxi_half := float(fp.get("taxi_half_m", TAXI_HALF))
+	var pb := GroundParams.pushback(def)
 	for s in ops.get("stands", []):
-		var p0 := Vector2(s.x, s.y)
+		var p0 := GroundParams.cg_at_stand(s, def)  # the CG sits behind a gate's door point
 		var h0 := deg_to_rad(float(s.heading_deg))
 		for side in [1.0, -1.0]:
-			var ds := [0.0, 10.0, 20.0, 30.0] if side > 0.0 else []  # the straight part once
-			for k in 5:
-				ds.append(PushbackPath.STRAIGHT + PushbackPath.RADIUS * PI / 2.0 * k / 4.0)
-			for d in ds:
-				var pose := PushbackPath.pose(p0, h0, side, d)
+			for d in PushbackPath.samples(pb.straight_m, pb.radius_m, side > 0.0):  # the straight part once
+				var pose := PushbackPath.pose(p0, h0, side, d, pb.straight_m, pb.radius_m)
 				var hd: float = pose[1]
 				var c: Vector2 = pose[0] + Vector2(sin(hd), cos(hd)) * ((ahead - behind) * 0.5)
 				ObstacleRegistry.add_corridor(group, ObstacleShapes.box(c, (ahead + behind) * 0.5, across, hd, 0.0, 0.0, ""))
@@ -38,7 +40,7 @@ static func register(icao: String, ops: Dictionary, runways: Array) -> void:
 	for e in taxi.get("edges", []):
 		var a := Vector2(nodes[e[0]][0], nodes[e[0]][1])
 		var b := Vector2(nodes[e[1]][0], nodes[e[1]][1])
-		_strip(group, a, b, 30.0 if e[4] == "runway" else TAXI_HALF, 4.0)
+		_strip(group, a, b, 30.0 if e[4] == "runway" else taxi_half, 4.0)
 	for r in runways:
 		_strip(group, Vector2(r.ends[0].x, r.ends[0].y), Vector2(r.ends[1].x, r.ends[1].y), float(r.width) * 0.5 + RUNWAY_MARGIN, 0.0)
 

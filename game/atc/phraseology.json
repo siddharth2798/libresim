@@ -83,5 +83,59 @@
 		"tune_hint": {"*": "Tune COM1 to {fac2} {freq2} (menu: Tune COM1)."},
 		"tuned": {"*": "COM1 set to {fac2} {freq2}."},
 		"tuned_auto": {"*": "COM1 tuned to {freq3} {fac2}."}
+	},
+	"profiles": {
+		"_doc": "Profile layer (aircraft.json atc.profile): profile -> section -> key -> role -> template. A key that is missing here falls back to the base phrase above. Fictional airline names only.",
+		"airline": {
+			"pilot": {
+				"clearance": {"*": "{fac}, {callsign}, {type} at {where}, {opt_info}request IFR clearance to {dest}"},
+				"pushback": {"*": "{fac}, {callsign}, {type} at {where}, ready for pushback, request start-up"},
+				"taxi": {"*": "{fac}, {callsign}, {type} at {where}, {opt_info}ready to taxi"},
+				"ready": {"*": "{fac}, {callsign}, holding point runway {rwy}, ready for departure"},
+				"ready_lined": {"*": "{fac}, {callsign}, lined up runway {rwy}, ready for takeoff"},
+				"inbound": {"*": "{fac}, {callsign}, {type}, {pos}, {alt} feet, {opt_info}request {appr} approach runway {rwy}"},
+				"final": {"*": "{fac}, {callsign}, established {appr} runway {rwy}"},
+				"goaround": {"*": "{fac}, {callsign}, going around"},
+				"taxi_stand": {"*": "{fac}, {callsign}, runway {rwy} vacated, request taxi to the stand"},
+				"blind_pushback": {"*": "{apt} traffic, {callsign}, {type} at {where}, starting up and pushing back"},
+				"blind_inbound": {"*": "{apt} traffic, {callsign}, {type}, {pos}, {alt} feet, inbound {appr} approach runway {rwy}"},
+				"blind_final": {"*": "{apt} traffic, {callsign}, established {appr} runway {rwy}"},
+				"blind_taxi_stand": {"*": "{apt} traffic, {callsign}, runway {rwy} vacated, taxiing to the stand"}
+			},
+			"readback": {
+				"clearance": {"*": "Cleared to {dest} via flight planned route, runway {rwy}, initial climb {alt_init} feet, squawk {squawk}, QNH {qnh}, {callsign}"},
+				"pushback": {"*": "Push back approved, start-up at our discretion, {callsign}"},
+				"taxi": {"*": "Taxi{opt_via} to holding point runway {rwy}, QNH {qnh}, {callsign}"},
+				"taxi_sq": {"*": "Cleared to {dest} via flight planned route, initial climb {alt_init} feet, squawk {squawk}, taxi{opt_via} to holding point runway {rwy}, QNH {qnh}, {callsign}"},
+				"lineup": {"*": "Line up and wait runway {rwy}, {callsign}"},
+				"inbound_join": {"*": "Descend {alt_next} feet, QNH {qnh}, cleared {appr} approach runway {rwy}, {callsign}"},
+				"inbound_join_ho": {"*": "Descend {alt_next} feet, QNH {qnh}, cleared {appr} approach runway {rwy}, contact {fac2} {freq}, {callsign}"},
+				"goaround": {"*": "Climb straight ahead, {alt_next} feet, {callsign}"},
+				"vacate": {"*": "Vacating runway {rwy}, contact {fac2} {freq}, {callsign}"},
+				"vacate_nofreq": {"*": "Vacating runway {rwy}, will taxi to the stand, {callsign}"},
+				"taxi_stand": {"*": "Taxi{opt_via} to {stand}, {callsign}"},
+				"depart_ifr": {"*": "Climb {fl}, leaving frequency, {callsign}"},
+				"depart_climb": {"*": "Climb {fl}, {callsign}"}
+			},
+			"controller": {
+				"clearance": {"*": "{callsign}, cleared to {dest} via flight planned route, runway {rwy} departure, initial climb {alt_init} feet, squawk {squawk}, QNH {qnh}."},
+				"pushback": {"*": "{callsign}, push back approved, start-up at your discretion, report ready to taxi."},
+				"taxi": {"*": "{callsign}, taxi{opt_via} to holding point runway {rwy}, hold short, QNH {qnh}."},
+				"taxi_sq": {"*": "{callsign}, cleared to {dest} via flight planned route, initial climb {alt_init} feet, squawk {squawk}. Taxi{opt_via} to holding point runway {rwy}, hold short, QNH {qnh}."},
+				"ready_far": {"*": "{callsign}, continue taxi to the holding point runway {rwy} and report ready for departure."},
+				"lineup": {"*": "{callsign}, runway {rwy}, line up and wait."},
+				"takeoff_clear": {"*": "{callsign}, runway {rwy}, wind {wind}, cleared for takeoff."},
+				"depart_ifr": {"*": "{callsign}, radar contact, climb {fl}, leaving frequency approved."},
+				"depart_climb": {"*": "{callsign}, radar contact, climb {fl}."},
+				"inbound_join": {"*": "{callsign}, runway {rwy} in use, descend {alt_next} feet, QNH {qnh}, cleared {appr} approach runway {rwy}, report established."},
+				"inbound_join_ho": {"*": "{callsign}, runway {rwy} in use, descend {alt_next} feet, QNH {qnh}, cleared {appr} approach runway {rwy}, contact {fac2} {freq}."},
+				"report_final": {"*": "{callsign}, continue approach runway {rwy}, report established."},
+				"land_wait": {"*": "{callsign}, continue approach, runway {rwy} is occupied, expect landing clearance."},
+				"goaround": {"*": "{callsign}, roger, climb straight ahead {alt_next} feet, expect vectors for another approach."},
+				"vacate": {"*": "{callsign}, vacate runway {rwy} when able, contact {fac2} {freq}."},
+				"vacate_nofreq": {"*": "{callsign}, vacate runway {rwy} when able, taxi to the stand."},
+				"taxi_stand": {"*": "{callsign}, taxi{opt_via} to {stand}."}
+			}
+		}
 	}
 }

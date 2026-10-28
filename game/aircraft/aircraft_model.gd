@@ -72,6 +72,7 @@ func _build_glb(path: String) -> void:
 			_props.append([pv, int(p.get("engine", 0)), float(p.get("sign", -1.0)), float(p.get("visual_rate", 0.13))])
 	fix_glass(inst, true)
 	lift_tyres(inst)
+	RegistrationPaint.apply(self, inst, def)  # tail number from the call sign (async the first time, then cached)
 
 
 ## FlightGear glass uses an effect shader; make it a clear, slightly reflective pane.

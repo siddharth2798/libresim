@@ -20,6 +20,8 @@ var assist := false  # radio assist (atc_assist.gd): calls retune COM1 themselve
 var delay := Vector2(0.6, 1.5)  # s between a call and the reply
 var readback_gap := 1.3  # s between the reply and the pilot's readback
 var on_tx := Callable()  # called with every released transmission (voice)
+var profile := "ga"  # phrase layer and call set (atc_profile.gd); set with AtcProfile.apply()
+var type_name := ""  # the aircraft's radio name for {type}; "" = read it from the current aircraft
 var _q: Array = []
 var _seq := 0
 var _n := 0
@@ -187,7 +189,7 @@ func reply_time(t: float) -> float:
 ## Queue one transmission from a phrase (section/key/role); returns the time it is due. The
 ## pilot's lines are kind "pilot", the controller's "atc", advisories and system notes their own.
 func say(section: String, key: String, role: String, sl: Dictionary, at: float, then := Callable(), instr := false) -> float:
-	var tpl := phr.template(section, key, role, _n)
+	var tpl := phr.template(section, key, role, _n, profile)
 	if tpl == "":
 		return at
 	_n += 1

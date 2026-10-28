@@ -28,6 +28,13 @@ static func callsign() -> String:
 	return n if n != "" else "VT-FSM"
 
 
+## The call sign on the radio: the airline form ("Skyline 123") for an aircraft whose aircraft.json atc
+## callsign_style is "airline", else callsign(). callsign() itself stays the registration (tail paint).
+static func radio_callsign() -> String:
+	var a := AtcProfile.radio_callsign(AircraftDef.current(), str(Session.setup.get("callsign", "")))
+	return a if a != "" else callsign()
+
+
 ## Radio assist (Options page): calls retune COM1 themselves and the next call is suggested.
 static func assist_on() -> bool:
 	return bool(UserOptions.get_v("radio_assist"))
@@ -40,7 +47,8 @@ static func in_lesson() -> bool:
 
 func setup(e: Dictionary, hooks: Dictionary) -> void:
 	env = e
-	c = AtcController.new(callsign())
+	c = AtcController.new(radio_callsign())
+	AtcProfile.apply(c, AircraftDef.current())
 	c.hooks = hooks
 	c.assist = assist_on()
 	var v := voice  # not `voice` itself: the lambda would capture self and form a cycle (session -> c -> on_tx -> session)
@@ -61,7 +69,7 @@ func tick(dt: float) -> void:
 	var stamp := str(Props.get_v("atc/stamp", ""))
 	if stamp != "" and stamp != _stamp:  # a saved flight was loaded: take its ATC state back
 		c.adopt(Props.dump("atc/"))
-		c.set_callsign(callsign())
+		c.set_callsign(radio_callsign())
 		w = AtcWorld.snapshot(env, now)
 		mon.rebase(w)
 		_stamp = stamp
@@ -72,7 +80,7 @@ func tick(dt: float) -> void:
 	if _snap_t <= 0.0:
 		_snap_t = SNAP_EVERY
 		w = AtcWorld.snapshot(env, now)
-		c.set_callsign(callsign())
+		c.set_callsign(radio_callsign())
 		voice.poll()
 		mon.step(w, now)
 		Props.set_v("atc/facility", AtcFacilities.tuned(w).name)

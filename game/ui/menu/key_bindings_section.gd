@@ -4,6 +4,8 @@ extends VBoxContainer
 ## Esc cancels, Delete / Backspace empties the slot. ✕ clears the row. Conflicts
 ## (same key on two actions, or on another hotkey) are listed in orange.
 ## Saves to user://key_bindings.json and bumps Props input/bindings_rev.
+## Only the actions the aircraft offers (aircraft_controls.gd) get a row or count for conflicts;
+## the others stay in the saved profile.
 
 signal changed
 
@@ -12,6 +14,7 @@ const WARN := Color(1.0, 0.7, 0.3)
 const MODS := [KEY_SHIFT, KEY_CTRL, KEY_ALT, KEY_META]
 
 var path := KeyBindings.PATH
+var controls: AircraftControls  # set before adding to the tree; default = the current aircraft
 var table := {}
 var _slots := {}  # action -> Array[Button]
 var _warn: Label
@@ -22,6 +25,8 @@ var _cap_slot := -1
 
 func _ready() -> void:
 	add_theme_constant_override("separation", 6)
+	if controls == null:
+		controls = AircraftControls.current()
 	table = KeyBindings.load_from(path)
 	var head := HBoxContainer.new()
 	add_child(head)
@@ -39,7 +44,7 @@ func _ready() -> void:
 	_warn.add_theme_color_override("font_color", WARN)
 	_warn.add_theme_font_size_override("font_size", 14)
 	add_child(_warn)
-	for a in KeyBindings.HELD + KeyBindings.PRESS:
+	for a in controls.key_actions():
 		_add_row(a)
 	_refresh()
 
@@ -73,9 +78,9 @@ func _add_row(a: String) -> void:
 
 func _refresh() -> void:
 	var bad := {}
-	for a in table:
+	for a in _slots:
 		for s in table[a]:
-			for b in table:
+			for b in _slots:
 				if b != a and table[b].any(func(o): return KeyBindings.same(s, o)):
 					bad[KeyBindings.describe(s)] = true
 			if not s.shift and not s.ctrl and not s.alt and KeyBindings.RESERVED.has(int(s.key)):
@@ -91,7 +96,7 @@ func _refresh() -> void:
 				c = WARN
 			b.add_theme_color_override("font_color", c)
 			b.add_theme_color_override("font_hover_color", c)
-	var cf := KeyBindings.conflicts(table)
+	var cf := KeyBindings.conflicts(table, _slots.keys())
 	_warn.text = "" if cf.is_empty() else "Conflicts:\n• " + "\n• ".join(cf)
 	_warn.visible = not cf.is_empty()
 

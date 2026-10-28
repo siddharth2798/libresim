@@ -5,12 +5,12 @@ extends Node
 ## springs back to centre (UserOptions keyboard_mode "spring", default) or stays put
 ## ("sticky", FlightGear style: tap the opposite key to come back, it stops at centre).
 ## Throttle/mixture/trim move while held and stay put. FdmNode low-passes the result.
-## Keys come from core/key_bindings.gd (defaults: docs/USAGE.md key map).
+## Keys come from core/key_bindings.gd (defaults: docs/USAGE.md key map). Only the actions the
+## aircraft offers (aircraft.json "controls", aircraft_controls.gd) do anything; levers: lever_keys.gd,
+## press effects: control_steps.gd.
 
 const RATE := 1.6          # stick travel per second while held
 const SPRING := 2.5        # return-to-centre per second
-const LEVER_RATE := 0.5    # throttle / mixture per second
-const TRIM_RATE := 0.15
 
 var pitch := 0.0
 var roll := 0.0
@@ -21,11 +21,23 @@ var keys := {}  # KeyBindings table (core/key_bindings.gd), reloaded on input/bi
 var _shifted := {}
 var _keys_rev := -1
 var _detent := {}  # sticky mode: axis -> true while held at the centre detent
+var _ctl: AircraftControls
+var _levers: LeverKeys
+var _knobs := {}  # FCU knob -> hold timer (control_steps.gd)
 
 
 func _ready() -> void:
 	Props.set_v("controls/parking_brake", false)
 	_load_keys()
+	controls().seed_props()
+
+
+## What the current aircraft offers (rebuilt when the aircraft changes).
+func controls() -> AircraftControls:
+	_ctl = AircraftControls.refresh(_ctl)
+	if _levers == null:
+		_levers = LeverKeys.new(self)
+	return _ctl
 
 
 func _load_keys() -> void:
@@ -37,39 +49,39 @@ func _load_keys() -> void:
 func _unhandled_key_input(e: InputEvent) -> void:
 	if not e.pressed or e.echo:
 		return
-	var flaps: int = Props.get_v("controls/flaps", 0)
-	if _on(e, "flaps_down"):
-		Props.set_v("controls/flaps", mini(flaps + 1, int(Props.get_v("fdm/flap_detents", 4)) - 1))
-	if _on(e, "flaps_up"):
-		Props.set_v("controls/flaps", maxi(flaps - 1, 0))
+	var ctl := controls()
+	for a in KeyBindings.PRESS:
+		if not _on(e, a):
+			continue
+		if ControlSteps.handles(a):
+			ControlSteps.press(a)
+			if a == "parking_brake":
+				parking_brake = Props.get_b("controls/parking_brake")
+		else:
+			_levers.detent_key(ctl, a)
 	if _on(e, "mouse_yoke"):
 		mouse_yoke = not mouse_yoke
 		Props.set_v("controls/mouse_yoke", mouse_yoke)
-	if _on(e, "magnetos_next"):
-		Props.set_v("controls/magnetos", (int(Props.get_v("controls/magnetos", 3)) + 1) % 4)
 	if e.keycode == KEY_L and not e.ctrl_pressed and not e.alt_pressed:  # PANEL light dimmer (fixed hotkey)
 		Props.set_v("controls/lights/panel", LightLogic.step_panel(Props.get_f("controls/lights/panel"), -1 if e.shift_pressed else 1))
 	if _on(e, "master"):  # BAT and ALT together, as pilots usually switch them
 		var on := not Props.get_b("controls/electrical/master_bat")
 		Props.set_v("controls/electrical/master_bat", on)
 		Props.set_v("controls/electrical/master_alt", on)
-	if _on(e, "fuel_selector"):  # OFF, LEFT, RIGHT, BOTH
-		Props.set_v("controls/fuel/selector", (int(Props.get_v("controls/fuel/selector", 3)) + 1) % 4)
 	for a in KeyBindings.SWITCHES:
 		if _on(e, a):
 			Props.set_v(KeyBindings.SWITCHES[a], not Props.get_b(KeyBindings.SWITCHES[a]))
-	if _on(e, "parking_brake"):
-		parking_brake = not Props.get_b("controls/parking_brake")
-		Props.set_v("controls/parking_brake", parking_brake)
 
 
 func _on(e: InputEventKey, action: String) -> bool:
-	return KeyBindings.matches(keys, action, e, _shifted)
+	return controls().offers(action) and KeyBindings.matches(keys, action, e, _shifted)
 
 
 ## Held keys count for nothing while the pause screen is open: its arrow keys navigate it.
+## A held joystick button (input/held/<action>, JoystickControls) counts like the key.
 func _k(action: String) -> bool:
-	return not Props.get_b("ui/pause_open") and KeyBindings.held(keys, action, _shifted)
+	return not Props.get_b("ui/pause_open") and controls().offers(action) \
+		and (KeyBindings.held(keys, action, _shifted) or Props.get_b("input/held/" + action))
 
 
 ## -1 / 0 / +1 from a pair of held actions.
@@ -123,22 +135,23 @@ func _process(dt: float) -> void:
 	_put("roll", roll)
 	_put("yaw", yaw)
 
-	var thr := Props.get_f("controls/throttle")
-	var thr_in := _axis("throttle_down", "throttle_up")
-	if Props.get_b("ui/map_open"):  # the open map zooms with = / - / Num +/-: only Page Up/Down move the throttle
-		thr_in = float(Input.is_physical_key_pressed(KEY_PAGEUP)) - float(Input.is_physical_key_pressed(KEY_PAGEDOWN))
-	thr += thr_in * LEVER_RATE * dt  # Ctrl+PgUp/PgDn (checklists) don't match
-	_put("throttle", clampf(thr, 0.0, 1.0))
-	var mix := Props.get_f("controls/mixture", 1.0) + _axis("mixture_lean", "mixture_rich") * LEVER_RATE * dt
-	_put("mixture", clampf(mix, 0.0, 1.0))
-	var trim := Props.get_f("controls/pitch_trim") + _axis("trim_down", "trim_up") * TRIM_RATE * dt
-	_put("pitch_trim", clampf(trim, -1.0, 1.0))
+	var ctl := controls()
+	_levers.update(ctl, dt)  # throttle, mixture, reverse
+	for r in ControlActions.RATE_PROPS:  # pitch / rudder trim
+		if ctl.offers(r.pos):
+			_put(r.prop, clampf(Props.get_f("controls/" + r.prop) + _axis(r.neg, r.pos) * r.rate * dt, r.lo, r.hi))
+	for a in ControlActions.KNOBS:  # FCU knobs
+		if ctl.offers(a):
+			ControlSteps.knob(a, _k(a), dt, _knobs)
 
 	var both := _k("brakes")
 	var pb := 1.0 if Props.get_b("controls/parking_brake") else 0.0
 	_put("brake_left", maxf(pb, 1.0 if both or _k("brake_left") else 0.0))
 	_put("brake_right", maxf(pb, 1.0 if both or _k("brake_right") else 0.0))
-	_put("starter", _k("starter") and not Props.get_b("view/free_cam"))
+	if ctl.offers("starter"):
+		_put("starter", _k("starter") and not Props.get_b("view/free_cam"))
+	if ctl.offers("apu_start"):
+		_put("apu_start", _k("apu_start"))
 
 
 ## Write controls/<name> unless a joystick axis/button owns it (JoystickControls).

@@ -8,6 +8,10 @@ extends Node
 var suction := 0.0
 
 
+func _ready() -> void:
+	add_to_group(SituationSystems.GROUP)
+
+
 func _physics_process(dt: float) -> void:
 	var rpm := Props.get_f("engine/rpm")
 	var target := clampf(rpm / 1200.0, 0.0, 1.0) * 5.0
@@ -15,3 +19,16 @@ func _physics_process(dt: float) -> void:
 		target = 0.0
 	suction = lerpf(suction, target, clampf(dt * 2.0, 0.0, 1.0))
 	Props.set_v("systems/vacuum/suction_inhg", suction)
+
+
+## Saved with a flight situation (core/situation_systems.gd).
+func save_key() -> String:
+	return "vacuum"
+
+
+func save_state() -> Dictionary:
+	return {"suction": suction}
+
+
+func load_state(d: Dictionary) -> void:
+	suction = float(d.get("suction", suction))

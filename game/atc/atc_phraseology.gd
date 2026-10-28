@@ -4,6 +4,9 @@ extends RefCounted
 ## (a string, or a list of variants picked by a counter). Templates hold {slots}; fill()
 ## formats each slot by its name in the written (transcript) or spoken (voice) form, see
 ## atc_speech.gd. Slots whose name starts with opt_ may be empty.
+## "profiles" -> profile -> section -> key -> role -> template overrides the base phrase for an
+## aircraft profile (aircraft.json atc.profile, e.g. "airline"); a key the profile does not have
+## falls back to the base ("ga") template, the role falls back to "*" in each layer.
 
 const PATH := "res://atc/phraseology.json"
 ## Every slot a template may use, with a sample value (also used by the template check in the tests).
@@ -13,7 +16,8 @@ const SAMPLE := {
 	"clouds": ["scattered", 3000.0], "alt": 2500.0, "alt_limit": 2000.0, "freq": 118.1, "freq2": 121.9, "freq3": 121.9,
 	"pos": "8 miles south-west of the field", "where": "stand 12", "join": "join left-hand downwind runway 09L",
 	"opt_via": " via A, B", "opt_info": "information Alpha, ", "opt_route": "via the Lonavala route, ",
-	"opt_wx": "light rain, "}
+	"opt_wx": "light rain, ", "dest": "Delhi", "alt_init": 5000.0, "alt_next": 8000.0, "fl": 120, "stand": "stand 3",
+	"appr": "ILS"}
 
 var data := {}
 
@@ -26,13 +30,23 @@ func _init(path := PATH) -> void:
 		push_error("atc: cannot read " + path)
 
 
-func has(section: String, key: String) -> bool:
-	return data.get(section, {}).has(key)
+func has(section: String, key: String, profile := "ga") -> bool:
+	return data.get(section, {}).has(key) or _layer(profile, section, key) is Dictionary
+
+
+## The profile's role table for a phrase, or null (the base "ga" phrases are not a layer).
+func _layer(profile: String, section: String, key: String) -> Variant:
+	if profile == "ga" or profile == "":
+		return null
+	return data.get("profiles", {}).get(profile, {}).get(section, {}).get(key, null)
 
 
 ## Template for a unit role ("*" = any); a list of variants is indexed by n. "" if missing.
-func template(section: String, key: String, role := "*", n := 0) -> String:
+func template(section: String, key: String, role := "*", n := 0, profile := "ga") -> String:
 	var by_role: Variant = data.get(section, {}).get(key, null)
+	var lay: Variant = _layer(profile, section, key)
+	if lay is Dictionary and (lay.has(role) or lay.has("*")):
+		by_role = lay
 	if not (by_role is Dictionary):
 		push_warning("atc: no phrase %s.%s" % [section, key])
 		return ""
@@ -42,22 +56,32 @@ func template(section: String, key: String, role := "*", n := 0) -> String:
 	return str(t)
 
 
-func text(section: String, key: String, role: String, slots: Dictionary, spoken := false, n := 0) -> String:
-	return fill(template(section, key, role, n), slots, spoken)
+func text(section: String, key: String, role: String, slots: Dictionary, spoken := false, n := 0, profile := "ga") -> String:
+	return fill(template(section, key, role, n, profile), slots, spoken)
 
 
-## Every template: [[section, key, role, text], ...] (variants listed separately).
+## Every template: [[section, key, role, text], ...] (variants listed separately); a profile's
+## phrases come with the section "<profile>/<section>".
 func all_templates() -> Array:
 	var out := []
 	for sec in data:
-		if sec.begins_with("_") or not (data[sec] is Dictionary) or sec == "version":
+		if sec.begins_with("_") or not (data[sec] is Dictionary) or sec == "version" or sec == "profiles":
 			continue
-		for key in data[sec]:
-			for role in data[sec][key]:
-				var t: Variant = data[sec][key][role]
-				for v in (t if t is Array else [t]):
-					out.append([sec, key, role, str(v)])
+		_collect(out, sec, data[sec])
+	for prof in data.get("profiles", {}):
+		if prof.begins_with("_"):
+			continue
+		for sec in data.profiles[prof]:
+			_collect(out, "%s/%s" % [prof, sec], data.profiles[prof][sec])
 	return out
+
+
+static func _collect(out: Array, sec: String, keys: Dictionary) -> void:
+	for key in keys:
+		for role in keys[key]:
+			var t: Variant = keys[key][role]
+			for v in (t if t is Array else [t]):
+				out.append([sec, key, role, str(v)])
 
 
 static func slot_names(tpl: String) -> Array:
@@ -107,13 +131,14 @@ static func _slot(name: String, v: Variant, sp: bool) -> String:
 		"squawk": return AtcSpeech.digits(str(v)) if sp else str(v)
 		"vis": return AtcSpeech.visibility(float(v), sp)
 		"temp": return AtcSpeech.temperature(float(v), sp)
-		"alt", "alt_limit": return AtcSpeech.altitude(float(v)) if sp else str(int(round(float(v) / 100.0)) * 100)
+		"alt", "alt_limit", "alt_init", "alt_next": return AtcSpeech.altitude(float(v)) if sp else str(int(round(float(v) / 100.0)) * 100)
 		"freq", "freq2": return AtcSpeech.frequency(float(v), sp)
 		"freq3": return AtcSpeech.frequency(float(v), true) if sp else "%.3f" % float(v)  # as on the radio display: 118.100
 		"clouds":
 			if not (v is Array) or str(v[0]) == "":
 				return "no significant cloud"
 			return "%s %s feet" % [v[0], AtcSpeech.altitude(float(v[1])) if sp else str(int(round(float(v[1]) / 100.0)) * 100)]
+		"fl": return ("flight level " + AtcSpeech.digits(str(int(v)))) if sp else "flight level %d" % int(v)
 		"opt_via": return AtcSpeech.speak_text(AtcSpeech.taxiways(str(v))) if sp else str(v)
 	return AtcSpeech.speak_text(str(v)) if sp else str(v)
 

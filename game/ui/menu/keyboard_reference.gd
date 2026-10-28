@@ -1,6 +1,7 @@
 extends GridContainer
 ## Read-only list of the hotkeys that are not rebindable (flight-control keys are
-## edited in key_bindings_section.gd). Mirrors docs/USAGE.md.
+## edited in key_bindings_section.gd). Mirrors docs/USAGE.md. An entry with a third element
+## (an action group) is listed only when the aircraft offers that group.
 
 const KEYS := [
 	["C / Shift+C, 1–8", "Camera views"],
@@ -21,12 +22,18 @@ const KEYS := [
 	["Esc", "Pause"],
 ]
 
+var controls: AircraftControls  # set before adding to the tree; default = the current aircraft
+
 
 func _ready() -> void:
+	if controls == null:
+		controls = AircraftControls.current()
 	columns = 4
 	add_theme_constant_override("h_separation", 14)
 	add_theme_constant_override("v_separation", 4)
 	for k in KEYS:
+		if k.size() > 2 and not controls.has_group(k[2]):
+			continue
 		var key := Label.new()
 		key.text = k[0]
 		key.add_theme_color_override("font_color", MenuTheme.ACCENT)

@@ -118,6 +118,7 @@ func _parse_cmdline() -> void:
 				setup.start = "stand"
 				setup.stand = v
 			"cold": setup.cold = true
+			"callsign": setup.callsign = v.to_upper()  # --callsign=VT-ABC (radio call sign and tail number)
 			"tod": setup.time_h = float(v)
 			"day": setup.day_of_year = float(v)  # day of the year (moon phase, sun times)
 			"vis": setup.visibility_m = float(v)

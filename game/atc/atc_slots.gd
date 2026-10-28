@@ -22,7 +22,10 @@ static func build(c: AtcController, w: Dictionary, extra := {}) -> Dictionary:
 		"where": str(w.get("where", "the apron")), "join": "", "opt_via": "",
 		"opt_info": ("information %s, " % c.info_word()) if c.s.info_heard else "",
 		"opt_route": ("via %s, " % routes[w.get("apt", "")]) if routes.get(w.get("apt", ""), "") != "" else "",
-		"opt_wx": _wx(w)}
+		"opt_wx": _wx(w), "dest": AtcProfile.dest_text(w), "alt_init": AtcProfile.INITIAL_ALT_FT, "alt_next": AtcProfile.GO_AROUND_ALT_FT,
+		"fl": AtcProfile.CLIMB_FL, "stand": "the apron", "appr": AtcProfile.approach_kind(w, rwy)}
+	if c.type_name != "":
+		sl["type"] = c.type_name
 	sl.merge(extra, true)
 	return sl
 

@@ -116,10 +116,15 @@ static func _exchange(c: AtcController, id: String, w: Dictionary, now: float, r
 				c.s.cleared_land = false
 				c.set_state("inbound")
 		"taxi_stand":
-			x.opt_via = parse_route(str(c.hook("taxi_to_stand"))).via
+			var back := parse_route(str(c.hook("taxi_to_stand")))
+			x.opt_via = back.via
+			if back.stand != "":
+				x.stand = back.stand
 			x.rwy = c.runway_for(w)
 			rb = "taxi_stand"
 			then = func(): c.set_state("taxi")
+	if x.has("rwy"):
+		x.appr = AtcProfile.approach_kind(w, str(x.rwy))  # airline phrases: ILS or visual approach
 	var sl := c.slots(w, x)
 	var t := c.say("pilot", _pkey(c, id), role, sl, now)
 	var tr := c.reply_time(t)
@@ -164,7 +169,7 @@ static func _blind(c: AtcController, id: String, w: Dictionary, now: float) -> v
 		"goaround":
 			c.set_state("inbound")
 	var pkey := "blind_" + _pkey(c, id)
-	if c.phr.has("pilot", pkey):
+	if c.phr.has("pilot", pkey, c.profile):
 		c.say("pilot", pkey, "*", c.slots(w, {"rwy": rwy}), now)
 
 
@@ -193,9 +198,13 @@ static func say_again(c: AtcController, w: Dictionary, now: float) -> void:
 	c.say_raw("atc", c.s.last_who, c.s.last_instr, c.s.last_instr_spoken, c.reply_time(t))
 
 
-## "Taxi to runway 09 via A, B — hold short" -> {rwy: "09", via: " via A, B"}.
+## "Taxi to runway 09 via A, B — hold short" -> {rwy: "09", via: " via A, B", stand: ""}; "(stand 3)" gives stand.
 static func parse_route(t: String) -> Dictionary:
 	var via := ""
+	var stand := ""
+	var sm := RegEx.create_from_string("\\((stand [^)]+|gate [^)]+|bay [^)]+)\\)").search(t)
+	if sm != null:
+		stand = sm.get_string(1)
 	var i := t.find(" via ")
 	if i >= 0:
 		via = t.substr(i)
@@ -203,7 +212,7 @@ static func parse_route(t: String) -> Dictionary:
 		if j >= 0:
 			via = via.substr(0, j)
 	var m := RegEx.create_from_string("runway (\\w+)").search(t)
-	return {"via": via, "rwy": m.get_string(1) if m != null else ""}
+	return {"via": via, "rwy": m.get_string(1) if m != null else "", "stand": stand}
 
 
 ## Runway to land on: the one the aircraft is lined up with (corridor, tailwind under 6 kt), else into wind.

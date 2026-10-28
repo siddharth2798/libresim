@@ -18,6 +18,7 @@ var _line := 0.0
 
 
 func _ready() -> void:
+	add_to_group(SituationSystems.GROUP)
 	var def := AircraftDef.current()
 	_p.merge(def.section("systems").get("fuel", {}), true)
 	_sides.clear()
@@ -55,3 +56,16 @@ func _physics_process(dt: float) -> void:
 	Props.set_v("fuel/feed", feed)
 	Props.set_v("fuel/leak_kgs", leak)
 	Props.set_v("fuel/available", total > 0.0 or _line > 0.0)
+
+
+## Saved with a flight situation (core/situation_systems.gd).
+func save_key() -> String:
+	return "fuel"
+
+
+func save_state() -> Dictionary:
+	return {"line": _line}
+
+
+func load_state(d: Dictionary) -> void:
+	_line = float(d.get("line", _line))

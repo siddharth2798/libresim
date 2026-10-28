@@ -42,6 +42,7 @@ var _p := DEFAULTS.duplicate(true)
 
 
 func _ready() -> void:
+	add_to_group(SituationSystems.GROUP)
 	var mine: Dictionary = AircraftDef.current().section("systems").get("electrical", {})
 	_p = DEFAULTS.duplicate(true)
 	_p.merge(mine, true)
@@ -50,6 +51,19 @@ func _ready() -> void:
 	for k in ["master_bat", "master_alt", "avionics"]:
 		if not Props.has("controls/electrical/" + k):
 			Props.set_v("controls/electrical/" + k, true)
+
+
+## Saved with a flight situation (core/situation_systems.gd).
+func save_key() -> String:
+	return "electrical"
+
+
+func save_state() -> Dictionary:
+	return {"soc": soc}
+
+
+func load_state(d: Dictionary) -> void:
+	soc = float(d.get("soc", soc))
 
 
 func _physics_process(dt: float) -> void:

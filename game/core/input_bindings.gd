@@ -17,9 +17,15 @@ const AXES := {
 	"throttle": "controls/throttle", "mixture": "controls/mixture",
 	"brake_left": "controls/brake_left", "brake_right": "controls/brake_right",
 	"pitch_trim_axis": "controls/pitch_trim",
+	# airliner axes (offered per aircraft, input/control_actions.gd)
+	"throttle_2": "controls/throttle_2", "speedbrake": "controls/speedbrake",
+	"rudder_trim_axis": "controls/rudder_trim", "tiller": "controls/tiller",
 }
 const BUTTONS := ["flaps_up", "flaps_down", "brakes", "parking_brake", "trim_up", "trim_down",
-	"view_next", "view_cockpit", "starter", "magnetos_next", "toggle_map", "pause"]
+	"view_next", "view_cockpit", "starter", "magnetos_next", "toggle_map", "pause",
+	"gear_toggle", "autobrake_next", "reverse", "speedbrake_out", "speedbrake_in", "throttle_detent_up",
+	"throttle_detent_down", "engine_master_1", "engine_master_2", "engine_mode_next", "apu_master", "apu_start",
+	"fcu_ap1", "fcu_ap2", "fcu_athr", "fcu_loc", "fcu_appr"]
 const LABELS := {
 	"pitch": "Pitch (elevator)", "roll": "Roll (ailerons)", "yaw": "Yaw (rudder)",
 	"throttle": "Throttle", "mixture": "Mixture", "brake_left": "Left toe brake",
@@ -28,10 +34,17 @@ const LABELS := {
 	"parking_brake": "Parking brake toggle", "trim_up": "Trim nose up", "trim_down": "Trim nose down",
 	"view_next": "Next view (C)", "view_cockpit": "Cockpit view (1)", "starter": "Starter (hold)",
 	"magnetos_next": "Magnetos cycle", "toggle_map": "Moving map (N)", "pause": "Pause (Esc)",
+	"throttle_2": "Thrust lever 2 (lever 1 = Throttle)", "speedbrake": "Speedbrake", "rudder_trim_axis": "Rudder trim (axis)",
+	"tiller": "Nosewheel tiller", "gear_toggle": "Landing gear up / down", "autobrake_next": "Autobrake cycle",
+	"reverse": "Thrust reverse (hold)", "speedbrake_out": "Speedbrake out", "speedbrake_in": "Speedbrake in",
+	"throttle_detent_up": "Thrust levers: next detent up", "throttle_detent_down": "Thrust levers: next detent down",
+	"engine_master_1": "Engine 1 master", "engine_master_2": "Engine 2 master", "engine_mode_next": "Engine mode cycle",
+	"apu_master": "APU master", "apu_start": "APU start (hold)", "fcu_ap1": "Autopilot 1", "fcu_ap2": "Autopilot 2",
+	"fcu_athr": "Autothrust", "fcu_loc": "FCU LOC", "fcu_appr": "FCU APPR",
 }
 const RANGES := ["full", "half", "trigger"]
 ## Actions whose output is 0..1 (default range "half").
-const HALF := ["throttle", "mixture", "brake_left", "brake_right"]
+const HALF := ["throttle", "mixture", "brake_left", "brake_right", "throttle_2", "speedbrake"]
 
 
 static func is_axis(action: String) -> bool:
@@ -83,6 +96,10 @@ static func defaults(profile := "gamepad") -> Dictionary:
 		_bt(t, "magnetos_next", 9)
 		_bt(t, "starter", 10)
 		_bt(t, "pause", 11)
+		_ax(t, "speedbrake", 4, {"deadzone": 0.02})
+		_bt(t, "gear_toggle", 12)
+		_bt(t, "autobrake_next", 13)
+		_bt(t, "reverse", 14)
 		return t
 	_ax(t, "roll", JOY_AXIS_LEFT_X, {"deadzone": 0.1, "expo": 0.35})
 	_ax(t, "pitch", JOY_AXIS_LEFT_Y, {"deadzone": 0.1, "expo": 0.35})
@@ -101,6 +118,8 @@ static func defaults(profile := "gamepad") -> Dictionary:
 	_bt(t, "starter", JOY_BUTTON_RIGHT_STICK)
 	_bt(t, "toggle_map", JOY_BUTTON_BACK)
 	_bt(t, "pause", JOY_BUTTON_START)
+	_bt(t, "gear_toggle", JOY_BUTTON_DPAD_LEFT)
+	_bt(t, "reverse", JOY_BUTTON_LEFT_STICK)
 	return t
 
 

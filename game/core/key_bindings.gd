@@ -12,10 +12,17 @@ const SLOTS := 3
 
 const HELD := ["pitch_down", "pitch_up", "roll_left", "roll_right", "yaw_left", "yaw_right",
 	"throttle_up", "throttle_down", "mixture_rich", "mixture_lean", "trim_down", "trim_up",
-	"brakes", "brake_left", "brake_right", "starter"]
+	"brakes", "brake_left", "brake_right", "starter",
+	# twin-jet / airliner actions (offered per aircraft: input/control_actions.gd)
+	"throttle_1_up", "throttle_1_down", "throttle_2_up", "throttle_2_down", "reverse", "apu_start",
+	"rudder_trim_left", "rudder_trim_right", "fcu_spd_up", "fcu_spd_down", "fcu_hdg_right", "fcu_hdg_left",
+	"fcu_alt_up", "fcu_alt_down", "fcu_vs_up", "fcu_vs_down"]
 const PRESS := ["flaps_down", "flaps_up", "parking_brake", "magnetos_next", "mouse_yoke",
 	"master", "avionics", "fuel_selector", "fuel_shutoff", "beacon", "nav_lights", "strobes",
-	"landing_light", "taxi_light", "pitot_heat"]
+	"landing_light", "taxi_light", "pitot_heat",
+	"throttle_detent_up", "throttle_detent_down", "speedbrake_out", "speedbrake_in", "gear_toggle",
+	"autobrake_next", "engine_master_1", "engine_master_2", "engine_mode_next", "apu_master",
+	"fcu_ap1", "fcu_ap2", "fcu_athr", "fcu_loc", "fcu_appr"]
 ## Switch-row toggles: action -> Props path (fuel_selector cycles OFF/L/R/BOTH instead).
 const SWITCHES := {"avionics": "controls/electrical/avionics", "fuel_shutoff": "controls/fuel/shutoff",
 	"beacon": "controls/lights/beacon", "nav_lights": "controls/lights/nav", "strobes": "controls/lights/strobe",
@@ -32,6 +39,18 @@ const LABELS := {
 	"master": "Master switch (BAT + ALT)", "avionics": "Avionics master", "fuel_selector": "Fuel selector cycle",
 	"fuel_shutoff": "Fuel shutoff valve", "beacon": "Beacon", "nav_lights": "Nav lights", "strobes": "Strobes",
 	"landing_light": "Landing light", "taxi_light": "Taxi light", "pitot_heat": "Pitot heat",
+	"throttle_1_up": "Thrust lever 1 up", "throttle_1_down": "Thrust lever 1 down",
+	"throttle_2_up": "Thrust lever 2 up", "throttle_2_down": "Thrust lever 2 down",
+	"throttle_detent_up": "Thrust levers: next detent up", "throttle_detent_down": "Thrust levers: next detent down",
+	"reverse": "Thrust reverse (hold)", "speedbrake_out": "Speedbrake out", "speedbrake_in": "Speedbrake in",
+	"gear_toggle": "Landing gear up / down", "autobrake_next": "Autobrake cycle",
+	"engine_master_1": "Engine 1 master", "engine_master_2": "Engine 2 master", "engine_mode_next": "Engine mode cycle",
+	"apu_master": "APU master", "apu_start": "APU start (hold)",
+	"rudder_trim_left": "Rudder trim left", "rudder_trim_right": "Rudder trim right",
+	"fcu_ap1": "Autopilot 1", "fcu_ap2": "Autopilot 2", "fcu_athr": "Autothrust", "fcu_loc": "FCU LOC", "fcu_appr": "FCU APPR",
+	"fcu_spd_up": "FCU speed up", "fcu_spd_down": "FCU speed down", "fcu_hdg_right": "FCU heading right",
+	"fcu_hdg_left": "FCU heading left", "fcu_alt_up": "FCU altitude up", "fcu_alt_down": "FCU altitude down",
+	"fcu_vs_up": "FCU vertical speed up", "fcu_vs_down": "FCU vertical speed down",
 }
 ## Other in-flight hotkeys (not rebindable here): a binding on one of these is a conflict.
 const RESERVED := {
@@ -77,7 +96,40 @@ static func defaults() -> Dictionary:
 	t.landing_light = [spec(KEY_L, false, true)]
 	t.taxi_light = [spec(KEY_T, false, true)]
 	t.pitot_heat = [spec(KEY_H, false, true)]
+	_add_airliner_defaults(t)
 	return t
+
+
+## Defaults of the actions only some aircraft offer (Alt / Ctrl chords and keys the C172 set leaves free).
+static func _add_airliner_defaults(t: Dictionary) -> void:
+	t.throttle_1_up = [spec(KEY_PAGEUP, false, false, true)]
+	t.throttle_1_down = [spec(KEY_PAGEDOWN, false, false, true)]
+	t.throttle_2_up = [spec(KEY_HOME, false, false, true)]
+	t.throttle_2_down = [spec(KEY_END, false, false, true)]
+	t.throttle_detent_up = [spec(KEY_EQUAL, false, false, true)]
+	t.throttle_detent_down = [spec(KEY_MINUS, false, false, true)]
+	t.reverse = [spec(KEY_KP_MULTIPLY), spec(KEY_X, false, true)]
+	t.speedbrake_out = [spec(KEY_BACKSLASH)]
+	t.speedbrake_in = [spec(KEY_SLASH)]
+	t.gear_toggle = [spec(KEY_G, false, true)]
+	t.autobrake_next = [spec(KEY_A, false, true)]
+	t.engine_master_1 = [spec(KEY_E, false, true)]
+	t.engine_master_2 = [spec(KEY_D, false, true)]
+	t.engine_mode_next = [spec(KEY_I, false, true)]
+	t.apu_master = [spec(KEY_U, false, true)]
+	t.apu_start = [spec(KEY_U, false, false, true)]
+	t.rudder_trim_left = [spec(KEY_Z, false, false, true)]
+	t.rudder_trim_right = [spec(KEY_X, false, false, true)]
+	for i in 5:  # Ctrl+1..5 (the view keys ignore Ctrl)
+		t[["fcu_ap1", "fcu_ap2", "fcu_athr", "fcu_loc", "fcu_appr"][i]] = [spec(KEY_1 + i, false, true)]
+	t.fcu_spd_up = [spec(KEY_BRACKETRIGHT, false, false, true)]
+	t.fcu_spd_down = [spec(KEY_BRACKETLEFT, false, false, true)]
+	t.fcu_hdg_right = [spec(KEY_RIGHT, false, false, true)]
+	t.fcu_hdg_left = [spec(KEY_LEFT, false, false, true)]
+	t.fcu_alt_up = [spec(KEY_UP, false, false, true)]
+	t.fcu_alt_down = [spec(KEY_DOWN, false, false, true)]
+	t.fcu_vs_up = [spec(KEY_APOSTROPHE, false, false, true)]
+	t.fcu_vs_down = [spec(KEY_SEMICOLON, false, false, true)]
 
 
 static func describe(s: Dictionary) -> String:
@@ -143,9 +195,10 @@ static func matches(t: Dictionary, action: String, e: InputEventKey, shifted: Di
 
 
 ## Conflicts as readable strings: a key spec on two actions, or on a reserved hotkey.
-static func conflicts(t: Dictionary) -> Array:
+## `only` (when not empty) limits the check to those actions (what the aircraft offers).
+static func conflicts(t: Dictionary, only := []) -> Array:
 	var out := []
-	var acts := t.keys()
+	var acts := t.keys() if only.is_empty() else t.keys().filter(func(a): return a in only)
 	for i in acts.size():
 		for s in t[acts[i]]:
 			if not s.shift and not s.ctrl and not s.alt and RESERVED.has(int(s.key)):

@@ -20,11 +20,29 @@ var _pitot_frozen := 0.0
 var _static_frozen := 0.0
 
 
+func _ready() -> void:
+	add_to_group(SituationSystems.GROUP)
+
+
 func _load_def() -> void:
 	_loaded = true
 	var ps: Dictionary = AircraftDef.current().section("systems").get("pitot_static", {})
 	_err_kcas = ps.get("pos_err_kcas", [])
 	_err_dkt = ps.get("pos_err_dkt", [])
+
+
+## Saved with a flight situation (core/situation_systems.gd).
+func save_key() -> String:
+	return "pitot_static"
+
+
+func save_state() -> Dictionary:
+	return {"pitot_frozen": _pitot_frozen, "static_frozen": _static_frozen}
+
+
+func load_state(d: Dictionary) -> void:
+	_pitot_frozen = float(d.get("pitot_frozen", _pitot_frozen))
+	_static_frozen = float(d.get("static_frozen", _static_frozen))
 
 
 func _physics_process(_dt: float) -> void:

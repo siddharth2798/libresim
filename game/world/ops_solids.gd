@@ -74,12 +74,16 @@ func add_jetway(n: Node3D, ground: float) -> void:
 		ObstacleRegistry.add(group, rec)
 
 
-## Does a part of the raster that the aircraft (ground.height_m, 2.5 m for the C172) would hit stand in a corridor? Then that jetway
-## (a misplaced OSM way) is drawn but not solid, so stands and taxiways stay usable.
+## Does a part of the raster that the aircraft would hit stand in a corridor? Then that jetway
+## (a misplaced OSM way) is drawn but not solid, so stands and taxiways stay usable. "Would hit" is
+## GroundParams.jetway_clear_m: ground.height_m (2.5 m for the C172, so the tunnel, above it, never counts), or
+## ground.door_height_m for an airliner. An 11.8 m tall A320 would hit every part of a jetway, yet its own
+## gate's cab and tunnel stand inside its stand corridor next to the fuselage at door height by design: only
+## the parts below the sill (columns, rotunda base) in a corridor mark a misplaced jetway.
 static func _low_part_in_corridor(rec: Dictionary) -> bool:
 	var o: Vector2 = rec.o
 	var cell: float = rec.cell
-	var height: float = AircraftDef.current().section_or("ground", {"height_m": 2.5}).height_m
+	var height := GroundParams.jetway_clear_m()
 	for k in rec.zmax.size():
 		if rec.zmax[k] > -INF and rec.zmin[k] < height + rec.base:
 			var c := o + Vector2(k % int(rec.nx) + 0.5, k / int(rec.nx) + 0.5) * cell
