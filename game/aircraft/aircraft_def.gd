@@ -136,8 +136,8 @@ func section_or(name: String, defaults: Dictionary) -> Dictionary:
 	return out
 
 
-## Camera view positions, render frame about the CG (x right, y up, z aft): "chase" [back_m, up_m],
-## "wing" and "tail" [x, y, z], "orbit_m" [distance]. aircraft.json "cameras" wins; otherwise the
+## Camera view positions, render frame about the CG (x right, y up, z aft): "chase" [back_m, up_m, (follow_rate_per_s)],
+## "wing" [x, y, z, (yaw_deg, pitch_deg)] and "tail" [x, y, z], "orbit_m" [distance]. aircraft.json "cameras" wins; otherwise the
 ## C172's values scaled by wingspan.
 func camera(view: String) -> Array:
 	var own = section("cameras").get(view, null)

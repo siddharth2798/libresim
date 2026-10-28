@@ -139,7 +139,8 @@ func _process(dt: float) -> void:
 			back.y = 0.0
 			back = back.normalized() if back.length() > 0.1 else Vector3.BACK
 			var target := t.origin + back * float(_cams.chase[0]) + Vector3.UP * float(_cams.chase[1])
-			_chase_pos = _chase_pos.lerp(target, 1.0 - exp(-4.0 * dt))  # frame-rate independent follow
+			var follow := float(_cams.chase[2]) if _cams.chase.size() > 2 else 4.0  # 1/s: the camera trails by speed / follow
+			_chase_pos = _chase_pos.lerp(target, 1.0 - exp(-follow * dt))  # frame-rate independent follow
 			if _chase_pos.distance_to(target) > 60.0:
 				_chase_pos = target
 			look_at_from_position(_chase_pos, t.origin + Vector3.UP)
@@ -157,7 +158,9 @@ func _process(dt: float) -> void:
 			look_at_from_position(p, t.origin)
 		Mode.WING:
 			fov = 75.0
-			global_transform = Transform3D(t.basis * Basis.from_euler(Vector3(-0.15 + _look.y, 0.35 + _look.x, 0.0)), t * Vector3(_cams.wing[0], _cams.wing[1], _cams.wing[2]))
+			var wc: Array = _cams.wing  # [x, y, z, (yaw_deg, pitch_deg)]; the optional pair aims the view (default: 20 deg left, 8.6 deg down)
+			var aim := Vector2(deg_to_rad(float(wc[3])), deg_to_rad(float(wc[4]))) if wc.size() > 4 else Vector2(0.35, -0.15)
+			global_transform = Transform3D(t.basis * Basis.from_euler(Vector3(aim.y + _look.y, aim.x + _look.x, 0.0)), t * Vector3(wc[0], wc[1], wc[2]))
 		Mode.TAIL:
 			fov = 70.0
 			global_transform = Transform3D(t.basis * Basis.from_euler(Vector3(-0.08 + _look.y, _look.x, 0.0)), t * Vector3(_cams.tail[0], _cams.tail[1], _cams.tail[2]))
