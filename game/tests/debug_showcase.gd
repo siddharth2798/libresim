@@ -93,6 +93,7 @@ func _save(suffix := "") -> void:
 func _menu(def: Dictionary) -> void:
 	Session.skip_menu = false
 	Session.setup = Session.DEFAULT.duplicate(true)
+	_choose_aircraft(def)
 	for k in def.get("setup", {}):
 		Session.setup[k] = def.setup[k]
 	if def.has("weather"):
@@ -104,6 +105,11 @@ func _menu(def: Dictionary) -> void:
 	if def.has("step"):
 		s.screen("flight").show_step(int(def.step))
 	await _wait(1.5)
+	if def.has("scroll"):  # scroll the page down by that many pixels (a long page such as the A320's aircraft step)
+		for sc in s.find_children("*", "ScrollContainer", true, false):
+			if (sc as Control).is_visible_in_tree():
+				sc.scroll_vertical = int(def.scroll)
+		await _wait(0.5)
 	await _save()
 
 
@@ -118,12 +124,17 @@ func _flight(def: Dictionary) -> void:
 	_prop_deg = float(def.get("prop_deg", -1.0))
 	for k in def.get("lights", {}):
 		Props.set_v("controls/lights/" + k, def.lights[k])
+	for k in def.get("props", {}):  # any property-tree value, e.g. "controls/gear": 1.0
+		Props.set_v(k, def.props[k])
 	var fdm: FdmNode = f.get_node("Fdm")
 	if def.has("fly"):
 		await _fly(def.fly)
 	if def.has("follow_me"):
 		await _follow_me(def.follow_me)
 	fdm.paused = true  # camera and aircraft stand still while the world streams in
+	if def.has("att"):  # [roll_deg, pitch_deg]: the attitude to show (a stalled start-up frame can leave the aircraft pitched up)
+		var fd: FDM = fdm.fdm
+		fd.q = FDM.euler_to_quat(deg_to_rad(def.att[0]), deg_to_rad(def.att[1]), fd.euler().z)
 	var cam: CameraRig = f.get_node("Camera")
 	var views: Array = def.get("variants", [{}])  # several camera tries from one placement (look, then keep one)
 	for i in views.size():
@@ -216,10 +227,20 @@ func _setup_session(def: Dictionary) -> void:
 		TrainingLogic.begin(lesson, "off")
 	if def.has("weather"):  # after the lesson, which brings its own
 		Session.apply_weather_preset(def.weather)
+	_choose_aircraft(def)
 	for k in def.get("setup", {}):
 		Session.setup[k] = def.setup[k]
 	Session.setup.record = false
 	Session.view = def.get("view", "chase")
+
+
+## setup.aircraft (e.g. "a320"): choose it the way the start screen does, so its payload defaults apply
+## (fuel and loads); the other setup keys are applied after this and override them.
+func _choose_aircraft(def: Dictionary) -> void:
+	var id: String = def.get("setup", {}).get("aircraft", "")
+	if id != "":
+		Session.setup.aircraft = id
+		Session.apply_payload_defaults(AircraftDef.load_def(id))
 
 
 ## Hide every UI element except `keep` (node names under $UI; "training" = the lesson card) and
@@ -344,7 +365,8 @@ func _state() -> String:
 	for mi in tr._chunks.values():
 		n_bb += mi.multimesh.instance_count if mi != null else 0
 	var lod: TreeLod = tr.get_node("Lod")
-	return "terrain nodes %d, tree chunks %d (%d billboards, %d LOD0 meshes within %.0f m), building tiles %d" % [f.get_node("Terrain").visible_nodes, tr._chunks.size(), n_bb, lod.instance_count(), lod.covered, f.get_node("Buildings")._tiles.size()]
+	var e: Vector3 = f.get_node("Fdm").fdm.euler()
+	return "attitude roll %.1f pitch %.1f deg, terrain nodes %d, tree chunks %d (%d billboards, %d LOD0 meshes within %.0f m), building tiles %d" % [rad_to_deg(e.x), rad_to_deg(e.y), f.get_node("Terrain").visible_nodes, tr._chunks.size(), n_bb, lod.instance_count(), lod.covered, f.get_node("Buildings")._tiles.size()]
 
 
 ## Waits until the streamers have been idle for QUIET_S in a row; returns the seconds waited.

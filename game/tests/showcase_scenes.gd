@@ -11,12 +11,15 @@ extends RefCounted
 ##   ui: UI elements to keep ("Hud", "Map", "Panel", "training"); map: show the moving map;
 ##   panel: 2D panel layout index (0 Full, 1 Split, 2 Compact, 3 Minimal, 4 Off)
 ##   wait: seconds before polling the streamers
+##   setup.aircraft: "a320" etc. (payload defaults applied; setup.callsign sets the call sign / tail number); props: {property path: value} set after placement
 ##   prop_deg: fixed propeller angle; lights: {name: bool} cockpit light switches (e.g. strobe);
 ##   pilot_lesson: fly the landing lesson's scripted pilot (fly.landing) without any training UI;
 ##   variants: several camera tries from one placement (files <scene>_<n>.png), for looking around;
 ##   moving map: gps (direct-to ident) or map_route [target, next...]; map_across (nm wide, default = fit), map_heading_up, map_centre_on (ident)
 ##   taxi_banner: {stack, fade_s}: ATC gives "taxi to the apron" just after landing; saves <scene>_a (just issued) and <scene>_b (after fading); keep "Hud", "Atc", "Crash"
 ##   checklist: {frac, size, opacity, collapsed, list, ticks}: open the floating checklist window (F2); keep "Panel", "Atc", "Hud" in ui to check overlaps
+##   att: [roll_deg, pitch_deg] attitude of the frozen aircraft
+##   scroll: (menu) pixels to scroll the page down
 ##   pause: open the full-screen pause on that page (home | options | settings | controls | saves | failures); keep "Hud" in ui
 ##   follow_me: {on_route_m, secs}: ask for taxi, stand the aircraft on the route, let the follow-me car settle ahead; on_follow: cam / aim in the car's frame;
 ##   frame_vehicle: cam / aim in the frame of the nearest ground vehicle of that kind ("gpu", "fuel_truck", ...)
@@ -220,6 +223,25 @@ const SCENES := {
 		"variants": [{"cam": [-16.0, 14.0, 4.5], "aim": [0.0, 0.0, 1.5], "fov": 55.0},
 			{"cam": [14.0, -11.0, 3.0], "aim": [0.0, 0.0, 1.5], "fov": 50.0},
 			{"cam": [0.0, 16.0, 6.0], "aim": [0.0, 0.0, 1.5], "fov": 60.0}]},
+
+	# A320 and call-sign shots (README 11-16; the A320 scenes use setup.aircraft)
+	"a320_gate": {"weather": "Clear", "view": "chase", "agl": true,
+		"setup": {"aircraft": "a320", "airport": "VOCI", "start": "stand", "time_h": 17.5, "visibility_m": 30000.0},
+		"cam": [34.0, -30.0, 6.0], "aim": [-2.0, 0.0, 3.0], "fov": 52.0},
+	"a320_cockpit": {"weather": "Fair", "view": "cockpit",
+		"setup": {"aircraft": "a320", "airport": "VABB", "runway": "27", "start": "air", "air_ft": 3000.0, "air_nm": 12.0, "time_h": 11.0, "visibility_m": 30000.0},
+		"look": [3.0, -11.0], "fov": 48.0},
+	"a320_chase": {"weather": "Scattered", "view": "chase",
+		"setup": {"aircraft": "a320", "airport": "VAPO", "runway": "28", "start": "air", "air_ft": 9000.0, "air_nm": 20.0, "time_h": 16.5, "visibility_m": 40000.0},
+		"cam": [-45.0, -22.0, 9.0], "aim": [0.0, 0.0, 0.0], "fov": 50.0},
+	"a320_final": {"weather": "Clear", "view": "chase",
+		"setup": {"aircraft": "a320", "airport": "VABB", "runway": "27", "start": "air", "air_ft": 250.0, "air_nm": 1.3, "air_kt": 140.0, "time_h": 18.85, "visibility_m": 20000.0},
+		"props": {"controls/gear": 1.0, "controls/flaps": 4}, "att": [0.0, 3.0],
+		"cam": [28.0, -30.0, 3.0], "aim": [0.0, 0.0, 0.5], "fov": 50.0},
+	"a320_aircraft_page": {"menu": "flight", "step": 1, "scroll": 150, "setup": {"aircraft": "a320", "airport": "VABB", "start": "stand", "time_h": 18.0}},
+	"c172_tail": {"weather": "Clear", "view": "chase", "agl": true,
+		"setup": {"airport": "VAPO", "start": "stand", "callsign": "VT-LBR", "time_h": 16.9, "visibility_m": 30000.0},
+		"cam": [-3.0, 6.5, 1.6], "aim": [-2.0, 0.0, 1.5], "fov": 45.0},
 
 	# Roads, rivers, shore foam and water depth colour (terrain ribbons, tools/20, 21)
 	"coast_juhu": {"weather": "Fair", "view": "chase",

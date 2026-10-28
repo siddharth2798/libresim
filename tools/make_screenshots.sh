@@ -10,6 +10,7 @@
 # Your settings are backed up first and restored at the end (the capture reads no saved options:
 # graphics come from --quality=ultra, the flight from the scene definition).
 set -u
+command -v timeout > /dev/null || timeout() { shift; "$@"; }  # macOS has no timeout(1): run without a time limit
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 GODOT="${GODOT:-$HOME/.local/bin/godot}"
 PY="$ROOT/tools/.venv/bin/python"
@@ -32,6 +33,12 @@ SHOTS=(
 	"moving_map:08-moving-map"
 	"start_home:09-start-screen"
 	"start_flight:10-airport-picker"
+	"a320_gate:11-a320-gate-kochi"
+	"a320_cockpit:12-a320-cockpit"
+	"a320_chase:13-a320-cruise"
+	"a320_final:14-a320-final-dusk"
+	"a320_aircraft_page:15-a320-aircraft-page"
+	"c172_tail:16-callsign-tail-number"
 )
 
 mkdir -p "$FREESIM_SHOTS" "$BACKUP" "$DEST"
