@@ -1,0 +1,80 @@
+{
+ "source": "Short procedures written for libresim from the public outline of airliner normal operations. Simplified, not any airline's or the manufacturer's checklist; not for real-world flight.",
+ "lists": [
+  {"name": "Cockpit Preparation", "items": [
+   {"text": "Parking brake - ON", "prop": "controls/parking_brake", "eq": true},
+   {"text": "Batteries - ON (bus DC BAT powered)", "prop": "systems/electrical/dc_bat_on", "eq": true},
+   {"text": "External power or APU - ON (APU master, then hold APU start; optional)", "prop": "apu/running", "eq": true},
+   {"text": "AC / DC buses - POWERED", "prop": "systems/electrical/ac1_on", "eq": true},
+   {"text": "Navigation lights - ON", "prop": "controls/lights/nav", "eq": true},
+   {"text": "Gear lever - DOWN", "prop": "controls/gear", "eq": 1},
+   {"text": "Altimeters - SET (QNH)"},
+   {"text": "FCU - SET (speed, heading, altitude)"}
+  ]},
+  {"name": "Before Start", "items": [
+   {"text": "Doors and cabin - CLOSED, SECURE"},
+   {"text": "Beacon - ON", "prop": "controls/lights/beacon", "eq": true},
+   {"text": "Fuel - CHECKED (quantity and distribution)", "prop": "fuel/total_kg", "range": [1500.0, 25000.0]},
+   {"text": "Flaps - SET for takeoff (CONF 1+F or 2)", "prop": "fdm/flap_lever", "range": [1, 3]},
+   {"text": "Speedbrake - RETRACTED, autobrake - MAX", "prop": "controls/autobrake", "eq": 3},
+   {"text": "Pushback and start clearance - OBTAINED"}
+  ]},
+  {"name": "Engine Start", "items": [
+   {"text": "Engine mode selector - IGN / START", "prop": "controls/engine_mode", "eq": 2},
+   {"text": "Engine 2 master - ON; N2 rises, light-off, idle", "prop": "engines/2/running", "eq": true},
+   {"text": "Engine 1 master - ON; N2 rises, light-off, idle", "prop": "engines/1/running", "eq": true},
+   {"text": "Engine mode selector - NORM", "prop": "controls/engine_mode", "eq": 0},
+   {"text": "APU - OFF (APU master)"}
+  ]},
+  {"name": "After Start", "items": [
+   {"text": "Hydraulics, generators - NORMAL (engine generators on)", "prop": "systems/electrical/gen1_on", "eq": true},
+   {"text": "Flight controls - CHECKED (full travel)"},
+   {"text": "Rudder trim - ZERO", "prop": "controls/rudder_trim", "range": [-0.05, 0.05]},
+   {"text": "Pushback complete, tow bar disconnected - CONFIRMED"}
+  ]},
+  {"name": "Taxi", "items": [
+   {"text": "Parking brake - OFF", "prop": "controls/parking_brake", "eq": false},
+   {"text": "Taxi light - ON", "prop": "controls/lights/taxi", "eq": true},
+   {"text": "Brakes - CHECKED"},
+   {"text": "Flight instruments - CHECKED"}
+  ]},
+  {"name": "Before Takeoff", "items": [
+   {"text": "Strobe lights - ON", "prop": "controls/lights/strobe", "eq": true},
+   {"text": "Landing lights - ON", "prop": "controls/lights/landing", "eq": true},
+   {"text": "Flaps - SET (CONF 1+F, 2 or 3)", "prop": "fdm/flap_lever", "range": [1, 3]},
+   {"text": "Autobrake - MAX (RTO)", "prop": "controls/autobrake", "eq": 3},
+   {"text": "Speedbrake - RETRACTED", "prop": "controls/speedbrake", "range": [0.0, 0.05]},
+   {"text": "Takeoff thrust - SET (FLX/MCT or TOGA detent)"}
+  ]},
+  {"name": "After Takeoff", "items": [
+   {"text": "Landing gear - UP", "prop": "controls/gear", "eq": 0},
+   {"text": "Flaps - RETRACT on schedule", "prop": "fdm/flap_lever", "eq": 0},
+   {"text": "Autobrake - OFF", "prop": "controls/autobrake", "eq": 0},
+   {"text": "Landing lights - OFF (above 10,000 ft)"}
+  ]},
+  {"name": "Approach", "items": [
+   {"text": "Altimeters - SET (QNH)"},
+   {"text": "Landing lights - ON", "prop": "controls/lights/landing", "eq": true},
+   {"text": "Autobrake - LO or MED", "prop": "controls/autobrake", "range": [1, 2]},
+   {"text": "Seat belts - ON"}
+  ]},
+  {"name": "Landing", "items": [
+   {"text": "Landing gear - DOWN", "prop": "controls/gear", "eq": 1},
+   {"text": "Flaps - FULL (CONF 3 for light weights or crosswind)", "prop": "fdm/flap_lever", "range": [3, 4]},
+   {"text": "Speedbrake - ARMED / RETRACTED", "prop": "controls/speedbrake", "range": [0.0, 0.05]},
+   {"text": "Approach speed - Vapp, stabilised by 1,000 ft"}
+  ]},
+  {"name": "After Landing", "items": [
+   {"text": "Speedbrake - RETRACTED", "prop": "controls/speedbrake", "range": [0.0, 0.05]},
+   {"text": "Flaps - RETRACTED", "prop": "fdm/flap_lever", "eq": 0},
+   {"text": "Landing and strobe lights - OFF"},
+   {"text": "APU - START for the gate (APU master and start)", "prop": "apu/running", "eq": true}
+  ]},
+  {"name": "Parking", "items": [
+   {"text": "Parking brake - ON", "prop": "controls/parking_brake", "eq": true},
+   {"text": "Engine masters - OFF", "prop": "engines/1/running", "eq": false},
+   {"text": "Beacon - OFF", "prop": "controls/lights/beacon", "eq": false},
+   {"text": "Seat belts - OFF; doors - OPEN when cleared"}
+  ]}
+ ]
+}

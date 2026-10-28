@@ -219,7 +219,7 @@ func test_disp_adirs_and_engines() -> String:
 	if err == "" and (absf(c.n1_pct - 86.5) > 1e-6 or absf(c.n2_pct - 91.0) > 1e-6 or absf(c.egt_c - 640.0) > 0.01 or absf(c.ff_kgh - 1152.0) > 0.01 or absf(c.oil_psi - 51.9) > 0.1):
 		err = "engine units %s" % [c]
 	Props.set_v("engine/count", 2)
-	Props.set_v("engines/2/n1", 0.5)
+	Props.set_v("engines/2/n1", 50.0)  # percent, like fdm_airliner_props
 	Props.set_v("engines/2/ff", 0.25)
 	Props.set_v("engines/2/running", true)
 	var e := AirlinerEngines.new()

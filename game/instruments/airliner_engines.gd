@@ -2,8 +2,8 @@ class_name AirlinerEngines
 extends Node
 ## Engine indications of a turbofan airliner in display units, per engine n (1-based):
 ## instruments/engines/<n>/{n1_pct, n2_pct, egt_c, ff_kgh, oil_psi, running} and engines/count.
-## In (SI, from the FDM): engines/<n>/{n1, n2 (fractions of rated, 1.0 = 100 %), egt_k, ff (kg/s; falls
-## back to fuel_flow_kgs), oil_press_pa, running}. Needle lag so the digits do not jump.
+## In (from the FDM): engines/<n>/{n1, n2 (percent, as fdm_airliner_props publishes them), egt_k, ff (kg/s; falls
+## back to fuel_flow_kgs), oil_press_pa, running}; to_display() itself takes fractions. Needle lag so the digits do not jump.
 
 const LAG := 4.0  # 1/s
 const PA_PER_PSI := 6894.757
@@ -27,7 +27,7 @@ func publish(dt: float) -> void:
 	for n in range(1, count + 1):
 		var b := "engines/%d/" % n
 		var ff: float = Props.get_f(b + "ff", Props.get_f(b + "fuel_flow_kgs"))
-		var tgt := to_display(Props.get_f(b + "n1"), Props.get_f(b + "n2"), Props.get_f(b + "egt_k", 288.15), ff, Props.get_f(b + "oil_press_pa"))
+		var tgt := to_display(Props.get_f(b + "n1") / 100.0, Props.get_f(b + "n2") / 100.0, Props.get_f(b + "egt_k", 288.15), ff, Props.get_f(b + "oil_press_pa"))
 		for k in tgt:
 			var key := "%d/%s" % [n, k]
 			var cur: float = _v.get(key, tgt[k])

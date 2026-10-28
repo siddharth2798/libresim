@@ -11,9 +11,14 @@ extends Node3D
 ##   origin_m    [x, y, z] structural position of the glb's origin (default metrics.vrp_m)
 ##   surfaces    {pivot name: {"drive": fcs field, "sign": 1 | -1}}; glb nodes are "pivot_<name>"
 ##               (hinge on +X: positive moves the trailing edge down). drive = elevator | aileron |
-##               rudder (rad) or flap_deg (degrees, converted)
+##               rudder (rad) or flap_deg (degrees, converted); the airliner drives (slat, stabilizer, spoiler
+##               panels, gear_pos / reverser with a piecewise "map", nose steering, wheel spin) are listed in
+##               aircraft/model_drives.gd. A leg pivot with "compress": <gear contact name> (and "lift_m": the metres
+##               its wheels hang below the contact point when extended) is raised by the contact's compression, so
+##               tyres rest on the ground instead of sinking by the static spring deflection (0.3 m on the A320)
 ##   propellers  [{"pivot": name, "engine": unit index (0 = engine 1), "sign": +-1, "visual_rate": f}]
-##               spins pivot_<name> about its +X by sign * rpm/60 * TAU * dt * visual_rate
+##               spins pivot_<name> about its +X by sign * rpm/60 * TAU * dt * visual_rate (a turbofan's rpm is
+##               its N1 in percent, so a fan needs a visual_rate near 0.75, a propeller 0.13)
 ## The glb frame is FlightGear's model frame (x aft, y right, z up) exported Y-up by glTF.
 
 const DEFAULTS := {
@@ -33,6 +38,9 @@ var _model := {}  # "model" section over DEFAULTS
 var _airframe: PlaceholderAirframe
 var _pivots := {}  # glb mode: surface name -> [Node3D, base Basis]
 var _props: Array = []  # glb mode: [Node3D, engine index, sign, visual rate]
+var _wheels := {}  # wheel pivot drive -> rolling angle (ModelDrives.roll_wheels)
+var _wheel_drives := false
+var _legs: Array = []  # glb mode: [pivot, base position, contact name, lift m] (a pivot with "compress")
 
 
 func build(node: FdmNode) -> void:
@@ -66,6 +74,9 @@ func _build_glb(path: String) -> void:
 		var pv := inst.find_child("pivot_" + n, true, false) as Node3D
 		if pv:
 			_pivots[n] = [pv, pv.transform.basis]
+			_wheel_drives = _wheel_drives or str(_model.surfaces[n].drive).begins_with("wheel_")
+			if _model.surfaces[n].has("compress"):
+				_legs.append([pv, pv.position, str(_model.surfaces[n].compress), float(_model.surfaces[n].get("lift_m", 0.0))])
 	for p in _model.propellers:
 		var pv := inst.find_child("pivot_" + str(p.pivot), true, false) as Node3D
 		if pv:
@@ -146,11 +157,16 @@ func _process(dt: float) -> void:
 ## pivot's +X moves the trailing edge down (ailerons, flaps), up (elevators, axis runs
 ## outboard->inboard reversed), right (rudder); the aircraft's model.surfaces carries them.
 func _animate_glb(f: FDM, dt: float) -> void:
+	if _wheel_drives:
+		ModelDrives.roll_wheels(_wheels, f, dt)
 	for k in _pivots:
 		var s: Dictionary = _model.surfaces[k]
-		var drive := str(s.drive)
-		var v: float = deg_to_rad(f.fcs.flap_deg) if drive == "flap_deg" else float(f.fcs.get(drive))
+		var v := ModelDrives.angle(k, s, f, _wheels)  # drives and "map": aircraft/model_drives.gd
 		_pivots[k][0].transform.basis = _pivots[k][1] * Basis(Vector3.RIGHT, v * float(s.get("sign", 1.0)))
+	for l in _legs:  # compression is vertical: raise the leg in the pivot's parent space
+		var pv: Node3D = l[0]
+		var up := (float(f.gear.compression.get(l[2], 0.0)) + float(l[3])) * (float(f.fcs.get("gear_pos")) if "gear_pos" in f.fcs else 1.0)
+		pv.position = l[1] + pv.get_parent().global_transform.basis.inverse() * (global_transform.basis * Vector3(0.0, up, 0.0))
 	for p in _props:
 		if p[1] < f.units.size():
 			(p[0] as Node3D).rotate_object_local(Vector3.RIGHT, p[2] * f.units[p[1]].thruster.rpm / 60.0 * TAU * dt * p[3])

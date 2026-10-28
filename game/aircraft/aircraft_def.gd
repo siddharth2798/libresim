@@ -19,7 +19,9 @@ extends RefCounted
 ##            flight_no, callsign_style: "airline"}: how ATC talks to the aircraft (atc/atc_profile.gd)
 ##   cameras  chase / wing / tail / orbit view positions (ui/camera_rig.gd), see camera()
 ##   registration  tail number painted at flight start: {source: callsign | fixed, text, texture, targets: [{erase, text, align, color, italic}]} (common/registration_paint.gd)
-##   start    pitch_trim of a parked start (world/flight.gd)
+##   start    pitch_trim of a parked start, air_kt of an airborne one (world/flight.gd)
+##   fcs      {"law": "airbus_fbw"}: fly-by-wire control law (fdm/fbw_law.gd); absent = direct control
+##   callouts optional {alive_kt, rotate_kt, v1_kt, low_kt, heights}: the training callouts (ui/callouts.gd)
 ##   ground   footprint, height, tow point, optional min_runway_m (the start screen flags shorter runways) for stands, taxi corridors and jetways (world/ops_*.gd); all keys in world/ground_params.gd
 ##   pushback  straight_m, radius_m, speed_mps of the pushback path (world/pushback_path.gd)
 ##   payload  start-screen fuel slider and stations (ui/menu/aircraft_page.gd, weight_balance.gd):

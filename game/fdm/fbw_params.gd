@@ -18,10 +18,10 @@ const DEFAULTS := {
 	"ground_blend_s": 1.0,  # ground <-> flight blend at liftoff / touchdown
 	"ground_gain": [[0.0, 1.0], [60.0, 1.0], [140.0, 0.6], [220.0, 0.4]],  # direct elevator vs CAS (kt) while rolling
 	"flare": {"ra_ft": 50.0, "full_ft": 15.0, "bias_g": 0.10, "max_lever": 0.35},
-	"pitch": {"kn": 2.0, "ki": 0.0, "kq": 55.0, "kiq": 40.0, "q_max_dps": 12.0, "trim_k": 6.0, "trim_dead_deg": 0.05,
+	"pitch": {"kn": 2.0, "ki": 0.0, "kq": 80.0, "kiq": 120.0, "q_max_dps": 12.0, "trim_k": 6.0, "trim_dead_deg": 0.05,
 		"k_alpha": 2.5, "alpha_lead_s": 0.5, "k_theta": 1.2},
-	"roll": {"rate_dps": 15.0, "kp": 55.0, "ki": 60.0, "kff": 0.0, "k_bank": 1.6, "hold_deg": 33.0, "limit_deg": 67.0,
-		"limit_prot_deg": 45.0, "taper_deg": 7.0, "level_deg": 2.5, "spoiler_start": 0.3, "spoiler_max_deg": 35.0},
+	"roll": {"rate_dps": 15.0, "kp": 55.0, "ki": 60.0, "kff": 40.0, "k_bank": 1.6, "hold_deg": 33.0, "limit_deg": 67.0,
+		"limit_prot_deg": 45.0, "taper_deg": 5.0, "level_deg": 2.5, "spoiler_start": 0.3, "spoiler_max_deg": 35.0},
 	"yaw": {"k_r": 25.0, "k_beta": 40.0, "limit_deg": 8.0, "travel_kt": [[0.0, 25.0], [160.0, 25.0], [380.0, 3.4]]},
 	"alpha_deg": {  # per configuration (slat, flap deg): protection, max and stall angle of attack, JSBSim A320
 		"rows": [[0.0, 0.0, 8.6, 11.56, 13.84], [18.0, 0.0, 11.5, 13.74, 14.24], [18.0, 10.0, 11.3, 13.8, 14.4],

@@ -9,7 +9,8 @@ const DEFAULT := {
 	"airport": "VAJJ", "runway": "", "start": "runway",  # runway | stand | air
 	"stand": "", "air_ft": 1500.0, "air_nm": 5.0, "air_kt": 90.0, "cold": false,
 	"aircraft": "c172",
-	"fuel_gal": 17.0, "copilot_kg": 0.0, "rear_kg": 0.0, "baggage_kg": 0.0,  # per tank / per station
+	"fuel_gal": 17.0, "copilot_kg": 0.0, "rear_kg": 0.0, "baggage_kg": 0.0,  # per tank (total kg when payload.fuel_unit is "kg") / per station
+	"cabin_kg": 0.0, "cargo_kg": 0.0,  # A320 stations
 	"weather": "Fair", "time_h": 10.0, "time_rate": 1.0, "day_of_year": 45.0,
 	"wind_dir_deg": 270.0, "wind_kt": 8.0, "gust_kt": 0.0, "turbulence": 0.15,
 	"visibility_m": 20000.0, "cloud_cover": 0.3, "cloud_base_ft": 4500.0,
@@ -88,6 +89,14 @@ func end_lesson() -> void:
 	training = ""
 
 
+## Fuel and station loads of a (newly chosen) aircraft: its aircraft.json payload.defaults, else the game
+## defaults of those keys (the C172 has no "defaults", so choosing it restores the plain start loading).
+func apply_payload_defaults(def: AircraftDef) -> void:
+	var d = def.section("payload").get("defaults", {})
+	for k in ["fuel_gal", "copilot_kg", "rear_kg", "baggage_kg", "cabin_kg", "cargo_kg"]:
+		setup[k] = float(d.get(k, DEFAULT[k])) if d is Dictionary else float(DEFAULT[k])
+
+
 func save() -> void:
 	var f := FileAccess.open(SAVE, FileAccess.WRITE)
 	if f:
@@ -118,6 +127,9 @@ func _parse_cmdline() -> void:
 				setup.start = "stand"
 				setup.stand = v
 			"cold": setup.cold = true
+			"aircraft":  # --aircraft=a320 (an unknown id falls back to the c172); its payload defaults apply
+				setup.aircraft = v.to_lower()
+				apply_payload_defaults(AircraftDef.load_def(setup.aircraft))
 			"callsign": setup.callsign = v.to_upper()  # --callsign=VT-ABC (radio call sign and tail number)
 			"tod": setup.time_h = float(v)
 			"day": setup.day_of_year = float(v)  # day of the year (moon phase, sun times)

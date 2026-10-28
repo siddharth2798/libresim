@@ -38,7 +38,13 @@ func build() -> Array:
 	if parent:
 		for n in GA_NODES:
 			var old := parent.get_node_or_null(n)
-			if old:
+			if old == null:
+				continue
+			if parent.is_inside_tree() and not parent.is_node_ready():  # the scene is still being readied: remove after it
+				old.process_mode = Node.PROCESS_MODE_DISABLED
+				parent.remove_child.call_deferred(old)
+				old.queue_free.call_deferred()
+			else:
 				parent.remove_child(old)
 				old.queue_free()
 	var make := [

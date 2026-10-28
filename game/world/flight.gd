@@ -1,6 +1,7 @@
 extends Node3D
 ## Main flight scene. Started from the start screen (ui/menu) with the setup in the
 ## Session autoload, or directly with command-line options (after "--"):
+##   --aircraft=c172|a320         the aircraft (default c172; its payload defaults apply)
 ##   --airport=VAJJ --runway=08   start on a runway (default VAJJ, first runway)
 ##   --air=<alt_ft> [--air-nm=5] [--air-kt=90]  start airborne on the runway's extended centreline, 5 nm out, at 90 KIAS
 ##   --stand[=REF]                start parked at a stand/gate, cold & dark (e.g. --stand="Bay 40"); default: a jetbridge gate
@@ -47,6 +48,9 @@ func _ready() -> void:
 			_air_ft = float(s.air_ft)
 			_air_nm = float(s.air_nm)
 			_air_kt = float(s.get("air_kt", 90.0))
+			var def_kt = AircraftDef.current().section("start").get("air_kt")  # an airliner starts fast, not at 90 KIAS
+			if def_kt != null and is_equal_approx(_air_kt, float(Session.DEFAULT.air_kt)):
+				_air_kt = float(def_kt)
 		"stand": _stand_ref = s.stand if s.stand != "" else "*"
 	_cold = bool(s.cold)
 	_shot = Session.shot
@@ -64,6 +68,8 @@ func _ready() -> void:
 	$UI/Atc.fdm_node = fdm_node
 	$Avionics/Nav.terrain = terrain
 	$Avionics/Gps.db = $Avionics/Nav.db
+	if AirlinerNodes.wanted(AircraftDef.current()):  # glass-cockpit instrument feeds and autoflight
+		AirlinerNodes.add($Instruments, $Systems, $Avionics/Nav.db)
 	$Systems/Failures.fdm_node = fdm_node
 	$TouchdownFx.setup(fdm_node)
 	$Training.setup(fdm_node, airports, terrain)
@@ -101,6 +107,8 @@ func _reset() -> void:
 	var hdg: float = _start.heading_deg
 	FloatingOrigin.set_origin(p)
 	_load_aircraft()
+	if AirlinerNodes.wanted(AircraftDef.current()):  # gear down, except an airborne start at 200 kt or more
+		Props.set_v("controls/gear", 0 if _air_ft > 0.0 and _air_kt >= 200.0 else 1)
 	if _air_ft > 0.0:
 		var back := Vector2(sin(deg_to_rad(hdg)), cos(deg_to_rad(hdg))) * -_air_nm * 1852.0
 		var q := p + back
@@ -145,6 +153,11 @@ func _reset() -> void:
 			eng.oil_press_pa = 4.5e5
 	$Instruments/Gyros.start_running()
 	$Instruments/Compass.settle()
+	if AirlinerNodes.wanted(AircraftDef.current()):
+		AirlinerNodes.start_state(fdm_node.fdm, (_cold or _stand_ref != "") and _air_ft <= 0.0, _air_ft > 0.0)
+		if _air_ft <= 0.0:
+			AirlinerNodes.settle_on_ground(fdm_node.fdm)
+			fdm_node._snap()
 	if (_cold or _stand_ref != "") and _air_ft <= 0.0:  # parked at a stand = always cold & dark
 		_cold_and_dark()
 	$Systems/Failures.restart()
@@ -156,8 +169,9 @@ func _load_aircraft() -> void:
 	var s: Dictionary = Session.setup
 	var mb := fdm_node.fdm.mb
 	var pl := AircraftDef.current().section("payload")
-	for t in mb.tanks:
-		t.contents_kg = minf(float(s.fuel_gal) * float(pl.get("fuel_kg_per_gal", WeightBalance.DEFAULT_KG_PER_GAL)), t.capacity_kg)
+	var fuel := WeightBalance.fuel_per_tank({"payload": pl}, AircraftDef.current().config(), float(s.fuel_gal))  # per tank (gal) or total (kg)
+	for i in mb.tanks.size():
+		mb.tanks[i].contents_kg = minf(fuel[i], mb.tanks[i].capacity_kg)
 	var masses := WeightBalance.station_masses(pl, s)
 	for n in masses:
 		mb.set_payload(n, masses[n])

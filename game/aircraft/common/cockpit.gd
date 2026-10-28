@@ -8,7 +8,10 @@ extends Node3D
 ## aircraft.json "cockpit":
 ##   eye         [x, y, z] pilot eye in the glb's model frame (x aft, y right, z up from the model origin)
 ##   panel_mesh  name of the gauge panel's mesh node (round gauges are lifted clear of its bezels)
-##   spots       {item name: {"pos": [x,y,z] model frame, "size": face width m, "round": bool}}
+##   spots       {item name: {"pos": [x,y,z] model frame, "size": face width m, "round": bool, "screen": name, "item": panel item}}
+##   screens     {name: {centre, width, height, u_dir, v_dir, normal}} glass displays measured on the glb (model
+##               frame, m). A spot whose item (or "screen") names one gets a quad of exactly that size and tilt
+##               (the display is stretched to the glass); other spots are upright quads of "size" wide.
 ## Item names are the InstrumentPanel ones (panel.json): gauges, "radios", "strip", "switches".
 
 const REFRESH := 1.0 / 30.0
@@ -48,9 +51,10 @@ func build(model: AircraftModel, fallback_eye: Vector3) -> void:
 	if interior != null and not spots.is_empty():
 		var front := _panel_front()
 		for k in spots:
-			if not rects.has(k):
+			var item := str(spots[k].get("item", k))  # "item": the panel item a second spot (the first officer's) shows
+			if not rects.has(item):
 				continue
-			var r: Rect2 = rects[k]
+			var r: Rect2 = rects[item]
 			var w: float = spots[k].size
 			var pos := model.fg_to_local(_vec(spots[k].pos)) + Vector3(0, 0, 0.004)
 			var s := 1.0
@@ -60,12 +64,24 @@ func build(model: AircraftModel, fallback_eye: Vector3) -> void:
 				var lifted := Vector3(pos.x, pos.y, front + FACE_GAP)
 				s = (eye - lifted).length() / (eye - pos).length()
 				pos = lifted
+			var sc = cfg.get("screens", {}).get(str(spots[k].get("screen", k)))
+			if sc is Dictionary:
+				var u := _dir(sc.u_dir)
+				var v := _dir(sc.v_dir)
+				var n := _dir(sc.normal)
+				_add_quad(model.fg_to_local(_vec(sc.centre)) + n * 0.003, Vector2(sc.width, sc.height), r, Basis(u, v, n))
+				continue
 			_add_quad(pos, Vector2(w, w * r.size.y / r.size.x) * s, r, Basis())
 	else:
 		_build_placeholder(fallback_eye)
 	var lighting := CockpitLighting.new()
 	add_child(lighting)
 	lighting.setup(_quads, [rects["radios"]] if interior != null and not spots.is_empty() and rects.has("radios") else [], eye)
+
+
+## A model-frame direction (x aft, y right, z up) in the aircraft's local frame (x right, y up, z aft).
+func _dir(a: Array) -> Vector3:
+	return Vector3(a[1], a[2], a[0])
 
 
 func _vec(a: Array) -> Vector3:

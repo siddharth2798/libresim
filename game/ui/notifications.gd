@@ -178,6 +178,8 @@ func _process(dt: float) -> void:
 	var hint := ""
 	if not crashed and not Props.get_b("engine/running") and Props.get_f("engine/rpm") < 300.0 and not Props.get_b("failures/engine"):
 		hint = "Engine stopped — mixture rich, magnetos BOTH (M), hold S to start" if AircraftDef.current().engine_type() == "piston" else "Engine stopped — hold S to start"
+		if AircraftControls.current().has_group("engine_master"):  # an airliner: mode selector, then the masters
+			hint = "Engines stopped — set the engine mode to IGN/START, then switch the engine masters on (J: controls)"
 	_hint.text = hint
 
 

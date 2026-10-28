@@ -46,8 +46,9 @@ func update(dt: float, f: FDM) -> void:
 	var c: AirlinerControls = f.fcs
 	if not _ready:
 		s.find_gear_height(f)
+		s.update(f, par, dt)
 		_ready = true
-		wg = 1.0 if f.gear.wow else 0.0
+		wg = 1.0 if (f.gear.wow or s.ra_ft < 2.0) else 0.0  # wow is only known after the first gear step
 		_rebuild(c)
 	s.update(f, par, dt)
 	prot.update_limits(s, par)
@@ -84,7 +85,7 @@ func _flight_laws(c: AirlinerControls, ap_on: bool) -> void:
 	var dz := par.f("stick_deadzone")
 	var sp := _dz(c.pitch, dz)
 	var sr := _dz(c.roll, dz)
-	var e_dir := pitch.ground(s, par, sp, c)
+	var e_dir := pitch.ground(s, par, c.pitch, c)
 	# pitch
 	var lim := prot.nz_limits(s, par)
 	var inc := Props.get_f("ap/cmd/nz_g") if ap_on else (sp * (lim.y - 1.0) if sp > 0.0 else sp * (1.0 - lim.x) * prot.forward_authority(par))

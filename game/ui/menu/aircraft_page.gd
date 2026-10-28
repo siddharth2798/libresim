@@ -11,7 +11,9 @@ var _desc: Label
 var _specs: GridContainer
 var _credit: Label
 var _weight: Label
+const LOADING_NOTE := "Over-weight or out-of-CG loading is allowed but you will feel it: longer takeoff roll, slower climb, higher stall speed; an aft CG makes pitch light and unstable."
 var _chart: Control
+var _note: Label  # the loading note under the aircraft list (names the pilot weight)
 var _cfg := {}
 var _ac := {}
 var _sliders := {}
@@ -28,7 +30,8 @@ func _ready() -> void:
 	_list.size_flags_vertical = SIZE_EXPAND_FILL
 	left.add_child(_list)
 	left.add_child(MenuTheme.note("More aircraft are planned; aircraft are data (aircraft/<id>/*.json)."))
-	left.add_child(MenuTheme.note("Pilot 82 kg is included. Over-weight or out-of-CG loading is allowed but you will feel it: longer takeoff roll, slower climb, higher stall speed; an aft CG makes pitch light and unstable."))
+	_note = MenuTheme.note("")
+	left.add_child(_note)
 	var mid := VBoxContainer.new()
 	mid.size_flags_horizontal = SIZE_EXPAND_FILL
 	mid.add_theme_constant_override("separation", 6)
@@ -75,6 +78,7 @@ func _ready() -> void:
 			_show(j)
 	_list.item_selected.connect(func(i):
 		Session.setup.aircraft = _list.get_item_metadata(i).id
+		Session.apply_payload_defaults(AircraftDef.load_def(Session.setup.aircraft))  # fuel and loads suit the new aircraft
 		_show(_list.get_item_metadata(i)))
 	if _ac.is_empty() and _list.item_count > 0:
 		_list.select(0)
@@ -111,7 +115,8 @@ func _build_sliders(pl: Dictionary) -> void:
 		c.queue_free()
 	_sliders.clear()
 	var f: Dictionary = pl.get("fuel_slider", {"min": 0.0, "max": 20.0, "step": 1.0, "unit": "gal"})
-	_slider(_fuel_box, "Fuel per tank", "fuel_gal", f.min, f.max, f.step, f.get("unit", "gal"))
+	var in_kg := WeightBalance.fuel_in_kg({"payload": pl})  # total fuel in kg (the A320) instead of gal per tank
+	_slider(_fuel_box, "Fuel (total)" if in_kg else "Fuel per tank", "fuel_gal", f.min, f.max, f.step, f.get("unit", "gal"))
 	for st in pl.get("stations", []):
 		_slider(_fuel_box, st.label, st.key, 0.0, st.max, st.step, "kg")
 
@@ -124,6 +129,8 @@ func _show(j: Dictionary) -> void:
 	_cat.text = j.get("category", "")
 	_desc.text = j.get("description", "")
 	_credit.text = j.get("model_credit", "")
+	var pilot := float(j.get("pilot_kg", 82.0))
+	_note.text = ("Pilot %d kg is included. " % int(pilot) if pilot > 0.0 else "The crew is included in the empty weight. ") + LOADING_NOTE
 	for c in _specs.get_children():
 		c.queue_free()
 	for s in j.get("specs", []):
@@ -146,19 +153,23 @@ func _update_weight() -> void:
 	var s: Dictionary = Session.setup
 	var pl: Dictionary = _ac.get("payload", {})
 	var tanks := maxi((_cfg.get("tanks", []) as Array).size(), 1)
-	var gal := float(tanks) * float(s.fuel_gal)  # total fuel, all tanks
-	var w: float = float(_ac.empty_kg) + float(_ac.pilot_kg) + gal * WeightBalance.kg_per_gal(_ac)
+	var in_kg := WeightBalance.fuel_in_kg(_ac)
+	var gal := float(s.fuel_gal) if in_kg else float(tanks) * float(s.fuel_gal)  # total fuel, all tanks (kg for the A320)
+	var w: float = float(_ac.empty_kg) + float(_ac.pilot_kg) + (gal if in_kg else gal * WeightBalance.kg_per_gal(_ac))
 	for st in pl.get("stations", []):
 		w += float(s.get(st.key, 0.0))
 	var over := w > float(_ac.mtow_kg)
-	var txt := "Weight %d kg (%d lb), max %d\nFuel %d gal ≈ %.1f h at 75 %% power" % [
-		int(w), int(w / 0.4536), int(_ac.mtow_kg),
-		int(gal), maxf(gal - float(pl.get("reserve_gal", 3.0)), 0.0) / float(pl.get("cruise_gph", 9.0))]
+	var txt := "Weight %d kg (%d lb), max %d\n" % [int(w), int(w / 0.4536), int(_ac.mtow_kg)]
+	if in_kg:
+		txt += "Fuel %d kg ≈ %.1f h at cruise" % [int(gal), maxf(gal - float(pl.get("reserve_kg", 1800.0)), 0.0) / float(pl.get("cruise_kgh", 2500.0))]
+	else:
+		txt += "Fuel %d gal ≈ %.1f h at 75 %% power" % [int(gal), maxf(gal - float(pl.get("reserve_gal", 3.0)), 0.0) / float(pl.get("cruise_gph", 9.0))]
 	var wb := WeightBalance.compute(_ac, s, _cfg)
 	var bad := over
 	if not wb.is_empty():
 		bad = bad or not wb.ok
-		txt += "\nCG %.1f in T/O, %.1f in LDG" % [wb.takeoff.cg_in, wb.landing.cg_in]
+		var cgu := str(_ac.cg_envelope.get("cg_unit", "in"))
+		txt += "\nCG %.1f %s T/O, %.1f %s LDG" % [wb.takeoff.cg_in, cgu, wb.landing.cg_in, cgu]
 	var issues := []
 	if over:
 		issues.append("OVER MTOW")
@@ -166,6 +177,7 @@ func _update_weight() -> void:
 		issues.append("CG OUT OF LIMITS")
 	if not issues.is_empty():
 		txt += "\n" + ", ".join(issues)
+	if not wb.is_empty():
 		_chart.set_data(_ac.cg_envelope, wb)
 	_chart.visible = not wb.is_empty()
 	_weight.text = txt

@@ -10,7 +10,8 @@ extends RefCounted
 const ALIVE_KT := 40.0       # airspeed alive (default; the input "alive_kt" is the aircraft's vs0)
 const ROTATE_KT := 55.0      # Vr (default; the input "rotate_kt" is the aircraft's limits.vr_kias)
 const HEIGHTS := [500, 100, 50, 30, 20, 10]  # ft AGL
-const WORDS := {500: "Five hundred", 100: "One hundred", 50: "Fifty", 30: "Thirty", 20: "Twenty", 10: "Ten"}
+const WORDS := {1000: "One thousand", 500: "Five hundred", 100: "One hundred", 50: "Fifty", 40: "Forty", 30: "Thirty", 20: "Twenty", 10: "Ten"}
+const LOW_KT := 54.0         # low-airspeed caution below this near the ground (input "low_kt")
 const COOLDOWN := 4.0        # s between repeats of the same caution
 
 
@@ -18,7 +19,9 @@ static func new_state() -> Dictionary:
 	return {"alive": false, "rotate": false, "positive": false, "fired": {}, "cool": {}}
 
 
-## i: {ias (kt), agl (ft), vs (fpm), wow (bool), bank (deg), throttle (0..1)}; now in seconds.
+## i: {ias (kt), agl (ft), vs (fpm), wow (bool), bank (deg), throttle (0..1)}; now in seconds. Optional inputs
+## (aircraft.json "callouts", see ui/callouts.gd): alive_kt, rotate_kt, v1_kt (a "V one" call before Rotate), low_kt,
+## heights (ft AGL list, descending, default HEIGHTS).
 static func step(s: Dictionary, i: Dictionary, now: float) -> Array:
 	var out := []
 	var ias: float = i.ias
@@ -30,10 +33,14 @@ static func step(s: Dictionary, i: Dictionary, now: float) -> Array:
 		s.alive = false
 		s.rotate = false
 		s.positive = false
+		s.v1 = false
 	if wow and i.throttle > 0.75:
 		if not s.alive and ias >= float(i.get("alive_kt", ALIVE_KT)):
 			s.alive = true
 			out.append(["Airspeed alive", 0])
+		if s.alive and i.has("v1_kt") and not s.get("v1", false) and ias >= float(i.v1_kt):
+			s.v1 = true
+			out.append(["V one", 0])
 		if s.alive and not s.rotate and ias >= float(i.get("rotate_kt", ROTATE_KT)):
 			s.rotate = true
 			out.append(["Rotate", 0])
@@ -41,21 +48,22 @@ static func step(s: Dictionary, i: Dictionary, now: float) -> Array:
 		s.positive = true
 		out.append(["Positive rate", 0])
 	# --- approach heights (each once per approach; only when descending) ---
-	if wow or agl > 700.0:
+	var heights: Array = i.get("heights", HEIGHTS)
+	if wow or agl > float(heights[0]) * 1.4:
 		s.fired = {}
-	elif vs < -100.0 and agl < 600.0:
+	elif vs < -100.0 and agl < float(heights[0]) * 1.2:
 		var lowest := -1
-		for h in HEIGHTS:
+		for h in heights:
 			if agl <= h and not s.fired.get(h, false):
 				s.fired[h] = true
 				lowest = h  # HEIGHTS descends, so this ends as the lowest one crossed
 		if lowest > 0 and agl >= lowest * 0.5:  # not when spawning far below the call
-			out.append([WORDS[lowest], 0])
+			out.append([WORDS.get(lowest, str(lowest)), 0])
 	# --- cautions near the ground ---
 	if not wow:
 		if agl < 500.0 and agl > 30.0 and vs < -1000.0:
 			_caution(s, out, "Sink rate", now)
-		if agl < 400.0 and agl > 15.0 and ias > 20.0 and ias < 54.0:
+		if agl < 400.0 and agl > 15.0 and ias > 20.0 and ias < float(i.get("low_kt", LOW_KT)):
 			_caution(s, out, "Low airspeed", now)
 		if agl < 500.0 and absf(float(i.bank)) > 35.0:
 			_caution(s, out, "Bank angle", now)

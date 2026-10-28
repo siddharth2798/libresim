@@ -82,6 +82,9 @@ func place_airborne(east: float, north: float, alt: float, heading_deg: float, k
 		_blds.place_aircraft(east, north)
 	fdm.damage.reset()
 	fdm.gear = Gears.make(fdm.cfg)
+	if "gear_pos" in fdm.gear and not Props.get_v("controls/gear", 1):  # retractable gear, lever up: start with it retracted
+		fdm.gear.gear_pos = 0.0
+		fdm.gear.gear_cmd = 0
 	for u in fdm.units:
 		u.engine.failed = false
 	fdm.atmo.qnh_pa = Props.get_f("weather/qnh_hpa", 1013.25) * 100.0

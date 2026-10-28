@@ -17,6 +17,8 @@ var _x0 := 33.0
 var _x1 := 50.0
 var _y0 := 1500.0
 var _y1 := 2600.0
+var _xs := 2.0
+var _ys := 200.0
 
 
 func _ready() -> void:
@@ -26,16 +28,20 @@ func _ready() -> void:
 func set_data(env: Dictionary, res: Dictionary) -> void:
 	_env = env
 	_res = res
-	_x0 = 33.0
-	_x1 = 50.0
-	_y0 = 1500.0
-	_y1 = 2600.0
+	var ch: Dictionary = env.get("chart", {})  # optional {x [lo, hi], y [lo, hi], x_step, y_step}; default = the C172's chart
+	_x0 = float(ch.get("x", [33.0, 50.0])[0])
+	_x1 = float(ch.get("x", [33.0, 50.0])[1])
+	_y0 = float(ch.get("y", [1500.0, 2600.0])[0])
+	_y1 = float(ch.get("y", [1500.0, 2600.0])[1])
+	_xs = float(ch.get("x_step", 2.0))
+	_ys = float(ch.get("y_step", 200.0))
+	var yr := _ys / 2.0
 	for k in ["takeoff", "landing"]:  # keep off-chart points visible
 		if res.has(k):
 			_x0 = minf(_x0, floorf(res[k].cg_in - 1.0))
 			_x1 = maxf(_x1, ceilf(res[k].cg_in + 3.0))
-			_y0 = minf(_y0, floorf(res[k].lb / 100.0) * 100.0 - 50.0)
-			_y1 = maxf(_y1, ceilf(res[k].lb / 100.0) * 100.0 + 50.0)
+			_y0 = minf(_y0, floorf(res[k].get("w", res[k].lb) / _ys * 2.0) * yr - yr / 2.0)
+			_y1 = maxf(_y1, ceilf(res[k].get("w", res[k].lb) / _ys * 2.0) * yr + yr / 2.0)
 	queue_redraw()
 
 
@@ -58,20 +64,20 @@ func _draw() -> void:
 	var dim := Color(0.62, 0.66, 0.72)
 	draw_rect(Rect2(Vector2.ZERO, size), Color(0, 0, 0, 0.3))
 	# grid + axis labels
-	var x := ceilf(_x0 / 2.0) * 2.0
+	var x := ceilf(_x0 / _xs) * _xs
 	while x <= _x1:
 		var a := _map(x, _y0)
 		draw_line(a, _map(x, _y1), Color(1, 1, 1, 0.07))
 		draw_string(font, a + Vector2(-8, 15), "%d" % x, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, dim)
-		x += 2.0
-	var y := ceilf(_y0 / 200.0) * 200.0
+		x += _xs
+	var y := ceilf(_y0 / _ys) * _ys
 	while y <= _y1:
 		var b := _map(_x0, y)
 		draw_line(b, _map(_x1, y), Color(1, 1, 1, 0.07))
 		draw_string(font, b + Vector2(-40, 4), "%d" % y, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, dim)
-		y += 200.0
-	draw_string(font, Vector2(size.x - 150, size.y - PAD_B - 4), "CG in aft of datum", HORIZONTAL_ALIGNMENT_LEFT, -1, fs, dim)
-	draw_string(font, Vector2(PAD_L + 4, PAD_T + 12), "lb", HORIZONTAL_ALIGNMENT_LEFT, -1, fs, dim)
+		y += _ys
+	draw_string(font, Vector2(size.x - 150, size.y - PAD_B - 4), str(_env.get("cg_label", "CG in aft of datum")), HORIZONTAL_ALIGNMENT_LEFT, -1, fs, dim)
+	draw_string(font, Vector2(PAD_L + 4, PAD_T + 12), str(_env.get("weight_unit", "lb")), HORIZONTAL_ALIGNMENT_LEFT, -1, fs, dim)
 	if _env.is_empty():
 		return
 	var ok: bool = _res.get("ok", true)
@@ -88,8 +94,8 @@ func _draw() -> void:
 		draw_string(font, _map(_env.utility[2][0], _env.utility[2][1]) + Vector2(-4, 14), "utility", HORIZONTAL_ALIGNMENT_LEFT, -1, 11, dim)
 	if not _res.has("takeoff"):
 		return
-	var to := _map(_res.takeoff.cg_in, _res.takeoff.lb)
-	var ld := _map(_res.landing.cg_in, _res.landing.lb)
+	var to := _map(_res.takeoff.cg_in, _res.takeoff.get("w", _res.takeoff.lb))
+	var ld := _map(_res.landing.cg_in, _res.landing.get("w", _res.landing.lb))
 	draw_line(to, ld, Color.WHITE, 2.0, true)
 	var to_col := Color.WHITE if _res.takeoff.normal else BAD_COL
 	var ld_col := Color.WHITE if _res.landing.normal else BAD_COL

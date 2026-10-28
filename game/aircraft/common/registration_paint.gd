@@ -6,7 +6,8 @@ extends RefCounted
 ##   texture  the atlas the old number is painted on, relative to the aircraft folder
 ##   targets  [{"erase": [x,y,w,h]   pixels of the old number (plus a margin) to wipe,
 ##              "text": [x,y,w,h]     box the new number is fitted into (aspect kept),
-##              "align": "left|right|center", "color": [r,g,b] 0..1, "italic": true}]
+##              "align": "left|right|center", "color": [r,g,b] 0..1, "italic": true,
+##              "rotate": 180   the atlas island is upside down (the A320's other fuselage side): the text is turned}]
 ## The old number is wiped by interpolating the clean rows just above and below it (the paint is white
 ## with a soft gradient), the new one is drawn once with a Label in a one-shot SubViewport and blended
 ## in. The edited atlas is an ImageTexture cached per (aircraft, text) and set as a surface override
@@ -39,7 +40,7 @@ static func plan(section: Dictionary, text: String) -> Array:
 		var c: Array = tg.get("color", [0.63, 0.64, 0.61])
 		out.append({
 			"text": t, "erase": _rect(tg.erase), "box": _rect(tg.text), "align": str(tg.get("align", "left")),
-			"color": Color(c[0], c[1], c[2]), "italic": bool(tg.get("italic", true)),
+			"color": Color(c[0], c[1], c[2]), "italic": bool(tg.get("italic", true)), "rotate": int(tg.get("rotate", 0)),
 		})
 	return out
 
@@ -117,7 +118,11 @@ static func texture(host: Node, aircraft_id: String, section: Dictionary, atlas:
 	for s in steps:
 		erase(img, s.erase)
 	for s in steps:
-		stamp(img, glyphs, fit(s.box, s.align, glyphs.get_size()), s.color)
+		var g := glyphs
+		if int(s.get("rotate", 0)) == 180:
+			g = glyphs.duplicate()
+			g.rotate_180()
+		stamp(img, g, fit(s.box, s.align, g.get_size()), s.color)
 	img.generate_mipmaps()
 	var tex := ImageTexture.create_from_image(img)
 	_cache[key] = tex
