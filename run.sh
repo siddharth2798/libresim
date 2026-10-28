@@ -36,7 +36,10 @@ OUT[02]="data/processed/terrain/h/0 data/processed/terrain/meta.json"
 IN[02]="tools/02_dem_tiles.py tools/flatten.py data/raw/dem/*.tif data/raw/dem90/*.tif";  DEP[02]="04 05"
 OUT[03]="data/processed/terrain/img/0"
 IN[03]="tools/03_imagery_tiles.py tools/bc1.py data/raw/imagery/s2.tif data/raw/imagery/s2_outer.tif";  DEP[03]="02"
-OUT[06]="game/aircraft/c172/c172_aero.json game/aircraft/c172/c172_config.json"   # committed; only if missing
+OUT[06]="game/aircraft/c172/aero.json game/aircraft/c172/config.json"   # committed; only if missing
+# 06a (only with --a320): A320 aero/config json from the FlightGear A320-family clone (tools/22_a320_fetch.sh); outputs are committed
+OUT[06a]="game/aircraft/a320/aero.json game/aircraft/a320/config.json"
+IN[06a]="tools/06_jsbsim_to_json.py tools/jsb_expr.py tools/jsb_turbine.py tools/jsb_a320.py data/raw/fg/a320/FDE/*.xml data/raw/fg/a320/FDE/Config/*.xml data/raw/fg/a320/Engines/*.xml data/raw/fg/a320/Systems/*.xml"
 OUT[09]="data/processed/runways.json"
 IN[09]="tools/09_runways.py tools/flatten.py";  DEP[09]="02 04 05 17"
 OUT[10]="data/processed/buildings"
@@ -68,6 +71,7 @@ step_04() { $PY tools/04_osm_extract.py; }
 step_02() { $PY tools/02_dem_tiles.py; }
 step_03() { $PY tools/03_imagery_tiles.py; }
 step_06() { $PY tools/06_jsbsim_to_json.py; }
+step_06a() { $PY tools/06_jsbsim_to_json.py a320; }
 step_09() { $PY tools/09_runways.py; }
 step_10() { $PY tools/10_buildings.py; }
 step_11() { $PY tools/11_landclass.py; }
@@ -99,6 +103,8 @@ Options:
   --setup-only        do everything but don't launch the game
   --skip-data         skip raw downloads and the pipeline; launch even if data is incomplete
   --region=R          mumbai_pune | all (default all = also fetch the Konkan-Kerala corridor)
+  --a320              optional: also fetch the FlightGear A320-family data (GPL-2.0-only, ~2.5 MB, tools/22_a320_fetch.sh,
+                      pinned commit) and regenerate game/aircraft/a320/{aero,config}.json (step 06a)
   --force-step=NN     re-run pipeline step NN (e.g. 02, 10); may be repeated
   --dry-run           print which steps would run or be skipped and why; change nothing
   --yes, -y           answer yes to every prompt (sudo installs, Godot download)
@@ -109,7 +115,7 @@ Anything else (or everything after --) is passed to the game, e.g.
 Log: data/run.log
 EOF
 }
-SETUP_ONLY=0 SKIP_DATA=0 REGION=all DRY=0 YES=0
+SETUP_ONLY=0 SKIP_DATA=0 REGION=all DRY=0 YES=0 A320=0
 declare -A FORCE=()
 GAME_ARGS=()
 while (($#)); do
@@ -117,6 +123,7 @@ while (($#)); do
     --setup-only) SETUP_ONLY=1 ;;
     --skip-data) SKIP_DATA=1 ;;
     --region=*) REGION=${1#*=} ;;
+    --a320) A320=1 ;;
     --force-step=*) FORCE[${1#*=}]=1 ;;
     --dry-run) DRY=1 ;;
     --yes|-y) YES=1 ;;
@@ -261,6 +268,11 @@ osm_get() { fetch "$OSM_PBF_URL" data/raw/osm/western-zone-latest.osm.pbf; }
 oa_done() { local f; for f in $OURAIRPORTS; do [[ -f data/raw/ourairports/$f.csv ]] || return 1; done; }
 oa_get() { local f; for f in $OURAIRPORTS; do
   fetch "https://davidmegginson.github.io/ourairports-data/$f.csv" "data/raw/ourairports/$f.csv"; done; }
+# A320 data: done when the clone is at the commit pinned in tools/22_a320_fetch.sh (PIN=...)
+A320_PIN=$(sed -n 's/^PIN=\([0-9a-f]\{40\}\).*/\1/p' tools/22_a320_fetch.sh 2>/dev/null | head -n 1)
+a320_done() { [[ -n $A320_PIN && -d data/raw/fg/a320/.git && -f data/raw/fg/a320/A320-200-CFM-set.xml ]] \
+  && [[ $(git -C data/raw/fg/a320 rev-parse HEAD 2>/dev/null) == "$A320_PIN" ]]; }
+a320_get() { bash tools/22_a320_fetch.sh; }
 jsb_done() { [[ -d data/raw/jsbsim/src/aircraft/c172p && -d data/raw/jsbsim/src/engine ]]; }
 jsb_get() { rm -rf data/raw/jsbsim/src
   git clone --depth 1 --filter=blob:none --sparse https://github.com/JSBSim-Team/jsbsim.git data/raw/jsbsim/src
@@ -354,6 +366,7 @@ else
   raw_item "OSM western-zone pbf (~220 MB)" osm_done osm_get
   raw_item "OurAirports CSVs" oa_done oa_get
   raw_item "JSBSim c172p + engines" jsb_done jsb_get
+  ((A320)) && raw_item "FlightGear A320-family data (--a320, GPL-2.0-only)" a320_done a320_get
   raw_item "Sentinel-2 imagery, 01b (20-40 min)" img_done img_get
   raw_item "Sentinel-2 outer ring, 01c (~15 min)" outer_done outer_get
   if [[ $REGION == all ]]; then
@@ -364,7 +377,9 @@ fi
 
 header 4 "Data pipeline (tools/NN_*.py)"
 if ((SKIP_DATA)); then note "skipped (--skip-data)"
-else for s in "${PIPELINE[@]}"; do run_step "$s"; done; fi
+else for s in "${PIPELINE[@]}"; do run_step "$s"; done
+  ((A320)) && run_step 06a
+fi
 
 header 5 "Godot first-run import"
 if [[ -z $GODOT ]]; then note "no Godot available"

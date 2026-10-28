@@ -46,6 +46,15 @@ All sounds are real recordings, listed file by file in `game/aircraft/c172/sound
 - **Flap motor, tyres, switches and doors:** c172p team, GPL-2.0-or-later.
 - **Wind, rumble, squeal, rain, avionics fan:** FlightGear fgdata contributors (https://gitlab.com/flightgear/fgdata), GPL-2.0 (fgdata states no "or later").
 
+**A320 pack sounds** (all CC0 / CC-BY, listed file by file in `game/aircraft/a320/sounds/SOURCES.md`; trimmed, filtered, resampled and normalised, changes made):
+- **Turbojet start, idle, power, whine, shutdown:** "SaabJ35D Draken - start engine and taxiing" by **Work With Sounds / Torsten Nilsson** (provided to Wikimedia Commons in a project with Wikimedia Sverige), CC BY 4.0, https://commons.wikimedia.org/wiki/File:WWS_SaabJ35DDrakenstartengineandtaxiing.ogg
+- **Reverse-thrust roar:** "LAX AIRPORT! LANDING SOUND LA CITY SOUNDS" by **freetousesounds** (Marcel), CC BY 4.0, https://opengameart.org/content/lax-airport-landing-sound-la-city-sounds
+- **Cabin air conditioning:** "air conditioner hum 2" by **Gravity Sound**, CC BY 4.0, https://commons.wikimedia.org/wiki/File:Air_conditioner_hum_2_(Gravity_Sound).wav
+- **Hydraulic pump:** "Pump" by **Work With Sounds / La Fonderie**, CC BY 4.0, https://commons.wikimedia.org/wiki/File:WWS_Pump.ogg
+- **Landing-gear actuation:** "Hoist" by **Work With Sounds / Torsten Nilsson**, CC BY 4.0, https://commons.wikimedia.org/wiki/File:WWS_Hoist.ogg
+- **Seat-belt chime:** "Airplane Chime Sound Effect" by **Sharelk**, CC0, https://commons.wikimedia.org/wiki/File:Airplane_Chime_Sound_Effect.ogg
+- The A320 also reuses C172 sound files (wind, rain, tyres, flap motor, clicks, lever), credited above. No sound from the A320-family upstream project is used.
+
 ### Engine (runtime)
 - **Godot Engine 4.7** (https://godotengine.org), MIT licence, © Juan Linietsky, Ariel Manzur and Godot Engine contributors. Godot bundles third-party components (FreeType, HarfBuzz, Vulkan loader, fonts and others); their licences are listed in full on the in-game credits screen (taken from the engine itself).
 

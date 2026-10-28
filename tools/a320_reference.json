@@ -1,0 +1,1061 @@
+{
+ "meta": {
+  "generated": "2026-10-28",
+  "oracle": "JSBSim 1.3.3 headless, FlightGear A320-family FDE (pin fec1ecba767c8fffd145337b27012e89c01e3ade), A320-200 CFM56-5B4, 120 Hz",
+  "licence": "GPL-2.0-only data (third_party/a320-family)",
+  "units": "SI unless a key says kt / ft / fpm / deg; weights in kg; thrust in N per engine; fuel flow kg/h per engine",
+  "caveats": [
+   "FlightGear-side Nasal is not run. The g-law PI (/systems/fbw/pitch/load-factor-pi) is the upstream property rule Systems/a320-fbw-rules.xml re-implemented in velocity form at 120 Hz (jsb_a320_sim._load_factor_pi): FG's exact update rate and algorithm are not reproduced, so pitch step timing carries that uncertainty. Rate loop, actuators, gain schedules and protections are the real JSBSim ones. Autopilot / FMGC modes are not run.",
+   "Cockpit switches set to normal in-flight state; autoconfig-running=0 (the cheat flag zeroes rated-thrust-factor); engine bleed/packs ON (thrust x 0.97).",
+   "Pilot loops (a320_ref_pilot.py) are simple P/PI: trim numbers are averages over 10 s of settled flight; the aircraft starts at alpha 0 and settles for 60-150 s.",
+   "Takeoff: 14 s of stabilised TOGA on the brakes, then release; rotation 1.0 stick to 11 deg then 0.15; trim -0.15 (THS ~ -2 deg); no wind, flat runway, ISA."
+  ],
+  "public_data": {
+   "mtow_kg": [
+    73500,
+    78000
+   ],
+   "mlw_kg": 64500,
+   "vref_full_64t_kt": 135,
+   "takeoff_roll_m": [
+    1800,
+    2200
+   ],
+   "vr_v2_70t_kt": [
+    140,
+    150
+   ],
+   "cruise_ff_kg_h_per_engine_m078_fl350": [
+    1200,
+    1300
+   ],
+   "rated_thrust_kn": 120,
+   "clean_vs1g_64t_kt_approx": [
+    150,
+    160
+   ],
+   "full_vs1g_64t_kt_approx": [
+    105,
+    112
+   ]
+  }
+ },
+ "thrust_formula_check": [
+  {
+   "label": "static idle SL",
+   "bleed_off": false,
+   "alt_ft": 0,
+   "mach": 0.0,
+   "density_alt_ft": 11,
+   "lever": 0.0,
+   "n1": 18.9,
+   "n2": 59.4,
+   "rated_thrust_factor": 1.434,
+   "idle_table_n": 5694,
+   "mil_table_n": 120068,
+   "thrust_measured_n": 5523,
+   "thrust_formula_n": 5694,
+   "ratio_measured_over_formula": 0.97,
+   "ff_kg_h": 671.7
+  },
+  {
+   "label": "static TOGA SL",
+   "bleed_off": false,
+   "alt_ft": 0,
+   "mach": 0.037,
+   "density_alt_ft": 11,
+   "lever": 1.0,
+   "n1": 89.2,
+   "n2": 97.1,
+   "rated_thrust_factor": 1.435,
+   "idle_table_n": 5329,
+   "mil_table_n": 119485,
+   "thrust_measured_n": 113638,
+   "thrust_formula_n": 117153,
+   "ratio_measured_over_formula": 0.97,
+   "ff_kg_h": 6536.3
+  },
+  {
+   "label": "M0.2 SL TOGA",
+   "bleed_off": false,
+   "alt_ft": 0,
+   "mach": 0.303,
+   "density_alt_ft": 7,
+   "lever": 1.0,
+   "n1": 90.0,
+   "n2": 97.5,
+   "rated_thrust_factor": 1.419,
+   "idle_table_n": 2457,
+   "mil_table_n": 115905,
+   "thrust_measured_n": 111363,
+   "thrust_formula_n": 114807,
+   "ratio_measured_over_formula": 0.97,
+   "ff_kg_h": 6383.2
+  },
+  {
+   "label": "M0.56 FL100 TOGA",
+   "bleed_off": false,
+   "alt_ft": 10000,
+   "mach": 0.621,
+   "density_alt_ft": 9479,
+   "lever": 1.0,
+   "n1": 95.4,
+   "n2": 100.4,
+   "rated_thrust_factor": 1.325,
+   "idle_table_n": 0,
+   "mil_table_n": 87445,
+   "thrust_measured_n": 90871,
+   "thrust_formula_n": 93681,
+   "ratio_measured_over_formula": 0.97,
+   "ff_kg_h": 4937.4
+  },
+  {
+   "label": "M0.78 FL350 CL",
+   "bleed_off": false,
+   "alt_ft": 35000,
+   "mach": 0.829,
+   "density_alt_ft": 34097,
+   "lever": 0.625,
+   "n1": 84.2,
+   "n2": 94.4,
+   "rated_thrust_factor": 1.584,
+   "idle_table_n": 1769,
+   "mil_table_n": 33053,
+   "thrust_measured_n": 31186,
+   "thrust_formula_n": 32151,
+   "ratio_measured_over_formula": 0.97,
+   "ff_kg_h": 1613.1
+  },
+  {
+   "label": "M0.78 FL350 idle",
+   "bleed_off": false,
+   "alt_ft": 35000,
+   "mach": 0.767,
+   "density_alt_ft": 34071,
+   "lever": 0.0,
+   "n1": 33.9,
+   "n2": 67.5,
+   "rated_thrust_factor": 1.593,
+   "idle_table_n": 2294,
+   "mil_table_n": 33574,
+   "thrust_measured_n": 3814,
+   "thrust_formula_n": 3932,
+   "ratio_measured_over_formula": 0.97,
+   "ff_kg_h": 373.5
+  },
+  {
+   "label": "static TOGA SL bleeds+packs off",
+   "bleed_off": true,
+   "alt_ft": 0,
+   "mach": 0.049,
+   "density_alt_ft": 11,
+   "lever": 1.0,
+   "n1": 89.2,
+   "n2": 97.1,
+   "rated_thrust_factor": 1.435,
+   "idle_table_n": 5216,
+   "mil_table_n": 119305,
+   "thrust_measured_n": 116766,
+   "thrust_formula_n": 117000,
+   "ratio_measured_over_formula": 0.998,
+   "ff_kg_h": 6527.8
+  },
+  {
+   "label": "M0.78 FL350 CL bleeds+packs off",
+   "bleed_off": true,
+   "alt_ft": 35000,
+   "mach": 0.831,
+   "density_alt_ft": 34098,
+   "lever": 0.625,
+   "n1": 84.2,
+   "n2": 94.4,
+   "rated_thrust_factor": 1.584,
+   "idle_table_n": 1753,
+   "mil_table_n": 33021,
+   "thrust_measured_n": 32038,
+   "thrust_formula_n": 32102,
+   "ratio_measured_over_formula": 0.998,
+   "ff_kg_h": 1610.6
+  }
+ ],
+ "trim_level": [
+  {
+   "kcas": 251.316,
+   "mach": 0.454,
+   "ktas": 289.858,
+   "alt_ft": 9924.903,
+   "alpha_deg": 3.135,
+   "pitch_deg": 3.169,
+   "elev_l_deg": -0.218,
+   "ths_deg": -1.427,
+   "n1_1": 54.78,
+   "thrust_n_1": 21039.322,
+   "weight_kg": 63871.951,
+   "flap_deg": 0.0,
+   "slat_deg": 0.0,
+   "fmgc_vs1g_kts": 155.4,
+   "fmgc_vls_kts": 181.8,
+   "fmgc_vsw_kts": 170.9,
+   "label": "clean 250 KCAS FL100 64 t",
+   "conf": "0",
+   "gear_down": false,
+   "throttle_lever": 0.334,
+   "fuel_flow_kg_h_per_engine": 1576.7,
+   "vs_fpm": 17.2,
+   "gamma_deg": 0.034
+  },
+  {
+   "kcas": 250.003,
+   "mach": 0.451,
+   "ktas": 288.234,
+   "alt_ft": 9893.999,
+   "alpha_deg": 4.282,
+   "pitch_deg": 4.315,
+   "elev_l_deg": -0.132,
+   "ths_deg": -1.756,
+   "n1_1": 59.268,
+   "thrust_n_1": 26284.177,
+   "weight_kg": 74267.856,
+   "flap_deg": 0.0,
+   "slat_deg": 0.0,
+   "fmgc_vs1g_kts": 167.6,
+   "fmgc_vls_kts": 196.0,
+   "fmgc_vsw_kts": 184.3,
+   "label": "clean 250 KCAS FL100 75 t",
+   "conf": "0",
+   "gear_down": false,
+   "throttle_lever": 0.374,
+   "fuel_flow_kg_h_per_engine": 1872.3,
+   "vs_fpm": 16.8,
+   "gamma_deg": 0.033
+  },
+  {
+   "kcas": 265.506,
+   "mach": 0.78,
+   "ktas": 449.972,
+   "alt_ft": 34879.086,
+   "alpha_deg": 2.871,
+   "pitch_deg": 2.907,
+   "elev_l_deg": -0.099,
+   "ths_deg": -1.386,
+   "n1_1": 70.686,
+   "thrust_n_1": 20748.388,
+   "weight_kg": 63901.822,
+   "flap_deg": 0.0,
+   "slat_deg": 0.0,
+   "fmgc_vs1g_kts": 155.4,
+   "fmgc_vls_kts": 197.3,
+   "fmgc_vsw_kts": 171.0,
+   "label": "cruise M0.78 FL350 64 t",
+   "conf": "0",
+   "gear_down": false,
+   "throttle_lever": 0.475,
+   "fuel_flow_kg_h_per_engine": 1188.0,
+   "vs_fpm": 28.0,
+   "gamma_deg": 0.035
+  },
+  {
+   "kcas": 265.888,
+   "mach": 0.78,
+   "ktas": 450.164,
+   "alt_ft": 34824.703,
+   "alpha_deg": 3.88,
+   "pitch_deg": 3.915,
+   "elev_l_deg": -0.155,
+   "ths_deg": -1.667,
+   "n1_1": 76.521,
+   "thrust_n_1": 25185.255,
+   "weight_kg": 74305.21,
+   "flap_deg": 0.0,
+   "slat_deg": 0.0,
+   "fmgc_vs1g_kts": 167.6,
+   "fmgc_vls_kts": 212.8,
+   "fmgc_vsw_kts": 184.3,
+   "label": "cruise M0.78 FL350 75 t",
+   "conf": "0",
+   "gear_down": false,
+   "throttle_lever": 0.526,
+   "fuel_flow_kg_h_per_engine": 1371.2,
+   "vs_fpm": 28.3,
+   "gamma_deg": 0.036
+  },
+  {
+   "kcas": 189.999,
+   "mach": 0.303,
+   "ktas": 198.274,
+   "alt_ft": 2961.953,
+   "alpha_deg": 3.221,
+   "pitch_deg": 3.257,
+   "elev_l_deg": -0.066,
+   "ths_deg": -1.651,
+   "n1_1": 57.152,
+   "thrust_n_1": 31409.125,
+   "weight_kg": 63809.954,
+   "flap_deg": 10.0,
+   "slat_deg": 18.0,
+   "fmgc_vs1g_kts": 121.8,
+   "fmgc_vls_kts": 139.0,
+   "fmgc_vsw_kts": 133.9,
+   "label": "CONF 1 190 KCAS 3000 ft 64 t",
+   "conf": "1",
+   "gear_down": false,
+   "throttle_lever": 0.365,
+   "fuel_flow_kg_h_per_engine": 2348.8,
+   "vs_fpm": 12.5,
+   "gamma_deg": 0.036
+  },
+  {
+   "kcas": 170.003,
+   "mach": 0.271,
+   "ktas": 177.428,
+   "alt_ft": 2954.677,
+   "alpha_deg": 4.033,
+   "pitch_deg": 4.068,
+   "elev_l_deg": 0.025,
+   "ths_deg": -1.972,
+   "n1_1": 58.521,
+   "thrust_n_1": 33971.186,
+   "weight_kg": 63797.592,
+   "flap_deg": 15.0,
+   "slat_deg": 22.0,
+   "fmgc_vs1g_kts": 114.5,
+   "fmgc_vls_kts": 130.7,
+   "fmgc_vsw_kts": 125.9,
+   "label": "CONF 2 170 KCAS 3000 ft 64 t",
+   "conf": "2",
+   "gear_down": false,
+   "throttle_lever": 0.378,
+   "fuel_flow_kg_h_per_engine": 2501.6,
+   "vs_fpm": 11.0,
+   "gamma_deg": 0.035
+  },
+  {
+   "kcas": 149.999,
+   "mach": 0.239,
+   "ktas": 156.479,
+   "alt_ft": 2910.158,
+   "alpha_deg": 6.967,
+   "pitch_deg": 7.004,
+   "elev_l_deg": -0.103,
+   "ths_deg": -2.375,
+   "n1_1": 62.622,
+   "thrust_n_1": 41222.761,
+   "weight_kg": 63764.6,
+   "flap_deg": 20.0,
+   "slat_deg": 22.0,
+   "fmgc_vs1g_kts": 112.6,
+   "fmgc_vls_kts": 128.5,
+   "fmgc_vsw_kts": 123.8,
+   "label": "CONF 3 150 KCAS 3000 ft gear down 64 t",
+   "conf": "3",
+   "gear_down": true,
+   "throttle_lever": 0.417,
+   "fuel_flow_kg_h_per_engine": 2903.5,
+   "vs_fpm": 10.2,
+   "gamma_deg": 0.037
+  },
+  {
+   "kcas": 135.002,
+   "mach": 0.216,
+   "ktas": 141.134,
+   "alt_ft": 3045.655,
+   "alpha_deg": 7.403,
+   "pitch_deg": 7.44,
+   "elev_l_deg": -0.335,
+   "ths_deg": -2.422,
+   "n1_1": 64.754,
+   "thrust_n_1": 45157.808,
+   "weight_kg": 63741.275,
+   "flap_deg": 35.0,
+   "slat_deg": 27.0,
+   "fmgc_vs1g_kts": 109.2,
+   "fmgc_vls_kts": 124.7,
+   "fmgc_vsw_kts": 120.0,
+   "label": "CONF FULL 135 KCAS 3000 ft gear down 64 t",
+   "conf": "FULL",
+   "gear_down": true,
+   "throttle_lever": 0.437,
+   "fuel_flow_kg_h_per_engine": 3109.0,
+   "vs_fpm": 9.3,
+   "gamma_deg": 0.037
+  }
+ ],
+ "approach_3deg": {
+  "kcas": 136.829,
+  "mach": 0.208,
+  "ktas": 137.316,
+  "alt_ft": 245.944,
+  "alpha_deg": 7.022,
+  "pitch_deg": 4.057,
+  "elev_l_deg": 0.096,
+  "ths_deg": -2.669,
+  "n1_1": 52.8,
+  "thrust_n_1": 28310.545,
+  "weight_kg": 63811.134,
+  "flap_deg": 35.0,
+  "slat_deg": 27.0,
+  "fmgc_vs1g_kts": 109.2,
+  "fmgc_vls_kts": 123.5,
+  "fmgc_vsw_kts": 120.1,
+  "label": "CONF FULL 3 deg glide 135 KCAS gear down 64 t",
+  "conf": "FULL",
+  "gear_down": true,
+  "throttle_lever": 0.323,
+  "fuel_flow_kg_h_per_engine": 2247.3,
+  "vs_fpm": -719.1,
+  "gamma_deg": -2.964
+ },
+ "alpha_limit": [
+  {
+   "conf": "0",
+   "gear_down": false,
+   "weight_kg": 64000,
+   "decel_kt_per_s": 1.0,
+   "alpha_prot_deg": 8.6,
+   "alpha_max_deg": 11.56,
+   "alpha_stall_deg": 13.84,
+   "kcas_at_alpha_prot_1g": 184.2,
+   "alpha_end_deg": 11.41,
+   "nz_end": 1.044,
+   "gamma_end_deg": -8.4,
+   "kcas_end": 177.9,
+   "cl_at_alpha_max": 1.047,
+   "v_alpha_max_1g_kcas": 173.7,
+   "vs1g_estimate_kcas": 165.1,
+   "note": "v_alpha_max_1g from CL at alpha-max; vs1g_estimate extrapolated to alpha-stall"
+  },
+  {
+   "conf": "1",
+   "gear_down": false,
+   "weight_kg": 64000,
+   "decel_kt_per_s": 1.0,
+   "alpha_prot_deg": 11.5,
+   "alpha_max_deg": 13.74,
+   "alpha_stall_deg": 14.24,
+   "kcas_at_alpha_prot_1g": 144.8,
+   "alpha_end_deg": 14.55,
+   "nz_end": 0.983,
+   "gamma_end_deg": -3.8,
+   "kcas_end": 141.4,
+   "cl_at_alpha_max": 1.553,
+   "v_alpha_max_1g_kcas": 142.6,
+   "vs1g_estimate_kcas": null,
+   "note": "v_alpha_max_1g from CL at alpha-max; vs1g_estimate extrapolated to alpha-stall"
+  },
+  {
+   "conf": "2",
+   "gear_down": false,
+   "weight_kg": 64000,
+   "decel_kt_per_s": 1.0,
+   "alpha_prot_deg": 11.0,
+   "alpha_max_deg": 13.89,
+   "alpha_stall_deg": 14.79,
+   "kcas_at_alpha_prot_1g": 138.9,
+   "alpha_end_deg": 14.3,
+   "nz_end": 0.985,
+   "gamma_end_deg": -3.9,
+   "kcas_end": 132.7,
+   "cl_at_alpha_max": 1.767,
+   "v_alpha_max_1g_kcas": 133.7,
+   "vs1g_estimate_kcas": 132.8,
+   "note": "v_alpha_max_1g from CL at alpha-max; vs1g_estimate extrapolated to alpha-stall"
+  },
+  {
+   "conf": "3",
+   "gear_down": true,
+   "weight_kg": 64000,
+   "decel_kt_per_s": 1.0,
+   "alpha_prot_deg": 11.0,
+   "alpha_max_deg": 14.07,
+   "alpha_stall_deg": 15.0,
+   "kcas_at_alpha_prot_1g": 135.9,
+   "alpha_end_deg": 14.51,
+   "nz_end": 0.966,
+   "gamma_end_deg": -4.9,
+   "kcas_end": 128.7,
+   "cl_at_alpha_max": 1.839,
+   "v_alpha_max_1g_kcas": 131.1,
+   "vs1g_estimate_kcas": 130.2,
+   "note": "v_alpha_max_1g from CL at alpha-max; vs1g_estimate extrapolated to alpha-stall"
+  },
+  {
+   "conf": "FULL",
+   "gear_down": true,
+   "weight_kg": 64000,
+   "decel_kt_per_s": 1.0,
+   "alpha_prot_deg": 10.5,
+   "alpha_max_deg": 14.08,
+   "alpha_stall_deg": 15.01,
+   "kcas_at_alpha_prot_1g": 126.9,
+   "alpha_end_deg": 14.78,
+   "nz_end": 0.942,
+   "gamma_end_deg": -6.6,
+   "kcas_end": 116.1,
+   "cl_at_alpha_max": 2.205,
+   "v_alpha_max_1g_kcas": 119.7,
+   "vs1g_estimate_kcas": 118.9,
+   "note": "v_alpha_max_1g from CL at alpha-max; vs1g_estimate extrapolated to alpha-stall"
+  }
+ ],
+ "takeoff": [
+  {
+   "weight_kg": 70000,
+   "conf": "1+F",
+   "vr_kt": 142.0,
+   "events": {
+    "kcas_60": {
+     "t_s": 24.45,
+     "dist_m": 159.0,
+     "kcas": 60.1,
+     "pitch_deg": 0.84,
+     "alt_ft": 0.1
+    },
+    "kcas_80": {
+     "t_s": 27.95,
+     "dist_m": 286.0,
+     "kcas": 80.1,
+     "pitch_deg": 0.81,
+     "alt_ft": 0.1
+    },
+    "kcas_100": {
+     "t_s": 31.55,
+     "dist_m": 453.0,
+     "kcas": 100.2,
+     "pitch_deg": 0.77,
+     "alt_ft": 0.2
+    },
+    "kcas_120": {
+     "t_s": 35.25,
+     "dist_m": 662.0,
+     "kcas": 120.2,
+     "pitch_deg": 0.72,
+     "alt_ft": 0.3
+    },
+    "kcas_130": {
+     "t_s": 37.15,
+     "dist_m": 785.0,
+     "kcas": 130.1,
+     "pitch_deg": 0.7,
+     "alt_ft": 0.4
+    },
+    "kcas_140": {
+     "t_s": 39.1,
+     "dist_m": 920.0,
+     "kcas": 140.2,
+     "pitch_deg": 0.67,
+     "alt_ft": 0.4
+    },
+    "rotate": {
+     "t_s": 39.5,
+     "dist_m": 950.0,
+     "kcas": 142.2,
+     "pitch_deg": 0.67,
+     "alt_ft": 0.4
+    },
+    "liftoff": {
+     "t_s": 41.8,
+     "dist_m": 1125.0,
+     "kcas": 153.1,
+     "pitch_deg": 9.88,
+     "alt_ft": 1.6
+    },
+    "gear_up_cmd": {
+     "t_s": 43.7,
+     "dist_m": 1277.0,
+     "kcas": 159.3,
+     "pitch_deg": 11.79,
+     "alt_ft": 15.2
+    },
+    "35ft": {
+     "t_s": 45.1,
+     "dist_m": 1393.0,
+     "kcas": 163.3,
+     "pitch_deg": 11.02,
+     "alt_ft": 35.3
+    },
+    "1500ft": {
+     "t_s": 72.2,
+     "dist_m": 3822.0,
+     "kcas": 175.8,
+     "pitch_deg": 17.65,
+     "alt_ft": 1506.0
+    }
+   },
+   "n1_final": 90.4,
+   "temp_dev_c": 0.0
+  },
+  {
+   "weight_kg": 78000,
+   "conf": "1+F",
+   "vr_kt": 148.0,
+   "events": {
+    "kcas_60": {
+     "t_s": 25.2,
+     "dist_m": 170.0,
+     "kcas": 60.2,
+     "pitch_deg": 0.89,
+     "alt_ft": 0.0
+    },
+    "kcas_80": {
+     "t_s": 28.95,
+     "dist_m": 306.0,
+     "kcas": 80.3,
+     "pitch_deg": 0.86,
+     "alt_ft": 0.1
+    },
+    "kcas_100": {
+     "t_s": 32.75,
+     "dist_m": 482.0,
+     "kcas": 100.1,
+     "pitch_deg": 0.82,
+     "alt_ft": 0.2
+    },
+    "kcas_120": {
+     "t_s": 36.7,
+     "dist_m": 706.0,
+     "kcas": 120.1,
+     "pitch_deg": 0.77,
+     "alt_ft": 0.2
+    },
+    "kcas_130": {
+     "t_s": 38.75,
+     "dist_m": 838.0,
+     "kcas": 130.2,
+     "pitch_deg": 0.75,
+     "alt_ft": 0.3
+    },
+    "kcas_140": {
+     "t_s": 40.8,
+     "dist_m": 981.0,
+     "kcas": 140.0,
+     "pitch_deg": 0.72,
+     "alt_ft": 0.4
+    },
+    "rotate": {
+     "t_s": 42.5,
+     "dist_m": 1107.0,
+     "kcas": 148.1,
+     "pitch_deg": 0.7,
+     "alt_ft": 0.4
+    },
+    "liftoff": {
+     "t_s": 44.75,
+     "dist_m": 1284.0,
+     "kcas": 157.9,
+     "pitch_deg": 10.08,
+     "alt_ft": 1.6
+    },
+    "gear_up_cmd": {
+     "t_s": 46.65,
+     "dist_m": 1441.0,
+     "kcas": 163.4,
+     "pitch_deg": 11.76,
+     "alt_ft": 15.3
+    },
+    "35ft": {
+     "t_s": 48.15,
+     "dist_m": 1569.0,
+     "kcas": 167.3,
+     "pitch_deg": 10.71,
+     "alt_ft": 36.2
+    },
+    "1500ft": {
+     "t_s": 76.95,
+     "dist_m": 4203.0,
+     "kcas": 177.7,
+     "pitch_deg": 17.19,
+     "alt_ft": 1501.7
+    }
+   },
+   "n1_final": 90.4,
+   "temp_dev_c": 0.0
+  },
+  {
+   "weight_kg": 70000,
+   "conf": "1+F",
+   "vr_kt": 142.0,
+   "events": {
+    "kcas_60": {
+     "t_s": 24.7,
+     "dist_m": 167.0,
+     "kcas": 60.1,
+     "pitch_deg": 0.84,
+     "alt_ft": 0.1
+    },
+    "kcas_80": {
+     "t_s": 28.3,
+     "dist_m": 300.0,
+     "kcas": 80.1,
+     "pitch_deg": 0.81,
+     "alt_ft": 0.1
+    },
+    "kcas_100": {
+     "t_s": 32.0,
+     "dist_m": 476.0,
+     "kcas": 100.2,
+     "pitch_deg": 0.77,
+     "alt_ft": 0.2
+    },
+    "kcas_120": {
+     "t_s": 35.8,
+     "dist_m": 698.0,
+     "kcas": 120.2,
+     "pitch_deg": 0.72,
+     "alt_ft": 0.3
+    },
+    "kcas_130": {
+     "t_s": 37.75,
+     "dist_m": 826.0,
+     "kcas": 130.2,
+     "pitch_deg": 0.7,
+     "alt_ft": 0.4
+    },
+    "kcas_140": {
+     "t_s": 39.75,
+     "dist_m": 969.0,
+     "kcas": 140.2,
+     "pitch_deg": 0.67,
+     "alt_ft": 0.4
+    },
+    "rotate": {
+     "t_s": 40.15,
+     "dist_m": 999.0,
+     "kcas": 142.2,
+     "pitch_deg": 0.67,
+     "alt_ft": 0.4
+    },
+    "liftoff": {
+     "t_s": 42.45,
+     "dist_m": 1178.0,
+     "kcas": 152.8,
+     "pitch_deg": 10.01,
+     "alt_ft": 1.6
+    },
+    "gear_up_cmd": {
+     "t_s": 44.35,
+     "dist_m": 1334.0,
+     "kcas": 158.8,
+     "pitch_deg": 11.91,
+     "alt_ft": 15.4
+    },
+    "35ft": {
+     "t_s": 45.75,
+     "dist_m": 1453.0,
+     "kcas": 162.7,
+     "pitch_deg": 11.07,
+     "alt_ft": 35.8
+    },
+    "1500ft": {
+     "t_s": 72.55,
+     "dist_m": 3913.0,
+     "kcas": 175.9,
+     "pitch_deg": 17.65,
+     "alt_ft": 1504.3
+    }
+   },
+   "n1_final": 92.7,
+   "temp_dev_c": 15.0
+  }
+ ],
+ "rejected_takeoff": {
+  "rto_from_kcas": 140.0,
+  "dist_to_v_m": 920,
+  "stop_dist_after_reject_m": 923,
+  "total_dist_m": 1843,
+  "stop_time_s": 24.2,
+  "events": {
+   "kcas_60": {
+    "t_s": 24.45,
+    "dist_m": 159.0,
+    "kcas": 60.1,
+    "pitch_deg": 0.84,
+    "alt_ft": 0.1
+   },
+   "kcas_80": {
+    "t_s": 27.95,
+    "dist_m": 286.0,
+    "kcas": 80.1,
+    "pitch_deg": 0.81,
+    "alt_ft": 0.1
+   },
+   "kcas_100": {
+    "t_s": 31.55,
+    "dist_m": 453.0,
+    "kcas": 100.2,
+    "pitch_deg": 0.77,
+    "alt_ft": 0.2
+   },
+   "kcas_120": {
+    "t_s": 35.25,
+    "dist_m": 662.0,
+    "kcas": 120.2,
+    "pitch_deg": 0.72,
+    "alt_ft": 0.3
+   },
+   "kcas_130": {
+    "t_s": 37.15,
+    "dist_m": 785.0,
+    "kcas": 130.1,
+    "pitch_deg": 0.7,
+    "alt_ft": 0.4
+   },
+   "kcas_140": {
+    "t_s": 39.1,
+    "dist_m": 920.0,
+    "kcas": 140.2,
+    "pitch_deg": 0.67,
+    "alt_ft": 0.4
+   }
+  },
+  "note": "brakes max (no autobrake modelling check), no reversers, speedbrake lever full; reaction delay 0 s"
+ },
+ "climb": [
+  {
+   "weight_kg": 70000,
+   "conf": "0",
+   "alt_ft": 10000,
+   "kcas": 249.5,
+   "mach": 0.487,
+   "engine_out": false,
+   "throttle_lever": 0.625,
+   "rate_of_climb_fpm": 3207,
+   "gradient_pct": 10.4,
+   "n1_1": 85.9,
+   "n1_2": 85.9,
+   "alpha_deg": 3.72,
+   "pitch_deg": 10.26,
+   "beta_deg": -0.0,
+   "rudder_cmd": 0.0
+  },
+  {
+   "weight_kg": 70000,
+   "conf": "0",
+   "alt_ft": 25000,
+   "kcas": 307.3,
+   "mach": 0.773,
+   "engine_out": false,
+   "throttle_lever": 0.625,
+   "rate_of_climb_fpm": 1929,
+   "gradient_pct": 4.15,
+   "n1_1": 84.8,
+   "n1_2": 84.8,
+   "alpha_deg": 1.13,
+   "pitch_deg": 6.39,
+   "beta_deg": -0.0,
+   "rudder_cmd": 0.0
+  },
+  {
+   "weight_kg": 70000,
+   "conf": "1",
+   "alt_ft": 1500,
+   "kcas": 170.4,
+   "mach": 0.275,
+   "engine_out": false,
+   "throttle_lever": 1.0,
+   "rate_of_climb_fpm": 3207,
+   "gradient_pct": 17.9,
+   "n1_1": 91.0,
+   "n1_2": 91.0,
+   "alpha_deg": 6.37,
+   "pitch_deg": 17.2,
+   "beta_deg": -0.0,
+   "rudder_cmd": 0.0
+  },
+  {
+   "weight_kg": 70000,
+   "conf": "1",
+   "alt_ft": 1500,
+   "kcas": 153.4,
+   "mach": 0.239,
+   "engine_out": true,
+   "throttle_lever": 1.0,
+   "rate_of_climb_fpm": 584,
+   "gradient_pct": 3.67,
+   "n1_1": 90.3,
+   "n1_2": 8.0,
+   "alpha_deg": 9.59,
+   "pitch_deg": 14.94,
+   "beta_deg": -0.1,
+   "rudder_cmd": -0.98
+  }
+ ],
+ "fbw_steps": [
+  {
+   "name": "pitch_clean_250_fl100",
+   "csv": "tools/ref/a320_pitch_clean_250_fl100.csv",
+   "kcas": 250,
+   "alt_ft": 10000,
+   "conf": "0",
+   "weight_kg": 64000,
+   "stick": -0.3,
+   "hold_s": 4.0,
+   "nz_peak": 1.31,
+   "t_to_63pct_nz_s": 1.9,
+   "q_peak_dps": 1.43,
+   "alpha_peak_deg": 5.33,
+   "elev_peak_deg": 2.61
+  },
+  {
+   "name": "pitch_full_140_3000",
+   "csv": "tools/ref/a320_pitch_full_140_3000.csv",
+   "kcas": 140,
+   "alt_ft": 3000,
+   "conf": "FULL",
+   "weight_kg": 64000,
+   "stick": -0.25,
+   "hold_s": 4.0,
+   "nz_peak": 1.089,
+   "t_to_63pct_nz_s": 2.1,
+   "q_peak_dps": 1.19,
+   "alpha_peak_deg": 8.44,
+   "elev_peak_deg": 3.94
+  },
+  {
+   "name": "roll_clean_250_fl100_half",
+   "csv": "tools/ref/a320_roll_clean_250_fl100_half.csv",
+   "kcas": 250,
+   "alt_ft": 10000,
+   "conf": "0",
+   "weight_kg": 64000,
+   "stick": 0.5,
+   "hold_s": 4.0,
+   "roll_rate_ss_dps": 7.35,
+   "t_to_63pct_rate_s": 0.5,
+   "bank_at_release_deg": 26.6,
+   "p_peak_dps": 7.36,
+   "roll_after_release_deg": 29.7
+  },
+  {
+   "name": "roll_clean_250_fl100_full",
+   "csv": "tools/ref/a320_roll_clean_250_fl100_full.csv",
+   "kcas": 250,
+   "alt_ft": 10000,
+   "conf": "0",
+   "weight_kg": 64000,
+   "stick": 1.0,
+   "hold_s": 4.0,
+   "roll_rate_ss_dps": 15.03,
+   "t_to_63pct_rate_s": 0.4,
+   "bank_at_release_deg": 54.3,
+   "p_peak_dps": 15.05,
+   "roll_after_release_deg": 31.2
+  },
+  {
+   "name": "roll_full_140_3000_half",
+   "csv": "tools/ref/a320_roll_full_140_3000_half.csv",
+   "kcas": 140,
+   "alt_ft": 3000,
+   "conf": "FULL",
+   "weight_kg": 64000,
+   "stick": 0.5,
+   "hold_s": 4.0,
+   "roll_rate_ss_dps": 7.3,
+   "t_to_63pct_rate_s": 0.5,
+   "bank_at_release_deg": 26.7,
+   "p_peak_dps": 7.35,
+   "roll_after_release_deg": 30.1
+  }
+ ],
+ "errors": [],
+ "comparison_with_public_data": [
+  {
+   "item": "static TOGA thrust per engine, SL ISA (kN)",
+   "jsbsim": [
+    113.6,
+    116.8
+   ],
+   "public": "~120 (rated thrust per the brief; CFM56-5B4 published 117.9 kN)",
+   "note": "first value bleed on, second bleed off"
+  },
+  {
+   "item": "cruise fuel flow per engine M0.78 FL350 64 t (kg/h)",
+   "jsbsim": 1188.0,
+   "public": "1200-1300",
+   "note": ""
+  },
+  {
+   "item": "FMGC table Vs1g clean / CONF FULL at 64 t (kt)",
+   "jsbsim": [
+    155.4,
+    109.2
+   ],
+   "public": "~150-160 / ~105-112",
+   "note": "upstream FMGC weight tables, not the aerodynamics"
+  },
+  {
+   "item": "Vref = 1.23 x FMGC Vs1g CONF FULL at 64 t (kt)",
+   "jsbsim": 134.3,
+   "public": "~135",
+   "note": ""
+  },
+  {
+   "item": "aerodynamic 1-g speed at alpha-max clean / FULL, 64 t (kt)",
+   "jsbsim": [
+    173.7,
+    119.7
+   ],
+   "public": "stall ~155 / ~109",
+   "note": "clean: the FDE aerodynamics reach alpha-max at ~12 % higher speed than the FMGC table Vs1g; FULL: ~10 % higher (1.23 x 119.7 = 147 kt vs public Vref ~135)"
+  },
+  {
+   "item": "takeoff 70 t ISA+0: liftoff distance (m) / liftoff speed (kt) / 35 ft distance (m)",
+   "jsbsim": [
+    1125.0,
+    153.1,
+    1393.0
+   ],
+   "public": "takeoff run 1800-2200 m near MTOW; VR / V2 140-150 kt at 70 t",
+   "note": "brake release at stabilised TOGA, flaps 1+F, rotate 142.0 kt; JSBSim roll is ~30 % shorter than the public figure"
+  },
+  {
+   "item": "takeoff 78 t ISA+0: liftoff distance (m) / liftoff speed (kt) / 35 ft distance (m)",
+   "jsbsim": [
+    1284.0,
+    157.9,
+    1569.0
+   ],
+   "public": "takeoff run 1800-2200 m near MTOW; VR / V2 140-150 kt at 70 t",
+   "note": "brake release at stabilised TOGA, flaps 1+F, rotate 148.0 kt; JSBSim roll is ~30 % shorter than the public figure"
+  },
+  {
+   "item": "takeoff 70 t ISA+15: liftoff distance (m) / liftoff speed (kt) / 35 ft distance (m)",
+   "jsbsim": [
+    1178.0,
+    152.8,
+    1453.0
+   ],
+   "public": "takeoff run 1800-2200 m near MTOW; VR / V2 140-150 kt at 70 t",
+   "note": "brake release at stabilised TOGA, flaps 1+F, rotate 142.0 kt; JSBSim roll is ~30 % shorter than the public figure"
+  },
+  {
+   "item": "rejected takeoff from 140 kt, brakes only (m after the reject)",
+   "jsbsim": 923,
+   "public": "no public figure used",
+   "note": "70 t, max braking, speedbrake, no reversers, no reaction delay"
+  },
+  {
+   "item": "initial climb 70 t TOGA CONF 1 gear up, 1500 ft (fpm / %)",
+   "jsbsim": [
+    3207,
+    17.9
+   ],
+   "public": "typical 2500-3500 fpm (not a certified figure)",
+   "note": ""
+  },
+  {
+   "item": "one-engine-out climb, same case (fpm / %)",
+   "jsbsim": [
+    584,
+    3.67
+   ],
+   "public": ">= 2.4 % (second segment minimum)",
+   "note": ""
+  },
+  {
+   "item": "MTOW 73.5-78 t, MLW 64.5 t",
+   "jsbsim": "not in the FDE (empty 43.28 t + 11.7 t payload points + tanks)",
+   "public": "73500-78000 / 64500",
+   "note": "limits belong in aircraft.json"
+  }
+ ]
+}

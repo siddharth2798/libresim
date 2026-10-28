@@ -14,9 +14,10 @@ Engine entry written to config.json (SI units; all tables are jsb_expr TABLE dic
    "n1_spool_up_rate_table" / "n1_spool_down_rate_table": {n1 percent} -> percent N1 per second (JSBSim N1SpoolUp/Down,
                          column = autoconfig-running 0 / 1: we keep the normal column 0),
    "jsbsim": {raw JSBSim values: ignitionn1, ignitionn2, n1/n2 startrate, spinup/spindown, bleed, bypassratio...}}
-Thrust, as JSBSim computes it (FGTurbine, from its source as remembered; checked against tools/a320_reference.json):
+Thrust, as JSBSim computes it (FGTurbine; checked against the real JSBSim run, tools/a320_reference.json "thrust_formula_check"):
   idle = thrust_n * idle_thrust_table(mach, alt);  mil = (thrust_n - idle) * thrust_table(...) * rated_thrust_factor * reverser_loss
-  thrust = idle + mil * N2norm^2,  N2norm = (N2 - idle_n2) / (max_n2 - idle_n2)  (0 at idle, 1 at max).
+  thrust = (idle + mil * N2norm^2) * (1 - bleed),  N2norm = (N2 - idle_n2) / (max_n2 - idle_n2)  (0 at idle, 1 at max).
+  bleed ~ 0.03 with engine bleed + packs on (set by the pneumatic system), 0 otherwise: measured / formula = 0.970 (6 conditions, bleed on) vs 0.998 (2 conditions, bleed off).
 Fuel flow = thrust * tsfc (corrected by sqrt(T / 518.67 R)).
 """
 import jsb_expr as x
