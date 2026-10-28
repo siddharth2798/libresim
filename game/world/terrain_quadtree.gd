@@ -22,11 +22,14 @@ const RESELECT_M := 25.0
 const RESELECT_S := 0.5
 const MAX_RECS := 40000
 const MORPH_START := 0.6  # x parent split distance; must be > HYSTERESIS / 2
+const ROADS_NEAR_M := 3600.0  # nodes closer than this (horizontal) get the road / river tile (TerrainRoads)
+const ROADS_EVERY_S := 0.25
 
 @export var lod_k := 1.6
 @export var camera_path: NodePath
 
 var cache: TerrainTileCache
+var roads := TerrainRoads.new()
 var _mesh: ArrayMesh
 var _shader := preload("res://world/terrain.gdshader")
 var _active := {}  # Vector3i -> MeshInstance3D
@@ -39,6 +42,8 @@ var _split := {}  # Vector3i -> true: nodes split at the last selection (hystere
 var _last_sel := Vector3(INF, INF, INF)
 var _since := INF
 var _is_root := {}
+var _ro_bound := {}  # Vector3i -> true: node currently shows a road tile
+var _ro_t := 0.0
 
 
 func _ready() -> void:
@@ -53,6 +58,7 @@ func _ready() -> void:
 func _exit_tree() -> void:
 	if cache:
 		cache.wait_all()
+	roads.wait_all()
 
 
 func height_at(east: float, north: float) -> float:
@@ -66,6 +72,11 @@ func _process(dt: float) -> void:
 	_cam_enu = FloatingOrigin.to_world(cam.global_position)
 	RenderingServer.global_shader_parameter_set("terrain_eye", cam.global_position)
 	var uploads := cache.process()
+	roads.process()
+	_ro_t += dt
+	if _ro_t >= ROADS_EVERY_S:
+		_ro_t = 0.0
+		_update_roads()
 	_since += dt
 	if uploads == 0 and _since < RESELECT_S and _cam_enu.distance_to(_last_sel) < RESELECT_M:
 		return
@@ -141,12 +152,45 @@ func _apply(wanted: Array[Vector3i]) -> void:
 			mi.visible = false
 			_pool.append(mi)
 			_active.erase(k)
+			_ro_bound.erase(k)
+			mi.material_override.set_shader_parameter("ro_on", 0.0)
+			mi.material_override.set_shader_parameter("ro_tex", null)
 	for k in wanted:
 		if not _active.has(k):
 			var mi := _make_instance(k)
 			_active[k] = mi
 			_place(k, mi)
 	visible_nodes = wanted.size()
+
+
+## Binds the level-0 road / river tile to active nodes within ROADS_NEAR_M of the camera (levels <= 0
+## only: coarser nodes are never that close), unbinds it again when they are further away.
+func _update_roads() -> void:
+	for k in _active:
+		_bind_roads(k, _active[k].material_override)
+
+
+func _bind_roads(k: Vector3i, m: ShaderMaterial) -> void:
+	if k.x > 0:
+		return
+	var r := _rec(k)
+	var dx := maxf(maxf(r[0] - _cam_enu.x, _cam_enu.x - r[2]), 0.0)
+	var dy := maxf(maxf(r[1] - _cam_enu.y, _cam_enu.y - r[3]), 0.0)
+	if dx * dx + dy * dy > ROADS_NEAR_M * ROADS_NEAR_M:
+		if _ro_bound.erase(k):
+			m.set_shader_parameter("ro_on", 0.0)
+			m.set_shader_parameter("ro_tex", null)
+		return
+	if _ro_bound.has(k):
+		return
+	var tx := k.y >> -k.x
+	var ty := k.z >> -k.x
+	var tex := roads.texture(tx, ty)
+	if tex != null:
+		m.set_shader_parameter("ro_tex", tex)
+		m.set_shader_parameter("ro_rect", TerrainMeta.sub_rect(k, Vector3i(0, tx, ty)))
+		m.set_shader_parameter("ro_on", 1.0)
+		_ro_bound[k] = true
 
 
 func _place(k: Vector3i, mi: MeshInstance3D) -> void:
@@ -192,6 +236,7 @@ func _make_instance(k: Vector3i) -> MeshInstance3D:
 	m.set_shader_parameter("img_tex", t.itex)
 	m.set_shader_parameter("lc_tex", t.lctex)
 	m.set_shader_parameter("wc_tex", t.wctex)  # WorldCover class: same source tile, so same lc_off / lc_scale
+	m.set_shader_parameter("sd_tex", t.sdtex)  # shore distance / openness, same source tile as lc
 	m.set_shader_parameter("texel_off", sub * per)
 	m.set_shader_parameter("texel_step", per / TerrainMesh.GRID)
 	m.set_shader_parameter("tile_size", size)
@@ -204,5 +249,6 @@ func _make_instance(k: Vector3i) -> MeshInstance3D:
 	m.set_shader_parameter("tile_n", float(cache.tile_n))
 	m.set_shader_parameter("skirt_depth", skirt)
 	m.set_shader_parameter("morph_range", morph)
+	_bind_roads(k, m)
 	mi.custom_aabb = AABB(Vector3(0, r[4] - skirt, -size), Vector3(size, r[5] - r[4] + skirt, size))
 	return mi
