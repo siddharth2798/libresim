@@ -161,7 +161,14 @@ mtime_newer() { [[ $1 -nt $2 ]]; }
 # ---------------------------------------------------------------- [1] system tools + Godot
 OS=$(uname -s); ARCH=$(uname -m)
 PM=""
-if [[ $OS == Darwin ]]; then PM=brew
+if [[ $OS == Darwin ]]; then
+  PM=brew
+  # Keep Homebrew quiet and fast for the one install this script may offer: its automatic `brew update`
+  # (and the "You have N outdated formulae" report it prints) is skipped, and env hints are off.
+  # Only set when the caller has not chosen (Homebrew counts any non-empty value, even 0, as "set"):
+  # run `HOMEBREW_NO_AUTO_UPDATE= ./run.sh` (empty) to keep Homebrew's auto-update and its report.
+  : "${HOMEBREW_NO_AUTO_UPDATE=1}" "${HOMEBREW_NO_ENV_HINTS=1}"
+  export HOMEBREW_NO_AUTO_UPDATE HOMEBREW_NO_ENV_HINTS
 elif command -v apt-get >/dev/null; then PM=apt
 elif command -v dnf >/dev/null; then PM=dnf
 elif command -v pacman >/dev/null; then PM=pacman
