@@ -241,6 +241,8 @@ static func load_stars() -> Dictionary:
 static func save_stars(id: String, stars: int) -> void:
 	var d := load_stars()
 	d[id] = maxi(int(d.get(id, 0)), stars)
+	if not Session.interactive():  # a probe / command-line lesson must not touch the player's progress
+		return
 	var f := FileAccess.open(SAVE, FileAccess.WRITE)
 	if f:
 		f.store_string(JSON.stringify(d))

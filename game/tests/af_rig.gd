@@ -68,6 +68,14 @@ func _init(kias := 250.0, alt_ft := 10000.0, heading_deg := 0.0, flap_lever := 0
 	publish()
 
 
+## The rig's two nodes are never in the tree: free them (and with them the FDM graph) when the rig goes.
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_PREDELETE:
+		for n in [node, af]:
+			if is_instance_valid(n):
+				n.free()
+
+
 ## fdm/* Props as FdmNode publishes them, then the autoflight reads them.
 func publish() -> void:
 	node._publish()

@@ -76,6 +76,8 @@ static func set_muted(bus: String, m: bool) -> void:
 
 
 static func save() -> void:
+	if not Session.interactive():
+		return
 	var cf := ConfigFile.new()
 	for b in BUSES:
 		cf.set_value("volume", b, _vol[b])

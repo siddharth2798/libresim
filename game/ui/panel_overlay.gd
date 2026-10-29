@@ -105,9 +105,10 @@ func _forward(e: InputEvent, tr: TextureRect, reg: Rect2) -> void:
 func _unhandled_key_input(e: InputEvent) -> void:
 	if e.pressed and not e.echo and e.keycode == KEY_TAB:
 		layout = posmod(layout + (-1 if e.shift_pressed else 1), LAYOUTS.size())
-		var cf := ConfigFile.new()
-		cf.set_value("panel", "layout", layout)
-		cf.save(CFG)
+		if Session.interactive():
+			var cf := ConfigFile.new()
+			cf.set_value("panel", "layout", layout)
+			cf.save(CFG)
 		Props.set_v("view/panel_layout", LAYOUTS[layout])
 		_build()
 		get_viewport().set_input_as_handled()

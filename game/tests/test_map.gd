@@ -7,11 +7,11 @@ const NM := 1852.0
 var _made: Array = []
 
 
-func _notification(what: int) -> void:
-	if what == NOTIFICATION_PREDELETE:
-		for n in _made:
-			if is_instance_valid(n):
-				n.free()
+func teardown() -> void:  # run_tests.gd calls this after every test
+	for n in _made:
+		if is_instance_valid(n):
+			n.free()
+	_made.clear()
 
 
 func _near(a: Vector2, b: Vector2, tol := 0.01) -> bool:

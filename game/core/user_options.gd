@@ -51,6 +51,8 @@ static func get_v(key: String) -> Variant:
 static func set_v(key: String, value: Variant) -> void:
 	get_v(key)
 	_v[key] = value
+	if not Session.interactive():  # kept in memory for this run only
+		return
 	var cf := ConfigFile.new()
 	for k in _v:
 		cf.set_value("options", k, _v[k])

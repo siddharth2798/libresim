@@ -42,9 +42,10 @@ func set_preset(p: String) -> void:
 	if not PRESETS.has(p):
 		return
 	preset = p
-	var cf := ConfigFile.new()
-	cf.set_value("graphics", "preset", p)
-	cf.save(CFG)
+	if Session.interactive():
+		var cf := ConfigFile.new()
+		cf.set_value("graphics", "preset", p)
+		cf.save(CFG)
 	apply_to_scene(get_tree().current_scene)
 	changed.emit(p)
 

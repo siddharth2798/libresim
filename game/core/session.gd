@@ -39,6 +39,8 @@ const WEATHER_KEYS := ["wind_dir_deg", "wind_kt", "gust_kt", "turbulence", "visi
 	"cloud_cover", "cloud_base_ft", "qnh_hpa", "temp_c", "time_h", "time_rate", "day_of_year", "precip", "icing", "convection", "storms"]
 
 var setup := {}
+var save_path := SAVE  # tests redirect it
+var interactive_override := -1
 ## Training: lesson id ("" = free flight) and assist level (full | light | off). A lesson
 ## rewrites `setup` for its own airport / weather; the free-flight setup is kept here and
 ## restored when the menu opens again (end_lesson).
@@ -61,9 +63,9 @@ func _ready() -> void:
 
 
 func _load() -> void:
-	if not FileAccess.file_exists(SAVE):
+	if not FileAccess.file_exists(save_path):
 		return
-	var d = JSON.parse_string(FileAccess.get_file_as_string(SAVE))
+	var d = JSON.parse_string(FileAccess.get_file_as_string(save_path))
 	if d is Dictionary:
 		for k in d:
 			if setup.has(k):
@@ -136,8 +138,19 @@ func apply_payload_defaults(def: AircraftDef) -> void:
 		setup[k] = float(d.get(k, DEFAULT[k])) if d is Dictionary else float(DEFAULT[k])
 
 
+## May this run write the player's files? False for tests, probes, --shot / --clean and
+## command-line flights (core/save_guard.gd). `interactive_override`: -1 decide, 0 never, 1 always (tests).
+func interactive() -> bool:
+	if interactive_override >= 0:
+		return interactive_override == 1
+	return SaveGuard.decide(OS.get_cmdline_args(), DisplayServer.get_name() == "headless",
+		OS.get_environment(SaveGuard.ENV), shot, clean, skip_menu)
+
+
 func save() -> void:
-	var f := FileAccess.open(SAVE, FileAccess.WRITE)
+	if not interactive():
+		return
+	var f := FileAccess.open(save_path, FileAccess.WRITE)
 	if f:
 		f.store_string(JSON.stringify(setup, "\t"))
 
