@@ -103,7 +103,7 @@ func _phase1() -> void:
 		var pg: Control = flow.pages[i]
 		check("step %d %s" % [i + 1, flow.STEPS[i][0]], pg.visible and flow.pages.filter(func(p): return p.visible).size() == 1 and pg.get_child_count() > 0 and pg.size.y > 50.0,
 			"children %d, size %s" % [pg.get_child_count(), pg.size])
-		check("step %d buttons fit" % (i + 1), _inside(flow.back_btn) and _inside(flow.primary_btn), "next %s" % flow.primary_btn.get_global_rect())
+		check("step %d buttons fit" % (i + 1), _inside(flow.back_btn) and _inside(flow.primary_btn) and (not flow.fly_btn.visible or _inside(flow.fly_btn)), "next %s" % flow.primary_btn.get_global_rect())
 		await shot("step_%d" % (i + 1))
 	for i in [2, 4, 0]:  # number keys jump to a step
 		await _press_key(KEY_1 + i)

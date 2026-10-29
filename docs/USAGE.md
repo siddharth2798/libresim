@@ -220,7 +220,7 @@ On first run, Godot imports the project (a few seconds). The data is read from `
 
 Running the game opens the **start screen** (the libresim logo shows first as the splash). It first asks one question, **What would you like to do?**, with two large cards, and then shows only the path you chose:
 - **Home screen:** **Free flight** (pick the airport, aircraft, weather and failures) or **Training** (guided lessons: take off, cruise, land). Click a card, or press **1** / **2** (or Left / Right) and **Enter**. The card you chose last time is focused when the game opens. Small buttons below open **Saved flights**, **Controls** and **Options**; **Handbook**, **Credits** and **Quit** stay in the top bar. Each of those pages has a **◀ Back** button (or **Esc**) to the home screen.
-- **Free flight path:** a stepper shows Airport & start → Aircraft → Weather & time → Failures → Recording → Fly. The current step is highlighted, finished steps get a tick, and every pill is clickable. **Next: <step> ▶** moves on, **◀ Back** returns (on the first step, to the home screen), and on the last step the filled button is **FLY ▶**. Keys: **1**–**5** jump to a step, Page Up / Page Down step through, **Ctrl+Enter** flies. A summary line shows the whole setup. Your last setup is remembered (`user://last_flight.json`).
+- **Free flight path:** a stepper shows Airport & start → Aircraft → Weather & time → Failures (optional) → Recording (optional) → Fly. The current step is highlighted, finished steps get a tick, and every pill is clickable. **Next: <step> ▶** moves on, **◀ Back** returns (on the first step, to the home screen), the filled **Fly now ▶** in the bottom bar starts the flight from any step, and on the last step the main button is **FLY ▶**. Each step shows what you need first; explanations are in hover tips, and the fine controls sit behind a toggle ("More weather", aircraft "Details") that stays open or closed for the rest of the session. Keys: **1**–**5** jump to a step, Page Up / Page Down step through, **Ctrl+Enter** flies. A summary line shows the whole setup. Your last setup is remembered (`user://last_flight.json`).
 - **Training path:** the lesson list, "How much help?" and a fixed **START LESSON ▶** button in the bottom bar (it never scrolls out of sight), with **◀ Back** to the home screen. No free-flight stepper is shown. See "Training mode" below.
 
 1. **Airport & start:**
@@ -230,14 +230,14 @@ Running the game opens the **start screen** (the libresim logo shows first as th
      - **Stand / gate:** a stand from OpenStreetMap (jetbridge gate, remote bay or GA parking). Stand starts are **always cold & dark with the parking brake set**, as in the real aircraft.
      - **In the air:** a height above the field and a distance on final to the chosen runway. The two numbers start at the chosen aircraft's own defaults (shown under the controls, and the slider limits are its own too): the C172 starts 1,500 ft above the field, 5 nm out at 90 KIAS, the A320 3,500 ft, 11 nm out at 205 KIAS, gear up (about a 3 degree path both ways). They follow the aircraft until you edit one of them (`air_custom` in the setup); after that your numbers stay (clamped into the new aircraft's limits). The defaults are aircraft data: `start.air` in `aircraft.json`, see "Adding an aircraft".
 2. **Aircraft:**
-   - Every `game/aircraft/<id>/aircraft.json` is listed (for now, the Cessna 172S) with its specifications.
-   - Set fuel per tank and the front-seat, rear-seat and baggage loads. The takeoff weight is checked against MTOW. Payload changes the mass, CG and performance in the flight model.
+   - Every `game/aircraft/<id>/aircraft.json` is listed with its name, category and three key figures; **Details** opens the description and the full specification (the model credit stays at the bottom).
+   - Set fuel and the loads (one compact slider each). The takeoff weight is checked against MTOW and the CG against the envelope (shown red with OVER MTOW / CG OUT OF LIMITS; hover the weight for the pilot weight and what an out-of-limits loading does). Payload changes the mass, CG and performance in the flight model.
 3. **Weather & time:**
    - **Weather presets:** Clear, Fair, Scattered, Broken (passing showers), Overcast (drizzle), Winter haze, Monsoon (heavy rain under a low deck, occasional lightning).
-   - **Custom sliders:** cloud cover, cloud base, visibility, rain, turbulence, QNH, temperature.
-   - **Time of day:** presets or a slider, plus the clock rate and the month. **Dawn** and **Dusk** are the real sunrise and sunset for the chosen month (mid-February: 07:10 and 18:40 IST; June: about 06:00 and 19:15).
-   - **Wind:** presets, direction, speed and gusts, plus a "90° crosswind" button. A live head/crosswind readout covers the chosen runway and turns red above the C172's 15 kt demonstrated crosswind or with a tailwind.
-4. **Failures:**
+   - **Time of day:** presets or a slider. **Dawn** and **Dusk** are the real sunrise and sunset for the chosen month (mid-February: 07:10 and 18:40 IST; June: about 06:00 and 19:15).
+   - **Wind:** presets, direction and speed, plus a "90° crosswind" button. A live head/crosswind readout covers the chosen runway and turns red above the C172's 15 kt demonstrated crosswind or with a tailwind.
+   - **More weather** (collapsed at first): cloud cover, cloud base, visibility, rain, turbulence, thermals, storm cells, icing, gusts, QNH, temperature, the clock rate and the month.
+4. **Failures (optional):**
    - Any of 26 failures can be scheduled with a trigger: **at start**, **after N min**, **climbing through N ft AGL** or **above N kt**.
    - Failures by area:
 

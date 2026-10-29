@@ -257,3 +257,46 @@ func test_menu_conditions_highlight_follows_the_values() -> String:
 	Session.setup = keep
 	_close(s)
 	return err
+
+
+func test_menu_fly_now_everywhere_and_optional_steps_are_named() -> String:
+	var s := _open()
+	s.go("flight")
+	var f: Control = s.screen("flight")
+	var flown := [0]
+	for c in f.fly_requested.get_connections():  # the real handler would load the flight scene
+		f.fly_requested.disconnect(c.callable)
+	f.fly_requested.connect(func(): flown[0] += 1)
+	var err := ""
+	for i in f.STEPS.size():
+		f.show_step(i)
+		if err == "" and f.fly_btn.visible != (i < f.STEPS.size() - 1):
+			err = "step %d: Fly now should show on every step but the last (the main button is FLY there)" % [i + 1]
+	if err == "" and (not str(f.STEPS[3][0]).contains("optional") or not str(f.STEPS[4][0]).contains("optional")):
+		err = "Failures and Recording should be named optional: %s / %s" % [f.STEPS[3][0], f.STEPS[4][0]]
+	f.show_step(0)
+	f.fly_btn.pressed.emit()
+	if err == "" and flown[0] != 1:
+		err = "Fly now should ask to fly (%d)" % flown[0]
+	_close(s)
+	return err
+
+
+func test_menu_more_weather_is_collapsed_and_remembered() -> String:
+	var s := _open()
+	s.go("flight")
+	var page: Control = s.screen("flight").pages[2]
+	var err := ""
+	if page._more.visible or page._more_btn.text.find("More") < 0:
+		err = "'More weather' should start collapsed"
+	page._more_btn.pressed.emit()
+	if err == "" and not page._more.visible:
+		err = "the toggle should open the advanced sliders"
+	for k in ["cloud_cover", "visibility_m", "turbulence", "convection", "storms", "icing", "gust_kt", "time_rate"]:
+		if err == "" and not page._sl.has(k):
+			err = "advanced slider %s must still exist" % k
+	page._more_btn.pressed.emit()
+	if err == "" and page._more.visible:
+		err = "the toggle should close it again"
+	_close(s)
+	return err

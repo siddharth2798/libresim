@@ -1,8 +1,8 @@
 extends "res://ui/menu/page_frame.gd"
 ## Free flight: the guided setup. A stepper (Airport & start > Aircraft > Weather & time >
-## Failures > Recording > Fly) above one page at a time; Back / Next name where they go and
-## the last step has the big FLY button. Back on the first step leaves for the home screen
-## (back_pressed). The choices go into Session.setup. Keys: 1-5 jump to a step,
+## Failures > Recording > Fly) above one page at a time; Back / Next name where they go, every
+## step but the last has a filled Fly now, and the last has the big FLY button. Back on the
+## first step leaves for the home screen (back_pressed). The choices go into Session.setup. Keys: 1-5 jump to a step,
 ## Page Up / Page Down step, Ctrl+Enter flies.
 
 signal fly_requested
@@ -10,13 +10,14 @@ signal fly_requested
 ## [title, page script, prompt]
 const STEPS := [
 	["Airport & start", "res://ui/menu/airport_page.gd", "Where do you want to start?"],
-	["Aircraft", "res://ui/menu/aircraft_page.gd", "Choose your aircraft, fuel and load."],
-	["Weather & time", "res://ui/menu/conditions_page.gd", "Set the weather, time of day and wind."],
-	["Failures", "res://ui/menu/failures_page.gd", "Optional: practise emergencies. Skip this to fly with everything working."],
-	["Recording", "res://ui/menu/recording_page.gd", "Optional: record your flight as a video. Skip this to fly without recording."],
+	["Aircraft", "res://ui/menu/aircraft_page.gd", "Which aircraft, and how loaded?"],
+	["Weather & time", "res://ui/menu/conditions_page.gd", "What are the conditions?"],
+	["Failures (optional)", "res://ui/menu/failures_page.gd", "Practise an emergency, or skip this."],
+	["Recording (optional)", "res://ui/menu/recording_page.gd", "Record the flight as a video, or skip this."],
 ]
 
 var cur := 0
+var fly_btn: Button  # "Fly now", in the footer on every step but the last (whose main button is FLY)
 var _pills: Array[Button] = []
 var _visited := {}
 
@@ -26,6 +27,15 @@ func _init() -> void:
 	var stepper := _stepper()
 	add_child(stepper)
 	move_child(stepper, 0)
+	fly_btn = Button.new()
+	fly_btn.text = "Fly now  ▶"
+	fly_btn.tooltip_text = "Start flying with this setup (Ctrl+Enter)"
+	fly_btn.custom_minimum_size = Vector2(170, 56)
+	fly_btn.add_theme_font_size_override("font_size", 20)
+	fly_btn.pressed.connect(func(): fly_requested.emit())
+	MenuTheme.style_primary(fly_btn)
+	footer.add_child(fly_btn)
+	footer.move_child(fly_btn, primary_btn.get_index())
 	for st in STEPS:
 		var p := make_page(st[1])
 		p.connect("changed", _update_summary)
@@ -81,9 +91,11 @@ func _refresh() -> void:
 		b.add_theme_stylebox_override("pressed", MenuTheme.box(Color(MenuTheme.ACCENT, 0.9), 19))
 		b.add_theme_color_override("font_color", Color.WHITE if here else (MenuTheme.ACCENT if done else MenuTheme.DIM))
 	prompt.text = "Step %d of %d  ·  %s" % [cur + 1, STEPS.size(), STEPS[cur][2]]
-	set_primary("FLY  ▶" if cur == last else "Next:  %s  ▶" % STEPS[cur + 1][0])
+	set_primary("FLY  ▶" if cur == last else "Next:  %s  ▶" % STEPS[cur + 1][0].get_slice(" (", 0))
 	primary_btn.add_theme_font_size_override("font_size", 26 if cur == last else 20)
-	primary_btn.custom_minimum_size = Vector2(220 if cur == last else 260, 56)
+	primary_btn.custom_minimum_size = Vector2(220 if cur == last else 250, 56)
+	MenuTheme.style_primary(primary_btn, cur == last)  # Next is the quiet outline; Fly now / FLY is the filled button
+	fly_btn.visible = cur != last
 
 
 func _update_summary() -> void:

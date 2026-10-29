@@ -42,8 +42,8 @@ func _ready() -> void:
 	_diagram.size_flags_horizontal = SIZE_EXPAND_FILL
 	add_child(_diagram)
 	var right := VBoxContainer.new()
-	right.custom_minimum_size = Vector2(290, 0)
-	right.add_theme_constant_override("separation", 10)
+	right.custom_minimum_size = Vector2(310, 0)
+	right.add_theme_constant_override("separation", 8)
 	add_child(right)
 	_info = Label.new()
 	_info.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -59,10 +59,12 @@ func _ready() -> void:
 		b.button_group = g
 		b.size_flags_horizontal = SIZE_EXPAND_FILL
 		b.pressed.connect(func(): _put("start", m[0]))
+		if m[0] == "stand":
+			b.tooltip_text = "Stands come from OpenStreetMap: gates with jetbridges at the big airports, remote bays and GA parking."
 		modes.add_child(b)
 		_mode_btns[m[0]] = b
-	right.add_child(_lbl("Runway (or the one to land on)"))
 	_rwy = OptionButton.new()
+	_rwy.tooltip_text = "The runway to start on, or to land on for an air start."
 	_rwy.item_selected.connect(func(i): _put("runway", _rwy.get_item_metadata(i)))
 	right.add_child(_rwy)
 	_stand = OptionButton.new()
@@ -71,18 +73,18 @@ func _ready() -> void:
 	_air_box = GridContainer.new()
 	_air_box.columns = 2
 	right.add_child(_air_box)
-	_alt = _spin("Height above field (ft)", 300, 12000, 100, "air_ft")
-	_dist = _spin("Distance out on final (nm)", 1, 25, 0.5, "air_nm")
+	_alt = _spin("Height (ft)", 300, 12000, 100, "air_ft", "Height above the field.")
+	_dist = _spin("Distance (nm)", 1, 25, 0.5, "air_nm", "Distance out on final approach.")
 	_air_note = MenuTheme.note("")
 	right.add_child(_air_note)
 	_cold = CheckBox.new()
-	_cold.text = "Cold & dark (engine off, everything off — run the checklists)"
+	_cold.text = "Cold & dark start"
+	_cold.tooltip_text = "Engine off, everything off: run the checklists."
 	_cold.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_cold.toggled.connect(func(on): _put("cold", on))
 	right.add_child(_cold)
-	_stand_note = MenuTheme.note("Stand starts are always cold & dark with the parking brake set: run the checklists.")
+	_stand_note = MenuTheme.note("Stand starts are cold & dark, brake set.")
 	right.add_child(_stand_note)
-	right.add_child(MenuTheme.note("Stands come from OpenStreetMap: gates with jetbridges at the big airports, remote bays and GA parking. On the ground: T taxi route + follow-me car, P pushback, ` radio."))
 	_fill_list()
 	var s: Dictionary = Session.setup
 	_mode_btns[s.start].button_pressed = true
@@ -104,9 +106,13 @@ func _lbl(t: String) -> Label:
 	return l
 
 
-func _spin(label: String, lo: float, hi: float, step: float, key: String) -> SpinBox:
-	_air_box.add_child(_lbl(label))
+func _spin(label: String, lo: float, hi: float, step: float, key: String, tip: String) -> SpinBox:
+	var l := _lbl(label)
+	SliderRow.tip_on(l, tip)
+	_air_box.add_child(l)
 	var sb := SpinBox.new()
+	sb.tooltip_text = tip
+	sb.size_flags_horizontal = SIZE_EXPAND_FILL
 	sb.min_value = lo
 	sb.max_value = hi
 	sb.step = step
@@ -132,7 +138,7 @@ func _sync_air() -> void:
 	_alt.set_value_no_signal(float(Session.setup.air_ft))
 	_dist.set_value_no_signal(float(Session.setup.air_nm))
 	_syncing = false
-	_air_note.text = "Default for the %s: %s ft, %s nm, %d kt." % [def.display_name(), _thousands(int(a.alt_ft)), Session.nm_text(a.dist_nm), int(a.kias)]
+	_air_note.text = "Default for this aircraft: %s ft, %s nm, %d kt." % [_thousands(int(a.alt_ft)), Session.nm_text(a.dist_nm), int(a.kias)]
 
 
 static func _thousands(n: int) -> String:
@@ -192,7 +198,7 @@ func _select(a: Dictionary, user := true) -> void:
 	var rl := []
 	for r in a.runways:
 		rl.append("%s/%s  %d m" % [r.ends[0].ident, r.ends[1].ident, int(r.length)])
-	_info.text = "%s\n%s\nElevation %d ft · %d stands\n%s" % [a.icao, a.name, int(Units.m_to_ft(a.elev_m)), a.stands.size(), "\n".join(rl)]
+	_info.text = "%s  %s\nElevation %d ft · %d stands\n%s" % [a.icao, a.name, int(Units.m_to_ft(a.elev_m)), a.stands.size(), "  ·  ".join(rl)]
 	_rwy.clear()
 	var def := AircraftDef.load_def(str(s.get("aircraft", AircraftDef.DEFAULT_ID)))
 	var gp := GroundParams.ground(def)

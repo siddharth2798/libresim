@@ -1,19 +1,26 @@
 extends HBoxContainer
-## Start screen page 2: aircraft (every res://aircraft/<id>/aircraft.json is listed),
-## its specifications, and fuel / payload with the resulting weight against MTOW.
+## Start screen page 2: aircraft (every res://aircraft/<id>/aircraft.json is listed), its name and
+## key figures (the full specification, description and credit are under "Details"), and fuel /
+## payload with the resulting weight against MTOW and the W&B chart.
 
 signal changed
+
+const LOADING_NOTE := "Over-weight or out-of-CG loading is allowed but you will feel it: longer takeoff roll, slower climb, higher stall speed; an aft CG makes pitch light and unstable."
+const KEY_SPECS := 3  # specification rows always shown (the rest sit under Details)
+
+static var _details_open := false  # "Details" stays open or closed for the session
 
 var _list: ItemList
 var _name: Label
 var _cat: Label
 var _desc: Label
-var _specs: GridContainer
+var _specs: GridContainer  # the key figures
+var _more_specs: GridContainer  # the remaining ones, under Details
+var _details: Control
+var _details_btn: Button
 var _credit: Label
 var _weight: Label
-const LOADING_NOTE := "Over-weight or out-of-CG loading is allowed but you will feel it: longer takeoff roll, slower climb, higher stall speed; an aft CG makes pitch light and unstable."
 var _chart: Control
-var _note: Label  # the loading note under the aircraft list (names the pilot weight)
 var _cfg := {}
 var _ac := {}
 var _sliders := {}
@@ -29,33 +36,39 @@ func _ready() -> void:
 	_list = ItemList.new()
 	_list.size_flags_vertical = SIZE_EXPAND_FILL
 	left.add_child(_list)
-	left.add_child(MenuTheme.note("More aircraft are planned; aircraft are data (aircraft/<id>/*.json)."))
-	_note = MenuTheme.note("")
-	left.add_child(_note)
 	var mid := VBoxContainer.new()
 	mid.size_flags_horizontal = SIZE_EXPAND_FILL
-	mid.add_theme_constant_override("separation", 6)
+	mid.add_theme_constant_override("separation", 8)
 	add_child(mid)
 	_name = Label.new()
 	_name.add_theme_font_size_override("font_size", 28)
 	mid.add_child(_name)
 	_cat = MenuTheme.note("")
 	mid.add_child(_cat)
+	_specs = _spec_grid()
+	mid.add_child(_specs)
+	_details_btn = Button.new()
+	_details_btn.size_flags_horizontal = SIZE_SHRINK_BEGIN
+	_details_btn.pressed.connect(func(): _show_details(not _details_open))
+	mid.add_child(_details_btn)
+	_details = VBoxContainer.new()
+	_details.add_theme_constant_override("separation", 8)
+	mid.add_child(_details)
 	_desc = Label.new()
 	_desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_desc.add_theme_font_size_override("font_size", 15)
-	mid.add_child(_desc)
-	mid.add_child(MenuTheme.heading("Specifications"))
-	_specs = GridContainer.new()
-	_specs.columns = 2
-	_specs.add_theme_constant_override("h_separation", 16)
-	_specs.add_theme_constant_override("v_separation", 1)
-	mid.add_child(_specs)
+	_details.add_child(_desc)
+	_more_specs = _spec_grid()
+	_details.add_child(_more_specs)
+	var gap := Control.new()  # pushes the credit to the bottom of the column
+	gap.size_flags_vertical = SIZE_EXPAND_FILL
+	mid.add_child(gap)
 	_credit = MenuTheme.note("")
+	_credit.add_theme_font_size_override("font_size", 12)
 	mid.add_child(_credit)
 	var right := VBoxContainer.new()
-	right.custom_minimum_size = Vector2(260, 0)
-	right.add_theme_constant_override("separation", 6)
+	right.custom_minimum_size = Vector2(430, 0)
+	right.add_theme_constant_override("separation", 8)
 	add_child(right)
 	right.add_child(MenuTheme.heading("Fuel & payload"))
 	_fuel_box = VBoxContainer.new()
@@ -69,6 +82,7 @@ func _ready() -> void:
 	_chart.set_script(load("res://ui/menu/wb_chart.gd"))
 	_chart.size_flags_vertical = SIZE_EXPAND_FILL
 	right.add_child(_chart)
+	_show_details(_details_open)
 	for id in AircraftDef.list_ids():
 		var j: Dictionary = AircraftDef.load_def(id).data
 		var i := _list.add_item(j.get("name", id))
@@ -86,26 +100,30 @@ func _ready() -> void:
 		_show(_list.get_item_metadata(0))
 
 
+func _spec_grid() -> GridContainer:
+	var g := GridContainer.new()
+	g.columns = 2
+	g.add_theme_constant_override("h_separation", 16)
+	g.add_theme_constant_override("v_separation", 2)
+	return g
+
+
+func _show_details(open: bool) -> void:
+	_details_open = open
+	_details.visible = open
+	_details_btn.text = "▼  Hide details" if open else "▶  Details: description and full specification"
+
+
 func _slider(parent: Control, label: String, key: String, lo: float, hi: float, step: float, unit: String) -> void:
-	var hb := HBoxContainer.new()
-	parent.add_child(hb)
-	var l := Label.new()
-	l.text = label
-	l.size_flags_horizontal = SIZE_EXPAND_FILL
-	hb.add_child(l)
-	var v := Label.new()
-	hb.add_child(v)
-	var sl := HSlider.new()
-	sl.min_value = lo
-	sl.max_value = hi
-	sl.step = step
+	var row := SliderRow.new().setup(label, lo, hi, step, label if label.length() > 24 else "", 200.0, 72.0)
+	var sl := row.slider
 	sl.value = float(Session.setup.get(key, 0.0))
-	v.text = "%.0f %s" % [sl.value, unit]
+	row.value_label.text = "%.0f %s" % [sl.value, unit]
 	sl.value_changed.connect(func(x):
 		Session.setup[key] = x
-		v.text = "%.0f %s" % [x, unit]
+		row.value_label.text = "%.0f %s" % [x, unit]
 		_update_weight())
-	parent.add_child(sl)
+	parent.add_child(row)
 	_sliders[key] = sl
 
 
@@ -131,20 +149,26 @@ func _show(j: Dictionary) -> void:
 	_desc.text = j.get("description", "")
 	_credit.text = j.get("model_credit", "")
 	var pilot := float(j.get("pilot_kg", 82.0))
-	_note.text = ("Pilot %d kg is included. " % int(pilot) if pilot > 0.0 else "The crew is included in the empty weight. ") + LOADING_NOTE
-	for c in _specs.get_children():
-		c.queue_free()
+	_weight.tooltip_text = ("Pilot %d kg is included. " % int(pilot) if pilot > 0.0 else "The crew is included in the empty weight. ") + LOADING_NOTE
+	_weight.mouse_filter = Control.MOUSE_FILTER_PASS
+	for g in [_specs, _more_specs]:
+		for c in g.get_children():
+			g.remove_child(c)
+			c.queue_free()
+	var n := 0
 	for s in j.get("specs", []):
+		var g: GridContainer = _specs if n < KEY_SPECS else _more_specs
+		n += 1
 		var a := Label.new()
 		a.text = s[0]
 		a.add_theme_color_override("font_color", MenuTheme.DIM)
-		_specs.add_child(a)
+		g.add_child(a)
 		var b := Label.new()
 		b.text = s[1]
 		b.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		b.size_flags_horizontal = SIZE_EXPAND_FILL
 		b.custom_minimum_size = Vector2(120, 0)
-		_specs.add_child(b)
+		g.add_child(b)
 	_update_weight()
 
 
