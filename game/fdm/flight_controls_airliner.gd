@@ -67,6 +67,13 @@ func flap_detents() -> int:
 	return _dets.size()
 
 
+func snap_flaps() -> void:
+	var d: Dictionary = _dets[clampi(flap_cmd, 0, _dets.size() - 1)]
+	flap_deg = d.flap_deg
+	slat_deg = d.slat_deg
+	slat_cmd = slat_deg
+
+
 func surface(name: String) -> float:
 	return _acts[name].pos if _acts.has(name) else 0.0
 
@@ -78,10 +85,7 @@ func settle() -> void:
 	for a: SurfaceActuator in _acts.values():
 		a.cmd = cmd.get(a.name, 0.0)
 		a.settle()
-	var d: Dictionary = _dets[clampi(flap_cmd, 0, _dets.size() - 1)]
-	flap_deg = d.flap_deg
-	slat_deg = d.slat_deg
-	slat_cmd = slat_deg
+	snap_flaps()
 	for i in _panels.size():
 		_panels[i].cmd = spoiler_cmd[i]
 		_panels[i].settle()

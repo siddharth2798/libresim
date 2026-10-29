@@ -18,6 +18,8 @@ def lamp(switch, pos, energy, rng, angle, beam, tilt):
 def main():
     piv = json.loads((M / "exterior_pivots.json").read_text())
     info = json.loads((M / "interior_info.json").read_text())
+    pv_path = M / "interior_pivots.json"  # moving cockpit controls (tools/blender/convert_a320_cockpit.py)
+    levers = json.loads(pv_path.read_text())["levers"] if pv_path.exists() else {}
     surfaces = {}
     for k, v in piv.items():
         if v["drive"] == "n1_spin":
@@ -42,7 +44,7 @@ def main():
             "lights/cameras numbers are first guesses (checked only by screenshots).",
         ],
         "model": {"origin_m": [0.0, 0.0, 0.0], "surfaces": surfaces, "propellers": props},
-        "cockpit": {"eye": info["eye"], "panel_mesh": info["panel_mesh"], "spots": spots, "screens": info["screens"]},
+        "cockpit": {"eye": info["eye"], "panel_mesh": info["panel_mesh"], "levers": levers, "spots": spots, "screens": info["screens"]},
         "lights": {
             "nav": [
                 {"pos": [1.9, -17.13, 0.5], "side": "left", "color": "red", "size": 1.4, "range": 4.0, "omni_off": [0.4, 0.15, 0]},

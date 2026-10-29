@@ -8,6 +8,7 @@ const SAVE := "user://last_flight.json"
 const DEFAULT := {
 	"airport": "VAJJ", "runway": "", "start": "runway",  # runway | stand | air
 	"stand": "", "air_ft": 1500.0, "air_nm": 5.0, "air_kt": 90.0, "cold": false,
+	"air_custom": false,  # false: air_ft / air_nm / air_kt follow the aircraft (apply_air_defaults); true: the pilot, a lesson or --air* chose them
 	"aircraft": "c172",
 	"fuel_gal": 17.0, "copilot_kg": 0.0, "rear_kg": 0.0, "baggage_kg": 0.0,  # per tank (total kg when payload.fuel_unit is "kg") / per station
 	"cabin_kg": 0.0, "cargo_kg": 0.0,  # A320 stations
@@ -70,6 +71,36 @@ func _load() -> void:
 	for k in ["convection", "storms"]:  # a setup saved before the cloud physics: no thermals, no storms
 		if not d.has(k):
 			setup[k] = 0.0
+	if not d.has("air_custom"):
+		legacy_air_custom(setup)
+	apply_air_defaults()
+
+
+## Nautical miles as the start screen writes them: "5", "1.5".
+static func nm_text(nm: float) -> String:
+	return ("%.1f" % nm).trim_suffix(".0")
+
+
+## A setup saved before `air_custom` existed: values other than the C172 defaults were chosen by the pilot.
+static func legacy_air_custom(s: Dictionary) -> void:
+	s.air_custom = not (is_equal_approx(float(s.air_ft), DEFAULT.air_ft) and is_equal_approx(float(s.air_nm), DEFAULT.air_nm)
+		and is_equal_approx(float(s.air_kt), DEFAULT.air_kt))
+
+
+## The "In the air" numbers follow the chosen aircraft (aircraft/air_start.gd) unless `air_custom`: then the
+## pilot's values stay, only clamped into the aircraft's limits. Keys in `keep` are left as they are (the
+## command line and lessons give some of them themselves).
+func apply_air_defaults(keep: Array = []) -> void:
+	var def := AircraftDef.load_def(str(setup.get("aircraft", AircraftDef.DEFAULT_ID)))
+	if not bool(setup.get("air_custom", false)):
+		var vals := AirStart.setup_values(def)
+		for k in vals:
+			if not k in keep:
+				setup[k] = vals[k]
+		return
+	var lim: Dictionary = AirStart.of(def).limits
+	setup.air_ft = clampf(float(setup.air_ft), lim.alt_ft[0], lim.alt_ft[1])
+	setup.air_nm = clampf(float(setup.air_nm), lim.dist_nm[0], lim.dist_nm[1])
 
 
 ## Start a lesson: remember the free-flight setup, then let `fn` overwrite it for the lesson.
@@ -80,6 +111,9 @@ func begin_lesson(id: String, lesson_setup: Dictionary, assist_level: String) ->
 		apply_weather_preset(lesson_setup.weather)
 	for k in lesson_setup:
 		setup[k] = lesson_setup[k]
+	setup.air_custom = false  # what the lesson gives is the lesson's, the rest follows the aircraft
+	apply_air_defaults(lesson_setup.keys())
+	setup.air_custom = ["air_ft", "air_nm", "air_kt"].any(func(k): return lesson_setup.has(k))
 	setup.failures = {}
 	setup.random = {"enabled": false, "count": 1, "from_min": 2.0, "to_min": 30.0, "categories": []}
 	setup.record = false
@@ -109,25 +143,36 @@ func save() -> void:
 
 
 func _parse_cmdline() -> void:
+	_parse_args(OS.get_cmdline_user_args())
+
+
+func _parse_args(args: PackedStringArray) -> void:
 	var cmd := {}
-	for a in OS.get_cmdline_user_args():
+	for a in args:
 		var kv := a.trim_prefix("--").split("=", true, 1)
 		cmd[kv[0]] = kv[1] if kv.size() > 1 else ""
 	if cmd.keys().all(func(k): return k in ["quality", "menu"]):
 		return  # no flight options: start screen with the last setup
 	# a command-line flight starts from the defaults, not from the last saved setup
 	setup = DEFAULT.duplicate(true)
+	var air_given := []  # --air / --air-nm / --air-kt the pilot gave a value for
 	skip_menu = not cmd.has("menu")
 	for k in cmd:
 		var v: String = cmd[k]
 		match k:
 			"airport": setup.airport = v.to_upper()
 			"runway": setup.runway = v
-			"air":
+			"air":  # --air[=ft]: no number = the aircraft's own height
 				setup.start = "air"
-				setup.air_ft = float(v) if v != "" else 1500.0
-			"air-nm": setup.air_nm = float(v)  # distance out on final for --air
-			"air-kt": setup.air_kt = float(v)  # airspeed (KIAS) at the start of --air
+				if v != "":
+					setup.air_ft = float(v)
+					air_given.append("air_ft")
+			"air-nm":  # distance out on final for --air
+				setup.air_nm = float(v)
+				air_given.append("air_nm")
+			"air-kt":  # airspeed (KIAS) at the start of --air
+				setup.air_kt = float(v)
+				air_given.append("air_kt")
 			"stand":
 				setup.start = "stand"
 				setup.stand = v
@@ -157,6 +202,8 @@ func _parse_cmdline() -> void:
 			"view": view = v
 			"clean": clean = true
 			"record": setup.record = true
+	apply_air_defaults(air_given)  # what was not given: the aircraft's own height, distance and speed
+	setup.air_custom = not air_given.is_empty()
 	if cmd.has("lesson"):  # --lesson=landing[,light]
 		var parts: PackedStringArray = str(cmd.lesson).split(",")
 		var lesson := TrainingLogic.find(parts[0])
@@ -208,7 +255,7 @@ func apply_to_props() -> void:
 func summary() -> String:
 	var where: String = {"runway": "runway %s" % (setup.runway if setup.runway != "" else "(longest)"),
 		"stand": "stand %s" % (setup.stand if setup.stand != "" else "(gate)"),
-		"air": "%d ft, %.0f nm final" % [int(setup.air_ft), float(setup.air_nm)]}[setup.start]
+		"air": "%d ft, %s nm final" % [int(setup.air_ft), nm_text(float(setup.air_nm))]}[setup.start]
 	var t := float(setup.time_h)
 	var nf := 0
 	for id in setup.failures:

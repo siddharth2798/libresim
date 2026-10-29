@@ -66,6 +66,11 @@ func settle() -> void:
 	act_yaw = yaw
 
 
+## Flaps at the detent of flap_cmd at once (a start with flaps out).
+func snap_flaps() -> void:
+	flap_deg = _flap_detents[clampi(flap_cmd, 0, _flap_detents.size() - 1)]
+
+
 ## A control law with state (FbwLaw) restarts from the current surfaces: after a reset, a trim, a load.
 func restart_law() -> void:
 	if law != null and law.has_method("restart"):

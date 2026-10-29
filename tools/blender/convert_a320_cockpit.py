@@ -10,7 +10,9 @@ HUD and IAE variants, the rear of the cabin (x > -15.75) are dropped; the rest i
 decimated to the triangle budget; the Nasal-driven display sockets are replaced by plain black quads named
 screen_<display> (UV 0..1, normal toward the pilot) that cockpit code can texture with a live display;
 materials are Principled BSDF from the (<= 2048 px, "Airbus A320 Family" legend painted out) textures.
-Static: levers, sidesticks and switches are not animated in this first version.
+Moving controls (levers, sidesticks, pedals, knobs, trim wheel): upstream's separate objects get `pivot_<name>` empties
+(tools/blender/a320_lever_table.py, a320_levers.py) and models/interior_pivots.json records axes, limits and the draft
+`cockpit.levers` section; the rest of the panel is static.
 """
 import json
 import sys
@@ -21,6 +23,7 @@ from mathutils import Vector
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import a320_scene as S  # noqa: E402
+import a320_levers as L  # noqa: E402
 
 RAW = S.ROOT / "data/raw/fg/a320/Models"
 OUT = S.ROOT / "game/aircraft/a320/models"
@@ -98,6 +101,9 @@ def main():
     objs = S.import_ac(RAW / "FlightDeck/res/fd_complete.ac", keep, OFF, face_keep=face_keep)
     print("flight deck objects", len(objs), "triangles", S.triangles())
     decimate(list(objs.values()), BUDGET)
+    piv, problems = L.build(objs)
+    print("pivots", len(piv), "problems", problems)
+    L.T.write_info(OUT / "interior_pivots.json", set(piv))
     shell = S.join_static(list(bpy.data.objects), "cockpit")
     shell.data.validate(verbose=True)
     mat = S._principled("a320_screen", (0.01, 0.012, 0.015), rough=0.15)

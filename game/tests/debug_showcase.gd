@@ -96,6 +96,7 @@ func _menu(def: Dictionary) -> void:
 	_choose_aircraft(def)
 	for k in def.get("setup", {}):
 		Session.setup[k] = def.setup[k]
+	Session.setup.air_custom = ["air_ft", "air_nm", "air_kt"].any(func(k): return def.get("setup", {}).has(k))  # explicit numbers stay on the page
 	if def.has("weather"):
 		Session.apply_weather_preset(def.weather)
 	var s: Control = load(MENU).instantiate()

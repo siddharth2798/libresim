@@ -12,6 +12,7 @@ extends Node3D
 ##   screens     {name: {centre, width, height, u_dir, v_dir, normal}} glass displays measured on the glb (model
 ##               frame, m). A spot whose item (or "screen") names one gets a quad of exactly that size and tilt
 ##               (the display is stretched to the glass); other spots are upright quads of "size" wide.
+##   levers      {pivot: {drive, map, ...}} moving controls of the interior glb (cockpit_levers.gd); absent = static
 ## Item names are the InstrumentPanel ones (panel.json): gauges, "radios", "strip", "switches".
 
 const REFRESH := 1.0 / 30.0
@@ -21,6 +22,7 @@ var viewport: SubViewport
 var panel_ui: InstrumentPanel
 var eye := Vector3.ZERO  # local, for the camera
 var interior: Node3D
+var levers: CockpitLevers  # moving controls (aircraft.json cockpit.levers), null on a static cockpit
 var _quads: Array = []  # [MeshInstance3D, Rect2 panel px]
 var _acc := 0.0
 var _panel_mesh := ""
@@ -48,6 +50,10 @@ func build(model: AircraftModel, fallback_eye: Vector3) -> void:
 		AircraftModel.fix_glass(interior)
 		if cfg.has("eye"):
 			eye = model.fg_to_local(_vec(cfg.eye))
+		if cfg.get("levers") is Dictionary:
+			levers = CockpitLevers.new()
+			add_child(levers)
+			levers.build(interior, cfg.levers)
 	if interior != null and not spots.is_empty():
 		var front := _panel_front()
 		for k in spots:

@@ -79,6 +79,7 @@ func _ready() -> void:
 	_list.item_selected.connect(func(i):
 		Session.setup.aircraft = _list.get_item_metadata(i).id
 		Session.apply_payload_defaults(AircraftDef.load_def(Session.setup.aircraft))  # fuel and loads suit the new aircraft
+		Session.apply_air_defaults()  # and the airborne start (height, distance, speed) unless the pilot set it
 		_show(_list.get_item_metadata(i)))
 	if _ac.is_empty() and _list.item_count > 0:
 		_list.select(0)

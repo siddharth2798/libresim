@@ -30,10 +30,12 @@ static func lessons_for(aircraft_id: String) -> Array:
 ## Start a lesson (Session.begin_lesson). If the current aircraft is not one it is written for, the
 ## flight is set up with the first aircraft it lists; end_lesson() restores the pilot's own choice.
 static func begin(lesson: Dictionary, assist: String) -> void:
-	Session.begin_lesson(lesson.id, lesson.setup, assist)
-	var current := str(Session.setup.get("aircraft", AircraftDef.DEFAULT_ID))
-	if not suits(lesson, current):
-		Session.setup.aircraft = str(lesson.aircraft[0])
+	var setup: Dictionary = lesson.setup
+	var current := str(setup.get("aircraft", Session.setup.get("aircraft", AircraftDef.DEFAULT_ID)))
+	if not suits(lesson, current):  # decided first: the airborne defaults the lesson leaves open follow that aircraft
+		setup = setup.duplicate()
+		setup.aircraft = str(lesson.aircraft[0])
+	Session.begin_lesson(lesson.id, setup, assist)
 
 
 static func find(id: String) -> Dictionary:

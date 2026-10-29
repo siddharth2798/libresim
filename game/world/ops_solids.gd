@@ -13,6 +13,7 @@ const LABELS := {"fuel_truck": "a parked vehicle (fuel truck)", "gpu": "a parked
 static var _aabbs := {}  # model name -> AABB in the model's own frame
 
 var group := ""
+var _jetway_groups := {}  # key -> registry group of one jetway (it comes and goes as the jetway extends)
 
 
 func _init(group_name: String) -> void:
@@ -58,7 +59,8 @@ func add_model(kind: String, n: Node3D, ground: float, keep_clear := true) -> bo
 
 ## The jetway's real shape (elevated tunnel, support, rotunda) as a raster of its triangles, so a
 ## C172 can taxi under the tunnel but not into the rotunda or the support. n: placed, inside the tree.
-func add_jetway(n: Node3D, ground: float) -> void:
+## key: its own registry group, so remove_jetway(key) can take it out while the jetway is extended to an aircraft.
+func add_jetway(n: Node3D, ground: float, key := "") -> void:
 	var verts := PackedVector3Array()
 	var to_root := n.transform * n.global_transform.affine_inverse()  # world -> ops root frame
 	for mi in n.find_children("*", "MeshInstance3D", true, false):
@@ -71,7 +73,15 @@ func add_jetway(n: Node3D, ground: float) -> void:
 			verts.append(Vector3(p.x, -p.z, p.y))  # ops root: x east, y up, z -north
 	var rec := SolidGrid.build(verts, ground, "a jetway", 0.0)
 	if not rec.is_empty() and not _low_part_in_corridor(rec):
-		ObstacleRegistry.add(group, rec)
+		var g := group if key == "" else "%s:jw%s" % [group, key]
+		_jetway_groups[key] = g
+		ObstacleRegistry.add(g, rec)
+
+
+func remove_jetway(key: String) -> void:
+	if _jetway_groups.has(key):
+		ObstacleRegistry.remove_group(_jetway_groups[key])
+		_jetway_groups.erase(key)
 
 
 ## Does a part of the raster that the aircraft would hit stand in a corridor? Then that jetway
@@ -102,3 +112,6 @@ static func add_pole(group_name: String, c: Vector2, radius: float, height: floa
 
 func clear() -> void:
 	ObstacleRegistry.remove_group(group)
+	for k in _jetway_groups.values():
+		ObstacleRegistry.remove_group(k)
+	_jetway_groups.clear()

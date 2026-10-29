@@ -6,8 +6,10 @@ extends RefCounted
 ## structural frame about the CG (+x forward). Each reader takes an AircraftDef, null = the current one.
 ##
 ## ground:   tow_ahead_m (tug origin ahead of the CG), ahead_m / behind_m / across_m / height_m (footprint),
-##           cg_to_door_m (L1 door ahead of the CG, jetbridge gates only), door_height_m (door sill height,
-##           what a jetway must clear instead of height_m), nose_gear_m (nose wheel ahead of the CG, where the
+##           cg_to_door_m (L1 door ahead of the CG, jetbridge gates only), door_y_m (lateral offset of the L1 door
+##           from the centre line, negative = left/port; where a docked jetway cab meets the fuselage), door_height_m
+##           (door sill height, what a jetway must clear instead of height_m; its presence makes the jetways of a
+##           gate dock to this aircraft, see JetwayDocks), nose_gear_m (nose wheel ahead of the CG, where the
 ##           stop bar is), taxi_half_m (taxiway corridor half width), max_taxi_kt (advice only, absent = none),
 ##           follow_gap_m (follow-me car ahead of the CG), hold_short_m ("hold short" call distance),
 ##           min_runway_m, stand_class ("any" | "ga" | "gate"), tug_scale, service {gpu, baggage, fuel, bus}
@@ -15,10 +17,11 @@ extends RefCounted
 ## pushback: straight_m, radius_m, speed_mps (path = PushbackPath).
 
 const GROUND := {"tow_ahead_m": 3.2, "ahead_m": 3.3, "behind_m": 7.4, "across_m": 6.7, "height_m": 2.5,
-	"cg_to_door_m": 0.0, "nose_gear_m": 0.0, "taxi_half_m": 8.0, "follow_gap_m": 35.0, "hold_short_m": 40.0,
+	"cg_to_door_m": 0.0, "door_y_m": 0.0, "nose_gear_m": 0.0, "taxi_half_m": 8.0, "follow_gap_m": 35.0, "hold_short_m": 40.0,
 	"min_runway_m": 0.0, "stand_class": "any", "tug_scale": 1.0}
 const PUSHBACK := {"straight_m": 30.0, "radius_m": 18.0, "speed_mps": 1.4}
 const MAX_TAXI_KT_NONE := 0.0
+const DOOR_GAP_M := 0.15  # a docked cab hood stops this far outside the fuselage skin
 
 
 static func _def(def: AircraftDef) -> AircraftDef:
@@ -69,3 +72,17 @@ static func door_point(st: Dictionary, def: AircraftDef = null) -> Vector2:
 		var hd := deg_to_rad(float(st.heading_deg))
 		p += Vector2(sin(hd), cos(hd)) * float(ground(def).cg_to_door_m)
 	return p
+
+
+## Does this aircraft dock to a gate's jetway? Only an aircraft that states its door sill height does (the C172's
+## door is far below any cab floor, so its gates keep the jetway at rest).
+static func dockable(def: AircraftDef = null) -> bool:
+	return _def(def).section("ground").has("door_height_m")
+
+
+## Where the face of a docked cab meets the aircraft at a jetbridge gate: the stand point is the L1 door's place
+## along the centre line, the door is door_y_m off it (left, the cab side) and the hood stops DOOR_GAP_M short of the skin.
+static func door_tip(st: Dictionary, def: AircraftDef = null) -> Vector2:
+	var hd := deg_to_rad(float(st.heading_deg))
+	var right := Vector2(cos(hd), -sin(hd))
+	return Vector2(st.x, st.y) + right * (float(ground(def).door_y_m) - DOOR_GAP_M)

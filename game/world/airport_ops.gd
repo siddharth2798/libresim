@@ -100,8 +100,11 @@ func _build(icao: String) -> void:
 		_stand_marking(root, s)
 		_service_vehicles(root, s, i)
 		i += 1
+	var ways := []
 	for jb in a.jetbridges:
-		_jetbridge(root, jb.pts, a.stands)
+		ways.append(JetwayDocks.ends(jb.pts, a.stands))
+	for k in ways.size():
+		_jetbridge(root, k, ways, a.stands)
 	for ws in a.windsocks:
 		_windsock(root, ws.x, ws.y)
 	for tw in a.towers.slice(0, 1):
@@ -221,26 +224,18 @@ func _stand_marking(root: Node3D, s: Dictionary) -> void:
 	root.add_child(lbl)
 
 
-## FlightGear generic jetway (rotunda at the origin, tunnel along +X to the cab) laid
-## along the OSM jet_bridge way, rotunda at the end farther from the nearest stand.
-func _jetbridge(root: Node3D, pts: Array, stands: Array) -> void:
-	var a := Vector2(pts[0][0], pts[0][1])
-	var b := Vector2(pts[-1][0], pts[-1][1])
-	var near_a := INF
-	var near_b := INF
-	for st in stands:
-		near_a = minf(near_a, a.distance_to(Vector2(st.x, st.y)))
-		near_b = minf(near_b, b.distance_to(Vector2(st.x, st.y)))
-	var terminal := a if near_a > near_b else b
-	var cab := b if terminal == a else a
-	var d := cab - terminal
-	var n: Node3D = _scene("jetway").instantiate()
-	n.position = _local(terminal.x, terminal.y, 0.0)
-	n.rotation.y = atan2(d.y, d.x)  # model +X along terminal -> cab (render: x east, -z north)
-	var len := d.length()
-	n.scale = Vector3(clampf(len / 22.0, 0.6, 1.8), 1.0, 1.0)
-	root.add_child(n)
-	_cur.add_jetway(n, _h(terminal.x, terminal.y))
+## FlightGear generic jetway (JetwayRig) laid along the OSM jet_bridge way, rotunda at the end farther from the
+## nearest stand; it extends to the door of an aircraft parked at a gate it serves (JetwayDocks).
+func _jetbridge(root: Node3D, k: int, ways: Array, stands: Array) -> void:
+	var w: Dictionary = ways[k]
+	var sill := float(GroundParams.ground().get("door_height_m", 0.0))
+	var dy := func(t: Vector2, tip: Vector2) -> float:
+		return _h(tip.x, tip.y) + sill - (_h(t.x, t.y) + JetwayPose.FLOOR_Y)
+	var rig := JetwayRig.new()
+	rig.setup(_scene("jetway").instantiate(), w.terminal, w.cab, JetwayDocks.candidates(k, ways, stands, dy))
+	rig.position = _local(w.terminal.x, w.terminal.y, 0.0)
+	root.add_child(rig)
+	rig.start(_cur, str(k), _h(w.terminal.x, w.terminal.y))
 
 
 func _windsock(root: Node3D, x: float, y: float) -> void:
@@ -271,66 +266,6 @@ func _windsock(root: Node3D, x: float, y: float) -> void:
 	_socks.append(pivot)
 
 
-## A* over the airport taxi graph. Returns [[x, y], ...] from the node nearest `from`
-## to the node nearest `to`, plus the taxiway refs used, or {} if no route.
+## A* over the airport taxi graph: see TaxiRoute.
 func route(icao: String, from: Vector2, to: Vector2) -> Dictionary:
-	var g: Dictionary = data.get(icao, {}).get("taxi", {})
-	if g.is_empty():
-		return {}
-	var adj := {}
-	for e in g.edges:
-		if e[4] == "runway":
-			continue  # don't taxi along runways unless unavoidable
-		for pair in [[e[0], e[1]], [e[1], e[0]]]:
-			if not adj.has(pair[0]):
-				adj[pair[0]] = []
-			adj[pair[0]].append([pair[1], str(e[2])])
-	var nearest := func(p: Vector2) -> String:
-		var best := ""
-		var bd := INF
-		for id in adj:
-			var q: Array = g.nodes[id]
-			var d := p.distance_squared_to(Vector2(q[0], q[1]))
-			if d < bd:
-				bd = d
-				best = id
-		return best
-	var s: String = nearest.call(from)
-	var t: String = nearest.call(to)
-	if s == "" or t == "":
-		return {}
-	var pos := func(id: String) -> Vector2: return Vector2(g.nodes[id][0], g.nodes[id][1])
-	var open := {s: true}
-	var came := {}
-	var gs := {s: 0.0}
-	var tp: Vector2 = pos.call(t)
-	while not open.is_empty():
-		var cur := ""
-		var bf := INF
-		for id in open:
-			var f: float = gs[id] + (pos.call(id) as Vector2).distance_to(tp)
-			if f < bf:
-				bf = f
-				cur = id
-		if cur == t:
-			break
-		open.erase(cur)
-		for nb in adj.get(cur, []):
-			var ng: float = gs[cur] + (pos.call(cur) as Vector2).distance_to(pos.call(nb[0]))
-			if ng < gs.get(nb[0], INF):
-				gs[nb[0]] = ng
-				came[nb[0]] = [cur, nb[1]]
-				open[nb[0]] = true
-	if not came.has(t) and s != t:
-		return {}
-	var path: Array = [pos.call(t)]
-	var refs: Array[String] = []
-	var c := t
-	while came.has(c):
-		var r: String = came[c][1]
-		if r != "" and (refs.is_empty() or refs[-1] != r):
-			refs.append(r)
-		c = came[c][0]
-		path.push_front(pos.call(c))
-	refs.reverse()
-	return {"path": path, "via": refs}
+	return TaxiRoute.find(data.get(icao, {}).get("taxi", {}), from, to)

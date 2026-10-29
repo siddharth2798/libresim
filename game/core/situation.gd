@@ -86,6 +86,8 @@ static func apply(root: Node, d: Dictionary) -> String:
 	var f := fn.fdm
 	var setup: Dictionary = Session.DEFAULT.duplicate(true)
 	setup.merge(d.setup, true)
+	if not d.setup.has("air_custom"):  # saved before the flag existed
+		Session.legacy_air_custom(setup)
 	Session.setup = setup
 	var enu := Vector3(d.enu[0], d.enu[1], d.enu[2])
 	FloatingOrigin.set_origin(Vector2(enu.x, enu.y))

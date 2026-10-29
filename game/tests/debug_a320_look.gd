@@ -97,3 +97,25 @@ func _report_jetway() -> void:
 			if st.z > -1.0 and st.distance_to(door) < best[0]:  # parts at door height or above (not the ground marks)
 				best = [st.distance_to(door), mi.name, st]
 	print("JETWAY nearest high corner %s struct (%.2f %.2f %.2f)  d to door %.1f  (door -13.78 -1.95 0.5)" % [best[1], best[2].x, best[2].y, best[2].z, best[0]])
+	_report_rigs(m, cg)
+
+
+## --jetway: every docked JetwayRig: where its hood face centre and cab floor are in structural metres against the L1 door
+## (door x -13.78, y -1.95, sill z -0.58 about the CG at z 0 / x -2.5; the face should be 0.15 m outside the skin).
+func _report_rigs(m: AircraftModel, cg: Vector3) -> void:
+	print("CRASHED ", Props.get_v("damage/crashed", false))
+	for rig in f.get_node("AirportOps").find_children("*", "JetwayRig", true, false):
+		var r := rig as JetwayRig
+		print("RIG %s docked=%s progress=%.2f len=%.1f" % [r.name, r.docked_stand, r.progress, float(r.pose.len)])
+		if r.docked_stand == "":
+			continue
+		var hood: MeshInstance3D = r.find_child("Hood", true, false)
+		var bb := hood.get_aabb()
+		var face := hood.global_transform * Vector3(bb.end.x, bb.position.y + bb.size.y * 0.5, bb.position.z + bb.size.z * 0.5)
+		var floor_pt := hood.global_transform * Vector3(bb.end.x, bb.position.y, bb.position.z + bb.size.z * 0.5)
+		var l := m.to_local(face)
+		var fl := m.to_local(floor_pt)
+		var st := Vector3(l.z + cg.x, l.x + cg.y, l.y + cg.z)
+		var sf := Vector3(fl.z + cg.x, fl.x + cg.y, fl.y + cg.z)
+		print("DOCK %s face struct (%.2f %.2f %.2f) floor z %.2f | gap to door: longitudinal %.2f m, lateral %.2f m (want -0.15 outside skin y -2.10)" % [
+			r.docked_stand, st.x, st.y, st.z, sf.z, st.x + 13.78, st.y + 1.95])

@@ -15,6 +15,8 @@ var _stand: OptionButton
 var _air_box: Control
 var _alt: SpinBox
 var _dist: SpinBox
+var _air_note: Label  # the aircraft's default start, under the two controls
+var _syncing := false  # the spin boxes are being set from the setup: not an edit by the pilot
 var _cold: CheckBox
 var _stand_note: Label
 var _cur := {}
@@ -71,6 +73,8 @@ func _ready() -> void:
 	right.add_child(_air_box)
 	_alt = _spin("Height above field (ft)", 300, 12000, 100, "air_ft")
 	_dist = _spin("Distance out on final (nm)", 1, 25, 0.5, "air_nm")
+	_air_note = MenuTheme.note("")
+	right.add_child(_air_note)
 	_cold = CheckBox.new()
 	_cold.text = "Cold & dark (engine off, everything off — run the checklists)"
 	_cold.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -82,8 +86,11 @@ func _ready() -> void:
 	_fill_list()
 	var s: Dictionary = Session.setup
 	_mode_btns[s.start].button_pressed = true
-	_alt.set_value_no_signal(float(s.air_ft))
-	_dist.set_value_no_signal(float(s.air_nm))
+	_sync_air()
+	visibility_changed.connect(func():  # the aircraft page may have changed the aircraft
+		if visible:
+			_sync_air()
+			_refresh())  # the diagram marks the distance
 	_cold.set_pressed_no_signal(bool(s.cold))
 	for a in _airports:
 		if a.icao == s.airport:
@@ -103,9 +110,36 @@ func _spin(label: String, lo: float, hi: float, step: float, key: String) -> Spi
 	sb.min_value = lo
 	sb.max_value = hi
 	sb.step = step
-	sb.value_changed.connect(func(v): _put(key, v))
+	sb.value_changed.connect(func(v):
+		if not _syncing:
+			Session.setup.air_custom = true  # the pilot's own numbers: they stop following the aircraft
+		_put(key, v))
 	_air_box.add_child(sb)
 	return sb
+
+
+## The air-start controls for the chosen aircraft: its limits and, unless the pilot set them, its default
+## height, distance and speed (Session.apply_air_defaults).
+func _sync_air() -> void:
+	Session.apply_air_defaults()
+	var def := AircraftDef.load_def(str(Session.setup.get("aircraft", AircraftDef.DEFAULT_ID)))
+	var a := def.air_start()
+	_syncing = true
+	_alt.min_value = a.limits.alt_ft[0]
+	_alt.max_value = a.limits.alt_ft[1]
+	_dist.min_value = a.limits.dist_nm[0]
+	_dist.max_value = a.limits.dist_nm[1]
+	_alt.set_value_no_signal(float(Session.setup.air_ft))
+	_dist.set_value_no_signal(float(Session.setup.air_nm))
+	_syncing = false
+	_air_note.text = "Default for the %s: %s ft, %s nm, %d kt." % [def.display_name(), _thousands(int(a.alt_ft)), Session.nm_text(a.dist_nm), int(a.kias)]
+
+
+static func _thousands(n: int) -> String:
+	var t := str(absi(n))
+	for i in range(t.length() - 3, 0, -3):
+		t = t.insert(i, ",")
+	return ("-" if n < 0 else "") + t
 
 
 func _load() -> void:
@@ -206,6 +240,7 @@ func _refresh() -> void:
 	_mode_btns.stand.disabled = _cur.get("stands", []).is_empty()
 	_stand.visible = s.start == "stand"
 	_air_box.visible = s.start == "air"
+	_air_note.visible = s.start == "air"
 	# Cold & dark is only a choice on a runway: stands are always cold & dark (a note says so)
 	# and air starts never are. The control is removed, not greyed, and an air start never
 	# keeps a stale value.

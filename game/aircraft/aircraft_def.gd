@@ -19,7 +19,9 @@ extends RefCounted
 ##            flight_no, callsign_style: "airline"}: how ATC talks to the aircraft (atc/atc_profile.gd)
 ##   cameras  chase / wing / tail / orbit view positions (ui/camera_rig.gd), see camera()
 ##   registration  tail number painted at flight start: {source: callsign | fixed, text, texture, targets: [{erase, text, align, color, italic}]} (common/registration_paint.gd)
-##   start    pitch_trim of a parked start, air_kt of an airborne one (world/flight.gd)
+##   start    pitch_trim of a parked start; air {alt_ft, dist_nm, kias, gear "up"|"down", flaps (detent), limits {alt_ft, dist_nm: [min, max]}}
+##            the default "In the air" start (height, distance on final, speed, config; aircraft/air_start.gd derives what is
+##            missing, air_start() returns it); air_kt is the older spelling of air.kias
 ##   fcs      {"law": "airbus_fbw"}: fly-by-wire control law (fdm/fbw_law.gd); absent = direct control
 ##   callouts optional {alive_kt, rotate_kt, v1_kt, low_kt, heights}: the training callouts (ui/callouts.gd)
 ##   ground   footprint, height, tow point, optional min_runway_m (the start screen flags shorter runways) for stands, taxi corridors and jetways (world/ops_*.gd); all keys in world/ground_params.gd
@@ -130,6 +132,11 @@ func config() -> Dictionary:
 func section(name: String) -> Dictionary:
 	var s = data.get(name, {})
 	return s if s is Dictionary else {}
+
+
+## The default airborne start of this aircraft (AirStart.of): {alt_ft, dist_nm, kias, gear, flaps, limits}.
+func air_start() -> Dictionary:
+	return AirStart.of(self)
 
 
 ## A section merged over defaults, so an aircraft only spells out what differs.

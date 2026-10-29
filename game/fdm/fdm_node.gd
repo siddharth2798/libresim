@@ -77,8 +77,9 @@ func place_on_ground(east: float, north: float, heading_deg: float) -> void:
 
 
 ## Trimmed level flight at kias through the air mass (wind_ned: NED m/s at that height),
-## in the current weather (weather/qnh_hpa, weather/temp_c), so the start is in trim.
-func place_airborne(east: float, north: float, alt: float, heading_deg: float, kias: float, wind_ned := Vector3.ZERO) -> void:
+## in the current weather (weather/qnh_hpa, weather/temp_c), so the start is in trim, with the flaps at
+## detent `flaps` (already extended, not moving).
+func place_airborne(east: float, north: float, alt: float, heading_deg: float, kias: float, wind_ned := Vector3.ZERO, flaps := 0) -> void:
 	if _blds:
 		_blds.place_aircraft(east, north)
 	fdm.damage.reset()
@@ -91,6 +92,9 @@ func place_airborne(east: float, north: float, alt: float, heading_deg: float, k
 	fdm.atmo.qnh_pa = Props.get_f("weather/qnh_hpa", 1013.25) * 100.0
 	fdm.atmo.delta_t = Props.get_f("weather/temp_c", 15.0) - 15.0
 	fdm.wind_ned = wind_ned
+	if flaps != fdm.fcs.flap_cmd:
+		fdm.fcs.flap_cmd = flaps
+		fdm.fcs.snap_flaps()
 	fdm.set_airborne(north, east, alt, deg_to_rad(heading_deg), kias * 0.514444)
 	for u in fdm.units:
 		u.warm_start(true)
@@ -212,6 +216,8 @@ func _publish() -> void:
 	Props.set_v("fdm/stall_warning", f.alpha > f.aero.alpha_max * 0.85 and not f.gear.wow)
 	Props.set_v("fdm/flap_deg", f.fcs.flap_deg)
 	Props.set_v("fdm/flap_detents", f.fcs.flap_detents())
+	if "stabilizer_deg" in f.fcs:  # the airliner's trim wheel follows this (cockpit.levers pitch_trim)
+		Props.set_v("fdm/stabilizer_deg", f.fcs.stabilizer_deg)
 	Props.set_v("fdm/mass_kg", f.mb.mass)
 	Props.set_v("atmosphere/pressure_pa", f.atmo.pressure)
 	Props.set_v("atmosphere/temperature_k", f.atmo.temperature)

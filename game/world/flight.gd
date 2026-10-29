@@ -3,7 +3,8 @@ extends Node3D
 ## Session autoload, or directly with command-line options (after "--"):
 ##   --aircraft=c172|a320         the aircraft (default c172; its payload defaults apply)
 ##   --airport=VAJJ --runway=08   start on a runway (default VAJJ, first runway)
-##   --air=<alt_ft> [--air-nm=5] [--air-kt=90]  start airborne on the runway's extended centreline, 5 nm out, at 90 KIAS
+##   --air[=<alt_ft>] [--air-nm=N] [--air-kt=N]  start airborne on the runway's extended centreline; what is not given is the
+##                                aircraft's own (start.air: C172 1500 ft, 5 nm, 90 KIAS; A320 3500 ft, 11 nm, 205 KIAS, gear up)
 ##   --stand[=REF]                start parked at a stand/gate, cold & dark (e.g. --stand="Bay 40"); default: a jetbridge gate
 ##   --cold                       cold & dark (everything off, parking brake set)
 ##   --shot=<png>                 screenshot after 6 s and quit (testing)
@@ -31,6 +32,8 @@ var _apt := ""
 var _air_ft := -1.0
 var _air_nm := 5.0
 var _air_kt := 90.0  # IAS of an airborne start (lessons start slower)
+var _air_gear_up := false  # retractable gear of an airborne start
+var _air_flaps := 0  # flap detent of an airborne start
 var _shot := ""
 var _shot_time := 6.0
 var _t := 0.0
@@ -47,10 +50,15 @@ func _ready() -> void:
 		"air":
 			_air_ft = float(s.air_ft)
 			_air_nm = float(s.air_nm)
-			_air_kt = float(s.get("air_kt", 90.0))
-			var def_kt = AircraftDef.current().section("start").get("air_kt")  # an airliner starts fast, not at 90 KIAS
-			if def_kt != null and is_equal_approx(_air_kt, float(Session.DEFAULT.air_kt)):
-				_air_kt = float(def_kt)
+			_air_kt = float(s.get("air_kt", Session.DEFAULT.air_kt))
+			var own := AircraftDef.current().air_start()  # the aircraft's own start: speed, gear, flaps (start.air)
+			# a setup built in code that left the speed at the C172's default gets the aircraft's own speed
+			if not bool(s.get("air_custom", false)) and is_equal_approx(_air_kt, float(Session.DEFAULT.air_kt)):
+				_air_kt = own.kias
+			var own_speed := is_equal_approx(_air_kt, own.kias)
+			# another speed (--air-kt, a lesson): the gear follows it (up at 200 kt or more), flaps 0
+			_air_gear_up = own.gear == "up" if own_speed else _air_kt >= 200.0
+			_air_flaps = int(own.flaps) if own_speed else 0
 		"stand": _stand_ref = s.stand if s.stand != "" else "*"
 	_cold = bool(s.cold)
 	_shot = Session.shot
@@ -107,12 +115,12 @@ func _reset() -> void:
 	var hdg: float = _start.heading_deg
 	FloatingOrigin.set_origin(p)
 	_load_aircraft()
-	if AirlinerNodes.wanted(AircraftDef.current()):  # gear down, except an airborne start at 200 kt or more
-		Props.set_v("controls/gear", 0 if _air_ft > 0.0 and _air_kt >= 200.0 else 1)
+	if AirlinerNodes.wanted(AircraftDef.current()):  # gear down, except an airborne start that wants it up
+		Props.set_v("controls/gear", 0 if _air_ft > 0.0 and _air_gear_up else 1)
 	if _air_ft > 0.0:
 		var back := Vector2(sin(deg_to_rad(hdg)), cos(deg_to_rad(hdg))) * -_air_nm * 1852.0
 		var q := p + back
-		fdm_node.place_airborne(q.x, q.y, terrain.height_at(p.x, p.y) + _air_ft * 0.3048, hdg, _air_kt, $Weather.wind_at(_air_ft * 0.3048))
+		fdm_node.place_airborne(q.x, q.y, terrain.height_at(p.x, p.y) + _air_ft * 0.3048, hdg, _air_kt, $Weather.wind_at(_air_ft * 0.3048), _air_flaps)
 	elif _stand_ref != "":
 		var st: Dictionary = $AirportOps.find_stand(_apt, "" if _stand_ref == "*" else _stand_ref)
 		if not st.is_empty():
@@ -131,7 +139,7 @@ func _reset() -> void:
 			u.warm_start(false)
 		Props.set_v("controls/throttle", 0.0)
 		Props.set_v("controls/pitch_trim", float(AircraftDef.current().section("start").get("pitch_trim", 0.0)))
-	Props.set_v("controls/flaps", 0)
+	Props.set_v("controls/flaps", _air_flaps if _air_ft > 0.0 else 0)
 	for k in ["master_bat", "master_alt", "avionics"]:
 		Props.set_v("controls/electrical/" + k, true)
 	var kind := "air" if _air_ft > 0.0 else ("stand" if _stand_ref != "" else "runway")
