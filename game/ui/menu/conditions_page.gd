@@ -42,6 +42,7 @@ var _xwind: Label
 var _month: OptionButton
 var _runways: Array = []
 var _more: Control
+var _month_box: Control  # the month row (under Time of day), part of More weather
 var _more_btn: Button
 
 
@@ -66,6 +67,7 @@ func _ready() -> void:
 	_time_row.picked.connect(func(n): _put("time_h", preset_time(_time_value(n), float(Session.setup.day_of_year))))
 	time.add_child(_time_row)
 	_slider(time, "time_h")
+	_month_box = _month_row(time)  # shown with More weather
 	var wind := _column(top, "Wind", WIND_TIP, true)
 	_wind_row = PresetRow.new().setup(WINDS.map(func(x): return x[0]), 4)
 	_wind_row.picked.connect(func(n):
@@ -98,13 +100,12 @@ func _ready() -> void:
 	var other := _column(_more, "More")
 	for k in ["gust_kt", "qnh_hpa", "temp_c", "time_rate"]:
 		_slider(other, k)
-	_month_row(other)
 	_show_more(_more_open)
 	visibility_changed.connect(func(): if visible: _sync())
 	_sync()
 
 
-func _month_row(parent: Control) -> void:
+func _month_row(parent: Control) -> Control:
 	var mh := HBoxContainer.new()
 	parent.add_child(mh)
 	var ml := Label.new()
@@ -117,11 +118,13 @@ func _month_row(parent: Control) -> void:
 	_month.item_selected.connect(func(i): _put("day_of_year", 15.0 + 30.4 * i))
 	SliderRow.tip_on(_month, "Moves sunrise and sunset, and the sun's height.")
 	mh.add_child(_month)
+	return mh
 
 
 func _show_more(open: bool) -> void:
 	_more_open = open
 	_more.visible = open
+	_month_box.visible = open
 	_more_btn.text = "▼  Fewer options" if open else "▶  More weather: clouds, visibility, rain, turbulence, gusts…"
 
 

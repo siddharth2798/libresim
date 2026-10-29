@@ -238,7 +238,7 @@ const SCENES := {
 		"setup": {"aircraft": "a320", "airport": "VABB", "runway": "27", "start": "air", "air_ft": 250.0, "air_nm": 1.3, "air_kt": 140.0, "time_h": 18.85, "visibility_m": 20000.0},
 		"props": {"controls/gear": 1.0, "controls/flaps": 4}, "att": [0.0, 3.0],
 		"cam": [28.0, -30.0, 3.0], "aim": [0.0, 0.0, 0.5], "fov": 50.0},
-	"a320_aircraft_page": {"menu": "flight", "step": 1, "scroll": 150, "setup": {"aircraft": "a320", "airport": "VABB", "start": "stand", "time_h": 18.0}},
+	"a320_aircraft_page": {"menu": "flight", "step": 1, "setup": {"aircraft": "a320", "airport": "VABB", "start": "stand", "time_h": 18.0}},
 	"c172_tail": {"weather": "Clear", "view": "chase", "agl": true,
 		"setup": {"airport": "VAPO", "start": "stand", "callsign": "VT-LBR", "time_h": 16.9, "visibility_m": 30000.0},
 		"cam": [-3.0, 6.5, 1.6], "aim": [-2.0, 0.0, 1.5], "fov": 45.0},

@@ -30,7 +30,7 @@ var _fuel_box: VBoxContainer  # the fuel and payload sliders (rebuilt for each a
 func _ready() -> void:
 	add_theme_constant_override("separation", 16)
 	var left := VBoxContainer.new()
-	left.custom_minimum_size = Vector2(200, 0)
+	left.custom_minimum_size = Vector2(170, 0)
 	add_child(left)
 	left.add_child(MenuTheme.heading("Aircraft"))
 	_list = ItemList.new()
@@ -67,7 +67,7 @@ func _ready() -> void:
 	_credit.add_theme_font_size_override("font_size", 12)
 	mid.add_child(_credit)
 	var right := VBoxContainer.new()
-	right.custom_minimum_size = Vector2(430, 0)
+	right.custom_minimum_size = Vector2(420, 0)
 	right.add_theme_constant_override("separation", 8)
 	add_child(right)
 	right.add_child(MenuTheme.heading("Fuel & payload"))
@@ -115,7 +115,7 @@ func _show_details(open: bool) -> void:
 
 
 func _slider(parent: Control, label: String, key: String, lo: float, hi: float, step: float, unit: String) -> void:
-	var row := SliderRow.new().setup(label, lo, hi, step, label if label.length() > 24 else "", 200.0, 72.0)
+	var row := SliderRow.new().setup(label, lo, hi, step, label if label.length() > 26 else "", 215.0, 72.0)
 	var sl := row.slider
 	sl.value = float(Session.setup.get(key, 0.0))
 	row.value_label.text = "%.0f %s" % [sl.value, unit]

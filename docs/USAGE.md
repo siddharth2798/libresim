@@ -234,7 +234,7 @@ Running the game opens the **start screen** (the libresim logo shows first as th
    - Set fuel and the loads (one compact slider each). The takeoff weight is checked against MTOW and the CG against the envelope (shown red with OVER MTOW / CG OUT OF LIMITS; hover the weight for the pilot weight and what an out-of-limits loading does). Payload changes the mass, CG and performance in the flight model.
 3. **Weather & time:**
    - **Weather presets:** Clear, Fair, Scattered, Broken (passing showers), Overcast (drizzle), Winter haze, Monsoon (heavy rain under a low deck, occasional lightning).
-   - **Time of day:** presets or a slider. **Dawn** and **Dusk** are the real sunrise and sunset for the chosen month (mid-February: 07:10 and 18:40 IST; June: about 06:00 and 19:15).
+   - **Time of day:** presets or a slider. **Dawn** and **Dusk** are the real sunrise and sunset for the chosen month (mid-February: 07:10 and 18:40 IST; June: about 06:00 and 19:15). The **Month** row (and the clock rate) appear under "More weather".
    - **Wind:** presets, direction and speed, plus a "90° crosswind" button. A live head/crosswind readout covers the chosen runway and turns red above the C172's 15 kt demonstrated crosswind or with a tailwind.
    - **More weather** (collapsed at first): cloud cover, cloud base, visibility, rain, turbulence, thermals, storm cells, icing, gusts, QNH, temperature, the clock rate and the month.
 4. **Failures (optional):**
@@ -255,7 +255,7 @@ Running the game opens the **start screen** (the libresim logo shows first as th
    - "Tell me when something fails" shows a notice. With it off, you diagnose the failure from the instruments and the aircraft's behaviour.
 
 5. **Recording (optional):**
-   - Tick "Record this flight" to record the whole session, **picture and sound**.
+   - Skip this step to fly without recording. Tick "Record this flight" to record the whole session, **picture and sound** (F8 starts / stops it in flight; hover the tick box for the details). The step shows only the folder, resolution / frame rate, the MP4 option and one size line; the rest is in hover tips.
    - Files go to `recordings/` in the game folder by default, or to any folder you choose. Read-only installs (AppImage, .app) fall back to `~/.local/share/godot/app_userdata/libresim/recordings`.
    - Choose 720p, 1080p or native resolution, at 24, 30 or 60 fps.
    - **Format:** files are named `libresim_<date>_<time>.mkv` (MJPEG video plus 16-bit PCM sound), written by the game itself, so no extra software is needed. They play in VLC and mpv and import into video editors.

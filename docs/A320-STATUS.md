@@ -116,14 +116,10 @@ Run order and options: USAGE section 3 ("A320 data", "A320 model"). Untrusted fe
 - `docs/LICENSING.md`, `third_party/a320-family/SOURCE.md`, `CREDITS.md`, `game/aircraft/a320/sounds/SOURCES.md`: licences and credits.
 - `docs/ATC.md`: the airline ATC profile.
 
-## 8. Open: start-screen tidy follow-ups (Free flight steps; committed in `3a56109`)
+## 8. Start-screen tidy (Free flight steps): done
 
-Not done yet, in order:
-1. Read the C172 re-shoots in `data/scratch/shots/f_c172/` and `f_c172_open/`, re-shoot the A320 (plain and with `FREESIM_OPEN=1`) and check: Weather step with "More weather" open (does the Month row fit, where the "90° crosswind" button sits); Aircraft step (three key specs wrapping in the 430 px right column, payload labels clipped); Failures step still scrolls acceptably. Fix any clipping in `ui/menu/conditions_page.gd` / `aircraft_page.gd`.
-2. Same shots at 1920x1080 (`FREESIM_SIZE=1920x1080`).
-3. `docs/USAGE.md`: step 5 wording and the Dawn/Dusk bullet (~line 237) still mention the clock rate and month.
-4. `game/tests/showcase_scenes.gd`: remove `"scroll": 150` from the `a320_aircraft_page` scene, then regenerate `docs/screenshots/09-start-screen.jpg`, `10-airport-picker.jpg`, `15-a320-aircraft-page.jpg` with `tools/make_screenshots.sh start_home start_flight a320_aircraft_page` (one windowed run, `--audio-driver Dummy`); they still show the old, denser pages.
-5. Full suite (`godot --headless --path game res://tests/run_tests.tscn --audio-driver Dummy`, baseline 531) and, if it works headless, `tools/e2e.sh` (it backs up the user files).
+All five steps are tidied (Fly now in the footer, optional steps named, "More weather" and aircraft "Details" toggles, notes moved to hover tips; see "Start screen" in `docs/USAGE.md`). The three README start-screen images are regenerated from the new pages. Checked after the tidy: full suite 531/531 and the start-screen e2e (`tools/e2e.sh <run> menu`, 52/52; e2e.sh needs a `timeout` command, which macOS lacks, so put a pass-through `timeout` script on PATH).
 
 Screenshot commands (one windowed run at a time, each takes minutes; `pkill -f debug_menu.tscn` before a new one):
-`FREESIM_AIRCRAFT=a320 FREESIM_SHOTS=$PWD/data/scratch/shots/f_a320 ~/.local/bin/godot --path game --audio-driver Dummy res://tests/debug_menu.tscn`
+`FREESIM_AIRCRAFT=a320 FREESIM_SHOTS=$PWD/data/scratch/shots/f_a320 ~/.local/bin/godot --path game --audio-driver Dummy res://tests/debug_menu.tscn` (add `FREESIM_OPEN=1` to open "More weather" and "Details", `FREESIM_SIZE=1920x1080` for full HD).
+
