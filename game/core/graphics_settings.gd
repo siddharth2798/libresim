@@ -8,13 +8,13 @@ extends Node
 
 const PRESETS := {
 	"low": {"scale": 0.7, "fsr": true, "msaa": 0, "fxaa": true, "shadow": 0.0, "pssm": 0, "glow": false,
-		"lod_k": 1.2, "bld": 4000.0, "trees": 1200.0, "tree_density": 0.5, "tree_lod": 0.0, "clouds": 10, "rain": 1500, "ssao": false, "taa": false, "ae": false},
+		"lod_k": 1.2, "bld": 4000.0, "trees": 1200.0, "tree_density": 0.5, "tree_lod": 0.0, "clouds": 10, "wisps": 0, "rain": 1500, "ssao": false, "taa": false, "ae": false},
 	"medium": {"scale": 0.85, "fsr": true, "msaa": 1, "fxaa": true, "shadow": 700.0, "pssm": 1, "glow": true,
-		"lod_k": 1.4, "bld": 6000.0, "trees": 1800.0, "tree_density": 0.8, "tree_lod": 90.0, "clouds": 16, "rain": 3000, "ssao": false, "taa": false, "ae": true},
+		"lod_k": 1.4, "bld": 6000.0, "trees": 1800.0, "tree_density": 0.8, "tree_lod": 90.0, "clouds": 16, "wisps": 40, "rain": 3000, "ssao": false, "taa": false, "ae": true},
 	"high": {"scale": 1.0, "fsr": false, "msaa": 1, "fxaa": false, "shadow": 1800.0, "pssm": 2, "glow": true,
-		"lod_k": 1.6, "bld": 9000.0, "trees": 2200.0, "tree_density": 1.0, "tree_lod": 120.0, "clouds": 24, "rain": 5000, "ssao": false, "taa": false, "ae": true},
+		"lod_k": 1.6, "bld": 9000.0, "trees": 2200.0, "tree_density": 1.0, "tree_lod": 120.0, "clouds": 24, "wisps": 80, "rain": 5000, "ssao": false, "taa": false, "ae": true},
 	"ultra": {"scale": 1.0, "fsr": false, "msaa": 2, "fxaa": false, "shadow": 4000.0, "pssm": 2, "glow": true,
-		"lod_k": 2.0, "bld": 12000.0, "trees": 3000.0, "tree_density": 1.2, "tree_lod": 150.0, "clouds": 40, "rain": 8000, "ssao": true, "taa": true, "ae": true},
+		"lod_k": 2.0, "bld": 12000.0, "trees": 3000.0, "tree_density": 1.2, "tree_lod": 150.0, "clouds": 40, "wisps": 120, "rain": 8000, "ssao": true, "taa": true, "ae": true},
 }
 const ORDER := ["low", "medium", "high", "ultra"]
 const CFG := "user://graphics.cfg"
@@ -99,5 +99,7 @@ func apply_to_scene(root: Node) -> void:
 	var cam := vp.get_camera_3d()
 	if cam and cam.get_node_or_null("CloudLayer"):
 		cam.get_node("CloudLayer").steps = s.clouds
+	if cam and cam.get_node_or_null("CloudWisps"):
+		cam.get_node("CloudWisps").set_count(s.wisps)  # in-cloud wisps (motion cue), none on Low
 	if cam and cam.get_node_or_null("SunGlare"):
 		cam.get_node("SunGlare").enabled = preset != "low"

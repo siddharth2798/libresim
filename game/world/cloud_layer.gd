@@ -67,6 +67,15 @@ func update_layer(cam_world: Vector3, base_m: float, cov: float, dr: Vector2, su
 	_publish_shadow(sun_dir, sun_col, base_dark)
 
 
+## In-cloud presentation (CloudInside): k the in-cloud factor, pocket_m a radius around the camera kept free of
+## cloud (outside views, so the aircraft is not washed out by the march), glow a soft light towards the sun.
+func set_inside(k: float, pocket_m: float, glow: Color) -> void:
+	_mat.set_shader_parameter("in_cloud", k)
+	_mat.set_shader_parameter("clear_r", pocket_m)
+	_mat.set_shader_parameter("glow_color", glow)
+	_mat.set_shader_parameter("vert_grad", CloudLook.VERT)
+
+
 ## Cloud shadows on the ground (terrain.gdshader): the same coverage noise, projected along the sun.
 func _publish_shadow(sun_dir: Vector3, sun_col: Color, base_dark: float) -> void:
 	var st := clampf(sun_col.get_luminance() * 1.1, 0.0, 1.0) * clampf(cover * 3.0, 0.0, 1.0) \

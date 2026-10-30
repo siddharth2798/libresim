@@ -44,6 +44,9 @@ func setup(model: AircraftModel) -> void:
 	var clouds := CloudLayer.new()
 	clouds.name = "CloudLayer"
 	add_child(clouds)
+	var wisps := CloudWisps.new()
+	wisps.name = "CloudWisps"
+	add_child(wisps)
 	var glare := SunGlare.new()
 	glare.name = "SunGlare"
 	add_child(glare)

@@ -9,12 +9,14 @@ extends Node
 ## streaming can finish with the camera standing still; the UI is hidden except what the scene keeps.
 
 const Scenes := preload("res://tests/showcase_scenes.gd")
+const CloudScenes := preload("res://tests/showcase_cloud_scenes.gd")
 const FLIGHT := "res://world/flight.tscn"
 const MENU := "res://ui/menu/start_screen.tscn"
 const MAX_SETTLE_S := 120.0  # give up waiting for the streamers after this
 const QUIET_S := 2.5  # streaming must stay idle this long
 
 var f: Node  # the flight scene
+var _all: Dictionary = Scenes.SCENES.merged(CloudScenes.scenes())  # every scene by name
 var _out := ""
 var _name := ""
 var _fov := 0.0  # free-camera field of view override (degrees), 0 = the rig's own
@@ -37,16 +39,16 @@ func _ready() -> void:
 		if a.begins_with("--scene="):
 			_name = a.substr(8)
 		elif a == "--list":
-			print("SCENES ", " ".join(Scenes.SCENES.keys()))
+			print("SCENES ", " ".join(_all.keys()))
 			get_tree().quit()
 			return
-	if not Scenes.SCENES.has(_name):
+	if not _all.has(_name):
 		push_error("unknown scene '%s'; --list shows them" % _name)
 		get_tree().quit(1)
 		return
 	AudioServer.set_bus_mute(0, true)
 	await _resize()
-	var def: Dictionary = Scenes.SCENES[_name]
+	var def: Dictionary = _all[_name]
 	if def.has("menu"):
 		await _menu(def)
 	else:
@@ -367,7 +369,9 @@ func _state() -> String:
 		n_bb += mi.multimesh.instance_count if mi != null else 0
 	var lod: TreeLod = tr.get_node("Lod")
 	var e: Vector3 = f.get_node("Fdm").fdm.euler()
-	return "attitude roll %.1f pitch %.1f deg, terrain nodes %d, tree chunks %d (%d billboards, %d LOD0 meshes within %.0f m), building tiles %d" % [rad_to_deg(e.x), rad_to_deg(e.y), f.get_node("Terrain").visible_nodes, tr._chunks.size(), n_bb, lod.instance_count(), lod.covered, f.get_node("Buildings")._tiles.size()]
+	var cloud := "in_cloud %s (aircraft %.2f), fog %.4f, exposure x%.2f; " % [Props.get_v("environment/in_cloud", false), Props.get_f("environment/ac_cloud_density"),
+		(f.get_node("WorldEnvironment") as WorldEnvironment).environment.fog_density, Props.get_f("environment/exposure_mult", 1.0)]
+	return cloud + "attitude roll %.1f pitch %.1f deg, terrain nodes %d, tree chunks %d (%d billboards, %d LOD0 meshes within %.0f m), building tiles %d" % [rad_to_deg(e.x), rad_to_deg(e.y), f.get_node("Terrain").visible_nodes, tr._chunks.size(), n_bb, lod.instance_count(), lod.covered, f.get_node("Buildings")._tiles.size()]
 
 
 ## Waits until the streamers have been idle for QUIET_S in a row; returns the seconds waited.

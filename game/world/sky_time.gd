@@ -22,6 +22,7 @@ var _drift := Vector2.ZERO
 var _night: NightSky
 var auto_exposure := true  # graphics preset (off on Low): world/auto_exposure.gd
 var _ae := AutoExposure.new()
+var _inside := CloudInside.new()  # the in-cloud presentation (world/cloud_inside.gd)
 var _atmo_key := Vector3(INF, 0.0, 0.0)
 var _atmo_cache: Array = [Color.BLACK, Color.BLACK]  # zenith, horizon (linear)
 
@@ -184,13 +185,8 @@ func _update_clouds(dt: float, occl: float, rain: float, hor: Color, light: floa
 		_drift, light_dir, sun_col, amb, occl * 0.5 + rain * 0.25)
 	var d := layer.density_at(w)
 	Props.set_v("environment/in_cloud", d > 0.05)
-	if d > 0.05:
-		_env.fog_enabled = true
-		var inside := Color(0.8, 0.82, 0.86) * maxf(light, 0.04)
-		_env.fog_density = lerpf(0.002, 0.03, clampf(d * 2.0, 0.0, 1.0))
-		_env.fog_light_color = inside
-		RenderingServer.global_shader_parameter_set("haze_density", _env.fog_density)
-		RenderingServer.global_shader_parameter_set("fog_color", inside.srgb_to_linear())
+	# in-cloud look (fog ramping with the density, readable aircraft in outside views, light, wisps): world/cloud_inside.gd
+	_inside.update(dt, cam, _env, _sky, _sun, layer, d, _env.fog_density, light, hor, _drift, light_dir)
 
 
 ## Eye-like auto exposure: scene brightness from the sun / sky / camera heading, shade under a cloud

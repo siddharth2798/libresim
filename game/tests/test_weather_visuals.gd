@@ -128,3 +128,87 @@ func test_moon_phase_and_position() -> String:
 	if rad_to_deg(mp.x) < 50.0:
 		return "full moon at 00:30 IST should be high, elevation %.1f" % rad_to_deg(mp.x)
 	return ""
+
+
+func test_cloud_ramp_is_continuous() -> String:
+	if CloudLook.ramp(0.0) != 0.0 or CloudLook.ramp(0.6) != 1.0:
+		return "ramp should run 0 (no cloud) to 1 (dense)"
+	var prev := 0.0
+	for i in 101:
+		var r := CloudLook.ramp(i * 0.01)
+		if r < prev or r - prev > 0.1:
+			return "ramp jumps or falls at density %.2f (%.3f after %.3f)" % [i * 0.01, r, prev]
+		prev = r
+	# the fog follows without a step: clear-air haze at k = 0, the cloud's extinction at k = 1
+	var haze := WeatherVisuals.fog_density(10000.0)
+	if absf(CloudLook.fog_sigma(haze, 0.0, 0.0, 30.0, 1.0) - haze) > 1e-6:
+		return "no cloud must leave the clear-air fog"
+	if absf(CloudLook.fog_sigma(haze, 1.0, 1.0, 30.0, 0.0) - CloudLook.SIGMA_THICK) > 1e-6:
+		return "dense cloud from the cockpit keeps the realistic short visibility"
+	var last := haze
+	for i in 21:
+		var s := CloudLook.fog_sigma(haze, i * 0.05, CloudLook.ramp(i * 0.05), 30.0, 0.0)
+		if s + 1e-9 < last or s - last > 0.008:
+			return "fog extinction steps at density %.2f: %.4f after %.4f" % [i * 0.05, s, last]
+		last = s
+	# easing: moves towards the target without overshooting
+	var k := 0.0
+	for i in 120:
+		k = CloudLook.ease_to(k, 1.0, 1.0 / 60.0, 0.6)
+	return "" if k > 0.8 and k < 1.0 else "easing over 2 s should get most of the way: %.2f" % k
+
+
+func test_outside_views_keep_the_aircraft_readable() -> String:
+	for dist in [8.0, 16.0, 36.0, 80.0, 120.0]:  # C172 chase 16 m, A320 chase 36 m
+		var w := CloudLook.subject_weight(dist, false)
+		var sig := CloudLook.fog_sigma(0.0004, 1.0, 1.0, dist, w)
+		if CloudLook.subject_visibility_m(dist) < 3.0 * dist:
+			return "visibility floor below 3x the distance at %d m" % int(dist)
+		if exp(-sig * dist) < CloudLook.SUBJECT_TRANS - 1e-3:
+			return "only %.0f %% of the aircraft's light at %d m" % [exp(-sig * dist) * 100.0, int(dist)]
+	if CloudLook.subject_weight(30.0, true) != 0.0:
+		return "the cockpit is not an outside view"
+	if CloudLook.fog_sigma(0.0004, 1.0, 1.0, 36.0, 1.0) >= 0.5 * CloudLook.SIGMA_THICK:
+		return "A320 chase should be at least twice as clear as the old fixed 0.03"
+	if CloudLook.subject_weight(1000.0, false) != 0.0 or CloudLook.bubble_m(1000.0, 0.0) != 0.0:
+		return "a far camera (tower) keeps the realistic cloud"
+	if CloudLook.bubble_m(36.0, 1.0) < 36.0:
+		return "the cloud-free pocket must reach past the aircraft"
+	return ""
+
+
+func test_in_cloud_light_and_tone() -> String:
+	if CloudLook.shade(1.0) <= CloudLook.shade(0.0) or CloudLook.shade(0.0) <= CloudLook.shade(-1.0):
+		return "the interior should be lighter overhead and darker below"
+	if CloudLook.glow(1.0) <= CloudLook.glow(0.5) or CloudLook.glow(-1.0) != 0.0:
+		return "the glow should peak towards the sun and vanish away from it"
+	var flat := CloudLook.tint(Color(0.5, 0.5, 0.5), 0.0, -1.0, Color(0.2, 0.2, 0.2))
+	var lit := CloudLook.tint(Color(0.5, 0.5, 0.5), 0.5, 1.0, Color(0.2, 0.2, 0.2))
+	if lit.get_luminance() <= flat.get_luminance():
+		return "looking up towards the sun should be brighter than away from it"
+	var sun := CloudLook.sun_floor(1.0, 0.75, 1.0, 1.0)
+	if sun < 0.1 or sun > 0.4 or CloudLook.sun_floor(0.0, 0.75, 1.0, 1.0) != 0.0 or CloudLook.sun_floor(1.0, 0.0, 1.0, 1.0) != 0.0:
+		return "sun floor: dim but not zero in cloud by day, none outside or at night (%.3f)" % sun
+	if not (CloudLook.kind_tone("cumulonimbus", 0.0) < CloudLook.kind_tone("stratiform", 0.0) \
+			and CloudLook.kind_tone("stratiform", 0.0) < CloudLook.kind_tone("cumulus", 0.0)):
+		return "storm cloud should be darker than stratus than cumulus"
+	if CloudLook.kind_tone("cumulus", 1.0) >= CloudLook.kind_tone("cumulus", 0.0):
+		return "a storm core should be darker"
+	return ""
+
+
+func test_wisps_follow_density_and_speed() -> String:
+	if CloudLook.wisp_alpha(0.0, 1.0, 1.0) != 0.0:
+		return "no wisps outside cloud"
+	if not (CloudLook.wisp_alpha(1.0, 1.0, 1.0) > CloudLook.wisp_alpha(1.0, 0.2, 1.0) and CloudLook.wisp_alpha(1.0, 0.2, 1.0) > CloudLook.wisp_alpha(0.3, 0.2, 1.0)):
+		return "wisp opacity should follow the cloud density"
+	if CloudLook.wisp_alpha(1.0, 1.0, 1.0) > 0.15:
+		return "wisps must stay subtle"
+	if CloudLook.wisp_length_m(0.0) <= 0.0 or CloudLook.wisp_length_m(100.0) <= CloudLook.wisp_length_m(30.0) or CloudLook.wisp_length_m(1000.0) > 40.0:
+		return "wisps should stretch with the speed, within bounds"
+	var n := []
+	for p in Graphics.ORDER:
+		n.append(int(Graphics.PRESETS[p].wisps))
+	if n[0] != 0 or not (n[1] > 0 and n[1] < n[2] and n[2] < n[3]):
+		return "wisp budget by preset should be off on Low and grow after: %s" % [n]
+	return ""

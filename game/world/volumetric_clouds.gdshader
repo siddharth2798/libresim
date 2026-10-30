@@ -20,6 +20,10 @@ uniform vec3 ambient : source_color = vec3(0.5, 0.56, 0.66);
 uniform int steps = 24;
 uniform float base_dark = 0.0;  // thick decks: darker, greyer undersides (light used up above)
 uniform float max_dist = 25000.0;
+uniform float in_cloud = 0.0;  // 0..1: flying inside cloud (CloudInside)
+uniform float clear_r = 0.0;  // m: outside views keep this pocket around the camera free of cloud, so the aircraft stays readable
+uniform float vert_grad = 0.3;  // interior light: brighter looking up, darker looking down (CloudLook.VERT)
+uniform vec3 glow_color : source_color = vec3(0.0);  // soft glow towards the sun inside cloud
 global uniform vec3 fog_color;
 global uniform float haze_density;
 
@@ -87,6 +91,7 @@ void fragment() {
 	for (int i = 0; i < (t1 > t0 ? steps : 0); i++) {
 		vec3 p = ro + rd * t;
 		float d = density(p, dt);
+		if (clear_r > 0.0) d *= smoothstep(0.5 * clear_r, clear_r, t);
 		if (d > 0.01) {
 			float h = (p.z - cloud_base) / cloud_thick;
 			float occl = density(p + sun_enu * 300.0, max(dt, 150.0));
@@ -103,6 +108,8 @@ void fragment() {
 	float haze = 1.0 - exp(-t0 * max(haze_density, 1.0 / 22000.0));
 	float alpha = (1.0 - trans) * (1.0 - haze * 0.35);
 	vec3 col = mix(light / max(1.0 - trans, 1e-3), fog_color, haze);
+	// inside cloud the interior is not one flat grey: lighter overhead and towards the sun, darker below
+	col = col * (1.0 + vert_grad * rd.z * in_cloud) + glow_color * (in_cloud * pow(max(dot(rd, sun_enu), 0.0), 3.0));
 	vec4 m = quad_mean(vec4(col * alpha, alpha), FRAGCOORD.xy);  // premultiplied, so empty pixels do not darken the edge
 	if (m.a < 1e-4) discard;
 	ALBEDO = m.rgb / m.a;
