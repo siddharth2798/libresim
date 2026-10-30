@@ -31,6 +31,8 @@ func update(dt: float, cam: Camera3D, env: Environment, sky: ShaderMaterial, sun
 	var kind := str(Props.get_v("environment/cloud_kind", "stratiform"))
 	tone = CloudLook.kind_tone(kind, Props.get_f("environment/storm_intensity"))
 	var base := Color(0.8, 0.82, 0.86) * maxf(light, 0.04) * tone
+	base = base * CloudLook.interior_dim(base.get_luminance() * 1.2, ext)  # outside views: bright interior darker and cooler
+	base = base.lerp(base * CloudLook.BLUE, ext * smoothstep(0.3, 0.9, base.get_luminance() * 1.2))
 	var glow_col := sun.light_color * (CloudLook.GLOW * smoothstep(0.1, 0.6, light) * tone)
 	var fwd := -cam.global_transform.basis.z
 	var inside := CloudLook.tint(base, fwd.y, fwd.dot(sun_dir), glow_col)
@@ -40,10 +42,12 @@ func update(dt: float, cam: Camera3D, env: Environment, sky: ShaderMaterial, sun
 	env.fog_light_color = hor.lerp(inside, k)
 	RenderingServer.global_shader_parameter_set("haze_density", sigma)
 	RenderingServer.global_shader_parameter_set("fog_color", env.fog_light_color.srgb_to_linear())
-	sun.light_energy = maxf(sun.light_energy, CloudLook.sun_floor(k, light, ext, tone))
+	sun.light_energy = maxf(sun.light_energy * CloudLook.sun_scale(k, ext), CloudLook.sun_floor(k, light, ext, tone))
 	var top: Color = sky.get_shader_parameter("zenith_color")  # brighter overhead: the ambient light comes from above
 	sky.set_shader_parameter("zenith_color", top.lerp(inside * 1.2, k * 0.8))
-	layer.set_inside(k, CloudLook.bubble_m(dist, ext), glow_col)
+	var ground: Color = sky.get_shader_parameter("ground_color")
+	sky.set_shader_parameter("ground_color", ground * CloudLook.ground_scale(k))
+	layer.set_inside(k, CloudLook.bubble_m(dist, ext), glow_col, ext)
 	if wisps:
 		_update_wisps(wisps, cam, rig, d, drift, base)
 
@@ -58,4 +62,8 @@ func _update_wisps(wisps: CloudWisps, cam: Camera3D, rig: CameraRig, d: float, d
 		var wind: Vector3 = Props.get_v("environment/wind_ned", Vector3.ZERO)
 		var rel := v - wind  # air-relative velocity, NED
 		flow = Vector3(rel.y, -rel.z, -rel.x)  # render frame: east, up, south
-	wisps.update_wisps(Vector3(w.x + drift.x, w.y + drift.y, w.z), flow, CloudLook.wisp_alpha(k, d, tone), base * 1.5)
+	var subject := Vector3.ZERO  # where the aircraft is on screen: no wisps around it
+	if rig and rig.aircraft and rig.mode != CameraRig.Mode.COCKPIT and not cam.is_position_behind(rig.aircraft.global_position):
+		var px := cam.unproject_position(rig.aircraft.global_position) / Vector2(cam.get_viewport().get_visible_rect().size)
+		subject = Vector3(px.x * 2.0 - 1.0, 1.0 - px.y * 2.0, 1.0)
+	wisps.update_wisps(Vector3(w.x + drift.x, w.y + drift.y, w.z), flow, CloudLook.wisp_alpha(k, d, tone), base * 1.4, subject)

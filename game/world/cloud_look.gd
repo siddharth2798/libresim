@@ -16,7 +16,12 @@ const BUBBLE := 1.5  # radius of the cloud-free pocket, in camera-to-aircraft di
 const VERT := 0.3  # in-cloud light is this much brighter looking straight up (darker straight down)
 const SUN_FLOOR := 0.26  # diffuse "sun" energy kept in cloud (the sun stays dim: no shadows, no disc)
 const GLOW := 0.22  # share of the sun colour added as a soft glow towards the sun inside cloud
-const WISP_ALPHA := 0.07  # peak opacity of a cloud wisp at full density
+const SUN_KEEP := 0.6  # outside views: share of the direct sun kept in cloud (the rest is scattered): no blown-out white
+const EXPOSURE_CAP := 1.1  # outside views: the auto-exposure multiplier is held to this in cloud (it only brightened grey)
+const GROUND_DARK := 0.5  # in cloud the ambient from below (ground bounce) is this much darker: the belly gets form
+const DIM := 0.25  # outside views: bright cloud interior is darkened by up to this much ...
+const BLUE := Color(0.9, 0.95, 1.06)  # ... and cooled, so the white aircraft stands out from it
+const WISP_ALPHA := 0.24  # peak opacity of a cloud wisp at full density
 
 
 ## 0..1 how far the in-cloud look applies for a camera cloud density (continuous, no switch).
@@ -91,12 +96,45 @@ static func sun_floor(k: float, light: float, ext: float, tone: float) -> float:
 	return SUN_FLOOR * k * smoothstep(0.1, 0.6, light) * lerpf(0.5, 1.0, ext) * tone
 
 
+## Diffuse sun energy scale in cloud for outside views (1 outside cloud): direct light is scattered away.
+static func sun_scale(k: float, ext: float) -> float:
+	return lerpf(1.0, SUN_KEEP, k * ext)
+
+
+## Auto-exposure multiplier in cloud: outside views hold it down, so bright cloud is not blown out.
+static func exposure_cap(target: float, k: float, ext: float) -> float:
+	return lerpf(target, minf(target, EXPOSURE_CAP), k * ext)
+
+
+## Scale of the ambient light from below in cloud (the sky's ground colour): darker belly, more form.
+static func ground_scale(k: float) -> float:
+	return 1.0 - GROUND_DARK * k
+
+
+## Luminance multiplier of the cloud interior of luminance `lum` seen from an outside view (weight ext): only the
+## bright interior is darkened (soft knee), so grey cloud barely changes. The cloud shader mirrors this.
+static func interior_dim(lum: float, ext: float) -> float:
+	return 1.0 - DIM * ext * smoothstep(0.3, 0.9, lum)
+
+
 ## Opacity of the cloud wisps: follows the in-cloud factor, a little more in dense cloud, dimmer in dark cloud.
 static func wisp_alpha(k: float, d: float, tone: float) -> float:
 	return WISP_ALPHA * k * (0.6 + 0.4 * clampf(d * 2.0, 0.0, 1.0)) * clampf(tone + 0.15, 0.0, 1.0)
 
 
-## Half-length (m) of a wisp: puffs when slow, streaks that grow with the air speed (m/s).
+## Half-length (m) of a wisp: short puffs when slow, a little longer with the air speed (m/s), capped.
 static func wisp_length_m(speed: float) -> float:
-	return 3.0 + minf(speed, 300.0) * 0.1
+	return 1.5 + minf(speed, 120.0) * 0.025
 
+
+## 0..1 visibility of a wisp by its screen radius r (0 centre; ~0.9 at the edge of a 16:9 picture, aspect corrected):
+## none in the middle of the picture and, with `subject` (distance from the aircraft's screen position), around the
+## aircraft, so the cue lives in the periphery. The shader (cloud_wisps.gdshader) mirrors this.
+static func wisp_screen_fade(r_centre: float, r_subject: float, subject_w: float) -> float:
+	var mid := smoothstep(0.12, 0.45, r_centre)
+	return lerpf(mid, minf(mid, smoothstep(0.2, 0.65, r_subject)), subject_w)
+
+
+## 0..1: distant wisps are fainter.
+static func wisp_depth_fade(dist_m: float) -> float:
+	return lerpf(1.0, 0.4, smoothstep(15.0, 90.0, dist_m))

@@ -21,6 +21,12 @@ const SCENES := {
 		"merge_setup": {"airport": "VABB", "runway": "27", "start": "air", "air_ft": 3800.0, "air_nm": 6.0, "air_kt": 200.0, "time_h": 11.0}},
 	"cloud_edge_in": {"weather": "Broken", "view": "chase", "setup": {"aircraft": "a320"},
 		"merge_setup": {"airport": "VABB", "runway": "27", "start": "air", "air_ft": 3300.0, "air_nm": 6.0, "air_kt": 200.0, "time_h": 11.0, "cloud_base_ft": 3000.0}},
+	"cloud_bright_in": {"weather": "Broken", "view": "chase", "setup": {"aircraft": "a320"},
+		"merge_setup": {"airport": "VABB", "runway": "27", "start": "air", "air_ft": 3800.0, "air_nm": 6.0, "air_kt": 200.0, "time_h": 11.0, "cloud_base_ft": 3000.0}},
+	"cloud_bright_c172": {"weather": "Broken", "view": "chase",
+		"merge_setup": {"airport": "VABB", "runway": "27", "start": "air", "air_ft": 3300.0, "air_nm": 6.0, "air_kt": 200.0, "time_h": 11.0, "cloud_base_ft": 3000.0}},
+	"cloud_bright_orbit": {"weather": "Broken", "view": "orbit", "look": [0.6, 0.0], "setup": {"aircraft": "a320"},
+		"merge_setup": {"airport": "VABB", "runway": "27", "start": "air", "air_ft": 3800.0, "air_nm": 6.0, "air_kt": 200.0, "time_h": 11.0, "cloud_base_ft": 3000.0}},
 	"cloud_edge_a320": {"weather": "Scattered", "view": "chase", "setup": {"aircraft": "a320"},
 		"merge_setup": {"airport": "VABB", "runway": "27", "start": "air", "air_ft": 2900.0, "air_nm": 6.0, "air_kt": 200.0, "time_h": 11.0}},
 }

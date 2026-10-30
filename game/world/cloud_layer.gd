@@ -69,11 +69,12 @@ func update_layer(cam_world: Vector3, base_m: float, cov: float, dr: Vector2, su
 
 ## In-cloud presentation (CloudInside): k the in-cloud factor, pocket_m a radius around the camera kept free of
 ## cloud (outside views, so the aircraft is not washed out by the march), glow a soft light towards the sun.
-func set_inside(k: float, pocket_m: float, glow: Color) -> void:
+func set_inside(k: float, pocket_m: float, glow: Color, subject_w := 0.0) -> void:
 	_mat.set_shader_parameter("in_cloud", k)
 	_mat.set_shader_parameter("clear_r", pocket_m)
 	_mat.set_shader_parameter("glow_color", glow)
 	_mat.set_shader_parameter("vert_grad", CloudLook.VERT)
+	_mat.set_shader_parameter("subject_w", subject_w)
 
 
 ## Cloud shadows on the ground (terrain.gdshader): the same coverage noise, projected along the sun.

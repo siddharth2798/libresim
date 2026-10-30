@@ -205,6 +205,7 @@ func _update_exposure(dt: float, sun_dir: Vector3, el_deg: float, hor: Color, to
 		var moon := 0.15 * Props.get_f("environment/moon_light")
 		var lum := AutoExposure.scene_luminance(_sun.light_energy, sun_dir.y, blocked, _env.ambient_light_energy + moon, sky_lum, pitch_sin)
 		target = AutoExposure.target_for(lum * _env.tonemap_exposure, night)
+	target = CloudLook.exposure_cap(target, _inside.k, _inside.ext)  # outside views in cloud: no blown-out white
 	_env.tonemap_exposure *= _ae.step(dt, target)
 	Props.set_v("environment/exposure_mult", _ae.value)
 

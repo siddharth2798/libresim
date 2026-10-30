@@ -28,8 +28,10 @@ func set_count(n: int) -> void:
 
 
 ## Called by CloudInside each frame. cam_air: camera in the air-mass frame (ENU), flow: air velocity relative
-## to the aircraft (render frame), strength: peak opacity (0 hides).
-func update_wisps(cam_air: Vector3, flow: Vector3, strength: float, tint: Color) -> void:
+## to the aircraft (render frame), strength: peak opacity (0 hides), subject: the aircraft's screen position
+## (ndc x, y) and weight (0 when there is no outside subject: cockpit).
+func update_wisps(cam_air: Vector3, flow: Vector3, strength: float, tint: Color, subject := Vector3.ZERO) -> void:
+	_mat.set_shader_parameter("subject", subject)
 	_mat.set_shader_parameter("cam_air", cam_air)
 	_mat.set_shader_parameter("flow", flow)
 	_mat.set_shader_parameter("half_len", CloudLook.wisp_length_m(flow.length()))

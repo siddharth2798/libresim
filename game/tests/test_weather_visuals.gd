@@ -197,15 +197,38 @@ func test_in_cloud_light_and_tone() -> String:
 	return ""
 
 
+func test_bright_cloud_keeps_the_aircraft_readable() -> String:
+	# bright interior is darkened for outside views (grey cloud barely); the cockpit is untouched
+	if CloudLook.interior_dim(0.9, 0.0) != 1.0 or CloudLook.interior_dim(0.9, 1.0) > 1.0 - 0.2:
+		return "bright cloud should dim by about a quarter in outside views only (%.2f)" % CloudLook.interior_dim(0.9, 1.0)
+	if CloudLook.interior_dim(0.2, 1.0) < 0.99 or CloudLook.interior_dim(0.6, 1.0) <= CloudLook.interior_dim(0.9, 1.0):
+		return "the dimming should be a soft knee: grey cloud is left alone, brighter cloud dims more"
+	if CloudLook.sun_scale(0.0, 1.0) != 1.0 or CloudLook.sun_scale(1.0, 0.0) != 1.0 or CloudLook.sun_scale(1.0, 1.0) >= 0.7:
+		return "outside views in cloud should keep only part of the direct sun"
+	if CloudLook.exposure_cap(1.34, 1.0, 1.0) > CloudLook.EXPOSURE_CAP + 1e-6 or CloudLook.exposure_cap(1.34, 1.0, 0.0) != 1.34 \
+			or CloudLook.exposure_cap(1.34, 0.0, 1.0) != 1.34 or CloudLook.exposure_cap(0.9, 1.0, 1.0) != 0.9:
+		return "auto exposure is capped in cloud for outside views only, and never raised"
+	if CloudLook.ground_scale(0.0) != 1.0 or CloudLook.ground_scale(1.0) >= 0.7:
+		return "the ambient from below should be darker in cloud (belly shading)"
+	return ""
+
+
 func test_wisps_follow_density_and_speed() -> String:
 	if CloudLook.wisp_alpha(0.0, 1.0, 1.0) != 0.0:
 		return "no wisps outside cloud"
 	if not (CloudLook.wisp_alpha(1.0, 1.0, 1.0) > CloudLook.wisp_alpha(1.0, 0.2, 1.0) and CloudLook.wisp_alpha(1.0, 0.2, 1.0) > CloudLook.wisp_alpha(0.3, 0.2, 1.0)):
 		return "wisp opacity should follow the cloud density"
-	if CloudLook.wisp_alpha(1.0, 1.0, 1.0) > 0.15:
-		return "wisps must stay subtle"
-	if CloudLook.wisp_length_m(0.0) <= 0.0 or CloudLook.wisp_length_m(100.0) <= CloudLook.wisp_length_m(30.0) or CloudLook.wisp_length_m(1000.0) > 40.0:
-		return "wisps should stretch with the speed, within bounds"
+	if CloudLook.wisp_alpha(1.0, 1.0, 1.0) > 0.3:
+		return "wisps must stay subtle (peak opacity %.2f; the shader scales each by the screen position, depth and its own random 0.25..1)" % CloudLook.wisp_alpha(1.0, 1.0, 1.0)
+	if CloudLook.wisp_length_m(0.0) <= 0.0 or CloudLook.wisp_length_m(100.0) <= CloudLook.wisp_length_m(30.0) or CloudLook.wisp_length_m(1000.0) > 5.0:
+		return "wisps should be short and stretch a little with the speed, capped"
+	# screen placement: nothing in the middle of the picture or around the aircraft, full in the periphery
+	if CloudLook.wisp_screen_fade(0.0, 0.0, 0.0) != 0.0 or CloudLook.wisp_screen_fade(0.8, 0.0, 0.0) < 0.99:
+		return "wisps should vanish in the middle of the picture and show at the edge"
+	if CloudLook.wisp_screen_fade(0.8, 0.1, 1.0) > 0.05 or CloudLook.wisp_screen_fade(0.8, 0.9, 1.0) < 0.99:
+		return "wisps should vanish around the aircraft's screen position only"
+	if CloudLook.wisp_depth_fade(5.0) != 1.0 or CloudLook.wisp_depth_fade(100.0) > 0.45:
+		return "distant wisps should be fainter"
 	var n := []
 	for p in Graphics.ORDER:
 		n.append(int(Graphics.PRESETS[p].wisps))
