@@ -1,6 +1,6 @@
 extends RefCounted
 ## README showcase scenes for tests/debug_showcase.gd. One entry per screenshot:
-##   menu: start-screen page (home | training | flight [+ step]), else a flight scene with
+##   menu: start-screen page (home | training | flight [+ step: 0 Aircraft, 1 Airport, 2 Weather]), else a flight scene with
 ##   weather: preset name; setup: Session.setup overrides (airport, runway, start, air_ft, air_nm,
 ##            air_kt, time_h IST, day_of_year, wind_*, visibility_m, precip ...)
 ##   lesson: training lesson id; view: cockpit | chase | orbit | ...
@@ -27,9 +27,9 @@ extends RefCounted
 
 const SCENES := {
 	"start_home": {"menu": "home"},
-	"start_flight": {"menu": "flight", "step": 0, "weather": "Broken",
+	"start_flight": {"menu": "flight", "step": 1, "weather": "Broken",
 		"setup": {"airport": "VABB", "start": "stand", "time_h": 18.0}},
-	"start_air": {"menu": "flight", "step": 0, "setup": {"airport": "VAPO", "start": "air", "cold": true}},
+	"start_air": {"menu": "flight", "step": 1, "setup": {"airport": "VAPO", "start": "air", "cold": true}},
 	"start_conditions": {"menu": "flight", "step": 2, "weather": "Broken",
 		"setup": {"time_h": 12.5, "wind_dir_deg": 270.0, "wind_kt": 14.0, "gust_kt": 20.0, "turbulence": 0.3}},
 	"vabb_final_golden": {"weather": "Broken", "view": "cockpit", "pilot_lesson": "landing", "prop_deg": 90.0,
@@ -235,10 +235,11 @@ const SCENES := {
 		"setup": {"aircraft": "a320", "airport": "VAPO", "runway": "28", "start": "air", "air_ft": 9000.0, "air_nm": 20.0, "time_h": 16.5, "visibility_m": 40000.0},
 		"cam": [-45.0, -22.0, 9.0], "aim": [0.0, 0.0, 0.0], "fov": 50.0},
 	"a320_final": {"weather": "Clear", "view": "chase",
-		"setup": {"aircraft": "a320", "airport": "VABB", "runway": "27", "start": "air", "air_ft": 250.0, "air_nm": 1.3, "air_kt": 140.0, "time_h": 18.85, "visibility_m": 20000.0},
+		"setup": {"aircraft": "a320", "airport": "VABB", "runway": "27", "start": "air", "air_ft": 250.0, "air_nm": 1.3, "air_kt": 165.0, "time_h": 18.85, "visibility_m": 20000.0},
 		"props": {"controls/gear": 1.0, "controls/flaps": 4}, "att": [0.0, 3.0],
 		"cam": [28.0, -30.0, 3.0], "aim": [0.0, 0.0, 0.5], "fov": 50.0},
-	"a320_aircraft_page": {"menu": "flight", "step": 1, "setup": {"aircraft": "a320", "airport": "VABB", "start": "stand", "time_h": 18.0}},
+	"a320_aircraft_page": {"menu": "flight", "step": 0, "setup": {"aircraft": "a320", "airport": "VABB", "start": "stand", "time_h": 18.0}},
+	"c172_aircraft_page": {"menu": "flight", "step": 0, "setup": {"aircraft": "c172", "airport": "VABB", "start": "stand", "time_h": 12.0}},
 	"c172_tail": {"weather": "Clear", "view": "chase", "agl": true,
 		"setup": {"airport": "VAPO", "start": "stand", "callsign": "VT-LBR", "time_h": 16.9, "visibility_m": 30000.0},
 		"cam": [-3.0, 6.5, 1.6], "aim": [-2.0, 0.0, 1.5], "fov": 45.0},

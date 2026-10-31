@@ -1,5 +1,5 @@
 extends HBoxContainer
-## Start screen page 1: airport list (searchable), diagram, and where to start:
+## Start screen page 2: airport list (searchable), diagram, and where to start:
 ## on a runway, parked at a stand / gate, or in the air on final to a runway.
 
 signal changed
@@ -92,6 +92,8 @@ func _ready() -> void:
 	visibility_changed.connect(func():  # the aircraft page may have changed the aircraft
 		if visible:
 			_sync_air()
+			if not _cur.is_empty():
+				_select(_cur, false)  # keeps the runway and stand, re-filters the lists for the aircraft
 			_refresh())  # the diagram marks the distance
 	_cold.set_pressed_no_signal(bool(s.cold))
 	for a in _airports:

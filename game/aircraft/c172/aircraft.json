@@ -1,6 +1,7 @@
 {
 	"id": "c172",
 	"name": "Cessna 172S Skyhawk SP",
+	"short_name": "Cessna 172S",
 	"category": "Single-engine piston · 4 seats · fixed gear",
 	"description": "The world's most-built aircraft and the standard trainer. Steam-gauge panel with two KX-155 NAV/COMs, ADF, DME and transponder. Flight model from the JSBSim c172p data (aerodynamics) with our own IO-360 engine and propeller model, tested against the POH.",
 	"model_credit": "3D model and cockpit: FlightGear c172p team (GPL-2.0-or-later)",

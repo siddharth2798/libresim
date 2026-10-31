@@ -1,7 +1,7 @@
 extends Control
 ## Start screen (main scene). It opens on the home screen, which asks one question: Free
 ## flight or Training? Each choice then shows only its own path:
-##   Free flight  start_flow.gd: Airport & start > Aircraft > Weather & time > Failures >
+##   Free flight  start_flow.gd: Aircraft > Airport & start > Weather & time > Failures >
 ##                Recording > FLY. The choices go into the Session autoload and are
 ##                remembered for next time.
 ##   Training     the lesson list and START LESSON (training_page.gd).

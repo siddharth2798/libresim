@@ -94,8 +94,8 @@ func test_menu_free_flight_is_a_linear_stepper() -> String:
 	if s.cur != "flight" or _visible_ids(s) != ["flight"] or not s._brand.visible:
 		err = "only the flight flow should show: %s" % [_visible_ids(s)]
 	elif f.pages.size() != f.STEPS.size() or f.STEPS.size() != 5:
-		err = "expected 5 pages for Airport, Aircraft, Weather, Failures, Recording"
-	elif f.primary_btn.text.find("Aircraft") < 0:
+		err = "expected 5 pages for Aircraft, Airport, Weather, Failures, Recording"
+	elif f.primary_btn.text.find("Airport") < 0:
 		err = "Next should name the next step: %s" % f.primary_btn.text
 	for i in f.STEPS.size():
 		f.show_step(i)
@@ -193,7 +193,7 @@ func test_menu_other_pages_return_home() -> String:
 func test_menu_cold_and_dark_exists_only_where_it_is_a_choice() -> String:
 	var s := _open()
 	s.go("flight")
-	var p: Control = s.screen("flight").pages[0]
+	var p: Control = s.screen("flight").pages[1]  # the airport page (step 2: the aircraft comes first)
 	var setup: Dictionary = Session.setup
 	var keep := setup.duplicate(true)
 	p._cur = {"stands": [{"ref": "A1"}], "runways": []}  # headless: no airport data may be loaded

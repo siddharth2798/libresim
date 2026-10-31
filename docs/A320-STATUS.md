@@ -118,7 +118,7 @@ Run order and options: USAGE section 3 ("A320 data", "A320 model"). Untrusted fe
 
 ## 8. Start-screen tidy (Free flight steps): done
 
-All five steps are tidied (Fly now in the footer, optional steps named, "More weather" and aircraft "Details" toggles, notes moved to hover tips; see "Start screen" in `docs/USAGE.md`). The three README start-screen images are regenerated from the new pages. Checked after the tidy: full suite 531/531 and the start-screen e2e (`tools/e2e.sh <run> menu`, 52/52; e2e.sh needs a `timeout` command, which macOS lacks, so put a pass-through `timeout` script on PATH).
+The step order is now Aircraft, Airport & start, Weather & time, Failures, Recording (the airport page reads the aircraft chosen on step 1; `tests/test_menu_order.gd`). All five steps are tidied (Fly now in the footer, optional steps named, "More weather" and aircraft "Details" toggles, notes moved to hover tips; see "Start screen" in `docs/USAGE.md`). The three README start-screen images are regenerated from the new pages. Checked after the tidy: full suite 531/531 and the start-screen e2e (`tools/e2e.sh <run> menu`, 52/52; e2e.sh needs a `timeout` command, which macOS lacks, so put a pass-through `timeout` script on PATH).
 
 Screenshot commands (one windowed run at a time, each takes minutes; `pkill -f debug_menu.tscn` before a new one):
 `FREESIM_AIRCRAFT=a320 FREESIM_SHOTS=$PWD/data/scratch/shots/f_a320 ~/.local/bin/godot --path game --audio-driver Dummy res://tests/debug_menu.tscn` (add `FREESIM_OPEN=1` to open "More weather" and "Details", `FREESIM_SIZE=1920x1080` for full HD).

@@ -116,12 +116,12 @@ func test_a320_aircraft_page_lists_both_with_kg_sliders() -> String:
 	add_child(page)
 	var err := ""
 	var names: Array = []
-	for i in page._list.item_count:
-		names.append(page._list.get_item_text(i))
+	for id in page._chips:
+		names.append(AircraftDef.load_def(id).display_name())
 	if "A320-family twin-jet airliner" not in names or "Cessna 172S Skyhawk SP" not in names:
 		err = "list %s" % [names]
-	elif page._name.text != "A320-family twin-jet airliner" or not page._sliders.has("cabin_kg") or page._sliders.fuel_gal.max_value != 19400.0:
-		err = "A320 card / sliders: %s %s" % [page._name.text, page._sliders.keys()]
+	elif page._hero._title.text != "A320-family twin-jet airliner" or not page._sliders.has("cabin_kg") or page._sliders.fuel_gal.max_value != 19400.0:
+		err = "A320 card / sliders: %s %s" % [page._hero._title.text, page._sliders.keys()]
 	elif "Weight 63777 kg" not in page._weight.text or "% MAC" not in page._weight.text:
 		err = "weight text: %s" % page._weight.text
 	page.free()

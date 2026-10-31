@@ -2,7 +2,7 @@ class_name AircraftDef
 extends RefCounted
 ## One aircraft = one folder res://aircraft/<id>/ with an aircraft.json that describes it. Everything
 ## that differs between aircraft is read from here, nothing else in the game names an aircraft:
-##   files    optional {key: path relative to the folder}, defaults in FILES
+##   files    optional {key: path relative to the folder}, defaults in FILES (preview.jpg: the start-screen picture, tests/render_aircraft_previews.gd)
 ##   model    exterior / interior glb, control-surface pivots, propeller pivots (aircraft_model.gd)
 ##   cockpit  gauge spots in the glb, panel layout (panel.json), eye point (cockpit.gd)
 ##   lights   nav / beacon / strobe / lamp positions (aircraft_lights.gd)
@@ -17,6 +17,7 @@ extends RefCounted
 ##   radio_type  how the pilot calls the aircraft on the radio ("Cessna 172", atc/atc_phraseology.gd)
 ##   atc      {profile: "ga" | "airline", wake: L | M | H | J, and for an airline telephony (fictional name),
 ##            flight_no, callsign_style: "airline"}: how ATC talks to the aircraft (atc/atc_profile.gd)
+##   short_name  the aircraft on the start-screen chips (name is the full title, preview.jpg the picture)
 ##   cameras  chase / wing / tail / orbit view positions (ui/camera_rig.gd), see camera()
 ##   registration  tail number painted at flight start: {source: callsign | fixed, text, texture, targets: [{erase, text, align, color, italic}]} (common/registration_paint.gd)
 ##   start    pitch_trim of a parked start; air {alt_ft, dist_nm, kias, gear "up"|"down", flaps (detent), limits {alt_ft, dist_nm: [min, max]}}
@@ -40,10 +41,11 @@ const DEFAULT_ID := "c172"
 const FILES := {
 	"config": "config.json", "aero": "aero.json", "hull": "hull.json", "checklists": "checklists.json",
 	"panel": "panel.json", "exterior": "models/exterior.glb", "interior": "models/interior.glb",
-	"sounds": "sounds/",
+	"sounds": "sounds/", "preview": "preview.jpg",
 }
 
 static var _cache := {}
+static var _previews := {}
 
 var id := ""
 var dir := ""  # "res://aircraft/<id>" (no trailing slash)
@@ -99,6 +101,7 @@ static func list_ids() -> Array:
 
 static func clear_cache() -> void:
 	_cache.clear()
+	_previews.clear()
 
 
 ## Full path of a file of this aircraft: the "files" entry of aircraft.json, else the default name.
@@ -119,6 +122,21 @@ func json(key: String) -> Dictionary:
 		return {}
 	var j = JSON.parse_string(FileAccess.get_file_as_string(p))
 	return j if j is Dictionary else {}
+
+
+## The start-screen picture (preview.jpg, tests/render_aircraft_previews.gd), null if the aircraft has none.
+func preview() -> Texture2D:
+	if _previews.has(dir):
+		return _previews[dir]
+	var p := path("preview")
+	var tex: Texture2D = null
+	if ResourceLoader.exists(p):
+		tex = load(p) as Texture2D
+	elif FileAccess.file_exists(p):  # not imported yet (a fresh checkout before the editor ran)
+		var img := Image.load_from_file(p)
+		tex = ImageTexture.create_from_image(img) if img != null else null
+	_previews[dir] = tex
+	return tex
 
 
 ## The flight-model config (config.json), read once.

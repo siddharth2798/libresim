@@ -6,15 +6,17 @@ extends RefCounted
 
 const IN_CLOUD := {"airport": "VABB", "runway": "27", "start": "air", "air_ft": 3800.0, "air_nm": 6.0, "air_kt": 200.0,
 	"time_h": 11.0, "cloud_base_ft": 3000.0}
+const IN_CLOUD_C172 := {"airport": "VABB", "runway": "27", "start": "air", "air_ft": 3800.0, "air_nm": 6.0, "air_kt": 110.0,
+	"time_h": 11.0, "cloud_base_ft": 3000.0}  # the C172's start is clamped to 0.9 Vne (AirStart.spawn): 200 kt is the A320's
 
 const SCENES := {
 	"cloud_a320_chase": {"weather": "Overcast", "view": "chase", "setup": {"aircraft": "a320"}, "merge_setup": IN_CLOUD},
-	"cloud_c172_chase": {"weather": "Overcast", "view": "chase", "merge_setup": IN_CLOUD},
+	"cloud_c172_chase": {"weather": "Overcast", "view": "chase", "merge_setup": IN_CLOUD_C172},
 	"cloud_a320_orbit": {"weather": "Overcast", "view": "orbit", "setup": {"aircraft": "a320"}, "merge_setup": IN_CLOUD, "look": [0.6, 0.0]},
-	"cloud_c172_orbit": {"weather": "Overcast", "view": "orbit", "merge_setup": IN_CLOUD, "look": [0.6, 0.0]},
+	"cloud_c172_orbit": {"weather": "Overcast", "view": "orbit", "merge_setup": IN_CLOUD_C172, "look": [0.6, 0.0]},
 	"cloud_a320_wing": {"weather": "Overcast", "view": "wing", "setup": {"aircraft": "a320"}, "merge_setup": IN_CLOUD},
-	"cloud_c172_tail": {"weather": "Overcast", "view": "tail", "merge_setup": IN_CLOUD},
-	"cloud_c172_cockpit": {"weather": "Overcast", "view": "cockpit", "prop_deg": 90.0, "merge_setup": IN_CLOUD},
+	"cloud_c172_tail": {"weather": "Overcast", "view": "tail", "merge_setup": IN_CLOUD_C172},
+	"cloud_c172_cockpit": {"weather": "Overcast", "view": "cockpit", "prop_deg": 90.0, "merge_setup": IN_CLOUD_C172},
 	"cloud_a320_cockpit": {"weather": "Overcast", "view": "cockpit", "setup": {"aircraft": "a320"}, "merge_setup": IN_CLOUD},
 	# unchanged-by-design controls: clear air, and the edge of a broken layer (aircraft just under the base)
 	"cloud_clear_a320": {"weather": "Clear", "view": "chase", "setup": {"aircraft": "a320"},
@@ -24,7 +26,7 @@ const SCENES := {
 	"cloud_bright_in": {"weather": "Broken", "view": "chase", "setup": {"aircraft": "a320"},
 		"merge_setup": {"airport": "VABB", "runway": "27", "start": "air", "air_ft": 3800.0, "air_nm": 6.0, "air_kt": 200.0, "time_h": 11.0, "cloud_base_ft": 3000.0}},
 	"cloud_bright_c172": {"weather": "Broken", "view": "chase",
-		"merge_setup": {"airport": "VABB", "runway": "27", "start": "air", "air_ft": 3300.0, "air_nm": 6.0, "air_kt": 200.0, "time_h": 11.0, "cloud_base_ft": 3000.0}},
+		"merge_setup": {"airport": "VABB", "runway": "27", "start": "air", "air_ft": 3300.0, "air_nm": 6.0, "air_kt": 110.0, "time_h": 11.0, "cloud_base_ft": 3000.0}},
 	"cloud_bright_orbit": {"weather": "Broken", "view": "orbit", "look": [0.6, 0.0], "setup": {"aircraft": "a320"},
 		"merge_setup": {"airport": "VABB", "runway": "27", "start": "air", "air_ft": 3800.0, "air_nm": 6.0, "air_kt": 200.0, "time_h": 11.0, "cloud_base_ft": 3000.0}},
 	"cloud_edge_a320": {"weather": "Scattered", "view": "chase", "setup": {"aircraft": "a320"},

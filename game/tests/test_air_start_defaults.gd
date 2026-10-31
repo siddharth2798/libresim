@@ -107,7 +107,7 @@ func test_air_start_session_follows_the_aircraft_until_the_pilot_chooses() -> St
 	Session.setup.air_ft = 500.0
 	Session.setup.air_nm = 1.0
 	Session.apply_air_defaults()
-	if err == "" and _vals() != [1000.0, 3.0, 90.0, true]:
+	if err == "" and _vals() != [1000.0, 3.0, 205.0, true]:
 		err = "custom numbers are clamped into the a320 limits: %s" % [_vals()]
 	_restore(k)
 	return err
@@ -206,9 +206,7 @@ func test_air_start_controls_show_the_aircraft_defaults() -> String:
 	# the aircraft page changes the aircraft; the airport page shows again
 	var ap: Control = load("res://ui/menu/aircraft_page.gd").new()
 	add_child(ap)
-	for i in ap._list.item_count:
-		if ap._list.get_item_metadata(i).get("id", "") == "a320":
-			ap._list.item_selected.emit(i)
+	ap.choose_id("a320")
 	if err == "" and Session.setup.aircraft != "a320":
 		err = "the aircraft page did not select the a320"
 	if err == "" and _vals() != [3500.0, 11.0, 205.0, false]:
@@ -243,6 +241,8 @@ func test_air_start_flaps_snap_to_the_detent() -> String:
 		f.fcs.flap_cmd = 0
 		f.fcs.snap_flaps()
 		if f.fcs.flap_deg != 0.0:
+			return "%s: detent 0 is flaps up" % id
+	return ""
 
 
 func test_air_start_edit_then_switch_aircraft_keeps_height_and_gets_the_own_speed() -> String:
@@ -396,6 +396,4 @@ func test_air_start_c172_asked_for_205_kias_survives_10_s() -> String:
 	var sp := AirStart.spawn(AircraftDef.load_def("c172"), {"air_kt": 205.0, "air_custom": true, "air_kt_given": true})
 	if not _fly_10s(sp.kias):
 		return "the clamped start (%.0f KIAS) crashed within 10 s" % sp.kias
-	return ""
-			return "%s: detent 0 is flaps up" % id
 	return ""

@@ -6,10 +6,10 @@ extends Node
 ## is run a second time and only reported when it adds them again: the first run also pays for
 ## one-time loads and static caches (scenes, themes, noise, AircraftDef), which are no leak.
 ## A suite may define teardown(), called after every test (frees the nodes the test built).
-## Each test_* method returns "" on success or a failure message.
+## Each test_* method returns "" on success or a failure message (returning nothing, which is what a script error does, fails).
 ## Test suites: tests/test_core.gd (M2), tests/test_fdm_cards.gd (M3 POH test cards).
 
-const SUITES := ["res://tests/test_core.gd", "res://tests/test_fdm_cards.gd", "res://tests/test_flight.gd", "res://tests/test_instruments.gd", "res://tests/test_systems.gd", "res://tests/test_landing.gd", "res://tests/test_nav.gd", "res://tests/test_failures.gd", "res://tests/test_input.gd", "res://tests/test_weight_balance.gd", "res://tests/test_situation.gd", "res://tests/test_replay.gd", "res://tests/test_replay_generic.gd", "res://tests/test_situation_systems.gd", "res://tests/test_terrain_regions.gd", "res://tests/test_airport_lights.gd", "res://tests/test_approach_lights.gd", "res://tests/test_weather_visuals.gd", "res://tests/test_cloud_weather.gd", "res://tests/test_cloud_storms.gd", "res://tests/test_aircraft_lights.gd", "res://tests/test_touchdown_fx.gd", "res://tests/test_callouts.gd", "res://tests/test_training.gd", "res://tests/test_menu.gd", "res://tests/test_atc.gd", "res://tests/test_atc_flow.gd", "res://tests/test_atc_rules.gd", "res://tests/test_atc_session.gd", "res://tests/test_atc_assist.gd", "res://tests/test_atc_radio_ui.gd", "res://tests/test_atc_airline.gd", "res://tests/test_obstacles.gd", "res://tests/test_speech.gd", "res://tests/test_engine_start.gd", "res://tests/test_fdm_handsoff.gd", "res://tests/test_airport_ops_stands.gd", "res://tests/test_attribution.gd", "res://tests/test_apron_flat.gd", "res://tests/test_ui_scale.gd", "res://tests/test_graphics_presets.gd", "res://tests/test_worldcover.gd", "res://tests/test_pause_screen.gd", "res://tests/test_atmosphere.gd", "res://tests/test_auto_exposure.gd", "res://tests/test_trees_buildings.gd", "res://tests/test_map.gd", "res://tests/test_taxi_banner.gd", "res://tests/test_checklist_window.gd", "res://tests/test_reflection_policy.gd", "res://tests/test_vehicles.gd", "res://tests/test_roads.gd", "res://tests/test_generic_aircraft.gd", "res://tests/test_registration.gd", "res://tests/test_ground_ops_aircraft.gd", "res://tests/test_controls_data.gd", "res://tests/test_fdm_a320.gd", "res://tests/test_fdm_a320_engine.gd", "res://tests/test_fbw_a320.gd", "res://tests/test_fbw_a320_systems.gd", "res://tests/test_displays.gd", "res://tests/test_audio_layers.gd", "res://tests/test_autoflight.gd", "res://tests/test_airliner_systems.gd", "res://tests/test_airliner_fuel.gd", "res://tests/test_a320_integration.gd", "res://tests/test_cockpit_levers.gd", "res://tests/test_icing.gd", "res://tests/test_icing_protection.gd", "res://tests/test_icing_effects.gd", "res://tests/test_air_start_defaults.gd", "res://tests/test_jetway_dock.gd", "res://tests/test_session_save_guard.gd"]
+const SUITES := ["res://tests/test_core.gd", "res://tests/test_fdm_cards.gd", "res://tests/test_flight.gd", "res://tests/test_instruments.gd", "res://tests/test_systems.gd", "res://tests/test_landing.gd", "res://tests/test_nav.gd", "res://tests/test_failures.gd", "res://tests/test_input.gd", "res://tests/test_weight_balance.gd", "res://tests/test_situation.gd", "res://tests/test_replay.gd", "res://tests/test_replay_generic.gd", "res://tests/test_situation_systems.gd", "res://tests/test_terrain_regions.gd", "res://tests/test_airport_lights.gd", "res://tests/test_approach_lights.gd", "res://tests/test_weather_visuals.gd", "res://tests/test_cloud_weather.gd", "res://tests/test_cloud_storms.gd", "res://tests/test_aircraft_lights.gd", "res://tests/test_touchdown_fx.gd", "res://tests/test_callouts.gd", "res://tests/test_training.gd", "res://tests/test_menu.gd", "res://tests/test_menu_order.gd", "res://tests/test_atc.gd", "res://tests/test_atc_flow.gd", "res://tests/test_atc_rules.gd", "res://tests/test_atc_session.gd", "res://tests/test_atc_assist.gd", "res://tests/test_atc_radio_ui.gd", "res://tests/test_atc_airline.gd", "res://tests/test_obstacles.gd", "res://tests/test_speech.gd", "res://tests/test_engine_start.gd", "res://tests/test_fdm_handsoff.gd", "res://tests/test_airport_ops_stands.gd", "res://tests/test_attribution.gd", "res://tests/test_apron_flat.gd", "res://tests/test_ui_scale.gd", "res://tests/test_graphics_presets.gd", "res://tests/test_worldcover.gd", "res://tests/test_pause_screen.gd", "res://tests/test_atmosphere.gd", "res://tests/test_auto_exposure.gd", "res://tests/test_trees_buildings.gd", "res://tests/test_map.gd", "res://tests/test_taxi_banner.gd", "res://tests/test_checklist_window.gd", "res://tests/test_reflection_policy.gd", "res://tests/test_vehicles.gd", "res://tests/test_roads.gd", "res://tests/test_generic_aircraft.gd", "res://tests/test_registration.gd", "res://tests/test_ground_ops_aircraft.gd", "res://tests/test_controls_data.gd", "res://tests/test_fdm_a320.gd", "res://tests/test_fdm_a320_engine.gd", "res://tests/test_fbw_a320.gd", "res://tests/test_fbw_a320_systems.gd", "res://tests/test_displays.gd", "res://tests/test_audio_layers.gd", "res://tests/test_autoflight.gd", "res://tests/test_airliner_systems.gd", "res://tests/test_airliner_fuel.gd", "res://tests/test_a320_integration.gd", "res://tests/test_cockpit_levers.gd", "res://tests/test_icing.gd", "res://tests/test_icing_protection.gd", "res://tests/test_icing_effects.gd", "res://tests/test_air_start_defaults.gd", "res://tests/test_jetway_dock.gd", "res://tests/test_session_save_guard.gd"]
 
 
 func _ready() -> void:
@@ -26,7 +26,7 @@ func _ready() -> void:
 	var fails := 0
 	var total := 0
 	for path in SUITES:
-		if not ResourceLoader.exists(path) or (suite_filter != "" and not path.contains(suite_filter)):
+		if not ResourceLoader.exists(path) or (suite_filter != "" and not _matches(path, suite_filter)):
 			continue
 		var suite = load(path).new()
 		if suite is Node:
@@ -53,11 +53,19 @@ func _ready() -> void:
 	get_tree().quit(1 if fails > 0 else 0)
 
 
+func _matches(path: String, filter: String) -> bool:
+	for f in filter.split(","):
+		if f != "" and path.contains(f):
+			return true
+	return false
+
+
 ## Runs one test (then the suite's teardown); returns its message and the orphan nodes / objects it added.
 func _measure(suite: Object, name: String) -> Dictionary:
 	var orphans0 := Performance.get_monitor(Performance.OBJECT_ORPHAN_NODE_COUNT)
 	var objs0 := Performance.get_monitor(Performance.OBJECT_COUNT)
-	var err: String = suite.call(name)
+	var r = suite.call(name)
+	var err: String = "aborted: a script error ended the test (see SCRIPT ERROR above) or it returned nothing" if r == null else str(r)
 	if suite.has_method("teardown"):
 		suite.teardown()
 	return {"err": err, "nodes": Performance.get_monitor(Performance.OBJECT_ORPHAN_NODE_COUNT) - orphans0,

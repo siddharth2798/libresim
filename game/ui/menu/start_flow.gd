@@ -1,16 +1,18 @@
 extends "res://ui/menu/page_frame.gd"
-## Free flight: the guided setup. A stepper (Airport & start > Aircraft > Weather & time >
+## Free flight: the guided setup. A stepper (Aircraft > Airport & start > Weather & time >
 ## Failures > Recording > Fly) above one page at a time; Back / Next name where they go, every
 ## step but the last has a filled Fly now, and the last has the big FLY button. Back on the
-## first step leaves for the home screen (back_pressed). The choices go into Session.setup. Keys: 1-5 jump to a step,
+## first step leaves for the home screen (back_pressed). The choices go into Session.setup.
+## The aircraft comes first because the airport page depends on it (air-start height and
+## distance, runways long enough, stands that suit it). Keys: 1-5 jump to a step,
 ## Page Up / Page Down step, Ctrl+Enter flies.
 
 signal fly_requested
 
 ## [title, page script, prompt]
 const STEPS := [
-	["Airport & start", "res://ui/menu/airport_page.gd", "Where do you want to start?"],
 	["Aircraft", "res://ui/menu/aircraft_page.gd", "Which aircraft, and how loaded?"],
+	["Airport & start", "res://ui/menu/airport_page.gd", "Where do you want to start?"],
 	["Weather & time", "res://ui/menu/conditions_page.gd", "What are the conditions?"],
 	["Failures (optional)", "res://ui/menu/failures_page.gd", "Practise an emergency, or skip this."],
 	["Recording (optional)", "res://ui/menu/recording_page.gd", "Record the flight as a video, or skip this."],

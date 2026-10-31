@@ -4,7 +4,7 @@ extends Node
 ## $FREESIM_SHOTS/menu_<name>.png (default user://), then quit. Needs a display.
 ##   FREESIM_SIZE=1920x1080  window size (default 1280x720)
 ##   FREESIM_AIRCRAFT=a320   choose that aircraft first
-##   FREESIM_START=stand     start-at choice of step 1 (runway | stand | air)
+##   FREESIM_START=stand     start-at choice of step 2, Airport (runway | stand | air)
 ##   FREESIM_OPEN=1          open 'More weather' and the aircraft 'Details' first
 ##   FREESIM_FLY=1           also launch a flight from VABB and grab it
 
@@ -31,7 +31,7 @@ func _ready() -> void:
 	await _shot("home")
 	_s.go("flight")
 	if OS.get_environment("FREESIM_OPEN") != "":
-		_s.screen("flight").pages[1]._show_details(true)
+		_s.screen("flight").pages[0]._show_details(true)  # the aircraft page
 		_s.screen("flight").pages[2]._show_more(true)
 	for i in _s.screen("flight").STEPS.size():
 		_s.screen("flight").show_step(i)

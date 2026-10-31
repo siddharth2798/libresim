@@ -1,6 +1,7 @@
 {
  "id": "a320",
  "name": "A320-family twin-jet airliner",
+ "short_name": "A320-family",
  "category": "Twin-jet airliner \u00b7 150 seats \u00b7 glass cockpit \u00b7 fly-by-wire",
  "description": "A narrow-body twin-jet in the A320 family, flown from the gate: cold and dark start, APU, two CFM56-5B4-class turbofans, fly-by-wire control law, autopilot / autothrust with an FCU, PFD, ND, engine and system displays. Flight model from the FlightGear A320-family JSBSim data. Not affiliated with Airbus; generic livery. Simplified: no real FMGC, no SID/STAR, approximate failures.",
  "model_credit": "3D model and flight data: FlightGear A320-family project (GPL-2.0-only; J. Davidson, J. Redpath, merspieler, M. Maring, T. Herrmann, S. Gebran), based on work credited to Immersive Design Group. Not affiliated with Airbus.",
