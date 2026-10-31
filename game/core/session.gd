@@ -8,7 +8,8 @@ const SAVE := "user://last_flight.json"
 const DEFAULT := {
 	"airport": "VAJJ", "runway": "", "start": "runway",  # runway | stand | air
 	"stand": "", "air_ft": 1500.0, "air_nm": 5.0, "air_kt": 90.0, "cold": false,
-	"air_custom": false,  # false: air_ft / air_nm / air_kt follow the aircraft (apply_air_defaults); true: the pilot, a lesson or --air* chose them
+	"air_custom": false,  # false: air_ft / air_nm follow the aircraft (apply_air_defaults); true: the pilot (start screen), a lesson or --air* chose them
+	"air_kt_given": false,  # true only for --air-kt and lesson speeds: otherwise air_kt is always the aircraft's own (the start screen has no speed control)
 	"aircraft": "c172",
 	"fuel_gal": 17.0, "copilot_kg": 0.0, "rear_kg": 0.0, "baggage_kg": 0.0,  # per tank (total kg when payload.fuel_unit is "kg") / per station
 	"cabin_kg": 0.0, "cargo_kg": 0.0,  # A320 stations
@@ -66,15 +67,19 @@ func _load() -> void:
 	if not FileAccess.file_exists(save_path):
 		return
 	var d = JSON.parse_string(FileAccess.get_file_as_string(save_path))
-	if d is Dictionary:
-		for k in d:
-			if setup.has(k):
-				setup[k] = d[k]
+	if not d is Dictionary:
+		return
+	for k in d:
+		if setup.has(k):
+			setup[k] = d[k]
 	for k in ["convection", "storms"]:  # a setup saved before the cloud physics: no thermals, no storms
 		if not d.has(k):
 			setup[k] = 0.0
 	if not d.has("air_custom"):
 		legacy_air_custom(setup)
+	if not d.has("air_kt_given"):  # saved before the flag: a speed counts as chosen only if it is not a leftover of another aircraft
+		var def := AircraftDef.load_def(str(setup.aircraft))
+		setup.air_kt_given = not AirStart.stale_kias(def, float(setup.air_kt))
 	apply_air_defaults()
 
 
@@ -89,14 +94,17 @@ static func legacy_air_custom(s: Dictionary) -> void:
 		and is_equal_approx(float(s.air_kt), DEFAULT.air_kt))
 
 
-## The "In the air" numbers follow the chosen aircraft (aircraft/air_start.gd) unless `air_custom`: then the
-## pilot's values stay, only clamped into the aircraft's limits. Keys in `keep` are left as they are (the
-## command line and lessons give some of them themselves).
+## The "In the air" numbers follow the chosen aircraft (aircraft/air_start.gd). Height and distance unless
+## `air_custom` (then the pilot's values stay, only clamped into the aircraft's limits); the speed unless
+## `air_kt_given` (--air-kt, a lesson): the start screen cannot show or change it, so it never outlives the aircraft
+## it was meant for. Keys in `keep` are left as they are (the command line and lessons give some themselves).
 func apply_air_defaults(keep: Array = []) -> void:
 	var def := AircraftDef.load_def(str(setup.get("aircraft", AircraftDef.DEFAULT_ID)))
+	if not bool(setup.get("air_kt_given", false)) and not "air_kt" in keep:
+		setup.air_kt = AirStart.of(def).kias
 	if not bool(setup.get("air_custom", false)):
 		var vals := AirStart.setup_values(def)
-		for k in vals:
+		for k in ["air_ft", "air_nm"]:
 			if not k in keep:
 				setup[k] = vals[k]
 		return
@@ -114,7 +122,9 @@ func begin_lesson(id: String, lesson_setup: Dictionary, assist_level: String) ->
 	for k in lesson_setup:
 		setup[k] = lesson_setup[k]
 	setup.air_custom = false  # what the lesson gives is the lesson's, the rest follows the aircraft
+	setup.air_kt_given = false
 	apply_air_defaults(lesson_setup.keys())
+	setup.air_kt_given = lesson_setup.has("air_kt")
 	setup.air_custom = ["air_ft", "air_nm", "air_kt"].any(func(k): return lesson_setup.has(k))
 	setup.failures = {}
 	setup.random = {"enabled": false, "count": 1, "from_min": 2.0, "to_min": 30.0, "categories": []}
@@ -217,6 +227,7 @@ func _parse_args(args: PackedStringArray) -> void:
 			"record": setup.record = true
 	apply_air_defaults(air_given)  # what was not given: the aircraft's own height, distance and speed
 	setup.air_custom = not air_given.is_empty()
+	setup.air_kt_given = "air_kt" in air_given
 	if cmd.has("lesson"):  # --lesson=landing[,light]
 		var parts: PackedStringArray = str(cmd.lesson).split(",")
 		var lesson := TrainingLogic.find(parts[0])

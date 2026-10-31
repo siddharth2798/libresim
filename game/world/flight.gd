@@ -50,15 +50,12 @@ func _ready() -> void:
 		"air":
 			_air_ft = float(s.air_ft)
 			_air_nm = float(s.air_nm)
-			_air_kt = float(s.get("air_kt", Session.DEFAULT.air_kt))
-			var own := AircraftDef.current().air_start()  # the aircraft's own start: speed, gear, flaps (start.air)
-			# a setup built in code that left the speed at the C172's default gets the aircraft's own speed
-			if not bool(s.get("air_custom", false)) and is_equal_approx(_air_kt, float(Session.DEFAULT.air_kt)):
-				_air_kt = own.kias
-			var own_speed := is_equal_approx(_air_kt, own.kias)
-			# another speed (--air-kt, a lesson): the gear follows it (up at 200 kt or more), flaps 0
-			_air_gear_up = own.gear == "up" if own_speed else _air_kt >= 200.0
-			_air_flaps = int(own.flaps) if own_speed else 0
+			var a := AirStart.spawn(AircraftDef.current(), s)  # speed (clamped into the aircraft's safe range), gear, flaps
+			_air_kt = a.kias
+			_air_gear_up = a.gear_up
+			_air_flaps = a.flaps
+			if a.asked >= 0.0:
+				push_warning("air start: %d KIAS is outside the safe range of the %s, starting at %d KIAS" % [int(a.asked), AircraftDef.current().display_name(), int(_air_kt)])
 		"stand": _stand_ref = s.stand if s.stand != "" else "*"
 	_cold = bool(s.cold)
 	_shot = Session.shot
