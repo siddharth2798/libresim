@@ -1,13 +1,11 @@
 class_name Propeller
-extends RefCounted
+extends Thruster
 ## Fixed-pitch propeller from JSBSim tables C_THRUST(J), C_POWER(J) with tip-Mach
 ## corrections. Owns the engine/prop RPM state: I * dω/dt = Q_engine - Q_prop.
 
 const ENGINE_INERTIA := 0.6  # kg*m^2 crankshaft + accessories
 
-var diameter: float
 var inertia: float
-var sense: float
 var p_factor: float  # JSBSim p_factor (inches of thrust-line offset per radian)
 var _ct: Dictionary
 var _cp: Dictionary
@@ -15,12 +13,6 @@ var _ct_mach: Dictionary
 var _cp_mach: Dictionary
 var _cp_factor := 1.0
 var _ct_factor: Dictionary = {"rows": [0.0], "cols": null, "data": [[1.0]]}
-
-var rpm := 0.0
-var thrust := 0.0  # N along +x body
-var torque := 0.0  # N*m absorbed
-var v_induced := 0.0
-var advance_ratio := 0.0
 
 
 func _init(cfg: Dictionary, engine_cfg: Dictionary) -> void:

@@ -1,0 +1,193 @@
+{
+ "sources": {
+  "draken": {
+   "url": "https://upload.wikimedia.org/wikipedia/commons/4/49/WWS_SaabJ35DDrakenstartengineandtaxiing.ogg",
+   "sha256": "4162d7c726e51f507b953bcfd032e70d91e0aaee2f0ac593d9192d9442c084e4"
+  },
+  "lax": {
+   "url": "https://opengameart.org/sites/default/files/LAX%20Aiport%20Landing%20Sound%20Two.ogg",
+   "sha256": "4ff92b863b2d45912e486ea86bc1fc2d24fc8cf1b6b079c9bcd8ac6c6ee9c985"
+  },
+  "ac_hum2": {
+   "url": "https://upload.wikimedia.org/wikipedia/commons/d/dc/Air_conditioner_hum_2_%28Gravity_Sound%29.wav",
+   "sha256": "bb9e9358e2b7041cab8f35d93e712727ddccc3490d075ef907b0923bbb0a1861"
+  },
+  "pump": {
+   "url": "https://upload.wikimedia.org/wikipedia/commons/2/2f/WWS_Pump.ogg",
+   "sha256": "bb9a5cf5c61f007af37345ba3c8b9c83acf2fa9d1eee8c53d2276ba46899653d"
+  },
+  "hoist": {
+   "url": "https://upload.wikimedia.org/wikipedia/commons/2/24/WWS_Hoist.ogg",
+   "sha256": "57b2f05c4218b669fa30ab56883eafec86e6989a4c9bdc37f8b6784b0dcd5742"
+  },
+  "chime": {
+   "url": "https://upload.wikimedia.org/wikipedia/commons/c/ce/Airplane_Chime_Sound_Effect.ogg",
+   "sha256": "cce5b73c814b7f8c501d0370ce27995c28fe2e6c2bed06547208cba00f285c2b"
+  }
+ },
+ "files": {
+  "eng_idle_loop.wav": {
+   "src": "draken",
+   "edit": {
+    "t": [
+     70.0,
+     82.0
+    ],
+    "loop": 1.5,
+    "peak": -3
+   },
+   "sha256": "e05ae12dc75b062eac6e9b852a815347b275c2f4a3ac32a32c33b241da4d8738",
+   "frames": 463050,
+   "rate": 44100,
+   "loop": true
+  },
+  "eng_power_loop.wav": {
+   "src": "draken",
+   "edit": {
+    "t": [
+     104.0,
+     118.0
+    ],
+    "loop": 2.0,
+    "peak": -3
+   },
+   "sha256": "d1c208d4a8b0b01b1ddb61257926882cc3304e256356ac5a1493d6e61d1f31f3",
+   "frames": 529200,
+   "rate": 44100,
+   "loop": true
+  },
+  "eng_whine_loop.wav": {
+   "src": "draken",
+   "edit": {
+    "t": [
+     104.0,
+     118.0
+    ],
+    "loop": 2.0,
+    "hp": 1800.0,
+    "peak": -3
+   },
+   "sha256": "7b5381c2a997617b16571386ded72295a12cdacebb6f041ec3105946a8748e9c",
+   "frames": 529200,
+   "rate": 44100,
+   "loop": true
+  },
+  "eng_start.wav": {
+   "src": "draken",
+   "edit": {
+    "t": [
+     3.0,
+     20.0
+    ],
+    "fade": [
+     0.4,
+     1.5
+    ],
+    "peak": -3
+   },
+   "sha256": "f944aa5cc5baaec9c4ebb0f150e8e482fd559c428df1239d08299c0e4c025861",
+   "frames": 749700,
+   "rate": 44100,
+   "loop": false
+  },
+  "eng_shutdown.wav": {
+   "src": "draken",
+   "edit": {
+    "t": [
+     118.0,
+     134.0
+    ],
+    "fade": [
+     0.05,
+     1.5
+    ],
+    "peak": -3
+   },
+   "sha256": "a6b311e0affa3b2cb8990e20fab9b970039b370a595419536da1a472824a67c3",
+   "frames": 705600,
+   "rate": 44100,
+   "loop": false
+  },
+  "eng_reverse.wav": {
+   "src": "lax",
+   "edit": {
+    "t": [
+     34.0,
+     47.0
+    ],
+    "fade": [
+     2.0,
+     3.0
+    ],
+    "peak": -3
+   },
+   "sha256": "7159e3158fa61d91bffb0d51ddaa8f74343fdee4c180ff524b21f72c834267f1",
+   "frames": 573300,
+   "rate": 44100,
+   "loop": false
+  },
+  "packs_loop.wav": {
+   "src": "ac_hum2",
+   "edit": {
+    "t": [
+     0.0,
+     18.0
+    ],
+    "loop": 2.0,
+    "peak": -3
+   },
+   "sha256": "848727f43a0ff85f2a2adbdcd23590fb260fb852d891c9a7bf529a524ac64be8",
+   "frames": 705600,
+   "rate": 44100,
+   "loop": true
+  },
+  "hyd_pump_loop.wav": {
+   "src": "pump",
+   "edit": {
+    "t": [
+     4.0,
+     13.0
+    ],
+    "loop": 1.5,
+    "peak": -3
+   },
+   "sha256": "a8603550878643f5879aaa8f271e308d4428a239cec54c5efcab644d2acd2c3e",
+   "frames": 330750,
+   "rate": 44100,
+   "loop": true
+  },
+  "gear_motion_loop.wav": {
+   "src": "hoist",
+   "edit": {
+    "t": [
+     18.0,
+     30.0
+    ],
+    "loop": 1.5,
+    "peak": -3
+   },
+   "sha256": "422d95004500ee32334c9bbb673b0ce5beec0671178e9ed072320d4f76be6d92",
+   "frames": 463050,
+   "rate": 44100,
+   "loop": true
+  },
+  "chime.wav": {
+   "src": "chime",
+   "edit": {
+    "t": [
+     0.0,
+     2.9
+    ],
+    "fade": [
+     0.0,
+     0.05
+    ],
+    "peak": -3
+   },
+   "sha256": "720f5c313088af2f9403b0c010d5273241924b51c02bec22ce49474f7636f8d6",
+   "frames": 127890,
+   "rate": 44100,
+   "loop": false
+  }
+ }
+}

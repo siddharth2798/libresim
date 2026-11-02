@@ -196,7 +196,7 @@ func _finish() -> void:
 	result_kind = "complete"
 	var grade := TrainingLogic.grade(run)
 	TrainingLogic.save_stars(_lesson.id, grade.stars)
-	var lessons := TrainingLogic.load_lessons()
+	var lessons := TrainingLogic.lessons_for(str(Session.setup.get("aircraft", AircraftDef.DEFAULT_ID)))
 	var idx := lessons.find_custom(func(l): return l.id == _lesson.id)
 	_hud.show_result(grade, idx >= 0 and idx + 1 < lessons.size())
 	if _markers:
@@ -204,11 +204,10 @@ func _finish() -> void:
 
 
 func _next_lesson() -> void:
-	var lessons := TrainingLogic.load_lessons()
+	var lessons := TrainingLogic.lessons_for(str(Session.setup.get("aircraft", AircraftDef.DEFAULT_ID)))
 	var idx := lessons.find_custom(func(l): return l.id == _lesson.id)
 	if idx >= 0 and idx + 1 < lessons.size():
-		var n: Dictionary = lessons[idx + 1]
-		Session.begin_lesson(n.id, n.setup, Session.assist)
+		TrainingLogic.begin(lessons[idx + 1], Session.assist)
 		get_tree().reload_current_scene()
 
 

@@ -1,65 +1,77 @@
 extends HBoxContainer
-## Start screen page 2: aircraft (every res://aircraft/<id>/aircraft.json is listed),
-## its specifications, and fuel / payload with the resulting weight against MTOW.
+## Start screen page 1: aircraft chips (every res://aircraft/<id>/aircraft.json is listed), the chosen
+## one as a big picture with its key figures (the full specification, description and credit are under
+## "Details"), and fuel / payload with the resulting weight against MTOW and the W&B chart.
 
 signal changed
 
-const KG_PER_GAL := 2.72  # avgas, 6.0 lb/US gal
+const LOADING_NOTE := "Over-weight or out-of-CG loading is allowed but you will feel it: longer takeoff roll, slower climb, higher stall speed; an aft CG makes pitch light and unstable."
+const KEY_SPECS := 3  # specification rows always shown, as tiles (the rest sit under Details)
 
-var _list: ItemList
-var _name: Label
-var _cat: Label
+static var _details_open := false  # "Details" stays open or closed for the session
+
+var _chips := {}  # aircraft id -> AircraftChip
+var _group := ButtonGroup.new()
+var _hero: AircraftHero
+var _specs: HBoxContainer  # the key figures, one tile each
+var _more_specs: GridContainer  # the remaining ones, under Details
 var _desc: Label
-var _specs: GridContainer
+var _details: Control
+var _details_btn: Button
 var _credit: Label
 var _weight: Label
 var _chart: Control
 var _cfg := {}
 var _ac := {}
 var _sliders := {}
+var _fuel_box: VBoxContainer  # the fuel and payload sliders (rebuilt for each aircraft)
 
 
 func _ready() -> void:
-	add_theme_constant_override("separation", 16)
+	add_theme_constant_override("separation", 22)
 	var left := VBoxContainer.new()
-	left.custom_minimum_size = Vector2(200, 0)
+	left.size_flags_horizontal = SIZE_EXPAND_FILL
+	left.add_theme_constant_override("separation", 10)
 	add_child(left)
-	left.add_child(MenuTheme.heading("Aircraft"))
-	_list = ItemList.new()
-	_list.size_flags_vertical = SIZE_EXPAND_FILL
-	left.add_child(_list)
-	left.add_child(MenuTheme.note("More aircraft are planned; aircraft are data (aircraft/<id>/*.json)."))
-	left.add_child(MenuTheme.note("Pilot 82 kg is included. Over-weight or out-of-CG loading is allowed but you will feel it: longer takeoff roll, slower climb, higher stall speed; an aft CG makes pitch light and unstable."))
-	var mid := VBoxContainer.new()
-	mid.size_flags_horizontal = SIZE_EXPAND_FILL
-	mid.add_theme_constant_override("separation", 6)
-	add_child(mid)
-	_name = Label.new()
-	_name.add_theme_font_size_override("font_size", 28)
-	mid.add_child(_name)
-	_cat = MenuTheme.note("")
-	mid.add_child(_cat)
+	var picker := HFlowContainer.new()
+	picker.add_theme_constant_override("h_separation", 10)
+	picker.add_theme_constant_override("v_separation", 10)
+	left.add_child(picker)
+	_hero = AircraftHero.new()
+	left.add_child(_hero)
+	_specs = HBoxContainer.new()
+	_specs.add_theme_constant_override("separation", 10)
+	left.add_child(_specs)
+	_details_btn = Button.new()
+	_details_btn.size_flags_horizontal = SIZE_SHRINK_BEGIN
+	_details_btn.pressed.connect(func(): _show_details(not _details_open))
+	left.add_child(_details_btn)
+	_details = VBoxContainer.new()
+	_details.add_theme_constant_override("separation", 8)
+	left.add_child(_details)
 	_desc = Label.new()
 	_desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_desc.add_theme_font_size_override("font_size", 15)
-	mid.add_child(_desc)
-	mid.add_child(MenuTheme.heading("Specifications"))
-	_specs = GridContainer.new()
-	_specs.columns = 2
-	_specs.add_theme_constant_override("h_separation", 16)
-	_specs.add_theme_constant_override("v_separation", 1)
-	mid.add_child(_specs)
+	_details.add_child(_desc)
+	_more_specs = GridContainer.new()
+	_more_specs.columns = 2
+	_more_specs.add_theme_constant_override("h_separation", 16)
+	_more_specs.add_theme_constant_override("v_separation", 2)
+	_details.add_child(_more_specs)
+	var gap := Control.new()  # pushes the credit to the bottom of the column
+	gap.size_flags_vertical = SIZE_EXPAND_FILL
+	left.add_child(gap)
 	_credit = MenuTheme.note("")
-	mid.add_child(_credit)
+	_credit.add_theme_font_size_override("font_size", 12)
+	left.add_child(_credit)
 	var right := VBoxContainer.new()
-	right.custom_minimum_size = Vector2(260, 0)
-	right.add_theme_constant_override("separation", 6)
+	right.custom_minimum_size = Vector2(420, 0)
+	right.add_theme_constant_override("separation", 8)
 	add_child(right)
 	right.add_child(MenuTheme.heading("Fuel & payload"))
-	_slider(right, "Fuel per tank", "fuel_gal", 3.0, 28.0, 1.0, "gal")
-	_slider(right, "Front passenger", "copilot_kg", 0.0, 120.0, 5.0, "kg")
-	_slider(right, "Rear passengers (total)", "rear_kg", 0.0, 220.0, 5.0, "kg")
-	_slider(right, "Baggage", "baggage_kg", 0.0, 54.0, 2.0, "kg")
+	_fuel_box = VBoxContainer.new()
+	_fuel_box.add_theme_constant_override("separation", 6)
+	right.add_child(_fuel_box)
 	_weight = Label.new()
 	_weight.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_weight.add_theme_font_size_override("font_size", 14)
@@ -68,69 +80,126 @@ func _ready() -> void:
 	_chart.set_script(load("res://ui/menu/wb_chart.gd"))
 	_chart.size_flags_vertical = SIZE_EXPAND_FILL
 	right.add_child(_chart)
-	var dir := DirAccess.open("res://aircraft")
-	if dir:
-		for d in dir.get_directories():
-			var f := "res://aircraft/%s/aircraft.json" % d
-			if FileAccess.file_exists(f):
-				var j = JSON.parse_string(FileAccess.get_file_as_string(f))
-				if j is Dictionary:
-					var i := _list.add_item(j.name)
-					_list.set_item_metadata(i, j)
-					if j.id == Session.setup.aircraft:
-						_list.select(i)
-						_show(j)
-	_list.item_selected.connect(func(i):
-		Session.setup.aircraft = _list.get_item_metadata(i).id
-		_show(_list.get_item_metadata(i)))
-	if _ac.is_empty() and _list.item_count > 0:
-		_list.select(0)
-		_show(_list.get_item_metadata(0))
+	_show_details(_details_open)
+	for id in AircraftDef.list_ids():
+		var j: Dictionary = AircraftDef.load_def(id).data
+		var chip := AircraftChip.new().setup(j, _group)
+		chip.pressed.connect(_choose.bind(j))
+		picker.add_child(chip)
+		_chips[id] = chip
+		if j.get("id", id) == Session.setup.aircraft:
+			chip.set_pressed_no_signal(true)
+			_show(j)
+	if _ac.is_empty() and not _chips.is_empty():  # the remembered aircraft is gone: the first one is the choice
+		choose_id(_chips.keys()[0])
+
+
+## The id of the lit chip ("" if there is none).
+func selected_id() -> String:
+	return str(_ac.get("id", ""))
+
+
+## Choose this aircraft as a click on its chip would.
+func choose_id(id: String) -> bool:
+	if not _chips.has(id):
+		return false
+	_chips[id].set_pressed_no_signal(true)
+	_choose(AircraftDef.load_def(id).data)
+	return true
+
+
+## An aircraft is chosen (this is step 1: the airport page that follows reads it).
+func _choose(j: Dictionary) -> void:
+	Session.setup.aircraft = j.id
+	Session.apply_payload_defaults(AircraftDef.load_def(Session.setup.aircraft))  # fuel and loads suit the new aircraft
+	Session.apply_air_defaults()  # and the airborne start (height, distance, speed) unless the pilot set it
+	_show(j)
+
+
+## One key figure: a small dim label over the value.
+func _tile(label: String, value: String) -> Control:
+	var t := PanelContainer.new()
+	t.size_flags_horizontal = SIZE_EXPAND_FILL
+	t.add_theme_stylebox_override("panel", MenuTheme.box(Color(1, 1, 1, 0.05), 10, Color(1, 1, 1, 0.08), 10.0))
+	var v := VBoxContainer.new()
+	v.add_theme_constant_override("separation", 1)
+	t.add_child(v)
+	var a := Label.new()
+	a.text = label.to_upper()
+	a.add_theme_font_size_override("font_size", 12)
+	a.add_theme_color_override("font_color", MenuTheme.ACCENT)
+	v.add_child(a)
+	var b := Label.new()
+	b.text = value
+	b.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	b.custom_minimum_size = Vector2(120, 0)
+	b.add_theme_font_size_override("font_size", 15)
+	v.add_child(b)
+	return t
+
+
+func _show_details(open: bool) -> void:
+	_details_open = open
+	_details.visible = open
+	_details_btn.text = "▼  Hide details" if open else "▶  Details: description and full specification"
 
 
 func _slider(parent: Control, label: String, key: String, lo: float, hi: float, step: float, unit: String) -> void:
-	var hb := HBoxContainer.new()
-	parent.add_child(hb)
-	var l := Label.new()
-	l.text = label
-	l.size_flags_horizontal = SIZE_EXPAND_FILL
-	hb.add_child(l)
-	var v := Label.new()
-	hb.add_child(v)
-	var sl := HSlider.new()
-	sl.min_value = lo
-	sl.max_value = hi
-	sl.step = step
-	sl.value = float(Session.setup[key])
-	v.text = "%.0f %s" % [sl.value, unit]
+	var row := SliderRow.new().setup(label, lo, hi, step, label if label.length() > 26 else "", 215.0, 72.0)
+	var sl := row.slider
+	sl.value = float(Session.setup.get(key, 0.0))
+	row.value_label.text = "%.0f %s" % [sl.value, unit]
 	sl.value_changed.connect(func(x):
 		Session.setup[key] = x
-		v.text = "%.0f %s" % [x, unit]
+		row.value_label.text = "%.0f %s" % [x, unit]
 		_update_weight())
-	parent.add_child(sl)
+	parent.add_child(row)
 	_sliders[key] = sl
+
+
+## The fuel and payload sliders of this aircraft (aircraft.json "payload": fuel_slider and stations).
+func _build_sliders(pl: Dictionary) -> void:
+	for c in _fuel_box.get_children():
+		_fuel_box.remove_child(c)
+		c.queue_free()
+	_sliders.clear()
+	var f: Dictionary = pl.get("fuel_slider", {"min": 0.0, "max": 20.0, "step": 1.0, "unit": "gal"})
+	var in_kg := WeightBalance.fuel_in_kg({"payload": pl})  # total fuel in kg (the A320) instead of gal per tank
+	_slider(_fuel_box, "Fuel (total)" if in_kg else "Fuel per tank", "fuel_gal", f.min, f.max, f.step, f.get("unit", "gal"))
+	for st in pl.get("stations", []):
+		_slider(_fuel_box, st.label, st.key, 0.0, st.max, st.step, "kg")
 
 
 func _show(j: Dictionary) -> void:
 	_ac = j
+	_build_sliders(j.get("payload", {}))
 	_cfg = WeightBalance.load_config(j)
-	_name.text = j.name
-	_cat.text = j.get("category", "")
+	_hero.show_aircraft(j)
 	_desc.text = j.get("description", "")
 	_credit.text = j.get("model_credit", "")
-	for c in _specs.get_children():
-		c.queue_free()
-	for s in j.get("specs", []):
+	var pilot := float(j.get("pilot_kg", 82.0))
+	_weight.tooltip_text = ("Pilot %d kg is included. " % int(pilot) if pilot > 0.0 else "The crew is included in the empty weight. ") + LOADING_NOTE
+	_weight.mouse_filter = Control.MOUSE_FILTER_PASS
+	for g in [_specs, _more_specs]:
+		for c in g.get_children():
+			g.remove_child(c)
+			c.queue_free()
+	var n := 0
+	for sp in j.get("specs", []):
+		n += 1
+		if n <= KEY_SPECS:
+			_specs.add_child(_tile(sp[0], sp[1]))
+			continue
 		var a := Label.new()
-		a.text = s[0]
+		a.text = sp[0]
 		a.add_theme_color_override("font_color", MenuTheme.DIM)
-		_specs.add_child(a)
+		_more_specs.add_child(a)
 		var b := Label.new()
-		b.text = s[1]
+		b.text = sp[1]
 		b.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		b.size_flags_horizontal = SIZE_EXPAND_FILL
 		b.custom_minimum_size = Vector2(120, 0)
-		_specs.add_child(b)
+		_more_specs.add_child(b)
 	_update_weight()
 
 
@@ -138,17 +207,25 @@ func _update_weight() -> void:
 	if _ac.is_empty():
 		return
 	var s: Dictionary = Session.setup
-	var fuel := 2.0 * float(s.fuel_gal) * KG_PER_GAL
-	var w: float = float(_ac.empty_kg) + float(_ac.pilot_kg) + float(s.copilot_kg) + float(s.rear_kg) + float(s.baggage_kg) + fuel
+	var pl: Dictionary = _ac.get("payload", {})
+	var tanks := maxi((_cfg.get("tanks", []) as Array).size(), 1)
+	var in_kg := WeightBalance.fuel_in_kg(_ac)
+	var gal := float(s.fuel_gal) if in_kg else float(tanks) * float(s.fuel_gal)  # total fuel, all tanks (kg for the A320)
+	var w: float = float(_ac.empty_kg) + float(_ac.pilot_kg) + (gal if in_kg else gal * WeightBalance.kg_per_gal(_ac))
+	for st in pl.get("stations", []):
+		w += float(s.get(st.key, 0.0))
 	var over := w > float(_ac.mtow_kg)
-	var txt := "Weight %d kg (%d lb), max %d\nFuel %d gal ≈ %.1f h at 75 %% power" % [
-		int(w), int(w / 0.4536), int(_ac.mtow_kg),
-		int(2.0 * float(s.fuel_gal)), maxf(2.0 * float(s.fuel_gal) - 3.0, 0.0) / 9.0]
+	var txt := "Weight %d kg (%d lb), max %d\n" % [int(w), int(w / 0.4536), int(_ac.mtow_kg)]
+	if in_kg:
+		txt += "Fuel %d kg ≈ %.1f h at cruise" % [int(gal), maxf(gal - float(pl.get("reserve_kg", 1800.0)), 0.0) / float(pl.get("cruise_kgh", 2500.0))]
+	else:
+		txt += "Fuel %d gal ≈ %.1f h at 75 %% power" % [int(gal), maxf(gal - float(pl.get("reserve_gal", 3.0)), 0.0) / float(pl.get("cruise_gph", 9.0))]
 	var wb := WeightBalance.compute(_ac, s, _cfg)
 	var bad := over
 	if not wb.is_empty():
 		bad = bad or not wb.ok
-		txt += "\nCG %.1f in T/O, %.1f in LDG" % [wb.takeoff.cg_in, wb.landing.cg_in]
+		var cgu := str(_ac.cg_envelope.get("cg_unit", "in"))
+		txt += "\nCG %.1f %s T/O, %.1f %s LDG" % [wb.takeoff.cg_in, cgu, wb.landing.cg_in, cgu]
 	var issues := []
 	if over:
 		issues.append("OVER MTOW")
@@ -156,6 +233,7 @@ func _update_weight() -> void:
 		issues.append("CG OUT OF LIMITS")
 	if not issues.is_empty():
 		txt += "\n" + ", ".join(issues)
+	if not wb.is_empty():
 		_chart.set_data(_ac.cg_envelope, wb)
 	_chart.visible = not wb.is_empty()
 	_weight.text = txt

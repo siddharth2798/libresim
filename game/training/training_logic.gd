@@ -15,6 +15,29 @@ static func load_lessons() -> Array:
 	return j.lessons if j is Dictionary else []
 
 
+## Does this lesson suit the aircraft? A lesson's optional "aircraft" list names the aircraft ids it is
+## written for (V-speeds, fuel, procedures); no list = any aircraft.
+static func suits(lesson: Dictionary, aircraft_id: String) -> bool:
+	var list: Array = lesson.get("aircraft", [])
+	return list.is_empty() or aircraft_id in list
+
+
+## The lessons written for this aircraft, in order.
+static func lessons_for(aircraft_id: String) -> Array:
+	return load_lessons().filter(func(l): return suits(l, aircraft_id))
+
+
+## Start a lesson (Session.begin_lesson). If the current aircraft is not one it is written for, the
+## flight is set up with the first aircraft it lists; end_lesson() restores the pilot's own choice.
+static func begin(lesson: Dictionary, assist: String) -> void:
+	var setup: Dictionary = lesson.setup
+	var current := str(setup.get("aircraft", Session.setup.get("aircraft", AircraftDef.DEFAULT_ID)))
+	if not suits(lesson, current):  # decided first: the airborne defaults the lesson leaves open follow that aircraft
+		setup = setup.duplicate()
+		setup.aircraft = str(lesson.aircraft[0])
+	Session.begin_lesson(lesson.id, setup, assist)
+
+
 static func find(id: String) -> Dictionary:
 	for l in load_lessons():
 		if l.id == id:
@@ -218,6 +241,8 @@ static func load_stars() -> Dictionary:
 static func save_stars(id: String, stars: int) -> void:
 	var d := load_stars()
 	d[id] = maxi(int(d.get(id, 0)), stars)
+	if not Session.interactive():  # a probe / command-line lesson must not touch the player's progress
+		return
 	var f := FileAccess.open(SAVE, FileAccess.WRITE)
 	if f:
 		f.store_string(JSON.stringify(d))

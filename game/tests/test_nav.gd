@@ -5,14 +5,14 @@ extends RefCounted
 const NM := 1852.0
 const FT := 0.3048
 
-var _made: Array = []  # nodes built by _radios(), freed with the suite (they are never in the tree)
+var _made: Array = []  # nodes built by _radios(), freed by teardown() (they are never in the tree)
 
 
-func _notification(what: int) -> void:
-	if what == NOTIFICATION_PREDELETE:
-		for n in _made:
-			if is_instance_valid(n):
-				n.free()
+func teardown() -> void:  # run_tests.gd calls this after every test
+	for n in _made:
+		if is_instance_valid(n):
+			n.free()
+	_made.clear()
 
 
 func _radios() -> NavRadios:

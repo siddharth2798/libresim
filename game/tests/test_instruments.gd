@@ -3,14 +3,14 @@ extends RefCounted
 
 const DT := 1.0 / 120.0
 
-var _made: Array = []  # nodes built by _setup(), freed with the suite (they are never in the tree)
+var _made: Array = []  # nodes built by _setup(), freed by teardown() (they are never in the tree)
 
 
-func _notification(what: int) -> void:
-	if what == NOTIFICATION_PREDELETE:
-		for n in _made:
-			if is_instance_valid(n):
-				n.free()
+func teardown() -> void:  # run_tests.gd calls this after every test
+	for n in _made:
+		if is_instance_valid(n):
+			n.free()
+	_made.clear()
 
 
 func _setup() -> Array:

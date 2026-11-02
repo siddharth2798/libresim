@@ -12,6 +12,7 @@ var prompt: Label
 var summary: Label
 var back_btn: Button
 var primary_btn: Button
+var footer: HBoxContainer  # the bottom bar's row (start_flow.gd adds its Fly now button)
 var pages: Array[Control] = []
 var _stack: MarginContainer
 
@@ -46,6 +47,7 @@ func _init() -> void:
 	add_child(bar)
 	var hb := HBoxContainer.new()
 	hb.add_theme_constant_override("separation", 10)
+	footer = hb
 	bar.add_child(hb)
 	back_btn = Button.new()
 	back_btn.text = "◀  Back"

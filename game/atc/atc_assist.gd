@@ -96,7 +96,7 @@ static func _state_hint(c: AtcController, w: Dictionary) -> String:
 		"enroute":
 			return "Next: fly on, no call needed yet"
 		"inbound":
-			return "Next: join the circuit, report final"
+			return "Next: fly the approach, report established" if AtcProfile.is_airline(c.profile) else "Next: join the circuit, report final"
 		"final":
 			return "Next: wait for the landing clearance" if c.flag("land_wait") else "Next: land, or report going around"
 		"landed":

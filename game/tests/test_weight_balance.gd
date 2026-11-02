@@ -3,7 +3,7 @@ extends RefCounted
 
 
 func _ac() -> Dictionary:
-	return JSON.parse_string(FileAccess.get_file_as_string("res://aircraft/c172/aircraft.json"))
+	return AircraftDef.load_def("c172").data
 
 
 func _setup(fuel: float, copilot: float, rear: float, bag: float) -> Dictionary:

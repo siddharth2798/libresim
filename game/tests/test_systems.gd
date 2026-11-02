@@ -58,8 +58,9 @@ func test_sys_fuel_starvation_stops_engine() -> String:
 		for i in int(sec / DT):
 			fn._publish()
 			fuel._physics_process(DT)
-			h.f.feed_left = Props.get_f("fuel/feed_left")
-			h.f.feed_right = Props.get_f("fuel/feed_right")
+			var feed: Array = Props.get_v("fuel/feed")
+			for t in feed.size():
+				h.f.tank_feed[t] = feed[t]
 			h.f.fuel_available = Props.get_b("fuel/available")
 			h._autopilot()
 			h.f.step(DT)

@@ -17,9 +17,12 @@ const NATO := {
 	"O": "Oscar", "P": "Papa", "Q": "Quebec", "R": "Romeo", "S": "Sierra", "T": "Tango", "U": "Uniform",
 	"V": "Victor", "W": "Whiskey", "X": "X-ray", "Y": "Yankee", "Z": "Zulu"}
 const CALLSIGN_RE := "^[A-Z0-9]{1,2}-?[A-Z0-9]{2,5}$"
+## Airline call sign: telephony word(s) + 1-4 digits (+ a letter), "Skyline 123", optionally " heavy".
+const AIRLINE_RE := "^([A-Za-z]{3,12}(?: [A-Za-z]{3,12})?) (\\d{1,4}[A-Z]?)( heavy| super)?$"
 
 static var _digit_run: RegEx
 static var _taxiway: RegEx
+static var _airline: RegEx
 
 
 ## "118.1" -> "one one eight decimal one"; letters become phonetic words; other characters are skipped.
@@ -123,8 +126,40 @@ static func qnh(hpa: float, spoken: bool) -> String:
 
 
 ## Written as given ("VT-FSM"); spoken phonetically ("Victor Tango Foxtrot Sierra Mike").
+## An airline call sign ("Skyline 123") is spoken as the word and the digits ("Skyline one two tree").
 static func callsign(cs: String, spoken: bool) -> String:
-	return digits(cs) if spoken else cs
+	if not spoken:
+		return cs
+	var m := _airline_re().search(cs)
+	if m == null:
+		return digits(cs)
+	return "%s %s%s" % [m.get_string(1), digits(m.get_string(2)), m.get_string(3)]
+
+
+static func _airline_re() -> RegEx:
+	if _airline == null:
+		_airline = RegEx.create_from_string(AIRLINE_RE)
+	return _airline
+
+
+## "skyline  123" -> "Skyline 123", "SKYLINE123" is not accepted (the word needs its gap); "" if it is not one.
+static func normalize_airline_callsign(s: String) -> String:
+	var parts := s.strip_edges().split(" ", false)
+	if parts.size() < 2:
+		return ""
+	var tail := parts[parts.size() - 1].to_lower()
+	var heavy := ""
+	if tail == "heavy" or tail == "super":
+		heavy = " " + tail
+		parts = parts.slice(0, parts.size() - 1)
+	if parts.size() < 2:
+		return ""
+	var num := parts[parts.size() - 1].to_upper()
+	var words := PackedStringArray()
+	for wd in parts.slice(0, parts.size() - 1):
+		words.append(wd.capitalize())
+	var t := "%s %s%s" % [" ".join(words), num, heavy]
+	return t if _airline_re().search(t) != null else ""
 
 
 ## Any other text for the voice: runs of digits are read digit by digit.

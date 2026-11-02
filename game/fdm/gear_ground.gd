@@ -12,7 +12,10 @@ const DAMP_RAMP := 0.03  # m: damping builds up over the first 3 cm of compressi
                          # first contact is not an instant c*v force step
 const BRAKE_MU := 0.45  # effective max braking friction, dry asphalt (tyre + anti-skid-free brakes)
 
-var contacts: Array = []  # {name, wheel, pos_struct, k, c, mu_s, mu_d, mu_roll, steer, brake}
+## Contact roles (config "role", else derived from the contact): nose / main / tail for wheels
+## (tail = a tailwheel behind the mains), wingtip / tail_skid / skid for structure points.
+## "brake_group" LEFT / RIGHT / BOTH picks which brake pedal slows a wheel.
+var contacts: Array = []  # {name, wheel, role, pos, k, c, mu_s, mu_d, mu_roll, steer, brake}
 var steer_cmd := 0.0  # -1..1 (right pedal positive)
 var brake_left := 0.0
 var brake_right := 0.0
@@ -22,15 +25,81 @@ var info := {}  # name -> {depth, vz (NED, + down), force, n, e} for the damage 
 
 
 func _init(cfg: Dictionary) -> void:
+	var main_x := _main_x(cfg)
 	for g in cfg.gear:
+		var wheel: bool = g.type == "BOGEY"
 		contacts.append({
-			"name": g.name, "wheel": g.type == "BOGEY",
+			"name": g.name, "wheel": wheel, "role": str(g.get("role", _role(g, wheel, main_x))),
 			"pos": Vector3(g.pos_m[0], g.pos_m[1], g.pos_m[2]),
 			"k": g.spring_n_per_m, "c": g.damping_n_s_per_m,
 			"mu_s": g.static_friction, "mu_d": g.dynamic_friction, "mu_roll": g.rolling_friction,
-			"steer": deg_to_rad(g.max_steer_deg),
-			"brake": 1 if g.name == "LEFT_MAIN" else (2 if g.name == "RIGHT_MAIN" else 0),
+			"steer": deg_to_rad(g.max_steer_deg), "steer_spec": g.get("steer", {}),
+			"mu_brake": float(g.get("brake_mu", BRAKE_MU)), "retract": bool(g.get("retractable", false)),
+			"brake": {"LEFT": 1, "RIGHT": 2, "BOTH": 3}.get(str(g.get("brake_group", "NONE")).to_upper(), 0),
 		})
+
+
+## Mean x (structural, aft positive) of the fixed wheels: the nose / tail split.
+static func _main_x(cfg: Dictionary) -> float:
+	var sum := 0.0
+	var n := 0
+	for g in cfg.gear:
+		if g.type == "BOGEY" and float(g.max_steer_deg) == 0.0:
+			sum += float(g.pos_m[0])
+			n += 1
+	return sum / n if n > 0 else 0.0
+
+
+static func _role(g: Dictionary, wheel: bool, main_x: float) -> String:
+	if wheel:
+		if float(g.max_steer_deg) == 0.0:
+			return "main"
+		return "nose" if float(g.pos_m[0]) < main_x else "tail"
+	var n := str(g.name).to_upper()
+	if n.contains("TIP"):
+		return "wingtip"
+	if n.contains("TAIL"):
+		return "tail_skid"
+	return "skid"
+
+
+## Wheels on the steered end (nose or tail) and on the fixed mains, for placing the aircraft.
+func steered_wheels() -> Array:
+	return contacts.filter(func(c): return c.wheel and c.steer > 0.0)
+
+
+func main_wheels() -> Array:
+	return contacts.filter(func(c): return c.wheel and c.steer == 0.0)
+
+
+## Called by FDM.step before compute(): `f` is the FDM (retractable gear, autobrake, nose wheel
+## scheduling read the controls and speeds from it). Nothing to do for fixed gear.
+func prepare(_dt: float, _f: Object) -> void:
+	pass
+
+
+## False: the contact is not there (a retracted leg).
+func _active(_c: Dictionary) -> bool:
+	return true
+
+
+## Nose / tail wheel angle (rad) of a steered wheel.
+func _steer_angle(c: Dictionary) -> float:
+	return c.steer * steer_cmd
+
+
+## Brake demand 0..1 of a wheel's brake group (1 = left pedal, 2 = right, 3 = either).
+func _brake_input(group: int) -> float:
+	match group:
+		1: return brake_left
+		2: return brake_right
+		3: return maxf(brake_left, brake_right)
+	return 0.0
+
+
+## Braking friction coefficient of a wheel at demand b.
+func _mu_braked(c: Dictionary, b: float, _v_long: float) -> float:
+	return lerpf(c.mu_roll, c.mu_brake, b)
 
 
 ## Returns [force_body, moment_body] about the CG.
@@ -41,6 +110,10 @@ func compute(mb: MassBalance, r_bn: Basis, pos_ned: Vector3, v_b: Vector3, w_b: 
 	var r_nb := r_bn.transposed()
 	wow = false
 	for c in contacts:
+		if not _active(c):
+			compression[c.name] = 0.0
+			info[c.name] = {"depth": 0.0}
+			continue
 		var r_b := mb.body_of(c.pos)
 		var p := pos_ned + r_bn * r_b
 		var gd: float = -ground_h.call(p.x, p.y)  # ground "down" coordinate
@@ -58,7 +131,8 @@ func compute(mb: MassBalance, r_bn: Basis, pos_ned: Vector3, v_b: Vector3, w_b: 
 		# wheel heading in the horizontal plane
 		var fwd := r_bn * Vector3(1, 0, 0)
 		if c.wheel and c.steer > 0.0:
-			fwd = r_bn * Vector3(cos(c.steer * steer_cmd), sin(c.steer * steer_cmd), 0.0)
+			var ang := _steer_angle(c)
+			fwd = r_bn * Vector3(cos(ang), sin(ang), 0.0)
 		var f_h := Vector2(fwd.x, fwd.y).normalized()
 		var s_h := Vector2(-f_h.y, f_h.x)
 		var v_long := v_c.x * f_h.x + v_c.y * f_h.y
@@ -67,8 +141,7 @@ func compute(mb: MassBalance, r_bn: Basis, pos_ned: Vector3, v_b: Vector3, w_b: 
 		var mu_long: float = c.mu_roll
 		var mu_lat: float = lerpf(c.mu_s, c.mu_d, clampf(absf(v_lat) / 2.0, 0.0, 1.0))
 		if c.wheel:
-			var b := brake_left if c.brake == 1 else (brake_right if c.brake == 2 else 0.0)
-			mu_long = lerpf(c.mu_roll, BRAKE_MU, b)
+			mu_long = _mu_braked(c, _brake_input(c.brake), v_long)
 		else:
 			mu_long = c.mu_d
 			mu_lat = c.mu_d

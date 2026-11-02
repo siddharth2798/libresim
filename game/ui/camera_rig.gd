@@ -10,11 +10,12 @@ extends Camera3D
 enum Mode { COCKPIT, CHASE, ORBIT, FREE, TOWER, WING, TAIL, FLYBY }
 const NAMES := ["Cockpit", "Chase", "Orbit", "Free camera", "Tower", "Wing", "Tail", "Fly-by"]
 
-var aircraft: C172Model
+var aircraft: AircraftModel
 var airports: Array = []  # [{icao, enu Vector3}] for the tower view
 var mode := Mode.CHASE
 var _look := Vector2.ZERO
 var _dist := 18.0
+var _cams := {}  # view -> position (AircraftDef.camera)
 var _fov_cockpit := 70.0
 ## Cockpit focus zoom (Ctrl+click an item / wheel toward the cursor): eased targets and the
 ## view to return to on a second Ctrl+click.
@@ -30,15 +31,22 @@ var _label: Label
 var _label_t := 0.0
 
 
-func setup(model: C172Model) -> void:
+func setup(model: AircraftModel) -> void:
 	aircraft = model
 	_eye = model.cockpit.eye
+	var def: AircraftDef = model.fdm_node.fdm.def
+	for v in ["chase", "wing", "tail"]:
+		_cams[v] = def.camera(v)
+	_dist = float(def.camera("orbit")[0])
 	near = 0.05
 	far = 160000.0
 	FloatingOrigin.shifted.connect(func(d: Vector3): _chase_pos += d)
 	var clouds := CloudLayer.new()
 	clouds.name = "CloudLayer"
 	add_child(clouds)
+	var wisps := CloudWisps.new()
+	wisps.name = "CloudWisps"
+	add_child(wisps)
 	var glare := SunGlare.new()
 	glare.name = "SunGlare"
 	add_child(glare)
@@ -133,8 +141,9 @@ func _process(dt: float) -> void:
 			var back := t.basis.z
 			back.y = 0.0
 			back = back.normalized() if back.length() > 0.1 else Vector3.BACK
-			var target := t.origin + back * 16.0 + Vector3.UP * 4.0
-			_chase_pos = _chase_pos.lerp(target, 1.0 - exp(-4.0 * dt))  # frame-rate independent follow
+			var target := t.origin + back * float(_cams.chase[0]) + Vector3.UP * float(_cams.chase[1])
+			var follow := float(_cams.chase[2]) if _cams.chase.size() > 2 else 4.0  # 1/s: the camera trails by speed / follow
+			_chase_pos = _chase_pos.lerp(target, 1.0 - exp(-follow * dt))  # frame-rate independent follow
 			if _chase_pos.distance_to(target) > 60.0:
 				_chase_pos = target
 			look_at_from_position(_chase_pos, t.origin + Vector3.UP)
@@ -152,10 +161,12 @@ func _process(dt: float) -> void:
 			look_at_from_position(p, t.origin)
 		Mode.WING:
 			fov = 75.0
-			global_transform = Transform3D(t.basis * Basis.from_euler(Vector3(-0.15 + _look.y, 0.35 + _look.x, 0.0)), t * Vector3(-5.6, 0.9, 1.6))
+			var wc: Array = _cams.wing  # [x, y, z, (yaw_deg, pitch_deg)]; the optional pair aims the view (default: 20 deg left, 8.6 deg down)
+			var aim := Vector2(deg_to_rad(float(wc[3])), deg_to_rad(float(wc[4]))) if wc.size() > 4 else Vector2(0.35, -0.15)
+			global_transform = Transform3D(t.basis * Basis.from_euler(Vector3(aim.y + _look.y, aim.x + _look.x, 0.0)), t * Vector3(wc[0], wc[1], wc[2]))
 		Mode.TAIL:
 			fov = 70.0
-			global_transform = Transform3D(t.basis * Basis.from_euler(Vector3(-0.08 + _look.y, _look.x, 0.0)), t * Vector3(0.0, 2.4, 6.8))
+			global_transform = Transform3D(t.basis * Basis.from_euler(Vector3(-0.08 + _look.y, _look.x, 0.0)), t * Vector3(_cams.tail[0], _cams.tail[1], _cams.tail[2]))
 		Mode.FLYBY:
 			fov = 45.0
 			var p2 := FloatingOrigin.to_render(_flyby_enu)

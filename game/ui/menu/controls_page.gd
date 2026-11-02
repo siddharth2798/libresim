@@ -2,8 +2,9 @@ extends HBoxContainer
 ## Controls page (start screen, and in flight via ui/controls_overlay.gd): connected
 ## joysticks / gamepads, one row per action with Bind (capture the next axis moved
 ## > 0.5 or button pressed), invert / range / deadzone / curve and a live bar, reset
-## to gamepad, joystick or Airbus Captain Pack defaults, rebindable flight keys
-## (key_bindings_section.gd) and the other hotkeys. Saves on every change.
+## to gamepad or joystick defaults, rebindable flight keys
+## (key_bindings_section.gd) and the other hotkeys. Saves on every change. Only the actions the
+## aircraft offers (aircraft_controls.gd) are listed; the rest stay in the saved profile.
 
 signal changed
 
@@ -12,6 +13,7 @@ const CAPTURE_S := 10.0
 const MAX_BUTTONS := 40
 
 var bindings_path := InputBindings.PATH
+var controls: AircraftControls  # set before adding to the tree; default = the current aircraft
 var table := {}
 var _rows := {}  # action -> row
 var _devices: Label
@@ -24,6 +26,8 @@ var _base_btn := {}  # Vector2i(device, button) -> pressed when capture started
 
 func _ready() -> void:
 	add_theme_constant_override("separation", 16)
+	if controls == null:
+		controls = AircraftControls.current()
 	table = InputBindings.load_from(bindings_path)
 	var col := VBoxContainer.new()
 	col.size_flags_horizontal = SIZE_EXPAND_FILL
@@ -41,8 +45,7 @@ func _ready() -> void:
 	dev.add_child(_devices)
 	var btns := VBoxContainer.new()
 	top.add_child(btns)
-	for p in [["Reset: gamepad defaults", "gamepad"], ["Reset: joystick defaults", "joystick"],
-			["Reset: Airbus Captain Pack", InputProfiles.CAPTAIN_PACK]]:
+	for p in [["Reset: gamepad defaults", "gamepad"], ["Reset: joystick defaults", "joystick"]]:
 		var b := Button.new()
 		b.text = p[0]
 		b.pressed.connect(_reset.bind(p[1]))
@@ -50,18 +53,20 @@ func _ready() -> void:
 	_status = MenuTheme.note("Bind, then move an axis or press a button (Esc cancels). Keyboard keeps working for anything not bound.")
 	col.add_child(_status)
 	col.add_child(MenuTheme.heading("Axes"))
-	for a in InputBindings.AXES:
+	for a in controls.axes():
 		_add_row(col, a)
 	col.add_child(MenuTheme.heading("Buttons"))
-	for a in InputBindings.BUTTONS:
+	for a in controls.buttons():
 		_add_row(col, a)
 	var keys := VBoxContainer.new()
 	keys.set_script(load("res://ui/menu/key_bindings_section.gd"))
+	keys.set("controls", controls)
 	keys.connect("changed", func(): changed.emit())
 	col.add_child(keys)
 	col.add_child(MenuTheme.heading("Other keys"))
 	var kb := GridContainer.new()
 	kb.set_script(load("res://ui/menu/keyboard_reference.gd"))
+	kb.set("controls", controls)
 	col.add_child(kb)
 	Input.joy_connection_changed.connect(func(_d, _c): _list_devices())
 	_list_devices()
@@ -94,10 +99,9 @@ func _reset(profile: String) -> void:
 	for a in d:
 		table[a].clear()
 		table[a].merge(d[a])  # keep the row's dictionary reference
-		_rows[a].refresh()
+		if _rows.has(a):
+			_rows[a].refresh()
 	_status.text = "Reset to %s defaults." % profile
-	if profile == InputProfiles.CAPTAIN_PACK:
-		_status.text += " Numbering is provisional: check each Bind. Set each quadrant lever's idle (Lo) and full (Hi)."
 	_save()
 
 
@@ -169,9 +173,6 @@ func _finish(device: int, key: String, idx: int) -> void:
 	b[key] = idx
 	b.device = device
 	b.guid = Input.get_joy_guid(device)
-	b.name = ""  # now tied to this pad, not a profile's name match
-	b.erase("lo")  # a new axis has its own travel
-	b.erase("hi")
 	_rows[_capture].set_waiting(false)
 	_rows[_capture].refresh()
 	_status.text = "%s -> %s" % [InputBindings.LABELS[_capture], InputBindings.describe(b)]

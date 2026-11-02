@@ -91,7 +91,7 @@ libresim/
     03_imagery_tiles.py     # crop → reproject → tile → mipmaps → compress
     04_osm_extract.py       # runways/taxiways/roads/buildings/water → compact JSON/bin
     05_airports_navaids.py  # OurAirports CSV → airports.json, navaids.json
-    06_jsbsim_to_json.py    # c172p XML aero tables → c172_aero.json
+    06_jsbsim_to_json.py    # c172p XML aero tables → <id>/aero.json, config.json
   game/                     # Godot project
     core/        sim_clock.gd, floating_origin.gd, units.gd, geo.gd (lat/lon↔ENU)
     fdm/         fdm.gd (6-DOF integrator), aero.gd, engine_piston.gd, propeller.gd,
@@ -101,7 +101,7 @@ libresim/
     instruments/ asi, attitude, altimeter, turn_coordinator, heading_indicator, vsi, tach, fuel/oil/egt gauges
     world/       terrain_quadtree.gd, terrain_tile.gd, terrain.gdshader, airport_builder.gd,
                  runway_lights.gd, water.gdshader, sky_time_of_day.gd, clouds_impostor.gd
-    aircraft/c172/  exterior.glb, cockpit.glb, c172_config.json, sounds/
+    aircraft/c172/  exterior.glb, interior.glb, config.json, aero.json, aircraft.json, sounds/
     input/       input_map, axis_filters.gd (rate, curves, deadzone), joystick_calibration.gd
     ui/          main_menu, flight_setup (airport/time/weather), map_view, failures_menu, checklist, replay
     atc/         (phase 4) atc_rules.gd, phraseology.json, piper voice clips
@@ -113,7 +113,7 @@ libresim/
 2. **Floating origin.** Keep the camera near (0,0,0) by shifting the world every ~5 km. This avoids a custom double-precision Godot build and the jitter that 32-bit floats cause at 70 km from the origin.
 3. **Terrain = quadtree of chunked tiles.** Each node is a 64×64-vertex grid mesh displaced in a vertex shader from a heightmap texture. Screen-space error picks the LOD; neighbouring LODs are stitched with skirts. Tiles stream from disk on a background thread (`WorkerThreadPool`). Before writing our own, evaluate the **Terrain3D** plugin (MIT) with large vertex spacing. If it covers 140 km cleanly, use it and save a lot of work.
 4. **Up-close detail without big textures.** Blend the 10 m satellite colour with tiling CC0 detail textures (grass, dirt, urban, forest), picked by a small land-class mask derived from OSM and imagery colour. Distant terrain uses satellite colour only.
-5. **Data-driven aircraft.** Aero tables, engine and propeller curves, mass, CG, gear positions and V-speeds all live in `c172_config.json` and `c172_aero.json`. That lets an airliner be added later without code changes, and lets you tune the aircraft without Claude.
+5. **Data-driven aircraft.** Aero tables, engine and propeller curves, mass, CG, gear positions and V-speeds all live in `config.json` and `aero.json` of the aircraft folder (`aircraft.json` holds limits, systems, lights, model and cockpit data; `AircraftDef` reads them). That lets an airliner be added later without code changes, and lets you tune the aircraft without Claude.
 6. **Everything simulated is a node in a "property tree"**, similar to JSBSim/FlightGear (e.g. `/systems/electrical/bus_volts`). Instruments, sounds, UI and failures read and write properties. This keeps modules independent and small, which keeps Claude context small.
 
 ---

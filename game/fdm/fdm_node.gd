@@ -13,6 +13,7 @@ const AUTO_COORD := 0.5  # rudder per unit aileron (FlightGear auto-coordination
 @export var buildings_path: NodePath
 
 var fdm: FDM
+var env_fx: EnvironmentEffects  # ice and rain on the airframe and engines (made on the first tick)
 var paused := false
 var replaying := false  # replay (systems/replay.gd) drives the state; physics holds
 var _prev_pos := PackedFloat64Array([0.0, 0.0, 0.0])  # ENU at previous tick (64-bit: Vector3 is float32)
@@ -42,6 +43,11 @@ func _ready() -> void:
 		return out
 	fdm.in_corridor = ObstacleRegistry.in_corridor
 	_defaults()
+	if fdm.cfg.has("apu"):
+		var apu := Apu.new()
+		apu.fdm = fdm
+		apu.model = ApuModel.new(fdm.cfg.apu)
+		add_child(apu)
 
 
 func _defaults() -> void:
@@ -63,28 +69,39 @@ func place_on_ground(east: float, north: float, heading_deg: float) -> void:
 	if _blds:
 		_blds.place_aircraft(east, north)
 	fdm.damage.reset()
-	fdm.gear = GearGround.new(fdm.cfg)  # repaired
-	fdm.engine.failed = false
+	fdm.gear = Gears.make(fdm.cfg)  # repaired
+	for u in fdm.units:
+		u.engine.failed = false
 	fdm.set_on_ground(north, east, deg_to_rad(heading_deg))
 	_snap()
 
 
 ## Trimmed level flight at kias through the air mass (wind_ned: NED m/s at that height),
-## in the current weather (weather/qnh_hpa, weather/temp_c), so the start is in trim.
-func place_airborne(east: float, north: float, alt: float, heading_deg: float, kias: float, wind_ned := Vector3.ZERO) -> void:
+## in the current weather (weather/qnh_hpa, weather/temp_c), so the start is in trim, with the flaps at
+## detent `flaps` (already extended, not moving).
+func place_airborne(east: float, north: float, alt: float, heading_deg: float, kias: float, wind_ned := Vector3.ZERO, flaps := 0) -> void:
 	if _blds:
 		_blds.place_aircraft(east, north)
 	fdm.damage.reset()
-	fdm.gear = GearGround.new(fdm.cfg)
-	fdm.engine.failed = false
+	fdm.gear = Gears.make(fdm.cfg)
+	if "gear_pos" in fdm.gear and not Props.get_v("controls/gear", 1):  # retractable gear, lever up: start with it retracted
+		fdm.gear.gear_pos = 0.0
+		fdm.gear.gear_cmd = 0
+	for u in fdm.units:
+		u.engine.failed = false
 	fdm.atmo.qnh_pa = Props.get_f("weather/qnh_hpa", 1013.25) * 100.0
 	fdm.atmo.delta_t = Props.get_f("weather/temp_c", 15.0) - 15.0
 	fdm.wind_ned = wind_ned
+	if flaps != fdm.fcs.flap_cmd:
+		fdm.fcs.flap_cmd = flaps
+		fdm.fcs.snap_flaps()
 	fdm.set_airborne(north, east, alt, deg_to_rad(heading_deg), kias * 0.514444)
-	fdm.prop.rpm = 2300.0
+	for u in fdm.units:
+		u.warm_start(true)
 	fdm.trim_level_cas(kias * 0.514444)
 	Props.set_v("controls/throttle", fdm.engine.throttle)
 	Props.set_v("controls/pitch_trim", fdm.fcs.pitch_trim)
+	FdmAirlinerProps.after_trim(fdm)
 	_snap()
 
 
@@ -118,7 +135,7 @@ func _read_controls(dt: float) -> void:
 	_input_snap = false
 	var roll := Props.get_f("controls/roll")
 	var yaw := Props.get_f("controls/yaw")
-	if UserOptions.get_v("auto_coordination"):  # FlightGear-style: rudder follows aileron
+	if UserOptions.get_v("auto_coordination") and not c is AirlinerControls:  # FlightGear-style: rudder follows aileron
 		yaw = clampf(yaw + AUTO_COORD * roll, -1.0, 1.0)
 	c.pitch = lerpf(c.pitch, Props.get_f("controls/pitch"), k)
 	c.roll = lerpf(c.roll, roll, k)
@@ -128,29 +145,51 @@ func _read_controls(dt: float) -> void:
 	c.flap_cmd = Props.get_v("controls/flaps", 0)
 	fdm.gear.brake_left = 0.0 if Props.get_b("failures/brake_left") else Props.get_f("controls/brake_left")
 	fdm.gear.brake_right = 0.0 if Props.get_b("failures/brake_right") else Props.get_f("controls/brake_right")
-	var e := fdm.engine
-	e.throttle = Props.get_f("controls/throttle")
-	e.mixture = Props.get_f("controls/mixture", 1.0)
 	var mags: int = Props.get_v("controls/magnetos", 3)  # bit 1 = L, bit 2 = R
 	if Props.get_b("failures/mag_left"):
 		mags &= ~1
 	if Props.get_b("failures/mag_right"):
 		mags &= ~2
-	e.magnetos = mags
-	e.starter = Props.get_b("controls/starter") and Props.get_b("systems/electrical/starter_ok", true)
-	e.failed = Props.get_b("failures/engine")
-	e.partial = Props.get_b("failures/engine_partial")
+	var starter_ok := Props.get_b("systems/electrical/starter_ok", true)
+	for i in fdm.units.size():
+		var e := fdm.units[i].engine
+		e.throttle = Props.get_f("ap/cmd/lever_%d" % (i + 1)) if Props.get_b("ap/athr_active") else _engine_f("throttle", i, 0.0)  # autothrust (systems/autoflight.gd) takes the levers
+		e.mixture = _engine_f("mixture", i, 1.0)
+		e.magnetos = mags
+		e.starter = _engine_b("starter", i) and starter_ok
+		var n := "" if i == 0 else "_%d" % (i + 1)  # engine 1: failures/engine; engine 2: failures/engine_2
+		e.failed = Props.get_b("failures/engine" + n) or fdm.damage.struck.has(i)
+		e.partial = Props.get_b("failures/engine_partial" + n)
+	FdmAirlinerProps.read(fdm)
+	if env_fx == null:
+		env_fx = EnvironmentEffects.new(Icing.params(fdm.def))
+	env_fx.update(fdm)  # icing/* and environment/precip -> drag, lift, power scales
 	c.flaps_powered = Props.get_b("systems/electrical/flaps_powered", true) and not Props.get_b("failures/flaps")
-	fdm.feed_left = Props.get_f("fuel/feed_left", 0.5)
-	fdm.feed_right = Props.get_f("fuel/feed_right", 0.5)
+	var feed = Props.get_v("fuel/feed", null)  # per tank, from the fuel system
+	var leak = Props.get_v("fuel/leak_kgs", null)
+	for i in fdm.tank_feed.size():
+		if feed is Array and i < feed.size():
+			fdm.tank_feed[i] = float(feed[i])
+		if leak is Array and i < leak.size():
+			fdm.tank_leak_kgs[i] = float(leak[i])
 	fdm.fuel_available = Props.get_b("fuel/available", true)
-	fdm.leak_left_kgs = Props.get_f("fuel/leak_left_kgs")
-	fdm.leak_right_kgs = Props.get_f("fuel/leak_right_kgs")
 	if Props.has("environment/wind_ned"):
 		fdm.wind_ned = Props.get_v("environment/wind_ned")
 	if Props.has("environment/qnh_pa"):
 		fdm.atmo.qnh_pa = Props.get_f("environment/qnh_pa")
 		fdm.atmo.delta_t = Props.get_f("environment/delta_t")
+
+
+## Lever of engine i: controls/<name> for engine 1 (and for any engine without its own),
+## controls/<name>_<i+1> to move engines separately.
+func _engine_f(name: String, i: int, default: float) -> float:
+	var own := "controls/%s_%d" % [name, i + 1]
+	return Props.get_f(own if i > 0 and Props.has(own) else "controls/" + name, default)
+
+
+func _engine_b(name: String, i: int) -> bool:
+	var own := "controls/%s_%d" % [name, i + 1]
+	return Props.get_b(own if i > 0 and Props.has(own) else "controls/" + name)
 
 
 func _publish() -> void:
@@ -176,14 +215,30 @@ func _publish() -> void:
 	Props.set_v("fdm/wow", f.gear.wow)
 	Props.set_v("fdm/stall_warning", f.alpha > f.aero.alpha_max * 0.85 and not f.gear.wow)
 	Props.set_v("fdm/flap_deg", f.fcs.flap_deg)
+	Props.set_v("fdm/flap_detents", f.fcs.flap_detents())
+	if "stabilizer_deg" in f.fcs:  # the airliner's trim wheel follows this (cockpit.levers pitch_trim)
+		Props.set_v("fdm/stabilizer_deg", f.fcs.stabilizer_deg)
 	Props.set_v("fdm/mass_kg", f.mb.mass)
 	Props.set_v("atmosphere/pressure_pa", f.atmo.pressure)
 	Props.set_v("atmosphere/temperature_k", f.atmo.temperature)
 	Props.set_v("atmosphere/density", f.atmo.density)
+	Props.set_v("engine/count", f.units.size())
 	Props.set_v("engine/rpm", f.prop.rpm)
 	Props.set_v("engine/running", f.engine.running)
 	Props.set_v("engine/map_pa", f.engine.map_pa)
-	Props.set_v("engine/fuel_flow_kgs", f.engine.fuel_flow_kgs)
+	var flow := 0.0
+	for i in f.units.size():
+		var u := f.units[i]
+		flow += u.engine.fuel_flow_kgs
+		var b := "engines/%d/" % (i + 1)  # every engine, 1-based
+		Props.set_v(b + "rpm", u.thruster.rpm)
+		Props.set_v(b + "running", u.engine.running)
+		Props.set_v(b + "thrust_n", u.thruster.thrust)
+		Props.set_v(b + "fuel_flow_kgs", u.engine.fuel_flow_kgs)
+		Props.set_v(b + "egt_k", u.engine.egt_k)
+		Props.set_v(b + "oil_press_pa", u.engine.oil_press_pa)
+		Props.set_v(b + "oil_temp_k", u.engine.oil_temp_k)
+	Props.set_v("engine/fuel_flow_kgs", flow)  # all engines
 	Props.set_v("engine/egt_k", f.engine.egt_k)
 	Props.set_v("engine/cht_k", f.engine.cht_k)
 	Props.set_v("engine/oil_temp_k", f.engine.oil_temp_k)
@@ -197,9 +252,11 @@ func _publish() -> void:
 	Props.set_v("damage/events", d.events)
 	Props.set_v("damage/structure", d.structure_damaged)
 	Props.set_v("damage/last_touchdown", d.last_touchdown)
-	Props.set_v("fuel/left_kg", f.mb.tanks[0].contents_kg)
-	Props.set_v("fuel/right_kg", f.mb.tanks[1].contents_kg)
+	Props.set_v("fuel/left_kg", f.mb.side_kg("left"))
+	Props.set_v("fuel/right_kg", f.mb.side_kg("right"))
+	Props.set_v("fuel/tank_kg", f.mb.tanks.map(func(t): return t.contents_kg))
 	Props.set_v("systems/electrical/flap_motor_running", f.fcs.flap_motor_running)
+	FdmAirlinerProps.publish(f)
 
 
 ## Pose interpolated between physics ticks, in render space.

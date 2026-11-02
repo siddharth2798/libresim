@@ -59,11 +59,13 @@ static func mesh(kind: String) -> ArrayMesh:
 
 
 ## A vehicle node: a Node3D holding one MeshInstance3D (the placed footprint comes from its bounds).
-static func make(kind: String) -> Node3D:
+## size scales the model uniformly (the pushback tug for an airliner: ground.tug_scale); the cached mesh is shared.
+static func make(kind: String, size := 1.0) -> Node3D:
 	var root := Node3D.new()
 	root.name = kind
 	var mi := MeshInstance3D.new()
 	mi.mesh = mesh(kind)
+	mi.scale = Vector3.ONE * size
 	root.add_child(mi)
 	return root
 

@@ -21,11 +21,16 @@ var _route_hint := ""
 var _push_hint := ""
 var _hold_said := false
 var _serial := 0
+var _advice := TaxiAdvice.new()  # taxi speed note (ground.max_taxi_kt; none for the C172)
+var _max_kt := 0.0
+var _hold_m := 40.0  # "hold short" call distance (ground.hold_short_m)
 
 
 func _ready() -> void:
 	Props.set_v("ops/taxi_msg", {})
 	Props.set_v("ops/taxi_hint", "")
+	_max_kt = GroundParams.max_taxi_kt()
+	_hold_m = float(GroundParams.ground().hold_short_m)
 
 
 ## A taxi instruction (a new route): a banner of 8-12 s, 12 s the first time after landing.
@@ -48,7 +53,7 @@ func say(txt: String, hint := "") -> void:
 ## "hold short" call near the end of a runway route.
 func route_progress(txt: String, rem_m: float, hold_at_end: bool) -> void:
 	_route_hint = "%s  ·  %d m" % [txt, int(round(rem_m))]
-	if TaxiBannerLogic.hold_short_due(rem_m, hold_at_end, _hold_said):
+	if TaxiBannerLogic.hold_short_due(rem_m, hold_at_end, _hold_said, _hold_m):
 		_hold_said = true
 		var t := "Hold short — contact Tower for takeoff"
 		_show(t, TaxiBannerLogic.life_for(t, false, false), true)
@@ -80,6 +85,10 @@ func _unhandled_key_input(e: InputEvent) -> void:
 
 
 func _process(dt: float) -> void:
+	if _route_hint != "":  # advice only while a taxi route is active
+		var note := _advice.tick(dt, Props.get_f("fdm/groundspeed_mps"), _max_kt)
+		if note != "":
+			say(note, _push_hint)
 	if logic.alive() and logic.tick(dt, Props.get_f("fdm/groundspeed_mps")) == "moving":
 		var notes := _notes()
 		if notes != null:

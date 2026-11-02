@@ -8,12 +8,16 @@ const SAVE := "user://last_flight.json"
 const DEFAULT := {
 	"airport": "VAJJ", "runway": "", "start": "runway",  # runway | stand | air
 	"stand": "", "air_ft": 1500.0, "air_nm": 5.0, "air_kt": 90.0, "cold": false,
+	"air_custom": false,  # false: air_ft / air_nm follow the aircraft (apply_air_defaults); true: the pilot (start screen), a lesson or --air* chose them
+	"air_kt_given": false,  # true only for --air-kt and lesson speeds: otherwise air_kt is always the aircraft's own (the start screen has no speed control)
 	"aircraft": "c172",
-	"fuel_gal": 17.0, "copilot_kg": 0.0, "rear_kg": 0.0, "baggage_kg": 0.0,  # per tank / per station
+	"fuel_gal": 17.0, "copilot_kg": 0.0, "rear_kg": 0.0, "baggage_kg": 0.0,  # per tank (total kg when payload.fuel_unit is "kg") / per station
+	"cabin_kg": 0.0, "cargo_kg": 0.0,  # A320 stations
 	"weather": "Fair", "time_h": 10.0, "time_rate": 1.0, "day_of_year": 45.0,
 	"wind_dir_deg": 270.0, "wind_kt": 8.0, "gust_kt": 0.0, "turbulence": 0.15,
 	"visibility_m": 20000.0, "cloud_cover": 0.3, "cloud_base_ft": 4500.0,
-	"qnh_hpa": 1012.0, "temp_c": 30.0, "precip": 0.0,
+	"qnh_hpa": 1012.0, "temp_c": 30.0, "precip": 0.0, "icing": 0.0,
+	"convection": 0.5, "storms": 0.0,  # thermals / microburst cells (0 in setups saved before the cloud physics)
 	"failures": {},  # id -> [mode index (FailureCatalog.MODES), value]
 	"random": {"enabled": false, "count": 1, "from_min": 2.0, "to_min": 30.0,
 		"categories": ["Engine", "Fuel", "Electrical", "Vacuum & gyros", "Pitot-static", "Flight controls", "Avionics"]},
@@ -22,19 +26,22 @@ const DEFAULT := {
 }
 ## Weather presets: name -> weather/* values (wind is chosen separately).
 ## precip: rain 0..1 (below 0.3 it comes and goes in showers; visibility_m is between showers).
+## icing: supercooled water available in cloud 0..1 (systems/icing.gd); it only ices where the air is below +2 C (the tropics: above ~5000 m).
 const WEATHER := {
-	"Clear": {"cloud_cover": 0.0, "cloud_base_ft": 6000.0, "visibility_m": 40000.0, "turbulence": 0.05, "precip": 0.0},
-	"Fair": {"cloud_cover": 0.3, "cloud_base_ft": 4500.0, "visibility_m": 20000.0, "turbulence": 0.15, "precip": 0.0},
-	"Scattered": {"cloud_cover": 0.5, "cloud_base_ft": 3000.0, "visibility_m": 15000.0, "turbulence": 0.2, "precip": 0.0},
-	"Broken": {"cloud_cover": 0.75, "cloud_base_ft": 2500.0, "visibility_m": 10000.0, "turbulence": 0.3, "precip": 0.12},
-	"Overcast": {"cloud_cover": 0.95, "cloud_base_ft": 1800.0, "visibility_m": 7000.0, "turbulence": 0.3, "precip": 0.3},
-	"Winter haze": {"cloud_cover": 0.05, "cloud_base_ft": 5000.0, "visibility_m": 3000.0, "turbulence": 0.05, "precip": 0.0},
-	"Monsoon": {"cloud_cover": 1.0, "cloud_base_ft": 1200.0, "visibility_m": 5000.0, "turbulence": 0.55, "precip": 0.9},
+	"Clear": {"cloud_cover": 0.0, "cloud_base_ft": 6000.0, "visibility_m": 40000.0, "turbulence": 0.05, "precip": 0.0, "icing": 0.0, "convection": 0.2, "storms": 0.0},
+	"Fair": {"cloud_cover": 0.3, "cloud_base_ft": 4500.0, "visibility_m": 20000.0, "turbulence": 0.15, "precip": 0.0, "icing": 0.0, "convection": 0.5, "storms": 0.0},
+	"Scattered": {"cloud_cover": 0.5, "cloud_base_ft": 3000.0, "visibility_m": 15000.0, "turbulence": 0.2, "precip": 0.0, "icing": 0.2, "convection": 0.7, "storms": 0.0},
+	"Broken": {"cloud_cover": 0.75, "cloud_base_ft": 2500.0, "visibility_m": 10000.0, "turbulence": 0.3, "precip": 0.12, "icing": 0.4, "convection": 0.6, "storms": 0.0},
+	"Overcast": {"cloud_cover": 0.95, "cloud_base_ft": 1800.0, "visibility_m": 7000.0, "turbulence": 0.3, "precip": 0.3, "icing": 0.5, "convection": 0.1, "storms": 0.0},
+	"Winter haze": {"cloud_cover": 0.05, "cloud_base_ft": 5000.0, "visibility_m": 3000.0, "turbulence": 0.05, "precip": 0.0, "icing": 0.2, "convection": 0.1, "storms": 0.0},
+	"Monsoon": {"cloud_cover": 1.0, "cloud_base_ft": 1200.0, "visibility_m": 5000.0, "turbulence": 0.55, "precip": 0.9, "icing": 0.7, "convection": 0.5, "storms": 0.7},
 }
 const WEATHER_KEYS := ["wind_dir_deg", "wind_kt", "gust_kt", "turbulence", "visibility_m",
-	"cloud_cover", "cloud_base_ft", "qnh_hpa", "temp_c", "time_h", "time_rate", "day_of_year", "precip"]
+	"cloud_cover", "cloud_base_ft", "qnh_hpa", "temp_c", "time_h", "time_rate", "day_of_year", "precip", "icing", "convection", "storms"]
 
 var setup := {}
+var save_path := SAVE  # tests redirect it
+var interactive_override := -1
 ## Training: lesson id ("" = free flight) and assist level (full | light | off). A lesson
 ## rewrites `setup` for its own airport / weather; the free-flight setup is kept here and
 ## restored when the menu opens again (end_lesson).
@@ -57,13 +64,53 @@ func _ready() -> void:
 
 
 func _load() -> void:
-	if not FileAccess.file_exists(SAVE):
+	if not FileAccess.file_exists(save_path):
 		return
-	var d = JSON.parse_string(FileAccess.get_file_as_string(SAVE))
-	if d is Dictionary:
-		for k in d:
-			if setup.has(k):
-				setup[k] = d[k]
+	var d = JSON.parse_string(FileAccess.get_file_as_string(save_path))
+	if not d is Dictionary:
+		return
+	for k in d:
+		if setup.has(k):
+			setup[k] = d[k]
+	for k in ["convection", "storms"]:  # a setup saved before the cloud physics: no thermals, no storms
+		if not d.has(k):
+			setup[k] = 0.0
+	if not d.has("air_custom"):
+		legacy_air_custom(setup)
+	if not d.has("air_kt_given"):  # saved before the flag: a speed counts as chosen only if it is not a leftover of another aircraft
+		var def := AircraftDef.load_def(str(setup.aircraft))
+		setup.air_kt_given = not AirStart.stale_kias(def, float(setup.air_kt))
+	apply_air_defaults()
+
+
+## Nautical miles as the start screen writes them: "5", "1.5".
+static func nm_text(nm: float) -> String:
+	return ("%.1f" % nm).trim_suffix(".0")
+
+
+## A setup saved before `air_custom` existed: values other than the C172 defaults were chosen by the pilot.
+static func legacy_air_custom(s: Dictionary) -> void:
+	s.air_custom = not (is_equal_approx(float(s.air_ft), DEFAULT.air_ft) and is_equal_approx(float(s.air_nm), DEFAULT.air_nm)
+		and is_equal_approx(float(s.air_kt), DEFAULT.air_kt))
+
+
+## The "In the air" numbers follow the chosen aircraft (aircraft/air_start.gd). Height and distance unless
+## `air_custom` (then the pilot's values stay, only clamped into the aircraft's limits); the speed unless
+## `air_kt_given` (--air-kt, a lesson): the start screen cannot show or change it, so it never outlives the aircraft
+## it was meant for. Keys in `keep` are left as they are (the command line and lessons give some themselves).
+func apply_air_defaults(keep: Array = []) -> void:
+	var def := AircraftDef.load_def(str(setup.get("aircraft", AircraftDef.DEFAULT_ID)))
+	if not bool(setup.get("air_kt_given", false)) and not "air_kt" in keep:
+		setup.air_kt = AirStart.of(def).kias
+	if not bool(setup.get("air_custom", false)):
+		var vals := AirStart.setup_values(def)
+		for k in ["air_ft", "air_nm"]:
+			if not k in keep:
+				setup[k] = vals[k]
+		return
+	var lim: Dictionary = AirStart.of(def).limits
+	setup.air_ft = clampf(float(setup.air_ft), lim.alt_ft[0], lim.alt_ft[1])
+	setup.air_nm = clampf(float(setup.air_nm), lim.dist_nm[0], lim.dist_nm[1])
 
 
 ## Start a lesson: remember the free-flight setup, then let `fn` overwrite it for the lesson.
@@ -74,6 +121,11 @@ func begin_lesson(id: String, lesson_setup: Dictionary, assist_level: String) ->
 		apply_weather_preset(lesson_setup.weather)
 	for k in lesson_setup:
 		setup[k] = lesson_setup[k]
+	setup.air_custom = false  # what the lesson gives is the lesson's, the rest follows the aircraft
+	setup.air_kt_given = false
+	apply_air_defaults(lesson_setup.keys())
+	setup.air_kt_given = lesson_setup.has("air_kt")
+	setup.air_custom = ["air_ft", "air_nm", "air_kt"].any(func(k): return lesson_setup.has(k))
 	setup.failures = {}
 	setup.random = {"enabled": false, "count": 1, "from_min": 2.0, "to_min": 30.0, "categories": []}
 	setup.record = false
@@ -88,40 +140,75 @@ func end_lesson() -> void:
 	training = ""
 
 
+## Fuel and station loads of a (newly chosen) aircraft: its aircraft.json payload.defaults, else the game
+## defaults of those keys (the C172 has no "defaults", so choosing it restores the plain start loading).
+func apply_payload_defaults(def: AircraftDef) -> void:
+	var d = def.section("payload").get("defaults", {})
+	for k in ["fuel_gal", "copilot_kg", "rear_kg", "baggage_kg", "cabin_kg", "cargo_kg"]:
+		setup[k] = float(d.get(k, DEFAULT[k])) if d is Dictionary else float(DEFAULT[k])
+
+
+## May this run write the player's files? False for tests, probes, --shot / --clean and
+## command-line flights (core/save_guard.gd). `interactive_override`: -1 decide, 0 never, 1 always (tests).
+func interactive() -> bool:
+	if interactive_override >= 0:
+		return interactive_override == 1
+	return SaveGuard.decide(OS.get_cmdline_args(), DisplayServer.get_name() == "headless",
+		OS.get_environment(SaveGuard.ENV), shot, clean, skip_menu)
+
+
 func save() -> void:
-	var f := FileAccess.open(SAVE, FileAccess.WRITE)
+	if not interactive():
+		return
+	var f := FileAccess.open(save_path, FileAccess.WRITE)
 	if f:
 		f.store_string(JSON.stringify(setup, "\t"))
 
 
 func _parse_cmdline() -> void:
+	_parse_args(OS.get_cmdline_user_args())
+
+
+func _parse_args(args: PackedStringArray) -> void:
 	var cmd := {}
-	for a in OS.get_cmdline_user_args():
+	for a in args:
 		var kv := a.trim_prefix("--").split("=", true, 1)
 		cmd[kv[0]] = kv[1] if kv.size() > 1 else ""
 	if cmd.keys().all(func(k): return k in ["quality", "menu"]):
 		return  # no flight options: start screen with the last setup
 	# a command-line flight starts from the defaults, not from the last saved setup
 	setup = DEFAULT.duplicate(true)
+	var air_given := []  # --air / --air-nm / --air-kt the pilot gave a value for
 	skip_menu = not cmd.has("menu")
 	for k in cmd:
 		var v: String = cmd[k]
 		match k:
 			"airport": setup.airport = v.to_upper()
 			"runway": setup.runway = v
-			"air":
+			"air":  # --air[=ft]: no number = the aircraft's own height
 				setup.start = "air"
-				setup.air_ft = float(v) if v != "" else 1500.0
-			"air-nm": setup.air_nm = float(v)  # distance out on final for --air
-			"air-kt": setup.air_kt = float(v)  # airspeed (KIAS) at the start of --air
+				if v != "":
+					setup.air_ft = float(v)
+					air_given.append("air_ft")
+			"air-nm":  # distance out on final for --air
+				setup.air_nm = float(v)
+				air_given.append("air_nm")
+			"air-kt":  # airspeed (KIAS) at the start of --air
+				setup.air_kt = float(v)
+				air_given.append("air_kt")
 			"stand":
 				setup.start = "stand"
 				setup.stand = v
 			"cold": setup.cold = true
+			"aircraft":  # --aircraft=a320 (an unknown id falls back to the c172); its payload defaults apply
+				setup.aircraft = v.to_lower()
+				apply_payload_defaults(AircraftDef.load_def(setup.aircraft))
+			"callsign": setup.callsign = v.to_upper()  # --callsign=VT-ABC (radio call sign and tail number)
 			"tod": setup.time_h = float(v)
 			"day": setup.day_of_year = float(v)  # day of the year (moon phase, sun times)
 			"vis": setup.visibility_m = float(v)
 			"rain": setup.precip = clampf(float(v), 0.0, 1.0)  # --rain=0..1
+			"icing": setup.icing = clampf(float(v), 0.0, 1.0)  # --icing=0..1 (supercooled water in cloud)
 			"wind": _wind(v)
 			"clouds": _clouds(v)
 			"weather":
@@ -138,13 +225,16 @@ func _parse_cmdline() -> void:
 			"view": view = v
 			"clean": clean = true
 			"record": setup.record = true
+	apply_air_defaults(air_given)  # what was not given: the aircraft's own height, distance and speed
+	setup.air_custom = not air_given.is_empty()
+	setup.air_kt_given = "air_kt" in air_given
 	if cmd.has("lesson"):  # --lesson=landing[,light]
 		var parts: PackedStringArray = str(cmd.lesson).split(",")
 		var lesson := TrainingLogic.find(parts[0])
 		if lesson.is_empty():
 			push_warning("unknown lesson: " + parts[0])
 		else:
-			begin_lesson(lesson.id, lesson.setup, parts[1] if parts.size() > 1 else "full")
+			TrainingLogic.begin(lesson, parts[1] if parts.size() > 1 else "full")
 			skip_menu = true
 
 
@@ -189,7 +279,7 @@ func apply_to_props() -> void:
 func summary() -> String:
 	var where: String = {"runway": "runway %s" % (setup.runway if setup.runway != "" else "(longest)"),
 		"stand": "stand %s" % (setup.stand if setup.stand != "" else "(gate)"),
-		"air": "%d ft, %.0f nm final" % [int(setup.air_ft), float(setup.air_nm)]}[setup.start]
+		"air": "%d ft, %s nm final" % [int(setup.air_ft), nm_text(float(setup.air_nm))]}[setup.start]
 	var t := float(setup.time_h)
 	var nf := 0
 	for id in setup.failures:

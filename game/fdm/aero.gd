@@ -1,6 +1,6 @@
 class_name Aero
 extends RefCounted
-## Evaluates the JSBSim-derived aero model (aircraft/c172/c172_aero.json, built by
+## Evaluates the JSBSim-derived aero model (aircraft/<id>/aero.json, built by
 ## tools/06_jsbsim_to_json.py). Expressions use JSBSim names and imperial units;
 ## this class converts in and out so the rest of the FDM stays SI.
 
@@ -17,21 +17,39 @@ var hyst_max := 0.36
 var stall_hyst := 0.0
 var ctx := {}  # JSBSim property name -> value, filled each step
 var coeffs := {}  # last value of each named term (debug / instruments)
+var _clsq := 0.0  # aero/cl-squared: JSBSim derives it from the lift of the previous evaluation
+## Ice / rain on the airframe (fdm/environment_effects.gd); null or inactive = the tables' own forces, bit for bit.
+var effects: EnvironmentEffects = null
+
+## Tests (and aircraft that opt in) set this: a property name the context does not hold is then an
+## error (Expr.unknown + push_error) instead of silently 0.0, which the C172 keeps.
+static var strict: bool:
+	get:
+		return Expr.strict
+	set(v):
+		Expr.strict = v
 
 
 func _init(path: String, metrics: Dictionary) -> void:
 	var a: Dictionary = Paths.load_res_json(path)
 	_functions = a.functions
 	_axes = a.axes
-	alpha_max = a.alpha_limits_rad.max
-	hyst_min = a.stall_hysteresis.min
-	hyst_max = a.stall_hysteresis.max
+	if a.get("alpha_limits_rad") != null:  # the A320 FDE has none: defaults
+		alpha_max = a.alpha_limits_rad.max
+	if a.get("stall_hysteresis") != null:
+		hyst_min = a.stall_hysteresis.min
+		hyst_max = a.stall_hysteresis.max
+	var props: Dictionary = a.get("properties", {})  # inputs nobody drives (ice/wingL ...): their defaults
+	for k in props:
+		ctx[k] = props[k]
 	ctx["metrics/Sw-sqft"] = metrics.wing_area_m2 / (FT * FT)
 	ctx["metrics/bw-ft"] = metrics.wingspan_m / FT
 	ctx["metrics/cbarw-ft"] = metrics.chord_m / FT
 
 
-## s: Dictionary of SI inputs (see FDM._aero_inputs). Returns [force_wind_lbf
+## s: Dictionary of SI inputs (see FDM._aero_inputs); optional keys for jets: mach, temperature (K),
+## ctx (JSBSim-named values from FlightControls.aero_ctx: surface final-deg, flap / slat / spoiler / gear
+## position, landing-light drag inputs). Returns [force_wind_lbf
 ## (D, Y, L), moment_body_lbft (l, m, n)] in imperial; FDM converts.
 func evaluate(s: Dictionary) -> Array:
 	var v_fps: float = s.vt / FT
@@ -60,45 +78,35 @@ func evaluate(s: Dictionary) -> Array:
 	ctx["fcs/left-aileron-pos-rad"] = s.aileron
 	ctx["fcs/rudder-pos-rad"] = s.rudder
 	ctx["fcs/flap-pos-deg"] = s.flap_deg
+	ctx["aero/alpha-deg"] = rad_to_deg(alpha)
+	ctx["aero/beta-deg"] = rad_to_deg(s.beta)
+	ctx["aero/qbarUW-psf"] = ctx["aero/qbar-psf"] * cos(s.beta) * cos(s.beta)  # u and w only, no v
+	ctx["aero/cl-squared"] = _clsq
+	ctx["velocities/mach"] = s.get("mach", 0.0)
+	ctx["aero/Re"] = _reynolds(s)
+	var extra: Dictionary = s.get("ctx", {})
+	if not extra.is_empty():
+		ctx.merge(extra, true)
 	for f in _functions:
-		ctx[f.name] = _eval(f.f)
+		ctx[f.name] = Expr.eval(f.f, ctx)
 	var sums := {}
 	for axis in _axes:
 		var total := 0.0
 		for f in _axes[axis]:
-			var v := _eval(f.f)
+			var v := Expr.eval(f.f, ctx)
 			coeffs[f.name] = v
 			total += v
 		sums[axis] = total
-	return [Vector3(sums.DRAG, sums.SIDE, sums.LIFT), Vector3(sums.ROLL, sums.PITCH, sums.YAW)]
+	var q_s: float = ctx["aero/qbar-psf"] * ctx["metrics/Sw-sqft"]
+	_clsq = pow(sums.LIFT / q_s, 2.0) if q_s > 1e-6 else 0.0
+	var fw := Vector3(sums.DRAG, sums.SIDE, sums.LIFT)
+	if effects != null and effects.active:
+		fw = effects.shape_forces(fw, alpha, alpha_max, q_s)
+	return [fw, Vector3(sums.ROLL, sums.PITCH, sums.YAW)]
 
 
-func _eval(e: Variant) -> float:
-	if e is float or e is int:
-		return e
-	if e.has("p"):
-		return ctx.get(e.p, 0.0)
-	if e.has("op"):
-		var args: Array = e.args
-		match e.op:
-			"product":
-				var r := 1.0
-				for x in args:
-					r *= _eval(x)
-				return r
-			"sum":
-				var r := 0.0
-				for x in args:
-					r += _eval(x)
-				return r
-			"difference":
-				return _eval(args[0]) - _eval(args[1])
-			"quotient":
-				return _eval(args[0]) / _eval(args[1])
-			"abs":
-				return absf(_eval(args[0]))
-			"min":
-				return minf(_eval(args[0]), _eval(args[1]))
-			"max":
-				return maxf(_eval(args[0]), _eval(args[1]))
-	return Table.lookup(e.table, ctx)
+## Reynolds number on the mean chord: V * c / nu, Sutherland viscosity.
+func _reynolds(s: Dictionary) -> float:
+	var t: float = s.get("temperature", 288.15)
+	var mu := 1.458e-6 * pow(t, 1.5) / (t + 110.4)  # Pa s
+	return s.vt * ctx["metrics/cbarw-ft"] * FT * s.rho / mu

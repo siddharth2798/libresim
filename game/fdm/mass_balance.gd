@@ -46,6 +46,32 @@ func set_payload(name: String, kg: float) -> void:
 	update()
 
 
+## "left" / "right" / "centre" by the tank's lateral position (structural y, right positive).
+func tank_side(i: int) -> String:
+	var y: float = tanks[i].pos.y
+	return "left" if y < -0.1 else ("right" if y > 0.1 else "centre")
+
+
+## Fuel (kg) in the tanks on one side.
+func side_kg(side: String) -> float:
+	var f := 0.0
+	for i in tanks.size():
+		if tank_side(i) == side:
+			f += tanks[i].contents_kg
+	return f
+
+
+## Set the fuel on one side (replay take-over): tanks on it share `kg` in proportion to what they hold.
+func set_side_kg(side: String, kg: float) -> void:
+	var have := side_kg(side)
+	var n := 0
+	for i in tanks.size():
+		n += 1 if tank_side(i) == side else 0
+	for i in tanks.size():
+		if tank_side(i) == side:
+			tanks[i].contents_kg = kg * (tanks[i].contents_kg / have if have > 0.0 else 1.0 / n)
+
+
 func fuel_kg() -> float:
 	var f := 0.0
 	for t in tanks:

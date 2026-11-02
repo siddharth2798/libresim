@@ -86,7 +86,7 @@ So our roll physics already matched JSBSim and FlightGear:
 
 ## Smoothness
 
-- **Render interpolation:** this was verified. `C172Model._process` and every camera use `FdmNode.render_transform()`, and the camera runs after the model (`process_priority` 10). `game/tests/debug_handsoff.tscn` logs the per-frame step of the aircraft and camera against simulated time: the aircraft is uniform to 1.5 % (turbulence included). Another agent moved the interpolation to 64-bit, which removes float32 quantisation far from the origin.
+- **Render interpolation:** this was verified. `AircraftModel._process` and every camera use `FdmNode.render_transform()`, and the camera runs after the model (`process_priority` 10). `game/tests/debug_handsoff.tscn` logs the per-frame step of the aircraft and camera against simulated time: the aircraft is uniform to 1.5 % (turbulence included). Another agent moved the interpolation to 64-bit, which removes float32 quantisation far from the origin.
 - **Chase camera:** the smoothing was `lerp(dt·4)`, which depends on the frame rate. It is now `1 − exp(−4·dt)`. Its per-frame step spread went from 4.7 % to 1.5 % in the same test (the frame rates also differed between the two runs).
 - **Inputs:** keyboard ramps, joystick noise and mouse-yoke jitter were applied raw, at frame rate, to the 120 Hz FDM. Now there is a low-pass in `FdmNode._read_controls` and actuator rate limits in `FlightControls`, as in FlightGear's c172p FCS.
 - **Keyboard:**

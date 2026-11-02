@@ -22,6 +22,7 @@ var _drift := Vector2.ZERO
 var _night: NightSky
 var auto_exposure := true  # graphics preset (off on Low): world/auto_exposure.gd
 var _ae := AutoExposure.new()
+var _inside := CloudInside.new()  # the in-cloud presentation (world/cloud_inside.gd)
 var _atmo_key := Vector3(INF, 0.0, 0.0)
 var _atmo_cache: Array = [Color.BLACK, Color.BLACK]  # zenith, horizon (linear)
 
@@ -170,6 +171,7 @@ func _update_clouds(dt: float, occl: float, rain: float, hor: Color, light: floa
 	var w := FloatingOrigin.to_world(cam.global_position)
 	var wind: Vector3 = Weather._from_dir_to_ned(Props.get_f("weather/aloft_dir_deg"), Props.get_f("weather/aloft_kt") * Units.KT)
 	_drift -= Vector2(wind.y, wind.x) * dt  # field moves with the wind
+	Props.set_v("environment/cloud_drift", _drift)  # the cloud physics (world/cloud_physics.gd) uses the same field
 	var day: float = _sky.get_shader_parameter("day")
 	var sun_col := _sun.light_color * clampf(_sun.light_energy, 0.15 * (1.0 - occl) + 0.02, 1.2)
 	var light_dir := _sun.global_transform.basis.z
@@ -183,13 +185,8 @@ func _update_clouds(dt: float, occl: float, rain: float, hor: Color, light: floa
 		_drift, light_dir, sun_col, amb, occl * 0.5 + rain * 0.25)
 	var d := layer.density_at(w)
 	Props.set_v("environment/in_cloud", d > 0.05)
-	if d > 0.05:
-		_env.fog_enabled = true
-		var inside := Color(0.8, 0.82, 0.86) * maxf(light, 0.04)
-		_env.fog_density = lerpf(0.002, 0.03, clampf(d * 2.0, 0.0, 1.0))
-		_env.fog_light_color = inside
-		RenderingServer.global_shader_parameter_set("haze_density", _env.fog_density)
-		RenderingServer.global_shader_parameter_set("fog_color", inside.srgb_to_linear())
+	# in-cloud look (fog ramping with the density, readable aircraft in outside views, light, wisps): world/cloud_inside.gd
+	_inside.update(dt, cam, _env, _sky, _sun, layer, d, _env.fog_density, light, hor, _drift, light_dir)
 
 
 ## Eye-like auto exposure: scene brightness from the sun / sky / camera heading, shade under a cloud
@@ -208,6 +205,7 @@ func _update_exposure(dt: float, sun_dir: Vector3, el_deg: float, hor: Color, to
 		var moon := 0.15 * Props.get_f("environment/moon_light")
 		var lum := AutoExposure.scene_luminance(_sun.light_energy, sun_dir.y, blocked, _env.ambient_light_energy + moon, sky_lum, pitch_sin)
 		target = AutoExposure.target_for(lum * _env.tonemap_exposure, night)
+	target = CloudLook.exposure_cap(target, _inside.k, _inside.ext)  # outside views in cloud: no blown-out white
 	_env.tonemap_exposure *= _ae.step(dt, target)
 	Props.set_v("environment/exposure_mult", _ae.value)
 

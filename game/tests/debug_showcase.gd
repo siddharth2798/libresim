@@ -9,12 +9,14 @@ extends Node
 ## streaming can finish with the camera standing still; the UI is hidden except what the scene keeps.
 
 const Scenes := preload("res://tests/showcase_scenes.gd")
+const CloudScenes := preload("res://tests/showcase_cloud_scenes.gd")
 const FLIGHT := "res://world/flight.tscn"
 const MENU := "res://ui/menu/start_screen.tscn"
 const MAX_SETTLE_S := 120.0  # give up waiting for the streamers after this
 const QUIET_S := 2.5  # streaming must stay idle this long
 
 var f: Node  # the flight scene
+var _all: Dictionary = Scenes.SCENES.merged(CloudScenes.scenes())  # every scene by name
 var _out := ""
 var _name := ""
 var _fov := 0.0  # free-camera field of view override (degrees), 0 = the rig's own
@@ -37,16 +39,16 @@ func _ready() -> void:
 		if a.begins_with("--scene="):
 			_name = a.substr(8)
 		elif a == "--list":
-			print("SCENES ", " ".join(Scenes.SCENES.keys()))
+			print("SCENES ", " ".join(_all.keys()))
 			get_tree().quit()
 			return
-	if not Scenes.SCENES.has(_name):
+	if not _all.has(_name):
 		push_error("unknown scene '%s'; --list shows them" % _name)
 		get_tree().quit(1)
 		return
 	AudioServer.set_bus_mute(0, true)
 	await _resize()
-	var def: Dictionary = Scenes.SCENES[_name]
+	var def: Dictionary = _all[_name]
 	if def.has("menu"):
 		await _menu(def)
 	else:
@@ -93,8 +95,10 @@ func _save(suffix := "") -> void:
 func _menu(def: Dictionary) -> void:
 	Session.skip_menu = false
 	Session.setup = Session.DEFAULT.duplicate(true)
+	_choose_aircraft(def)
 	for k in def.get("setup", {}):
 		Session.setup[k] = def.setup[k]
+	Session.setup.air_custom = ["air_ft", "air_nm", "air_kt"].any(func(k): return def.get("setup", {}).has(k))  # explicit numbers stay on the page
 	if def.has("weather"):
 		Session.apply_weather_preset(def.weather)
 	var s: Control = load(MENU).instantiate()
@@ -104,6 +108,11 @@ func _menu(def: Dictionary) -> void:
 	if def.has("step"):
 		s.screen("flight").show_step(int(def.step))
 	await _wait(1.5)
+	if def.has("scroll"):  # scroll the page down by that many pixels (a long page such as the A320's aircraft step)
+		for sc in s.find_children("*", "ScrollContainer", true, false):
+			if (sc as Control).is_visible_in_tree():
+				sc.scroll_vertical = int(def.scroll)
+		await _wait(0.5)
 	await _save()
 
 
@@ -118,12 +127,17 @@ func _flight(def: Dictionary) -> void:
 	_prop_deg = float(def.get("prop_deg", -1.0))
 	for k in def.get("lights", {}):
 		Props.set_v("controls/lights/" + k, def.lights[k])
+	for k in def.get("props", {}):  # any property-tree value, e.g. "controls/gear": 1.0
+		Props.set_v(k, def.props[k])
 	var fdm: FdmNode = f.get_node("Fdm")
 	if def.has("fly"):
 		await _fly(def.fly)
 	if def.has("follow_me"):
 		await _follow_me(def.follow_me)
 	fdm.paused = true  # camera and aircraft stand still while the world streams in
+	if def.has("att"):  # [roll_deg, pitch_deg]: the attitude to show (a stalled start-up frame can leave the aircraft pitched up)
+		var fd: FDM = fdm.fdm
+		fd.q = FDM.euler_to_quat(deg_to_rad(def.att[0]), deg_to_rad(def.att[1]), fd.euler().z)
 	var cam: CameraRig = f.get_node("Camera")
 	var views: Array = def.get("variants", [{}])  # several camera tries from one placement (look, then keep one)
 	for i in views.size():
@@ -210,16 +224,26 @@ func _setup_session(def: Dictionary) -> void:
 	Session.end_lesson()
 	if def.has("lesson"):  # the lesson shows its card and markers; "pilot_lesson" only flies it (no training UI)
 		var lesson := TrainingLogic.find(def.lesson)
-		Session.begin_lesson(lesson.id, lesson.setup, "full")
+		TrainingLogic.begin(lesson, "full")
 	elif def.has("pilot_lesson"):
 		var lesson := TrainingLogic.find(def.pilot_lesson)
-		Session.begin_lesson(lesson.id, lesson.setup, "off")
+		TrainingLogic.begin(lesson, "off")
 	if def.has("weather"):  # after the lesson, which brings its own
 		Session.apply_weather_preset(def.weather)
+	_choose_aircraft(def)
 	for k in def.get("setup", {}):
 		Session.setup[k] = def.setup[k]
 	Session.setup.record = false
 	Session.view = def.get("view", "chase")
+
+
+## setup.aircraft (e.g. "a320"): choose it the way the start screen does, so its payload defaults apply
+## (fuel and loads); the other setup keys are applied after this and override them.
+func _choose_aircraft(def: Dictionary) -> void:
+	var id: String = def.get("setup", {}).get("aircraft", "")
+	if id != "":
+		Session.setup.aircraft = id
+		Session.apply_payload_defaults(AircraftDef.load_def(id))
 
 
 ## Hide every UI element except `keep` (node names under $UI; "training" = the lesson card) and
@@ -321,7 +345,7 @@ func _pre_draw() -> void:
 	var cam: CameraRig = f.get_node("Camera")
 	if _fov > 0.0 and cam.mode == CameraRig.Mode.FREE:
 		cam.fov = _fov
-	var model: C172Model = f.get_node("Aircraft")
+	var model: AircraftModel = f.get_node("Aircraft")
 	if _prop_deg >= 0.0 and model._pivots.has("prop"):
 		model._pivots.prop[0].transform.basis = model._pivots.prop[1] * Basis(Vector3.RIGHT, deg_to_rad(_prop_deg))
 
@@ -344,7 +368,10 @@ func _state() -> String:
 	for mi in tr._chunks.values():
 		n_bb += mi.multimesh.instance_count if mi != null else 0
 	var lod: TreeLod = tr.get_node("Lod")
-	return "terrain nodes %d, tree chunks %d (%d billboards, %d LOD0 meshes within %.0f m), building tiles %d" % [f.get_node("Terrain").visible_nodes, tr._chunks.size(), n_bb, lod.instance_count(), lod.covered, f.get_node("Buildings")._tiles.size()]
+	var e: Vector3 = f.get_node("Fdm").fdm.euler()
+	var cloud := "in_cloud %s (aircraft %.2f), fog %.4f, exposure x%.2f; " % [Props.get_v("environment/in_cloud", false), Props.get_f("environment/ac_cloud_density"),
+		(f.get_node("WorldEnvironment") as WorldEnvironment).environment.fog_density, Props.get_f("environment/exposure_mult", 1.0)]
+	return cloud + "attitude roll %.1f pitch %.1f deg, terrain nodes %d, tree chunks %d (%d billboards, %d LOD0 meshes within %.0f m), building tiles %d" % [rad_to_deg(e.x), rad_to_deg(e.y), f.get_node("Terrain").visible_nodes, tr._chunks.size(), n_bb, lod.instance_count(), lod.covered, f.get_node("Buildings")._tiles.size()]
 
 
 ## Waits until the streamers have been idle for QUIET_S in a row; returns the seconds waited.

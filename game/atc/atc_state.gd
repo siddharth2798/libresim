@@ -29,6 +29,25 @@ const INTENTS := {
 	"taxi_stand": {"service": "ground", "label": "Ask {who} for taxi to parking", "blind": "Blind call: taxi to parking"},
 }
 
+## Airline profile (aircraft.json atc.profile): the same calls and states, worded for an IFR flight; no
+## circuit ("report final" becomes "report established", landing = approach clearance).
+const AIRLINE_LABELS := {
+	"clearance": {"label": "Ask {who} for IFR clearance", "blind": ""},
+	"ready": {"label": "Report ready for departure", "label_lined": "Report ready for takeoff", "blind": "Blind call: ready for departure"},
+	"inbound": {"label": "Ask {who} for the approach", "blind": "Blind call: inbound, approach"},
+	"final": {"label": "Report established on the approach", "blind": "Blind call: established"},
+	"goaround": {"label": "Report going around", "blind": "Blind call: going around"},
+	"taxi_stand": {"label": "Ask {who} for taxi to the stand", "blind": "Blind call: taxi to the stand"},
+}
+
+
+## The intent's menu texts for a profile (the airline ones override the base).
+static func intent(id: String, profile := "ga") -> Dictionary:
+	var d: Dictionary = INTENTS[id].duplicate()
+	if AtcProfile.is_airline(profile):
+		d.merge(AIRLINE_LABELS.get(id, {}), true)
+	return d
+
 
 ## Calls that make sense now, in menu order.
 static func available(s: Dictionary, w: Dictionary) -> Array:

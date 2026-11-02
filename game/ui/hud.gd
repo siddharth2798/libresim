@@ -1,7 +1,8 @@
 extends Control
 ## Flight-data bar (H toggles): one slim translucent strip at the top-centre with only
 ## what a pilot glances at — IAS, GS, ALT, AGL near the ground, VS, HDG. Everything else
-## (engine, fuel, switches) is on the instrument panel. F1 shows a key-help card.
+## (engine, fuel, switches) is on the instrument panel. F1 shows a key-help card
+## (ui/control_help.gd: what the aircraft offers, keys as bound).
 ## Warnings, failures and damage messages are cards from ui/notifications.gd.
 
 const ITEMS := ["IAS", "GS", "ALT", "AGL", "VS", "HDG"]
@@ -59,17 +60,14 @@ func _help_card() -> PanelContainer:
 	g.add_theme_constant_override("h_separation", 18)
 	g.add_theme_constant_override("v_separation", 4)
 	p.add_child(g)
-	for row in [["↑ ↓ ← →", "pitch / roll", "Z / X", "rudder"], ["PgUp / PgDn", "throttle", "; / '", "mixture"],
-			["Home / End", "trim", "[ / ]", "flaps"], ["B · , .", "brakes", "Shift+B", "parking brake"],
-			["M · S", "magnetos · starter", "Y", "mouse yoke"], ["C · 1–8", "views", "Tab", "panel layout"],
-			["N", "map", "`", "radio / ATC"], ["T · P", "taxi route · pushback", "F2", "checklists"],
-			["F9 · F10", "failures · settings", "R · F8", "replay · record"], ["F11", "quick-save", "J", "controls"],
-			["H", "flight-data bar", "Esc", "pause menu"], ["L · Shift+L", "panel lights + / −", "F1", "this help"], ["Shift+M · Shift+V", "master · avionics", "Shift+F · Ctrl+F", "fuel selector · shutoff"], ["Ctrl+B N S L T", "beacon nav strobe land taxi", "Ctrl+H", "pitot heat"], ["Ctrl+click", "zoom on cockpit item", "wheel", "zoom to cursor"], ["K", "training callouts on / off", "Backspace", "dismiss taxi message"]]:
-		for i in 4:
+	var rows := ControlHelp.rows(AircraftControls.current(), KeyBindings.load_from())
+	for i in range(0, rows.size(), 2):  # two key / what pairs per line
+		var line: Array = rows[i] + (rows[i + 1] if i + 1 < rows.size() else ["", ""])
+		for j in 4:
 			var l := Label.new()
-			l.text = row[i]
+			l.text = line[j]
 			l.add_theme_font_size_override("font_size", 14)
-			l.add_theme_color_override("font_color", Color(1, 0.85, 0.5) if i % 2 == 0 else Color(0.88, 0.9, 0.92))
+			l.add_theme_color_override("font_color", Color(1, 0.85, 0.5) if j % 2 == 0 else Color(0.88, 0.9, 0.92))
 			g.add_child(l)
 	p.visible = false
 	add_child(Notifications.centered(p, PRESET_FULL_RECT, 0))
@@ -81,7 +79,10 @@ func _unhandled_key_input(e: InputEvent) -> void:
 		if e.keycode == KEY_H:
 			_bar.visible = not _bar.visible
 		elif e.keycode == KEY_F1:
-			_help.visible = not _help.visible
+			var want := not _help.visible
+			_help.get_parent().queue_free()  # rebuilt each time: the aircraft and the key bindings may have changed
+			_help = _help_card()
+			_help.visible = want
 
 
 func _process(_dt: float) -> void:

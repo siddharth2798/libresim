@@ -37,8 +37,9 @@ func setup(t: TerrainQuadtree) -> void:
 			_built[k].position += d2)
 
 
-## Stand lookup: by ref ("Bay 40", "GA3"), or "" -> first gate with a jetbridge, else first stand.
-func find_stand(icao: String, ref: String) -> Dictionary:
+## Stand lookup: by ref ("Bay 40", "GA3"), or "" -> the aircraft's default stand (GroundChoice.default_stand:
+## for stand_class "any" the first gate with a jetbridge, else the first stand; airliners: a gate; GA: a tie-down).
+func find_stand(icao: String, ref: String, stand_class := "") -> Dictionary:
 	var a: Dictionary = data.get(icao, {})
 	var stands: Array = a.get("stands", [])
 	if stands.is_empty():
@@ -47,10 +48,7 @@ func find_stand(icao: String, ref: String) -> Dictionary:
 		for s in stands:
 			if str(s.ref).to_lower().replace(" ", "") == ref.to_lower().replace(" ", ""):
 				return s
-	for s in stands:
-		if s.jetbridge:
-			return s
-	return stands[0]
+	return GroundChoice.default_stand(stands, stand_class if stand_class != "" else str(GroundParams.ground().stand_class))
 
 
 func _h(x: float, y: float) -> float:
@@ -102,8 +100,11 @@ func _build(icao: String) -> void:
 		_stand_marking(root, s)
 		_service_vehicles(root, s, i)
 		i += 1
+	var ways := []
 	for jb in a.jetbridges:
-		_jetbridge(root, jb.pts, a.stands)
+		ways.append(JetwayDocks.ends(jb.pts, a.stands))
+	for k in ways.size():
+		_jetbridge(root, k, ways, a.stands)
 	for ws in a.windsocks:
 		_windsock(root, ws.x, ws.y)
 	for tw in a.towers.slice(0, 1):
@@ -152,47 +153,64 @@ func _place(root: Node3D, name: String, p: Vector2, heading: float, yaw_off := 0
 	return n
 
 
-## Ground-service vehicles around a stand (stand heading = aircraft nose direction).
+## Legacy service-vehicle offsets [forward, right] from the stand point (made for the C172's stands).
+const SERVICE := {"gpu": [1.0, -5.0], "baggage": [-12.0, 9.0], "fuel_gate": [-3.0, -14.0], "fuel_ramp": [-2.0, -12.0], "bus": [0.0, 16.0]}
+
+
+## Ground-service vehicles around a stand (stand heading = aircraft nose direction). An aircraft with a
+## ground.service block (keys gpu, baggage, fuel, bus; [forward, right] from the L1 door) gets them there
+## (GroundParams.door_point), so they sit clear of its larger footprint; otherwise the legacy offsets
+## from the stand point.
 func _service_vehicles(root: Node3D, s: Dictionary, i: int) -> void:
 	var hd := deg_to_rad(float(s.heading_deg))
 	var fwd := Vector2(sin(hd), cos(hd))
 	var right := Vector2(fwd.y, -fwd.x)
-	var c := Vector2(s.x, s.y)
+	var own: Dictionary = GroundParams.ground().get("service", {})
+	var c := GroundParams.door_point(s) if not own.is_empty() else Vector2(s.x, s.y)
+	var at := func(key: String, legacy: String) -> Vector2:
+		var o: Array = own.get(key, SERVICE[legacy])
+		return c + fwd * float(o[0]) + right * float(o[1])
 	if s.jetbridge:
-		_place(root, "gpu", c + fwd * 1.0 - right * 5.0, hd)
-		_place(root, "baggage_tug", c - fwd * 12.0 + right * 9.0, hd + PI / 2)
-		_place(root, "baggage_cart", c - fwd * 12.0 + right * 13.0, hd + PI / 2)
-		_place(root, "baggage_cart", c - fwd * 12.0 + right * 17.0, hd + PI / 2)
+		_place(root, "gpu", at.call("gpu", "gpu"), hd)
+		var bag: Vector2 = at.call("baggage", "baggage")
+		_place(root, "baggage_tug", bag, hd + PI / 2)
+		_place(root, "baggage_cart", bag + right * 4.0, hd + PI / 2)
+		_place(root, "baggage_cart", bag + right * 8.0, hd + PI / 2)
 		if i % 3 == 0:
-			_place(root, "fuel_truck", c - fwd * 3.0 - right * 14.0, hd)
+			_place(root, "fuel_truck", at.call("fuel", "fuel_gate"), hd)
 	elif i % 6 == 0:
-		_place(root, "fuel_truck", c - fwd * 2.0 - right * 12.0, hd)
+		_place(root, "fuel_truck", at.call("fuel", "fuel_ramp"), hd)
 	elif i % 9 == 4 and str(s.ref).begins_with("GA") == false:
-		_place(root, "apron_bus", c + right * 16.0, hd, FG_YAW)
+		_place(root, "apron_bus", at.call("bus", "bus"), hd, FG_YAW)
 
 
 func _local(x: float, y: float, up: float) -> Vector3:
 	return Vector3(x, _h(x, y) + up, -y)
 
 
+## Lead-in line, stop bar and number of a stand, sized by the aircraft: the line is at least 28 m, else 1.5
+## x its length; the bar is at the nose wheel (ground.nose_gear_m ahead of the CG, 0 for the C172).
 func _stand_marking(root: Node3D, s: Dictionary) -> void:
 	var hd := deg_to_rad(float(s.heading_deg))
 	var fwd := Vector2(sin(hd), cos(hd))
+	var g := GroundParams.ground()
+	var lead_len := maxf(28.0, 1.5 * (float(g.ahead_m) + float(g.behind_m)))
+	var bar := GroundParams.cg_at_stand(s) + fwd * float(g.nose_gear_m)
 	var lead := MeshInstance3D.new()
 	var m := BoxMesh.new()
-	m.size = Vector3(0.25, 0.02, 28.0)
+	m.size = Vector3(0.25, 0.02, lead_len)
 	lead.mesh = m
 	lead.material_override = _yellow
-	var c := Vector2(s.x, s.y) - fwd * 14.0
+	var c := bar - fwd * lead_len * 0.5
 	lead.position = _local(c.x, c.y, 0.18)
 	lead.rotation.y = -hd + PI
 	root.add_child(lead)
 	var stop := MeshInstance3D.new()
 	var sm := BoxMesh.new()
-	sm.size = Vector3(3.0, 0.02, 0.3)
+	sm.size = Vector3(maxf(3.0, 0.3 * float(g.across_m)), 0.02, 0.3)
 	stop.mesh = sm
 	stop.material_override = _yellow
-	stop.position = _local(s.x, s.y, 0.18)
+	stop.position = _local(bar.x, bar.y, 0.18)
 	stop.rotation.y = -hd
 	root.add_child(stop)
 	var lbl := Label3D.new()
@@ -201,31 +219,23 @@ func _stand_marking(root: Node3D, s: Dictionary) -> void:
 	lbl.pixel_size = 0.02
 	lbl.modulate = Color(0.95, 0.78, 0.15)
 	lbl.rotation = Vector3(-PI / 2, -hd, 0)
-	var p := Vector2(s.x, s.y) - fwd * 6.0
+	var p := bar - fwd * maxf(6.0, 0.2 * lead_len)
 	lbl.position = _local(p.x, p.y, 0.2)
 	root.add_child(lbl)
 
 
-## FlightGear generic jetway (rotunda at the origin, tunnel along +X to the cab) laid
-## along the OSM jet_bridge way, rotunda at the end farther from the nearest stand.
-func _jetbridge(root: Node3D, pts: Array, stands: Array) -> void:
-	var a := Vector2(pts[0][0], pts[0][1])
-	var b := Vector2(pts[-1][0], pts[-1][1])
-	var near_a := INF
-	var near_b := INF
-	for st in stands:
-		near_a = minf(near_a, a.distance_to(Vector2(st.x, st.y)))
-		near_b = minf(near_b, b.distance_to(Vector2(st.x, st.y)))
-	var terminal := a if near_a > near_b else b
-	var cab := b if terminal == a else a
-	var d := cab - terminal
-	var n: Node3D = _scene("jetway").instantiate()
-	n.position = _local(terminal.x, terminal.y, 0.0)
-	n.rotation.y = atan2(d.y, d.x)  # model +X along terminal -> cab (render: x east, -z north)
-	var len := d.length()
-	n.scale = Vector3(clampf(len / 22.0, 0.6, 1.8), 1.0, 1.0)
-	root.add_child(n)
-	_cur.add_jetway(n, _h(terminal.x, terminal.y))
+## FlightGear generic jetway (JetwayRig) laid along the OSM jet_bridge way, rotunda at the end farther from the
+## nearest stand; it extends to the door of an aircraft parked at a gate it serves (JetwayDocks).
+func _jetbridge(root: Node3D, k: int, ways: Array, stands: Array) -> void:
+	var w: Dictionary = ways[k]
+	var sill := float(GroundParams.ground().get("door_height_m", 0.0))
+	var dy := func(t: Vector2, tip: Vector2) -> float:
+		return _h(tip.x, tip.y) + sill - (_h(t.x, t.y) + JetwayPose.FLOOR_Y)
+	var rig := JetwayRig.new()
+	rig.setup(_scene("jetway").instantiate(), w.terminal, w.cab, JetwayDocks.candidates(k, ways, stands, dy))
+	rig.position = _local(w.terminal.x, w.terminal.y, 0.0)
+	root.add_child(rig)
+	rig.start(_cur, str(k), _h(w.terminal.x, w.terminal.y))
 
 
 func _windsock(root: Node3D, x: float, y: float) -> void:
@@ -256,66 +266,6 @@ func _windsock(root: Node3D, x: float, y: float) -> void:
 	_socks.append(pivot)
 
 
-## A* over the airport taxi graph. Returns [[x, y], ...] from the node nearest `from`
-## to the node nearest `to`, plus the taxiway refs used, or {} if no route.
+## A* over the airport taxi graph: see TaxiRoute.
 func route(icao: String, from: Vector2, to: Vector2) -> Dictionary:
-	var g: Dictionary = data.get(icao, {}).get("taxi", {})
-	if g.is_empty():
-		return {}
-	var adj := {}
-	for e in g.edges:
-		if e[4] == "runway":
-			continue  # don't taxi along runways unless unavoidable
-		for pair in [[e[0], e[1]], [e[1], e[0]]]:
-			if not adj.has(pair[0]):
-				adj[pair[0]] = []
-			adj[pair[0]].append([pair[1], str(e[2])])
-	var nearest := func(p: Vector2) -> String:
-		var best := ""
-		var bd := INF
-		for id in adj:
-			var q: Array = g.nodes[id]
-			var d := p.distance_squared_to(Vector2(q[0], q[1]))
-			if d < bd:
-				bd = d
-				best = id
-		return best
-	var s: String = nearest.call(from)
-	var t: String = nearest.call(to)
-	if s == "" or t == "":
-		return {}
-	var pos := func(id: String) -> Vector2: return Vector2(g.nodes[id][0], g.nodes[id][1])
-	var open := {s: true}
-	var came := {}
-	var gs := {s: 0.0}
-	var tp: Vector2 = pos.call(t)
-	while not open.is_empty():
-		var cur := ""
-		var bf := INF
-		for id in open:
-			var f: float = gs[id] + (pos.call(id) as Vector2).distance_to(tp)
-			if f < bf:
-				bf = f
-				cur = id
-		if cur == t:
-			break
-		open.erase(cur)
-		for nb in adj.get(cur, []):
-			var ng: float = gs[cur] + (pos.call(cur) as Vector2).distance_to(pos.call(nb[0]))
-			if ng < gs.get(nb[0], INF):
-				gs[nb[0]] = ng
-				came[nb[0]] = [cur, nb[1]]
-				open[nb[0]] = true
-	if not came.has(t) and s != t:
-		return {}
-	var path: Array = [pos.call(t)]
-	var refs: Array[String] = []
-	var c := t
-	while came.has(c):
-		var r: String = came[c][1]
-		if r != "" and (refs.is_empty() or refs[-1] != r):
-			refs.append(r)
-		c = came[c][0]
-		path.push_front(pos.call(c))
-	refs.reverse()
-	return {"path": path, "via": refs}
+	return TaxiRoute.find(data.get(icao, {}).get("taxi", {}), from, to)

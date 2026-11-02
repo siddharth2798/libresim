@@ -1,0 +1,2109 @@
+{
+ "units": "JSBSim native (psf, ft, rad); forces lbf, moments lbf*ft",
+ "alpha_limits_rad": null,
+ "stall_hysteresis": null,
+ "functions": [
+  {
+   "name": "aero/function/kCLge",
+   "desc": "Lift factor due to ground effect",
+   "f": {
+    "table": {
+     "row": "aero/h_b-mac-ft",
+     "col": null,
+     "cols": null,
+     "rows": [
+      0.0,
+      0.1,
+      0.15,
+      0.2,
+      0.3,
+      0.4,
+      0.5,
+      0.6,
+      0.7,
+      0.8,
+      0.9,
+      1.0,
+      1.1
+     ],
+     "data": [
+      [
+       1.203
+      ],
+      [
+       1.127
+      ],
+      [
+       1.09
+      ],
+      [
+       1.073
+      ],
+      [
+       1.046
+      ],
+      [
+       1.028
+      ],
+      [
+       1.019
+      ],
+      [
+       1.013
+      ],
+      [
+       1.008
+      ],
+      [
+       1.006
+      ],
+      [
+       1.003
+      ],
+      [
+       1.002
+      ],
+      [
+       1.0
+      ]
+     ]
+    }
+   }
+  },
+  {
+   "name": "aero/function/kCDge",
+   "desc": "Drag factor due to ground effect",
+   "f": {
+    "table": {
+     "row": "aero/h_b-mac-ft",
+     "col": null,
+     "cols": null,
+     "rows": [
+      0.0,
+      0.1,
+      0.15,
+      0.2,
+      0.3,
+      0.4,
+      0.5,
+      0.6,
+      0.7,
+      0.8
+     ],
+     "data": [
+      [
+       0.48
+      ],
+      [
+       0.515
+      ],
+      [
+       0.629
+      ],
+      [
+       0.709
+      ],
+      [
+       0.815
+      ],
+      [
+       0.882
+      ],
+      [
+       0.928
+      ],
+      [
+       0.962
+      ],
+      [
+       0.988
+      ],
+      [
+       1.0
+      ]
+     ]
+    }
+   }
+  }
+ ],
+ "axes": {
+  "LIFT": [
+   {
+    "name": "aero/coefficient/CLalpha",
+    "desc": "Lift due to alpha",
+    "f": {
+     "op": "product",
+     "args": [
+      {
+       "p": "aero/qbar-psf"
+      },
+      {
+       "p": "metrics/Sw-sqft"
+      },
+      {
+       "p": "aero/function/kCLge"
+      },
+      {
+       "table": {
+        "row": "aero/alpha-deg",
+        "col": "velocities/mach",
+        "layer": "fcs/slat-pos-norm",
+        "cols": [
+         0.2,
+         0.9
+        ],
+        "layers": [
+         0.0,
+         1.0
+        ],
+        "data": [
+         [
+          [
+           -0.5652,
+           -0.5935
+          ],
+          [
+           0.0625,
+           0.0656
+          ],
+          [
+           0.2386,
+           0.2505
+          ],
+          [
+           0.426,
+           0.4473
+          ],
+          [
+           0.5779,
+           0.6068
+          ],
+          [
+           0.754,
+           0.7917
+          ],
+          [
+           0.9163,
+           0.9621
+          ],
+          [
+           0.9842,
+           0.8076
+          ],
+          [
+           1.0843,
+           0.6617
+          ],
+          [
+           1.1538,
+           0.5827
+          ],
+          [
+           1.2184,
+           0.5949
+          ],
+          [
+           1.0622,
+           0.6074
+          ],
+          [
+           0.9804,
+           0.5648
+          ],
+          [
+           0.9051,
+           0.5285
+          ],
+          [
+           0.9187,
+           0.491
+          ],
+          [
+           0.9219,
+           0.4535
+          ],
+          [
+           0.8842,
+           0.4121
+          ],
+          [
+           0.8459,
+           0.372
+          ],
+          [
+           0.4196,
+           -0.0494
+          ]
+         ],
+         [
+          [
+           -0.5652,
+           -0.5935
+          ],
+          [
+           0.0625,
+           0.0656
+          ],
+          [
+           0.2386,
+           0.2505
+          ],
+          [
+           0.426,
+           0.4473
+          ],
+          [
+           0.5779,
+           0.6068
+          ],
+          [
+           0.754,
+           0.7917
+          ],
+          [
+           0.9163,
+           0.9621
+          ],
+          [
+           0.9842,
+           1.0303
+          ],
+          [
+           1.0843,
+           1.1507
+          ],
+          [
+           1.1538,
+           0.9945
+          ],
+          [
+           1.2184,
+           0.9127
+          ],
+          [
+           1.2911,
+           0.8374
+          ],
+          [
+           1.3444,
+           0.851
+          ],
+          [
+           1.1882,
+           0.8542
+          ],
+          [
+           1.1064,
+           0.818
+          ],
+          [
+           1.0311,
+           0.7818
+          ],
+          [
+           1.0447,
+           0.7441
+          ],
+          [
+           1.0479,
+           0.7058
+          ],
+          [
+           0.6376,
+           0.2795
+          ]
+         ]
+        ],
+        "rows": [
+         -9.8475,
+         -2.0912,
+         -0.0098,
+         2.228,
+         4.2779,
+         6.4218,
+         8.4561,
+         9.2699,
+         10.7094,
+         11.617,
+         12.6496,
+         13.7292,
+         14.793,
+         15.6981,
+         16.6352,
+         17.5725,
+         18.6045,
+         19.6052,
+         30.1264
+        ]
+       }
+      }
+     ]
+    }
+   },
+   {
+    "name": "aero/coefficient/CLq",
+    "desc": "Lift due to pitch rate",
+    "f": {
+     "op": "product",
+     "args": [
+      {
+       "p": "aero/qbar-psf"
+      },
+      {
+       "p": "metrics/Sw-sqft"
+      },
+      {
+       "p": "velocities/q-aero-rad_sec"
+      },
+      {
+       "p": "aero/ci2vel"
+      },
+      1.36
+     ]
+    }
+   },
+   {
+    "name": "aero/coefficient/CLadot",
+    "desc": "Lift due to alpha rate",
+    "f": {
+     "op": "product",
+     "args": [
+      {
+       "p": "aero/qbarUW-psf"
+      },
+      {
+       "p": "metrics/Sw-sqft"
+      },
+      {
+       "p": "aero/alphadot-rad_sec"
+      },
+      {
+       "p": "aero/ci2vel"
+      },
+      0.6384
+     ]
+    }
+   },
+   {
+    "name": "aero/coefficient/CLflap",
+    "desc": "Lift due to flaps",
+    "f": {
+     "op": "product",
+     "args": [
+      {
+       "p": "aero/qbar-psf"
+      },
+      {
+       "p": "metrics/Sw-sqft"
+      },
+      {
+       "p": "aero/function/kCLge"
+      },
+      {
+       "table": {
+        "row": "fcs/flap-pos-deg",
+        "col": null,
+        "cols": null,
+        "rows": [
+         0.0,
+         10.0,
+         15.0,
+         20.0,
+         40.0
+        ],
+        "data": [
+         [
+          0.0
+         ],
+         [
+          0.0923
+         ],
+         [
+          0.1532
+         ],
+         [
+          0.2079
+         ],
+         [
+          0.4207
+         ]
+        ]
+       }
+      }
+     ]
+    }
+   },
+   {
+    "name": "aero/coefficient/CLslat",
+    "desc": "Lift due to slats",
+    "f": {
+     "op": "product",
+     "args": [
+      {
+       "p": "aero/qbar-psf"
+      },
+      {
+       "p": "metrics/Sw-sqft"
+      },
+      {
+       "p": "aero/function/kCLge"
+      },
+      {
+       "table": {
+        "row": "fcs/slat-pos-deg",
+        "col": null,
+        "cols": null,
+        "rows": [
+         0.0,
+         18.0,
+         22.0,
+         27.0
+        ],
+        "data": [
+         [
+          0.0
+         ],
+         [
+          0.1854
+         ],
+         [
+          0.2773
+         ],
+         [
+          0.3989
+         ]
+        ]
+       }
+      }
+     ]
+    }
+   },
+   {
+    "name": "aero/coefficient/CLde_l",
+    "desc": "Lift due to left elevator",
+    "f": {
+     "op": "product",
+     "args": [
+      {
+       "p": "aero/qbar-psf"
+      },
+      {
+       "p": "metrics/Sw-sqft"
+      },
+      {
+       "op": "toradians",
+       "args": [
+        {
+         "p": "/systems/fcs/elevator-l/final-deg"
+        }
+       ]
+      },
+      0.0233096
+     ]
+    }
+   },
+   {
+    "name": "aero/coefficient/CLde_r",
+    "desc": "Lift due to right elevator",
+    "f": {
+     "op": "product",
+     "args": [
+      {
+       "p": "aero/qbar-psf"
+      },
+      {
+       "p": "metrics/Sw-sqft"
+      },
+      {
+       "op": "toradians",
+       "args": [
+        {
+         "p": "/systems/fcs/elevator-r/final-deg"
+        }
+       ]
+      },
+      0.0233096
+     ]
+    }
+   },
+   {
+    "name": "aero/coefficient/CLdstab",
+    "desc": "Lift due to stabilizer",
+    "f": {
+     "op": "product",
+     "args": [
+      {
+       "p": "aero/qbar-psf"
+      },
+      {
+       "p": "metrics/Sw-sqft"
+      },
+      {
+       "op": "toradians",
+       "args": [
+        {
+         "p": "/systems/fcs/stabilizer/final-deg"
+        }
+       ]
+      },
+      0.0118082
+     ]
+    }
+   },
+   {
+    "name": "aero/coefficient/CLda_l",
+    "desc": "Lift due to left aileron",
+    "f": {
+     "op": "product",
+     "args": [
+      {
+       "p": "aero/qbar-psf"
+      },
+      {
+       "p": "metrics/Sw-sqft"
+      },
+      {
+       "op": "toradians",
+       "args": [
+        {
+         "p": "/systems/fcs/aileron-l/final-deg"
+        }
+       ]
+      },
+      0.36492
+     ]
+    }
+   },
+   {
+    "name": "aero/coefficient/CLda_r",
+    "desc": "Lift due to right aileron",
+    "f": {
+     "op": "product",
+     "args": [
+      {
+       "p": "aero/qbar-psf"
+      },
+      {
+       "p": "metrics/Sw-sqft"
+      },
+      {
+       "op": "toradians",
+       "args": [
+        {
+         "p": "/systems/fcs/aileron-r/final-deg"
+        }
+       ]
+      },
+      0.36492
+     ]
+    }
+   },
+   {
+    "name": "aero/coefficient/CLdsp_l",
+    "desc": "Lift due to left spoiler",
+    "f": {
+     "op": "product",
+     "args": [
+      {
+       "p": "aero/qbar-psf"
+      },
+      {
+       "p": "metrics/Sw-sqft"
+      },
+      {
+       "op": "toradians",
+       "args": [
+        {
+         "p": "fcs/spoiler-left-deg"
+        }
+       ]
+      },
+      -0.0523599
+     ]
+    }
+   },
+   {
+    "name": "aero/coefficient/CLdsp_r",
+    "desc": "Lift due to right spoiler",
+    "f": {
+     "op": "product",
+     "args": [
+      {
+       "p": "aero/qbar-psf"
+      },
+      {
+       "p": "metrics/Sw-sqft"
+      },
+      {
+       "op": "toradians",
+       "args": [
+        {
+         "p": "fcs/spoiler-right-deg"
+        }
+       ]
+      },
+      -0.0523599
+     ]
+    }
+   },
+   {
+    "name": "aero/coefficient/CLice_l",
+    "desc": "Lift due to left wing ice",
+    "f": {
+     "op": "product",
+     "args": [
+      {
+       "p": "aero/qbar-psf"
+      },
+      {
+       "p": "metrics/Sw-sqft"
+      },
+      {
+       "table": {
+        "row": "ice/wingL",
+        "col": null,
+        "cols": null,
+        "rows": [
+         0.0,
+         0.5,
+         1.0,
+         2.0
+        ],
+        "data": [
+         [
+          0.0
+         ],
+         [
+          -0.05
+         ],
+         [
+          -0.15
+         ],
+         [
+          -1.25
+         ]
+        ]
+       }
+      }
+     ]
+    }
+   },
+   {
+    "name": "aero/coefficient/CLice_r",
+    "desc": "Lift due to right wing ice",
+    "f": {
+     "op": "product",
+     "args": [
+      {
+       "p": "aero/qbar-psf"
+      },
+      {
+       "p": "metrics/Sw-sqft"
+      },
+      {
+       "table": {
+        "row": "ice/wingR",
+        "col": null,
+        "cols": null,
+        "rows": [
+         0.0,
+         0.5,
+         1.0,
+         2.0
+        ],
+        "data": [
+         [
+          0.0
+         ],
+         [
+          -0.05
+         ],
+         [
+          -0.15
+         ],
+         [
+          -1.25
+         ]
+        ]
+       }
+      }
+     ]
+    }
+   }
+  ],
+  "DRAG": [
+   {
+    "name": "aero/coefficient/CD0",
+    "desc": "Drag at zero lift",
+    "f": {
+     "op": "product",
+     "args": [
+      {
+       "p": "aero/qbar-psf"
+      },
+      {
+       "p": "metrics/Sw-sqft"
+      },
+      0.019
+     ]
+    }
+   },
+   {
+    "name": "aero/coefficient/CDalpha",
+    "desc": "Drag due to alpha",
+    "f": {
+     "op": "product",
+     "args": [
+      {
+       "p": "aero/qbar-psf"
+      },
+      {
+       "p": "metrics/Sw-sqft"
+      },
+      {
+       "table": {
+        "row": "aero/alpha-deg",
+        "col": null,
+        "cols": null,
+        "rows": [
+         -14.796,
+         -12.2922,
+         -9.49,
+         -6.9768,
+         -3.2108,
+         0.0,
+         3.2108,
+         6.9768,
+         9.49,
+         12.2922,
+         14.796
+        ],
+        "data": [
+         [
+          0.0549
+         ],
+         [
+          0.0512
+         ],
+         [
+          0.0379
+         ],
+         [
+          0.0224
+         ],
+         [
+          0.0049
+         ],
+         [
+          0.0
+         ],
+         [
+          0.0049
+         ],
+         [
+          0.0224
+         ],
+         [
+          0.0379
+         ],
+         [
+          0.0512
+         ],
+         [
+          0.0549
+         ]
+        ]
+       }
+      }
+     ]
+    }
+   },
+   {
+    "name": "aero/coefficient/CDi",
+    "desc": "Drag due to lift",
+    "f": {
+     "op": "product",
+     "args": [
+      {
+       "p": "aero/qbar-psf"
+      },
+      {
+       "p": "metrics/Sw-sqft"
+      },
+      {
+       "p": "aero/function/kCDge"
+      },
+      {
+       "p": "aero/cl-squared"
+      },
+      0.0384
+     ]
+    }
+   },
+   {
+    "name": "aero/coefficient/CDmach",
+    "desc": "Drag due to mach",
+    "f": {
+     "op": "product",
+     "args": [
+      {
+       "p": "aero/qbar-psf"
+      },
+      {
+       "p": "metrics/Sw-sqft"
+      },
+      {
+       "table": {
+        "row": "velocities/mach",
+        "col": null,
+        "cols": null,
+        "rows": [
+         0.82,
+         1.1,
+         1.8
+        ],
+        "data": [
+         [
+          0.0
+         ],
+         [
+          0.016
+         ],
+         [
+          0.012
+         ]
+        ]
+       }
+      }
+     ]
+    }
+   },
+   {
+    "name": "aero/coefficient/CDbeta",
+    "desc": "Drag due to sideslip",
+    "f": {
+     "op": "product",
+     "args": [
+      {
+       "p": "aero/qbar-psf"
+      },
+      {
+       "p": "metrics/Sw-sqft"
+      },
+      {
+       "table": {
+        "row": "aero/beta-rad",
+        "col": null,
+        "cols": null,
+        "rows": [
+         -1.57,
+         -0.26,
+         0.0,
+         0.26,
+         1.57
+        ],
+        "data": [
+         [
+          1.23
+         ],
+         [
+          0.05
+         ],
+         [
+          0.0
+         ],
+         [
+          0.05
+         ],
+         [
+          1.23
+         ]
+        ]
+       }
+      }
+     ]
+    }
+   },
+   {
+    "name": "aero/coefficient/CDgear",
+    "desc": "Drag due to gear",
+    "f": {
+     "op": "product",
+     "args": [
+      {
+       "p": "aero/qbar-psf"
+      },
+      {
+       "p": "metrics/Sw-sqft"
+      },
+      {
+       "p": "/systems/gear/all-norm"
+      },
+      0.0171
+     ]
+    }
+   },
+   {
+    "name": "aero/coefficient/CDflap",
+    "desc": "Drag due to flaps",
+    "f": {
+     "op": "product",
+     "args": [
+      {
+       "p": "aero/qbar-psf"
+      },
+      {
+       "p": "metrics/Sw-sqft"
+      },
+      {
+       "p": "fcs/flap-pos-deg"
+      },
+      0.00122
+     ]
+    }
+   },
+   {
+    "name": "aero/coefficient/CDslat",
+    "desc": "Drag due to slats",
+    "f": {
+     "op": "product",
+     "args": [
+      {
+       "p": "aero/qbar-psf"
+      },
+      {
+       "p": "metrics/Sw-sqft"
+      },
+      {
+       "p": "fcs/slat-pos-deg"
+      },
+      0.00118
+     ]
+    }
+   },
+   {
+    "name": "aero/coefficient/CDice_l",
+    "desc": "Drag due to left wing ice",
+    "f": {
+     "op": "product",
+     "args": [
+      {
+       "p": "aero/qbar-psf"
+      },
+      {
+       "p": "metrics/Sw-sqft"
+      },
+      {
+       "table": {
+        "row": "ice/wingL",
+        "col": null,
+        "cols": null,
+        "rows": [
+         0.0,
+         0.5,
+         1.0,
+         2.0
+        ],
+        "data": [
+         [
+          0.0
+         ],
+         [
+          0.002
+         ],
+         [
+          0.005
+         ],
+         [
+          0.05
+         ]
+        ]
+       }
+      }
+     ]
+    }
+   },
+   {
+    "name": "aero/coefficient/CDice_r",
+    "desc": "Drag due to right wing ice",
+    "f": {
+     "op": "product",
+     "args": [
+      {
+       "p": "aero/qbar-psf"
+      },
+      {
+       "p": "metrics/Sw-sqft"
+      },
+      {
+       "table": {
+        "row": "ice/wingR",
+        "col": null,
+        "cols": null,
+        "rows": [
+         0.0,
+         0.5,
+         1.0,
+         2.0
+        ],
+        "data": [
+         [
+          0.0
+         ],
+         [
+          0.002
+         ],
+         [
+          0.005
+         ],
+         [
+          0.05
+         ]
+        ]
+       }
+      }
+     ]
+    }
+   },
+   {
+    "name": "aero/coefficient/CDde_l",
+    "desc": "Drag due to left elevator",
+    "f": {
+     "op": "product",
+     "args": [
+      {
+       "p": "aero/qbar-psf"
+      },
+      {
+       "p": "metrics/Sw-sqft"
+      },
+      {
+       "op": "abs",
+       "args": [
+        {
+         "op": "toradians",
+         "args": [
+          {
+           "p": "/systems/fcs/elevator-l/final-deg"
+          }
+         ]
+        }
+       ]
+      },
+      0.002625
+     ]
+    }
+   },
+   {
+    "name": "aero/coefficient/CDde_r",
+    "desc": "Drag due to right elevator",
+    "f": {
+     "op": "product",
+     "args": [
+      {
+       "p": "aero/qbar-psf"
+      },
+      {
+       "p": "metrics/Sw-sqft"
+      },
+      {
+       "op": "abs",
+       "args": [
+        {
+         "op": "toradians",
+         "args": [
+          {
+           "p": "/systems/fcs/elevator-r/final-deg"
+          }
+         ]
+        }
+       ]
+      },
+      0.002625
+     ]
+    }
+   },
+   {
+    "name": "aero/coefficient/CDdstab",
+    "desc": "Drag due to stabilizer",
+    "f": {
+     "op": "product",
+     "args": [
+      {
+       "p": "aero/qbar-psf"
+      },
+      {
+       "p": "metrics/Sw-sqft"
+      },
+      {
+       "op": "abs",
+       "args": [
+        {
+         "op": "toradians",
+         "args": [
+          {
+           "p": "/systems/fcs/stabilizer/final-deg"
+          }
+         ]
+        }
+       ]
+      },
+      0.0039
+     ]
+    }
+   },
+   {
+    "name": "aero/coefficient/CDda_l",
+    "desc": "Drag due to left aileron",
+    "f": {
+     "op": "product",
+     "args": [
+      {
+       "p": "aero/qbar-psf"
+      },
+      {
+       "p": "metrics/Sw-sqft"
+      },
+      {
+       "op": "abs",
+       "args": [
+        {
+         "op": "toradians",
+         "args": [
+          {
+           "p": "/systems/fcs/aileron-l/final-deg"
+          }
+         ]
+        }
+       ]
+      },
+      0.0029271
+     ]
+    }
+   },
+   {
+    "name": "aero/coefficient/CDda_r",
+    "desc": "Drag due to right aileron",
+    "f": {
+     "op": "product",
+     "args": [
+      {
+       "p": "aero/qbar-psf"
+      },
+      {
+       "p": "metrics/Sw-sqft"
+      },
+      {
+       "op": "abs",
+       "args": [
+        {
+         "op": "toradians",
+         "args": [
+          {
+           "p": "/systems/fcs/aileron-r/final-deg"
+          }
+         ]
+        }
+       ]
+      },
+      0.0029271
+     ]
+    }
+   },
+   {
+    "name": "aero/coefficient/CDdsp_l",
+    "desc": "Drag due to left spoiler",
+    "f": {
+     "op": "product",
+     "args": [
+      {
+       "p": "aero/qbar-psf"
+      },
+      {
+       "p": "metrics/Sw-sqft"
+      },
+      {
+       "op": "toradians",
+       "args": [
+        {
+         "p": "fcs/spoiler-left-deg"
+        }
+       ]
+      },
+      0.0261782
+     ]
+    }
+   },
+   {
+    "name": "aero/coefficient/CDdsp_r",
+    "desc": "Drag due to right spoiler",
+    "f": {
+     "op": "product",
+     "args": [
+      {
+       "p": "aero/qbar-psf"
+      },
+      {
+       "p": "metrics/Sw-sqft"
+      },
+      {
+       "op": "toradians",
+       "args": [
+        {
+         "p": "fcs/spoiler-right-deg"
+        }
+       ]
+      },
+      0.0261782
+     ]
+    }
+   },
+   {
+    "name": "aero/coefficient/CDlt_l",
+    "desc": "Drag due to left landing light",
+    "f": {
+     "op": "product",
+     "args": [
+      {
+       "p": "aero/qbar-psf"
+      },
+      {
+       "p": "metrics/Sw-sqft"
+      },
+      {
+       "p": "/controls/lighting/landing-light-pos-l"
+      },
+      0.0016
+     ]
+    }
+   },
+   {
+    "name": "aero/coefficient/CDlt_r",
+    "desc": "Drag due to right landing light",
+    "f": {
+     "op": "product",
+     "args": [
+      {
+       "p": "aero/qbar-psf"
+      },
+      {
+       "p": "metrics/Sw-sqft"
+      },
+      {
+       "p": "/controls/lighting/landing-light-pos-r"
+      },
+      0.0016
+     ]
+    }
+   }
+  ],
+  "SIDE": [
+   {
+    "name": "aero/coefficient/CYbeta",
+    "desc": "Side force due to beta",
+    "f": {
+     "op": "product",
+     "args": [
+      {
+       "p": "aero/qbar-psf"
+      },
+      {
+       "p": "metrics/Sw-sqft"
+      },
+      {
+       "p": "aero/beta-rad"
+      },
+      -0.6457
+     ]
+    }
+   },
+   {
+    "name": "aero/coefficient/CYp",
+    "desc": "Side force due to roll rate",
+    "f": {
+     "op": "product",
+     "args": [
+      {
+       "p": "aero/qbar-psf"
+      },
+      {
+       "p": "metrics/Sw-sqft"
+      },
+      {
+       "p": "aero/bi2vel"
+      },
+      {
+       "p": "velocities/p-aero-rad_sec"
+      },
+      {
+       "table": {
+        "row": "aero/Re",
+        "col": null,
+        "cols": null,
+        "rows": [
+         29913298.0,
+         32904628.0,
+         44869948.0,
+         59461352.0
+        ],
+        "data": [
+         [
+          0.3518
+         ],
+         [
+          0.0352
+         ],
+         [
+          0.0201
+         ],
+         [
+          0.0094
+         ]
+        ]
+       }
+      }
+     ]
+    }
+   },
+   {
+    "name": "aero/coefficient/CYr",
+    "desc": "Side force due to yaw rate",
+    "f": {
+     "op": "product",
+     "args": [
+      {
+       "p": "aero/qbar-psf"
+      },
+      {
+       "p": "metrics/Sw-sqft"
+      },
+      {
+       "p": "aero/bi2vel"
+      },
+      {
+       "p": "velocities/r-aero-rad_sec"
+      },
+      0.6983
+     ]
+    }
+   },
+   {
+    "name": "aero/coefficient/CYdr",
+    "desc": "Side force due to rudder",
+    "f": {
+     "op": "product",
+     "args": [
+      {
+       "p": "aero/qbar-psf"
+      },
+      {
+       "p": "metrics/Sw-sqft"
+      },
+      {
+       "op": "toradians",
+       "args": [
+        {
+         "p": "/systems/fcs/rudder/final-deg"
+        }
+       ]
+      },
+      -0.145
+     ]
+    }
+   }
+  ],
+  "ROLL": [
+   {
+    "name": "aero/coefficient/Clbeta",
+    "desc": "Roll moment due to beta",
+    "f": {
+     "op": "product",
+     "args": [
+      {
+       "p": "aero/qbar-psf"
+      },
+      {
+       "p": "metrics/Sw-sqft"
+      },
+      {
+       "p": "metrics/bw-ft"
+      },
+      {
+       "p": "aero/beta-deg"
+      },
+      {
+       "table": {
+        "row": "aero/alpha-deg",
+        "col": null,
+        "cols": null,
+        "rows": [
+         -4.4412,
+         -2.2116,
+         0.19,
+         2.4828,
+         4.9473,
+         6.1394
+        ],
+        "data": [
+         [
+          -0.0015
+         ],
+         [
+          -0.00167
+         ],
+         [
+          -0.00176
+         ],
+         [
+          -0.00189
+         ],
+         [
+          -0.00189
+         ],
+         [
+          -0.00194
+         ]
+        ]
+       }
+      }
+     ]
+    }
+   },
+   {
+    "name": "aero/coefficient/Clp",
+    "desc": "Roll moment due to roll rate",
+    "f": {
+     "op": "product",
+     "args": [
+      {
+       "p": "aero/qbar-psf"
+      },
+      {
+       "p": "metrics/Sw-sqft"
+      },
+      {
+       "p": "metrics/bw-ft"
+      },
+      {
+       "p": "aero/bi2vel"
+      },
+      {
+       "p": "velocities/p-aero-rad_sec"
+      },
+      -0.53
+     ]
+    }
+   },
+   {
+    "name": "aero/coefficient/Clr",
+    "desc": "Roll moment due to yaw rate",
+    "f": {
+     "op": "product",
+     "args": [
+      {
+       "p": "aero/qbar-psf"
+      },
+      {
+       "p": "metrics/Sw-sqft"
+      },
+      {
+       "p": "metrics/bw-ft"
+      },
+      {
+       "p": "aero/bi2vel"
+      },
+      {
+       "p": "velocities/r-aero-rad_sec"
+      },
+      0.1
+     ]
+    }
+   },
+   {
+    "name": "aero/coefficient/Clda_l",
+    "desc": "Roll moment due to left aileron",
+    "f": {
+     "op": "product",
+     "args": [
+      {
+       "p": "aero/qbar-psf"
+      },
+      {
+       "p": "metrics/Sw-sqft"
+      },
+      {
+       "p": "metrics/bw-ft"
+      },
+      {
+       "op": "toradians",
+       "args": [
+        {
+         "p": "/systems/fcs/aileron-l/final-deg"
+        }
+       ]
+      },
+      0.043
+     ]
+    }
+   },
+   {
+    "name": "aero/coefficient/Clda_r",
+    "desc": "Roll moment due to right aileron",
+    "f": {
+     "op": "product",
+     "args": [
+      {
+       "p": "aero/qbar-psf"
+      },
+      {
+       "p": "metrics/Sw-sqft"
+      },
+      {
+       "p": "metrics/bw-ft"
+      },
+      {
+       "op": "toradians",
+       "args": [
+        {
+         "p": "/systems/fcs/aileron-r/final-deg"
+        }
+       ]
+      },
+      -0.043
+     ]
+    }
+   },
+   {
+    "name": "aero/coefficient/Cldsp_l",
+    "desc": "Roll moment due to left spoiler",
+    "f": {
+     "op": "product",
+     "args": [
+      {
+       "p": "aero/qbar-psf"
+      },
+      {
+       "p": "metrics/Sw-sqft"
+      },
+      {
+       "p": "metrics/bw-ft"
+      },
+      {
+       "op": "toradians",
+       "args": [
+        {
+         "p": "fcs/spoiler-left-deg"
+        }
+       ]
+      },
+      -0.027
+     ]
+    }
+   },
+   {
+    "name": "aero/coefficient/Cldsp_r",
+    "desc": "Roll moment due to right spoiler",
+    "f": {
+     "op": "product",
+     "args": [
+      {
+       "p": "aero/qbar-psf"
+      },
+      {
+       "p": "metrics/Sw-sqft"
+      },
+      {
+       "p": "metrics/bw-ft"
+      },
+      {
+       "op": "toradians",
+       "args": [
+        {
+         "p": "fcs/spoiler-right-deg"
+        }
+       ]
+      },
+      0.027
+     ]
+    }
+   },
+   {
+    "name": "aero/coefficient/Cldr",
+    "desc": "Roll moment due to rudder",
+    "f": {
+     "op": "product",
+     "args": [
+      {
+       "p": "aero/qbar-psf"
+      },
+      {
+       "p": "metrics/Sw-sqft"
+      },
+      {
+       "p": "metrics/bw-ft"
+      },
+      {
+       "op": "toradians",
+       "args": [
+        {
+         "p": "/systems/fcs/rudder/final-deg"
+        }
+       ]
+      },
+      0.008
+     ]
+    }
+   }
+  ],
+  "PITCH": [
+   {
+    "name": "aero/coefficient/Cmalpha",
+    "desc": "Pitch moment due to alpha",
+    "f": {
+     "op": "product",
+     "args": [
+      {
+       "p": "aero/qbar-psf"
+      },
+      {
+       "p": "metrics/Sw-sqft"
+      },
+      {
+       "p": "metrics/cbarw-ft"
+      },
+      {
+       "table": {
+        "row": "aero/alpha-deg",
+        "col": null,
+        "cols": null,
+        "rows": [
+         -9.4468,
+         -6.3284,
+         -5.4416,
+         -4.3131,
+         -3.0234,
+         -2.0214,
+         -0.6629,
+         0.4655,
+         1.6628,
+         2.9406,
+         4.0685,
+         5.2651,
+         6.3583,
+         7.3937,
+         8.5212,
+         9.8677,
+         11.3179,
+         20.1549,
+         45.4566
+        ],
+        "data": [
+         [
+          0.1897
+         ],
+         [
+          0.1313
+         ],
+         [
+          0.1101
+         ],
+         [
+          0.087
+         ],
+         [
+          0.0599
+         ],
+         [
+          0.0359
+         ],
+         [
+          0.0132
+         ],
+         [
+          -0.009
+         ],
+         [
+          -0.0281
+         ],
+         [
+          -0.0455
+         ],
+         [
+          -0.0566
+         ],
+         [
+          -0.0624
+         ],
+         [
+          -0.0698
+         ],
+         [
+          -0.0718
+         ],
+         [
+          -0.0736
+         ],
+         [
+          -0.0851
+         ],
+         [
+          -0.1017
+         ],
+         [
+          -0.1727
+         ],
+         [
+          0.0154
+         ]
+        ]
+       }
+      }
+     ]
+    }
+   },
+   {
+    "name": "aero/coefficient/Cmq",
+    "desc": "Pitch moment due to pitch rate",
+    "f": {
+     "op": "product",
+     "args": [
+      {
+       "p": "aero/qbar-psf"
+      },
+      {
+       "p": "metrics/Sw-sqft"
+      },
+      {
+       "p": "metrics/cbarw-ft"
+      },
+      {
+       "p": "aero/ci2vel"
+      },
+      {
+       "p": "velocities/q-aero-rad_sec"
+      },
+      -28.9
+     ]
+    }
+   },
+   {
+    "name": "aero/coefficient/Cmadot",
+    "desc": "Pitch moment due to alpha rate",
+    "f": {
+     "op": "product",
+     "args": [
+      {
+       "p": "aero/qbarUW-psf"
+      },
+      {
+       "p": "metrics/Sw-sqft"
+      },
+      {
+       "p": "metrics/cbarw-ft"
+      },
+      {
+       "p": "aero/ci2vel"
+      },
+      {
+       "p": "aero/alphadot-rad_sec"
+      },
+      -11.2539
+     ]
+    }
+   },
+   {
+    "name": "aero/coefficient/Cmde_l",
+    "desc": "Pitch moment due to left elevator",
+    "f": {
+     "op": "product",
+     "args": [
+      {
+       "p": "aero/qbar-psf"
+      },
+      {
+       "p": "metrics/Sw-sqft"
+      },
+      {
+       "p": "metrics/cbarw-ft"
+      },
+      {
+       "op": "toradians",
+       "args": [
+        {
+         "p": "/systems/fcs/elevator-l/final-deg"
+        }
+       ]
+      },
+      -0.345
+     ]
+    }
+   },
+   {
+    "name": "aero/coefficient/Cmde_r",
+    "desc": "Pitch moment due to right elevator",
+    "f": {
+     "op": "product",
+     "args": [
+      {
+       "p": "aero/qbar-psf"
+      },
+      {
+       "p": "metrics/Sw-sqft"
+      },
+      {
+       "p": "metrics/cbarw-ft"
+      },
+      {
+       "op": "toradians",
+       "args": [
+        {
+         "p": "/systems/fcs/elevator-r/final-deg"
+        }
+       ]
+      },
+      -0.345
+     ]
+    }
+   },
+   {
+    "name": "aero/coefficient/Cmdstab",
+    "desc": "Pitch moment due to stabilizer",
+    "f": {
+     "op": "product",
+     "args": [
+      {
+       "p": "aero/qbar-psf"
+      },
+      {
+       "p": "metrics/Sw-sqft"
+      },
+      {
+       "p": "metrics/cbarw-ft"
+      },
+      {
+       "op": "toradians",
+       "args": [
+        {
+         "p": "/systems/fcs/stabilizer/final-deg"
+        }
+       ]
+      },
+      -2.172
+     ]
+    }
+   },
+   {
+    "name": "aero/coefficient/Cmdsp",
+    "desc": "Pitch moment due to symmetrical spoiler",
+    "f": {
+     "op": "product",
+     "args": [
+      {
+       "p": "aero/qbar-psf"
+      },
+      {
+       "p": "metrics/Sw-sqft"
+      },
+      {
+       "p": "metrics/cbarw-ft"
+      },
+      {
+       "table": {
+        "row": "aero/h_b-mac-ft",
+        "col": null,
+        "cols": null,
+        "rows": [
+         0.0,
+         1.0
+        ],
+        "data": [
+         [
+          0.5
+         ],
+         [
+          1.0
+         ]
+        ]
+       }
+      },
+      {
+       "op": "toradians",
+       "args": [
+        {
+         "p": "fcs/spoiler-symmetrical-deg"
+        }
+       ]
+      },
+      0.0105
+     ]
+    }
+   }
+  ],
+  "YAW": [
+   {
+    "name": "aero/coefficient/Cnbeta",
+    "desc": "Yaw moment due to beta",
+    "f": {
+     "op": "product",
+     "args": [
+      {
+       "p": "aero/qbar-psf"
+      },
+      {
+       "p": "metrics/Sw-sqft"
+      },
+      {
+       "p": "metrics/bw-ft"
+      },
+      {
+       "p": "aero/beta-deg"
+      },
+      {
+       "table": {
+        "row": "aero/alpha-deg",
+        "col": null,
+        "cols": null,
+        "rows": [
+         -4.7093,
+         -2.2164,
+         0.2903,
+         2.9836,
+         5.5629
+        ],
+        "data": [
+         [
+          0.00198
+         ],
+         [
+          0.00211
+         ],
+         [
+          0.00194
+         ],
+         [
+          0.0018
+         ],
+         [
+          0.00207
+         ]
+        ]
+       }
+      }
+     ]
+    }
+   },
+   {
+    "name": "aero/coefficient/Cnr",
+    "desc": "Yaw moment due to yaw rate",
+    "f": {
+     "op": "product",
+     "args": [
+      {
+       "p": "aero/qbar-psf"
+      },
+      {
+       "p": "metrics/Sw-sqft"
+      },
+      {
+       "p": "metrics/bw-ft"
+      },
+      {
+       "p": "aero/bi2vel"
+      },
+      {
+       "p": "velocities/r-aero-rad_sec"
+      },
+      -0.25
+     ]
+    }
+   },
+   {
+    "name": "aero/coefficient/Cndr",
+    "desc": "Yaw moment due to rudder",
+    "f": {
+     "op": "product",
+     "args": [
+      {
+       "p": "aero/qbar-psf"
+      },
+      {
+       "p": "metrics/Sw-sqft"
+      },
+      {
+       "p": "metrics/bw-ft"
+      },
+      {
+       "op": "toradians",
+       "args": [
+        {
+         "p": "/systems/fcs/rudder/final-deg"
+        }
+       ]
+      },
+      0.042
+     ]
+    }
+   }
+  ]
+ },
+ "properties": {
+  "ice/wingL": 0.0,
+  "ice/wingR": 0.0
+ },
+ "aero_inputs": {
+  "jsbsim_builtin": [
+   "aero/Re",
+   "aero/alpha-deg",
+   "aero/alphadot-rad_sec",
+   "aero/beta-deg",
+   "aero/beta-rad",
+   "aero/bi2vel",
+   "aero/ci2vel",
+   "aero/cl-squared",
+   "aero/h_b-mac-ft",
+   "aero/qbar-psf",
+   "aero/qbarUW-psf",
+   "metrics/Sw-sqft",
+   "metrics/bw-ft",
+   "metrics/cbarw-ft",
+   "velocities/mach",
+   "velocities/p-aero-rad_sec",
+   "velocities/q-aero-rad_sec",
+   "velocities/r-aero-rad_sec"
+  ],
+  "from_systems": [
+   "/controls/lighting/landing-light-pos-l",
+   "/controls/lighting/landing-light-pos-r",
+   "/systems/fcs/aileron-l/final-deg",
+   "/systems/fcs/aileron-r/final-deg",
+   "/systems/fcs/elevator-l/final-deg",
+   "/systems/fcs/elevator-r/final-deg",
+   "/systems/fcs/rudder/final-deg",
+   "/systems/fcs/stabilizer/final-deg",
+   "/systems/gear/all-norm",
+   "fcs/flap-pos-deg",
+   "fcs/slat-pos-deg",
+   "fcs/slat-pos-norm",
+   "fcs/spoiler-left-deg",
+   "fcs/spoiler-right-deg",
+   "fcs/spoiler-symmetrical-deg"
+  ]
+ },
+ "derived_from": {
+  "upstream": "https://github.com/legoboyvdlp/A320-family",
+  "commit": "fec1ecba767c8fffd145337b27012e89c01e3ade",
+  "files": [
+   "FDE/A320-200-CFM.xml",
+   "FDE/Config/*.xml",
+   "Engines/cfm56-5b4_*.xml",
+   "Engines/APS3200.xml",
+   "Systems/a320-fcs.xml",
+   "Systems/a320-spoilers.xml",
+   "Systems/a320-cfm56-5b4-engine-fadec.xml",
+   "A320-200-CFM-set.xml (options/maxflap)"
+  ],
+  "copyright": "Copyright (c) 2025 Josh Davidson, Jonathan Redpath, merspieler, Matthew Maring, Thorsten Herrmann, Semir Gebran",
+  "license": "GPL-2.0-only",
+  "modified": "2026-10-28 by libresim (tools/06_jsbsim_to_json.py a320): units converted to SI, XML -> JSON, see third_party/a320-family/SOURCE.md"
+ }
+}

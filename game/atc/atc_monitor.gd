@@ -59,6 +59,8 @@ func step(w: Dictionary, now: float) -> void:
 	else:
 		_air(w, now)
 	_handoff_watch(w, now)
+	if AtcProfile.is_airline(c.profile) and not silent:
+		AtcAirline.step(self, w, now)
 	if silent:  # lesson: clearances are implicit, nothing is ever pending
 		for k in ["cleared", "lineup_ok", "cleared_takeoff", "cleared_land"]:
 			c.s[k] = true
@@ -80,7 +82,7 @@ func _tell(service: String, key: String, w: Dictionary, now: float, extra := {},
 	var sl := c.slots(w, x)
 	var at := now + CALL_GAP
 	c.say("controller", key, role, sl, at, then, true)
-	if c.phr.has("readback", key):
+	if c.phr.has("readback", key, c.profile):
 		c.say("readback", key, "*", sl, at + c.readback_gap)
 	return true
 
@@ -275,7 +277,7 @@ func _departure_handoff(w: Dictionary, now: float, agl: float) -> void:
 			c.s.handoff_at = now
 		if _tell("tower", "handoff", w, now, x, then):
 			c.set_flag("st_dep_ho")
-	elif _tell("tower", "depart_vfr", w, now):
+	elif _tell("tower", AtcAirline.depart_key(c.profile), w, now):
 		c.set_flag("st_dep_ho")
 
 

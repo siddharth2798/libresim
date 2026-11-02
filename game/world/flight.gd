@@ -1,8 +1,10 @@
 extends Node3D
 ## Main flight scene. Started from the start screen (ui/menu) with the setup in the
 ## Session autoload, or directly with command-line options (after "--"):
+##   --aircraft=c172|a320         the aircraft (default c172; its payload defaults apply)
 ##   --airport=VAJJ --runway=08   start on a runway (default VAJJ, first runway)
-##   --air=<alt_ft> [--air-nm=5] [--air-kt=90]  start airborne on the runway's extended centreline, 5 nm out, at 90 KIAS
+##   --air[=<alt_ft>] [--air-nm=N] [--air-kt=N]  start airborne on the runway's extended centreline; what is not given is the
+##                                aircraft's own (start.air: C172 1500 ft, 5 nm, 90 KIAS; A320 3500 ft, 11 nm, 205 KIAS, gear up)
 ##   --stand[=REF]                start parked at a stand/gate, cold & dark (e.g. --stand="Bay 40"); default: a jetbridge gate
 ##   --cold                       cold & dark (everything off, parking brake set)
 ##   --shot=<png>                 screenshot after 6 s and quit (testing)
@@ -21,7 +23,7 @@ extends Node3D
 
 @onready var terrain: TerrainQuadtree = $Terrain
 @onready var fdm_node: FdmNode = $Fdm
-@onready var model: C172Model = $Aircraft
+@onready var model: AircraftModel = $Aircraft
 @onready var cam: CameraRig = $Camera
 @onready var airports: AirportBuilder = $Airports
 
@@ -30,6 +32,8 @@ var _apt := ""
 var _air_ft := -1.0
 var _air_nm := 5.0
 var _air_kt := 90.0  # IAS of an airborne start (lessons start slower)
+var _air_gear_up := false  # retractable gear of an airborne start
+var _air_flaps := 0  # flap detent of an airborne start
 var _shot := ""
 var _shot_time := 6.0
 var _t := 0.0
@@ -46,7 +50,12 @@ func _ready() -> void:
 		"air":
 			_air_ft = float(s.air_ft)
 			_air_nm = float(s.air_nm)
-			_air_kt = float(s.get("air_kt", 90.0))
+			var a := AirStart.spawn(AircraftDef.current(), s)  # speed (clamped into the aircraft's safe range), gear, flaps
+			_air_kt = a.kias
+			_air_gear_up = a.gear_up
+			_air_flaps = a.flaps
+			if a.asked >= 0.0:
+				push_warning("air start: %d KIAS is outside the safe range of the %s, starting at %d KIAS" % [int(a.asked), AircraftDef.current().display_name(), int(_air_kt)])
 		"stand": _stand_ref = s.stand if s.stand != "" else "*"
 	_cold = bool(s.cold)
 	_shot = Session.shot
@@ -64,6 +73,8 @@ func _ready() -> void:
 	$UI/Atc.fdm_node = fdm_node
 	$Avionics/Nav.terrain = terrain
 	$Avionics/Gps.db = $Avionics/Nav.db
+	if AirlinerNodes.wanted(AircraftDef.current()):  # glass-cockpit instrument feeds and autoflight
+		AirlinerNodes.add($Instruments, $Systems, $Avionics/Nav.db)
 	$Systems/Failures.fdm_node = fdm_node
 	$TouchdownFx.setup(fdm_node)
 	$Training.setup(fdm_node, airports, terrain)
@@ -101,27 +112,31 @@ func _reset() -> void:
 	var hdg: float = _start.heading_deg
 	FloatingOrigin.set_origin(p)
 	_load_aircraft()
+	if AirlinerNodes.wanted(AircraftDef.current()):  # gear down, except an airborne start that wants it up
+		Props.set_v("controls/gear", 0 if _air_ft > 0.0 and _air_gear_up else 1)
 	if _air_ft > 0.0:
 		var back := Vector2(sin(deg_to_rad(hdg)), cos(deg_to_rad(hdg))) * -_air_nm * 1852.0
 		var q := p + back
-		fdm_node.place_airborne(q.x, q.y, terrain.height_at(p.x, p.y) + _air_ft * 0.3048, hdg, _air_kt, $Weather.wind_at(_air_ft * 0.3048))
+		fdm_node.place_airborne(q.x, q.y, terrain.height_at(p.x, p.y) + _air_ft * 0.3048, hdg, _air_kt, $Weather.wind_at(_air_ft * 0.3048), _air_flaps)
 	elif _stand_ref != "":
 		var st: Dictionary = $AirportOps.find_stand(_apt, "" if _stand_ref == "*" else _stand_ref)
 		if not st.is_empty():
-			p = Vector2(st.x, st.y)
+			p = GroundParams.cg_at_stand(st)  # a gate's point is the door: the CG sits ground.cg_to_door_m behind it
 			hdg = float(st.heading_deg)
 			FloatingOrigin.set_origin(p)
 			Props.set_v("ops/stand", "%s %s%s" % [_apt, st.ref, " (jetbridge)" if st.jetbridge else ""])
 		fdm_node.place_on_ground(p.x, p.y, hdg)
-		fdm_node.fdm.prop.rpm = 800.0
+		for u in fdm_node.fdm.units:
+			u.warm_start(false)
 		Props.set_v("controls/throttle", 0.0)
-		Props.set_v("controls/pitch_trim", -0.05)
+		Props.set_v("controls/pitch_trim", float(AircraftDef.current().section("start").get("pitch_trim", 0.0)))
 	else:
 		fdm_node.place_on_ground(p.x, p.y, hdg)
-		fdm_node.fdm.prop.rpm = 800.0
+		for u in fdm_node.fdm.units:
+			u.warm_start(false)
 		Props.set_v("controls/throttle", 0.0)
-		Props.set_v("controls/pitch_trim", -0.05)
-	Props.set_v("controls/flaps", 0)
+		Props.set_v("controls/pitch_trim", float(AircraftDef.current().section("start").get("pitch_trim", 0.0)))
+	Props.set_v("controls/flaps", _air_flaps if _air_ft > 0.0 else 0)
 	for k in ["master_bat", "master_alt", "avionics"]:
 		Props.set_v("controls/electrical/" + k, true)
 	var kind := "air" if _air_ft > 0.0 else ("stand" if _stand_ref != "" else "runway")
@@ -133,17 +148,25 @@ func _reset() -> void:
 	Props.set_v("controls/fuel/shutoff", false)
 	# altimeter set to the current QNH, as after a pre-flight check
 	Props.set_v("instruments/altimeter/kollsman_inhg", snappedf(Props.get_f("weather/qnh_hpa", 1013.25) * 100.0 / Units.INHG, 0.01))
-	var eng := fdm_node.fdm.engine
-	eng.running = true
-	eng.oil_temp_k = 355.0  # warmed up: 180 F oil, 380 F CHT
-	eng.cht_k = 466.0
-	eng.egt_k = 900.0
-	eng.oil_press_pa = 4.5e5
+	for u in fdm_node.fdm.units:
+		var eng := u.engine
+		eng.running = true
+		if eng is EnginePiston:
+			eng.oil_temp_k = 355.0  # warmed up: 180 F oil, 380 F CHT
+			eng.cht_k = 466.0
+			eng.egt_k = 900.0
+			eng.oil_press_pa = 4.5e5
 	$Instruments/Gyros.start_running()
 	$Instruments/Compass.settle()
+	if AirlinerNodes.wanted(AircraftDef.current()):
+		AirlinerNodes.start_state(fdm_node.fdm, (_cold or _stand_ref != "") and _air_ft <= 0.0, _air_ft > 0.0)
+		if _air_ft <= 0.0:
+			AirlinerNodes.settle_on_ground(fdm_node.fdm)
+			fdm_node._snap()
 	if (_cold or _stand_ref != "") and _air_ft <= 0.0:  # parked at a stand = always cold & dark
 		_cold_and_dark()
 	$Systems/Failures.restart()
+	$Systems/Icing.reset()
 	$Training.restart()
 
 
@@ -151,23 +174,24 @@ func _reset() -> void:
 func _load_aircraft() -> void:
 	var s: Dictionary = Session.setup
 	var mb := fdm_node.fdm.mb
-	for t in mb.tanks:
-		t.contents_kg = minf(float(s.fuel_gal) * 2.72, t.capacity_kg)
-	mb.set_payload("Co-Pilot", float(s.copilot_kg))
-	mb.set_payload("Left Passenger", float(s.rear_kg) * 0.5)
-	mb.set_payload("Right Passenger", float(s.rear_kg) * 0.5)
-	mb.set_payload("Baggage", float(s.baggage_kg))
+	var pl := AircraftDef.current().section("payload")
+	var fuel := WeightBalance.fuel_per_tank({"payload": pl}, AircraftDef.current().config(), float(s.fuel_gal))  # per tank (gal) or total (kg)
+	for i in mb.tanks.size():
+		mb.tanks[i].contents_kg = minf(fuel[i], mb.tanks[i].capacity_kg)
+	var masses := WeightBalance.station_masses(pl, s)
+	for n in masses:
+		mb.set_payload(n, masses[n])
 
 
 ## Everything off, parked: the real pre-flight starting state.
 func _cold_and_dark() -> void:
-	var f := fdm_node.fdm
-	f.prop.rpm = 0.0
-	f.engine.running = false
-	f.engine.oil_temp_k = 300.0
-	f.engine.cht_k = 300.0
-	f.engine.egt_k = 300.0
-	f.engine.oil_press_pa = 0.0
+	for u in fdm_node.fdm.units:
+		u.thruster.rpm = 0.0
+		u.engine.running = false
+		u.engine.oil_temp_k = 300.0
+		u.engine.cht_k = 300.0
+		u.engine.egt_k = 300.0
+		u.engine.oil_press_pa = 0.0
 	for k in ["master_bat", "master_alt", "avionics", "pitot_heat"]:
 		Props.set_v("controls/electrical/" + k, false)
 	for k in ["beacon", "nav", "strobe", "taxi", "landing"]:

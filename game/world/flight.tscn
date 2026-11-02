@@ -1,15 +1,15 @@
-[gd_scene load_steps=54 format=3]
+[gd_scene load_steps=56 format=3]
 
 [ext_resource type="Script" path="res://world/flight.gd" id="1"]
 [ext_resource type="Script" path="res://world/terrain_quadtree.gd" id="2"]
 [ext_resource type="Script" path="res://fdm/fdm_node.gd" id="3"]
-[ext_resource type="Script" path="res://aircraft/c172/c172_model.gd" id="4"]
+[ext_resource type="Script" path="res://aircraft/aircraft_model.gd" id="4"]
 [ext_resource type="Script" path="res://ui/camera_rig.gd" id="5"]
 [ext_resource type="Script" path="res://world/airport_builder.gd" id="6"]
 [ext_resource type="Script" path="res://input/keyboard_controls.gd" id="7"]
 [ext_resource type="Script" path="res://ui/hud.gd" id="8"]
 [ext_resource type="Script" path="res://ui/perf_overlay.gd" id="9"]
-[ext_resource type="Script" path="res://aircraft/c172/aircraft_audio.gd" id="10"]
+[ext_resource type="Script" path="res://aircraft/common/aircraft_audio.gd" id="10"]
 
 [ext_resource type="Script" path="res://systems/pitot_static.gd" id="11"]
 [ext_resource type="Script" path="res://systems/vacuum.gd" id="12"]
@@ -48,6 +48,8 @@
 [ext_resource type="Script" path="res://ui/replay_bar.gd" id="46"]
 [ext_resource type="Script" path="res://world/touchdown_fx.gd" id="47"]
 [ext_resource type="Script" path="res://training/training_session.gd" id="48"]
+[ext_resource type="Script" path="res://systems/aircraft_systems.gd" id="49"]
+[ext_resource type="Script" path="res://systems/icing.gd" id="icing_sys"]
 
 [sub_resource type="ShaderMaterial" id="sky_mat"]
 shader = ExtResource("28")
@@ -131,6 +133,9 @@ script = ExtResource("31")
 
 [node name="Systems" type="Node" parent="."]
 
+[node name="AircraftSystems" type="Node" parent="Systems"]
+script = ExtResource("49")
+
 [node name="Electrical" type="Node" parent="Systems"]
 script = ExtResource("18")
 
@@ -142,6 +147,9 @@ script = ExtResource("11")
 
 [node name="Vacuum" type="Node" parent="Systems"]
 script = ExtResource("12")
+
+[node name="Icing" type="Node" parent="Systems"]
+script = ExtResource("icing_sys")
 
 [node name="Failures" type="Node" parent="Systems"]
 script = ExtResource("37")

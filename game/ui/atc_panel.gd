@@ -59,7 +59,7 @@ func _try_init() -> void:
 	if ground_ops.airports.data != null:
 		rw = ground_ops.airports.data.runways
 	session = AtcSession.new()
-	session.setup(AtcWorld.make_env(nav.db.airports, nav.db.coms, rw, ground_ops.ops.data), AtcWorld.make_hooks(ground_ops))
+	session.setup(AtcWorld.make_env(nav.db.airports, nav.db.coms, rw, ground_ops.ops.data, nav.db.ils), AtcWorld.make_hooks(ground_ops))
 
 
 func _process(dt: float) -> void:

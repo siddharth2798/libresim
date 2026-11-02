@@ -13,6 +13,10 @@ libresim itself is licensed under **GPL-2.0-or-later** (see `LICENSE`). Licence 
   - Source: the FlightGear c172p project, https://github.com/c172p-team/c172p (tag `version/2024.1.3`). Licence: GPL-2.0-or-later.
   - Authors: originally by David Megginson; maintained by the c172p team: Gilberto Agostinho, Wayne Bragg, Juan Vera del Campo, onox, Fernando Barbosa, Daniel Dubreuil, Jonathan Redpath, Jonathan Schellhase, Tuomas Kuosmanen, Anders Gidenstam, Waldo Kitty, algefaen, Horacio, D-ECHO, Jarl Arntzen, Benedikt Hallinger, Sascha Reißner, Josh Davidson and others.
   - libresim converted these to glTF and modified them; the unmodified source is in `third_party/c172p/`.
+- **Airbus A320 flight-model, engine and systems data (A320 pack, in development):**
+  - Source: the FlightGear A320-family project, https://github.com/legoboyvdlp/A320-family (branch `dev`, commit `fec1ecba767c8fffd145337b27012e89c01e3ade`). Licence: **GPL-2.0 only** (the combined A320 pack is therefore GPL-2.0).
+  - Copyright (c) 2025 Josh Davidson, Jonathan Redpath, merspieler, Matthew Maring, Thorsten Herrmann, Semir Gebran. Authors named in the project: Josh Davidson (Octal450), Jonathan Redpath (legoboyvdlp), Nia, Matthew Maring (mattmaring), Thorsten Herrmann (TH-555), Semir Gebran (CaptB) and Andrea Vezzali (vezza). The aircraft the project is based on is credited upstream to Immersive Design Group.
+  - libresim converts the JSBSim flight-dynamics and engine files to JSON (`tools/06_jsbsim_to_json.py`) and modifies them; notices and change log in `third_party/a320-family/SOURCE.md`. No sounds, fonts, Nasal code, airline liveries or FlyByWire material from that project are used. "Airbus" and "A320" are trademarks of Airbus; libresim is not affiliated with or endorsed by Airbus, an airline or an engine maker, and uses a generic livery.
 - **Propeller blade model:** Syd Adams and Heiko Schulz (c182s project), GPL-2.0, via the c172p team.
 - **Flight-model data:** JSBSim `c172p` aircraft, `engIO360C` engine and `prop_75in2f` propeller, by the JSBSim Team and contributors (https://github.com/JSBSim-Team/jsbsim), LGPL-2.1. libresim converted them to JSON and retuned them (`tools/06_jsbsim_to_json.py`).
 - **JSBSim authors:** the JSBSim project names Jon S. Berndt (primary architect), Agostino De Marco, Tony Peden and David Megginson among its principal authors (see its `AUTHORS` file). The header of the `c172p` aircraft file gives its author as unknown.
@@ -41,6 +45,15 @@ All sounds are real recordings, listed file by file in `game/aircraft/c172/sound
 - **Primer:** by **coltures**, CC0.
 - **Flap motor, tyres, switches and doors:** c172p team, GPL-2.0-or-later.
 - **Wind, rumble, squeal, rain, avionics fan:** FlightGear fgdata contributors (https://gitlab.com/flightgear/fgdata), GPL-2.0 (fgdata states no "or later").
+
+**A320 pack sounds** (all CC0 / CC-BY, listed file by file in `game/aircraft/a320/sounds/SOURCES.md`; trimmed, filtered, resampled and normalised, changes made):
+- **Turbojet start, idle, power, whine, shutdown:** "SaabJ35D Draken - start engine and taxiing" by **Work With Sounds / Torsten Nilsson** (provided to Wikimedia Commons in a project with Wikimedia Sverige), CC BY 4.0, https://commons.wikimedia.org/wiki/File:WWS_SaabJ35DDrakenstartengineandtaxiing.ogg
+- **Reverse-thrust roar:** "LAX AIRPORT! LANDING SOUND LA CITY SOUNDS" by **freetousesounds** (Marcel), CC BY 4.0, https://opengameart.org/content/lax-airport-landing-sound-la-city-sounds
+- **Cabin air conditioning:** "air conditioner hum 2" by **Gravity Sound**, CC BY 4.0, https://commons.wikimedia.org/wiki/File:Air_conditioner_hum_2_(Gravity_Sound).wav
+- **Hydraulic pump:** "Pump" by **Work With Sounds / La Fonderie**, CC BY 4.0, https://commons.wikimedia.org/wiki/File:WWS_Pump.ogg
+- **Landing-gear actuation:** "Hoist" by **Work With Sounds / Torsten Nilsson**, CC BY 4.0, https://commons.wikimedia.org/wiki/File:WWS_Hoist.ogg
+- **Seat-belt chime:** "Airplane Chime Sound Effect" by **Sharelk**, CC0, https://commons.wikimedia.org/wiki/File:Airplane_Chime_Sound_Effect.ogg
+- The A320 also reuses C172 sound files (wind, rain, tyres, flap motor, clicks, lever), credited above. No sound from the A320-family upstream project is used.
 
 ### Engine (runtime)
 - **Godot Engine 4.7** (https://godotengine.org), MIT licence, © Juan Linietsky, Ariel Manzur and Godot Engine contributors. Godot bundles third-party components (FreeType, HarfBuzz, Vulkan loader, fonts and others); their licences are listed in full on the in-game credits screen (taken from the engine itself).

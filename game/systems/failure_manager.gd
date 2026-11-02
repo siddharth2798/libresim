@@ -24,9 +24,10 @@ func restart() -> void:
 	armed.clear()
 	Props.set_v("failures/event", "")
 	var s: Dictionary = Session.setup
+	var known := FailureCatalog.all_ids()
 	for id in s.failures:
 		var f: Array = s.failures[id]
-		if int(f[0]) > 0:
+		if int(f[0]) > 0 and id in known:  # (a saved failure of another aircraft is ignored)
 			armed.append({"id": id, "mode": int(f[0]), "value": float(f[1]), "random": false})
 	var r: Dictionary = s.random
 	if r.enabled:

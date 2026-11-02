@@ -49,6 +49,7 @@ func _process(dt: float) -> void:
 	var base_m := Units.ft_to_m(Props.get_f("weather/cloud_base_ft", 4500.0))
 	var precip := Props.get_f("weather/precip")
 	var rain := local_rate(precip, _t, _seed, cam_w.z, base_m)
+	rain = minf(rain * (1.0 + 0.6 * Props.get_f("environment/storm_intensity")), 1.0)  # heavier under a storm cell
 	Props.set_v("environment/precip", rain)
 	# wet ground lags the rain: starts wet if the weather was set rainy
 	if _wet < 0.0:
