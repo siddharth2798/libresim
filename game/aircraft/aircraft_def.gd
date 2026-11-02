@@ -19,7 +19,7 @@ extends RefCounted
 ##            flight_no, callsign_style: "airline"}: how ATC talks to the aircraft (atc/atc_profile.gd)
 ##   short_name  the aircraft on the start-screen chips (name is the full title, preview.jpg the picture)
 ##   cameras  chase / wing / tail / orbit view positions (ui/camera_rig.gd), see camera()
-##   registration  tail number painted at flight start: {source: callsign | fixed, text, texture, targets: [{erase, text, align, color, italic}]} (common/registration_paint.gd)
+##   registration  tail number painted at flight start: {source: callsign | fixed, text, texture, targets: [{erase, text, align, color, italic, rotate, erase_axis, texture}]} (common/registration_paint.gd; the C172 also repaints its wing undersides)
 ##   start    pitch_trim of a parked start; air {alt_ft, dist_nm, kias, gear "up"|"down", flaps (detent), limits {alt_ft, dist_nm: [min, max]}}
 ##            the default "In the air" start (height, distance on final, speed, config; aircraft/air_start.gd derives what is
 ##            missing, air_start() returns it); air_kt is the older spelling of air.kias

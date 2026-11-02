@@ -7,10 +7,14 @@ extends RefCounted
 ##   targets  [{"erase": [x,y,w,h]   pixels of the old number (plus a margin) to wipe,
 ##              "text": [x,y,w,h]     box the new number is fitted into (aspect kept),
 ##              "align": "left|right|center", "color": [r,g,b] 0..1, "italic": true,
-##              "rotate": 180   the atlas island is upside down (the A320's other fuselage side): the text is turned}]
-## The old number is wiped by interpolating the clean rows just above and below it (the paint is white
+##              "rotate": 90 | 180 | 270   the atlas island is turned (180: the A320's other fuselage side; 90: the C172's wing
+##                        undersides, the number runs down the strip): the text is turned clockwise by this much,
+##              "erase_axis": "y" (default) | "x"   wipe by interpolating between the clean rows above and below the number,
+##                        or, for a vertical number, between the clean columns left and right of it,
+##              "texture": another atlas than the section's (the C172's wing atlas), relative to the aircraft folder}]
+## The old number is wiped by interpolating the clean pixels on both sides of it (the paint is white
 ## with a soft gradient), the new one is drawn once with a Label in a one-shot SubViewport and blended
-## in. The edited atlas is an ImageTexture cached per (aircraft, text) and set as a surface override
+## in. Each edited atlas is an ImageTexture cached per (aircraft, text, atlas) and set as a surface override
 ## on the glb's surfaces that use the atlas; the file on disk is never changed. A renderer without
 ## pixels (headless / dummy) returns an empty image: the model then keeps the original number.
 
@@ -41,6 +45,7 @@ static func plan(section: Dictionary, text: String) -> Array:
 		out.append({
 			"text": t, "erase": _rect(tg.erase), "box": _rect(tg.text), "align": str(tg.get("align", "left")),
 			"color": Color(c[0], c[1], c[2]), "italic": bool(tg.get("italic", true)), "rotate": int(tg.get("rotate", 0)),
+			"erase_axis": str(tg.get("erase_axis", "y")), "texture": str(tg.get("texture", section.get("texture", ""))),
 		})
 	return out
 
@@ -65,8 +70,20 @@ static func fit(box: Rect2i, align: String, src: Vector2i) -> Rect2i:
 
 
 ## Wipe a rectangle: each column is the straight line between the pixel row just above and just below
-## it, so the gradient of the paint carries through. Needs one clean row on both sides.
-static func erase(img: Image, r: Rect2i) -> void:
+## it, so the gradient of the paint carries through. Needs one clean row on both sides. axis "x": each
+## row is the line between the column just left and just right of it (a vertical number).
+static func erase(img: Image, r: Rect2i, axis := "y") -> void:
+	if axis == "x":
+		var x0 := r.position.x - 1
+		var x1 := r.end.x
+		if x0 < 0 or x1 >= img.get_width():
+			return
+		for y in range(maxi(r.position.y, 0), mini(r.end.y, img.get_height())):
+			var a := img.get_pixel(x0, y)
+			var b := img.get_pixel(x1, y)
+			for x in range(r.position.x, r.end.x):
+				img.set_pixel(x, y, a.lerp(b, float(x - x0) / float(x1 - x0)))
+		return
 	var y0 := r.position.y - 1
 	var y1 := r.end.y
 	if y0 < 0 or y1 >= img.get_height():
@@ -88,27 +105,44 @@ static func stamp(img: Image, glyphs: Image, rect: Rect2i, color: Color) -> void
 	img.blend_rect(g, Rect2i(Vector2i.ZERO, g.get_size()), rect.position)
 
 
-static func cache_key(aircraft_id: String, text: String) -> String:
-	return aircraft_id + "|" + text.strip_edges().to_upper()
+## `atlas`: the target's own atlas when it is not the section's ("" = the section's).
+static func cache_key(aircraft_id: String, text: String, atlas := "") -> String:
+	return aircraft_id + "|" + text.strip_edges().to_upper() + ("|" + atlas if atlas != "" else "")
 
 
 ## The finished texture of an earlier build of this (aircraft, text), else null.
-static func cached(aircraft_id: String, text: String) -> Texture2D:
-	return _cache.get(cache_key(aircraft_id, text))
+static func cached(aircraft_id: String, text: String, atlas := "") -> Texture2D:
+	return _cache.get(cache_key(aircraft_id, text, atlas))
 
 
-## The edited atlas for this registration (cached); null when the plan is empty or nothing could be
-## drawn. Awaits one rendered frame the first time.
-static func texture(host: Node, aircraft_id: String, section: Dictionary, atlas: Texture2D, text: String) -> Texture2D:
-	var key := cache_key(aircraft_id, text)
+## The glyph image turned clockwise by 0 / 90 / 180 / 270 degrees.
+static func turned(g: Image, deg: int) -> Image:
+	var out := g.duplicate() as Image
+	match posmod(deg, 360):
+		90: out.rotate_90(CLOCKWISE)
+		180: out.rotate_180()
+		270: out.rotate_90(COUNTERCLOCKWISE)
+	return out
+
+
+## The edited atlas for this registration (cached): `atlas_rel` is the atlas file relative to the aircraft
+## folder, "" for the section's own; null when no target paints on it or nothing could be drawn. Awaits one
+## rendered frame per glyph style the first time.
+static func texture(host: Node, aircraft_id: String, section: Dictionary, atlas: Texture2D, text: String, atlas_rel := "") -> Texture2D:
+	var own := str(section.get("texture", ""))
+	var rel := own if atlas_rel == "" else atlas_rel
+	var key := cache_key(aircraft_id, text, "" if rel == own else rel)
 	if _cache.has(key):
 		return _cache[key]
-	var steps := plan(section, text)
+	var steps := plan(section, text).filter(func(s): return s.texture == rel)
 	if steps.is_empty() or atlas == null:
 		return null
-	var glyphs := await render_glyphs(host, text.to_upper(), true)
-	if glyphs == null:
-		return null
+	var glyphs := {}  # italic -> image
+	for s in steps:
+		if not glyphs.has(s.italic):
+			glyphs[s.italic] = await render_glyphs(host, text.to_upper(), s.italic)
+		if glyphs[s.italic] == null:
+			return null
 	var img := atlas.get_image()
 	if img == null or img.is_empty():
 		return null
@@ -116,12 +150,9 @@ static func texture(host: Node, aircraft_id: String, section: Dictionary, atlas:
 		img.decompress()
 	img.convert(Image.FORMAT_RGBA8)
 	for s in steps:
-		erase(img, s.erase)
+		erase(img, s.erase, s.erase_axis)
 	for s in steps:
-		var g := glyphs
-		if int(s.get("rotate", 0)) == 180:
-			g = glyphs.duplicate()
-			g.rotate_180()
+		var g := turned(glyphs[s.italic], int(s.get("rotate", 0)))
 		stamp(img, g, fit(s.box, s.align, g.get_size()), s.color)
 	img.generate_mipmaps()
 	var tex := ImageTexture.create_from_image(img)
@@ -164,18 +195,27 @@ static func render_glyphs(host: Node, text: String, italic: bool) -> Image:
 	return img.get_region(used)
 
 
-## Called from AircraftModel.build() once the exterior glb is in the tree: repaints the atlas.
+## Called from AircraftModel.build() once the exterior glb is in the tree: repaints every atlas a target names.
 static func apply(host: Node, glb_root: Node, def: AircraftDef) -> void:
 	var section := def.section("registration")
 	var text := text_for(section)
-	if text == "" or not section.get("texture") is String:
+	if text == "":
 		return
-	var tex_path: String = def.dir + "/" + str(section.texture)
-	if not ResourceLoader.exists(tex_path):
-		return
-	var tex: Texture2D = await texture(host, def.id, section, load(tex_path) as Texture2D, text)
-	if tex == null or not is_instance_valid(glb_root):
-		return
+	var rels := []  # the atlases the targets paint on
+	for st in plan(section, text):
+		if st.texture != "" and not rels.has(st.texture):
+			rels.append(st.texture)
+	for rel in rels:
+		var tex_path: String = def.dir + "/" + rel
+		if not ResourceLoader.exists(tex_path):
+			continue
+		var tex: Texture2D = await texture(host, def.id, section, load(tex_path) as Texture2D, text, rel)
+		if tex == null or not is_instance_valid(glb_root):
+			continue
+		_override(glb_root, tex_path, tex)
+
+
+static func _override(glb_root: Node, tex_path: String, tex: Texture2D) -> void:
 	for mi in glb_root.find_children("*", "MeshInstance3D", true, false):
 		var m := mi as MeshInstance3D
 		if m.mesh == null:

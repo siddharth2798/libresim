@@ -25,7 +25,11 @@
 	"cameras": {"chase": [16.0, 4.0], "wing": [-5.6, 0.9, 1.6], "tail": [0.0, 2.4, 6.8], "orbit_m": 18.0},
 	"registration": {"source": "callsign", "texture": "models/exterior_fuselage.png", "targets": [
 		{"erase": [1322, 296, 256, 74], "text": [1330, 302, 240, 62], "align": "center", "color": [0.64, 0.647, 0.625], "italic": true},
-		{"erase": [302, 1402, 256, 74], "text": [310, 1408, 240, 62], "align": "center", "color": [0.64, 0.647, 0.625], "italic": true}]},
+		{"erase": [302, 1402, 256, 74], "text": [310, 1408, 240, 62], "align": "center", "color": [0.64, 0.647, 0.625], "italic": true},
+		{"texture": "models/exterior_wing.png", "rotate": 90, "erase_axis": "x", "erase": [164, 147, 104, 356], "text": [172, 153, 88, 343],
+			"align": "center", "color": [0.0, 0.15, 0.43], "italic": false},
+		{"texture": "models/exterior_wing.png", "rotate": 90, "erase_axis": "x", "erase": [169, 1542, 100, 356], "text": [175, 1548, 88, 343],
+			"align": "center", "color": [0.0, 0.15, 0.43], "italic": false}]},
 	"start": {"pitch_trim": -0.05,
 		"air": {"alt_ft": 1500, "dist_nm": 5.0, "kias": 90, "gear": "down", "flaps": 0,
 			"limits": {"alt_ft": [300, 12000], "dist_nm": [1, 25]}}},

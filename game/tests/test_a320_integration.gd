@@ -220,8 +220,8 @@ func test_a320_registration_plan_both_sides() -> String:
 	if text != "VT-ZZA" or p.size() != 2 or p[0].rotate != 0 or p[1].rotate != 180 or p[0].erase == p[1].erase:
 		return "plan %s" % [p]
 	var c := RegistrationPaint.plan(AircraftDef.load_def("c172").section("registration"), "VT-ABC")
-	if c.size() != 2 or c[0].rotate != 0 or c[1].rotate != 0:
-		return "c172 plan"
+	if c.size() != 4 or c[0].rotate != 0 or c[1].rotate != 0 or c[2].rotate != 90 or c[3].rotate != 90:
+		return "c172 plan: two fuselage sides, then the two wing undersides turned 90: %s" % [c]
 	return ""
 
 

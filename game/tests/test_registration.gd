@@ -107,13 +107,96 @@ func test_registration_cache_is_per_aircraft_and_text() -> String:
 
 
 func test_registration_c172_data() -> String:
-	var s := AircraftDef.load_def("c172").section("registration")
+	var def := AircraftDef.load_def("c172")
+	var s := def.section("registration")
 	var p := RegistrationPaint.plan(s, "VT-FSM")
-	if s.get("source") != "callsign" or p.size() != 2:
-		return "c172 registration section: %s" % [s]
-	var tex := load(AircraftDef.load_def("c172").dir + "/" + str(s.texture)) as Texture2D
-	var img := tex.get_image()
+	if s.get("source") != "callsign" or p.size() != 4:
+		return "c172 registration section: fuselage sides and both wing undersides expected: %s" % [s]
 	for t in p:
+		var path: String = def.dir + "/" + t.texture
+		if not ResourceLoader.exists(path):
+			return "atlas %s does not exist" % path
+		var img := (load(path) as Texture2D).get_image()
 		if not Rect2i(Vector2i.ZERO, img.get_size()).encloses(t.erase) or not t.erase.encloses(t.box):
 			return "rectangles outside the atlas / the box outside the wiped area: %s" % [t]
+		var strip: Rect2i = t.erase if t.erase_axis == "x" else Rect2i()
+		if t.erase_axis == "x" and (strip.position.x < 1 or strip.end.x >= img.get_width()):
+			return "an x-axis wipe needs a clean column on both sides: %s" % [t]
+	return ""
+
+
+func test_registration_target_atlas_rotation_and_axis_in_the_plan() -> String:
+	var sec := {"texture": "a.png", "targets": [
+		{"erase": [0, 0, 10, 10], "text": [1, 1, 8, 8]},
+		{"erase": [0, 0, 10, 10], "text": [1, 1, 8, 8], "texture": "b.png", "rotate": 90, "erase_axis": "x"}]}
+	var p := RegistrationPaint.plan(sec, "ab")
+	if p[0].texture != "a.png" or p[0].erase_axis != "y" or p[0].rotate != 0:
+		return "defaults: the section's atlas, wipe along y, no rotation: %s" % [p[0]]
+	if p[1].texture != "b.png" or p[1].erase_axis != "x" or p[1].rotate != 90:
+		return "own atlas, x wipe, 90 degrees: %s" % [p[1]]
+	if RegistrationPaint.cache_key("c172", "vt-a") != "c172|VT-A" or RegistrationPaint.cache_key("c172", "vt-a", "b.png") != "c172|VT-A|b.png":
+		return "cache key: %s %s" % [RegistrationPaint.cache_key("c172", "vt-a"), RegistrationPaint.cache_key("c172", "vt-a", "b.png")]
+	return ""
+
+
+func test_registration_erase_along_x_interpolates_between_the_side_columns() -> String:
+	var img := Image.create(12, 4, false, Image.FORMAT_RGBA8)
+	img.fill(Color.WHITE)
+	for y in 4:
+		img.set_pixel(0, y, Color(0.0, 0.0, 0.0))  # left of the wiped rectangle
+		img.set_pixel(11, y, Color(1.0, 1.0, 1.0))
+		for x in range(2, 10):
+			img.set_pixel(x, y, Color(1, 0, 0))  # the old number
+	RegistrationPaint.erase(img, Rect2i(1, 0, 10, 4), "x")
+	for x in range(1, 11):
+		var want := float(x) / 11.0
+		var got := img.get_pixel(x, 2)
+		if absf(got.r - want) > 0.02 or absf(got.g - want) > 0.02:
+			return "column %d: %s, want grey %.2f" % [x, got, want]
+	var edge := Image.create(6, 6, false, Image.FORMAT_RGBA8)
+	edge.fill(Color(0.3, 0.3, 0.3))
+	var before := edge.get_pixel(1, 1)  # 8 bit: not exactly 0.3
+	RegistrationPaint.erase(edge, Rect2i(0, 0, 3, 3), "x")  # no clean column to the left: a no-op
+	if edge.get_pixel(1, 1) != before:
+		return "an x wipe at the image edge changed pixels"
+	return ""
+
+
+func test_registration_turned_glyphs() -> String:
+	var g := Image.create(4, 2, false, Image.FORMAT_RGBA8)
+	g.set_pixel(0, 0, Color.RED)  # top-left
+	var cw := RegistrationPaint.turned(g, 90)
+	if cw.get_size() != Vector2i(2, 4) or cw.get_pixel(1, 0) != Color.RED:
+		return "90 clockwise: top-left goes to top-right, size %s" % [cw.get_size()]
+	var ccw := RegistrationPaint.turned(g, 270)
+	if ccw.get_size() != Vector2i(2, 4) or ccw.get_pixel(0, 3) != Color.RED:
+		return "270: top-left goes to bottom-left"
+	var half := RegistrationPaint.turned(g, 180)
+	if half.get_size() != Vector2i(4, 2) or half.get_pixel(3, 1) != Color.RED:
+		return "180: top-left goes to bottom-right"
+	if RegistrationPaint.turned(g, 0).get_pixel(0, 0) != Color.RED or g.get_size() != Vector2i(4, 2):
+		return "0 degrees / the source image must stay as it was"
+	return ""
+
+
+## Every atlas a registration target paints on is used by a surface of the exterior model, so the override lands.
+func test_registration_every_target_atlas_is_on_the_exterior_model() -> String:
+	for id in AircraftDef.list_ids():
+		var def := AircraftDef.load_def(id)
+		var plan := RegistrationPaint.plan(def.section("registration"), "VT-FSM")
+		if plan.is_empty() or not ResourceLoader.exists(def.path("exterior")):
+			continue
+		var root := (load(def.path("exterior")) as PackedScene).instantiate()
+		var used := {}
+		for mi in root.find_children("*", "MeshInstance3D", true, false):
+			var m := mi as MeshInstance3D
+			for i in (m.mesh.get_surface_count() if m.mesh != null else 0):
+				var mat := m.get_active_material(i) as BaseMaterial3D
+				if mat != null and mat.albedo_texture != null:
+					used[mat.albedo_texture.resource_path] = true
+		root.free()
+		for st in plan:
+			var path: String = def.dir + "/" + st.texture
+			if not used.has(path):
+				return "%s: no surface of the exterior model uses %s (registration would not show)" % [id, path]
 	return ""
