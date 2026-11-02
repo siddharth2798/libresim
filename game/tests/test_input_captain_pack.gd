@@ -3,8 +3,11 @@ extends RefCounted
 ## profile (core/input_profiles.gd) on Linux and macOS. No hardware needed.
 
 const TMP := "user://test_captain_pack.json"
-const SIDESTICK := {"id": 0, "name": "Thrustmaster TCA Sidestick Airbus Edition", "guid": "g-stick"}
-const QUADRANT := {"id": 1, "name": "TCA Quadrant Airbus Edition", "guid": "g-quad"}
+const FX := preload("res://tests/generic_fixtures.gd")
+const SIDESTICK := {"id": 0, "name": "Thrustmaster TCA Sidestick X Copilot", "guid": "g-stick"}
+const QUADRANT := {"id": 1, "name": "Thrustmaster TCA Q-Eng 1&2", "guid": "g-quad"}
+const JET_GROUPS := ["throttle", "trim", "flaps", "brakes", "parking_brake", "thrust_levers", "reverse",
+	"speedbrake", "engine_master", "engine_mode"]
 
 
 func _near(a: float, b: float, tol := 1e-4) -> bool:
@@ -49,9 +52,9 @@ func test_captain_pick_device() -> String:
 	var pads := [SIDESTICK, QUADRANT]
 	if InputBindings.pick_device({"name": "sidestick", "device": 5}, pads) != 0:
 		return "name match missed the sidestick"
-	if InputBindings.pick_device({"name": "QUADRANT"}, pads) != 1:
+	if InputBindings.pick_device({"name": "Q-ENG"}, pads) != 1:
 		return "name match is case-sensitive"
-	if InputBindings.pick_device({"name": "quadrant", "guid": "g-stick"}, pads) != 0:
+	if InputBindings.pick_device({"name": "q-eng", "guid": "g-stick"}, pads) != 0:
 		return "guid should win over name"
 	if InputBindings.pick_device({"name": "sidestick", "device": 0}, [QUADRANT]) != -1:
 		return "unplugged named pad must not fall back to another pad's index"
@@ -71,12 +74,21 @@ func test_captain_profile_per_os() -> String:
 		for a in ["roll", "pitch", "yaw", "brakes", "flaps_up", "flaps_down"]:
 			if d[a].name != "sidestick" or InputBindings.describe(d[a]) == "—":
 				return "%s: %s should be on the sidestick" % [os_name, a]
-		for a in ["throttle", "mixture"]:
-			if d[a].name != "quadrant" or d[a].axis < 0 or d[a].range != "half":
+		for a in ["throttle", "mixture", "speedbrake"]:
+			if d[a].name != "q-eng" or d[a].axis < 0 or d[a].range != "half":
 				return "%s: %s should be a half-range quadrant lever" % [os_name, a]
+		if d.throttle.lo >= d.throttle.hi or d.mixture.axis == d.throttle.axis:
+			return "%s: throttle needs a calibration and its own lever" % os_name
+		for a in ["starter", "parking_brake_switch", "magnetos_switch", "engine_master_1_switch", "engine_master_2_switch"]:
+			if d[a].name != "q-eng" or d[a].button < 0:
+				return "%s: %s should be a quadrant switch" % [os_name, a]
+		if d.starter.button == d.magnetos_switch.button or d.trim_up.button == d.trim_down.button:
+			return "%s: two actions share a button" % os_name
+		if d.flaps_lever.name != "q-eng" or d.flaps_lever.axis < 0 or d.flaps_lever.detents.size() != 5:
+			return "%s: the flaps lever needs five notches" % os_name
 		if d.pitch.get("invert", false):
 			return "%s: pitch must not be inverted" % os_name
-		if d.brake_left.axis != -1 or d.starter.button != -1:
+		if d.brake_left.axis != -1 or d.magnetos_next.button != -1:
 			return "%s: unlisted actions should stay unbound" % os_name
 		var swapped := [SIDESTICK.merged({"id": 1}, true), QUADRANT.merged({"id": 0}, true)]  # plug-in order must not matter
 		if InputBindings.pick_device(d.roll, swapped) != 1 or InputBindings.pick_device(d.throttle, swapped) != 0:
@@ -102,14 +114,172 @@ func test_captain_profile_os_overrides() -> String:
 
 func test_captain_profile_roundtrip() -> String:
 	var t := InputBindings.defaults(InputProfiles.CAPTAIN_PACK, "Linux")
+	t.flaps_lever.detents = [-1.0, 0.0, 1.0]
 	t.throttle.lo = -0.35
 	t.throttle.hi = 0.9
 	if not InputBindings.save_to(t, TMP):
 		return "save failed"
 	var r := InputBindings.load_from(TMP)
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(TMP))
-	if r.throttle.name != "quadrant" or not _near(r.throttle.lo, -0.35) or not _near(r.throttle.hi, 0.9):
+	if r.throttle.name != "q-eng" or not _near(r.throttle.lo, -0.35) or not _near(r.throttle.hi, 0.9):
 		return "name / calibration lost on save and load"
 	if typeof(r.roll.axis) != TYPE_INT or typeof(r.brakes.button) != TYPE_INT:
 		return "indices not int after load"
+	if r.flaps_lever.detents != [-1.0, 0.0, 1.0] or r.parking_brake_switch.button != t.parking_brake_switch.button:
+		return "flaps lever notches / switch lost on save and load"
+	return ""
+
+
+func test_captain_detents_and_flaps_lever() -> String:
+	var d: Array = InputProfiles.PROFILES[InputProfiles.CAPTAIN_PACK].quadrant.axes.flaps_lever.detents
+	for p in [[-1.0, 0], [-0.9, 0], [-0.49, 1], [-0.3, 1], [-0.06, 2], [0.1, 2], [0.44, 3], [0.7, 3], [0.75, 4], [1.0, 4], [5.0, 4]]:
+		if InputBindings.detent_index(p[0], d) != p[1]:
+			return "raw %f -> notch %d, want %d" % [p[0], InputBindings.detent_index(p[0], d), p[1]]
+	if InputBindings.detent_index(0.3, []) != 0:
+		return "empty detent list should give notch 0"
+	var j := JoystickControls.new()
+	var old = Props.get_v("fdm/flap_detents", 4)
+	Props.set_v("fdm/flap_detents", 4)  # the C172: flaps 0..3, FULL stays at 3
+	Props.set_v("controls/flaps", 0)
+	j.flap_notch(0)  # first read only records the lever, so the sim's setting is untouched
+	Props.set_v("controls/flaps", 2)
+	j.flap_notch(0)
+	var untouched: int = Props.get_v("controls/flaps")
+	j.flap_notch(1)
+	var one: int = Props.get_v("controls/flaps")
+	j.flap_notch(3)
+	var three: int = Props.get_v("controls/flaps")
+	j.flap_notch(4)
+	var full_c172: int = Props.get_v("controls/flaps")
+	Props.set_v("fdm/flap_detents", 5)  # an airliner with a FULL notch
+	j.flap_notch(3)
+	j.flap_notch(4)
+	var full_jet: int = Props.get_v("controls/flaps")
+	Props.set_v("controls/flaps", 0)
+	Props.set_v("fdm/flap_detents", old)
+	j.free()
+	if untouched != 2:
+		return "an unchanged lever overwrote the flaps"
+	if one != 1 or three != 3:
+		return "lever move did not set flaps: %d, %d" % [one, three]
+	return "" if full_c172 == 3 and full_jet == 4 else "FULL notch: C172 %d (want 3), jet %d (want 4)" % [full_c172, full_jet]
+
+
+func test_captain_level_switches() -> String:
+	Props.set_v("controls/parking_brake", false)
+	Props.set_v("controls/magnetos", 3)
+	Props.set_v("controls/engine_master_1", false)
+	ControlSteps.level("parking_brake_switch", true)
+	var on := Props.get_b("controls/parking_brake")
+	ControlSteps.level("parking_brake_switch", false)
+	var off := not Props.get_b("controls/parking_brake")
+	ControlSteps.level("magnetos_switch", false)
+	var mag_off: int = Props.get_v("controls/magnetos")
+	ControlSteps.level("magnetos_switch", true)
+	var mag_on: int = Props.get_v("controls/magnetos")
+	ControlSteps.level("engine_master_1_switch", true)
+	var master := Props.get_b("controls/engine_master_1")
+	Props.set_v("controls/engine_master_1", false)
+	if not on or not off:
+		return "parking brake switch does not follow the switch"
+	if mag_off != 0 or mag_on != 3:
+		return "magnetos switch: OFF %d, BOTH %d" % [mag_off, mag_on]
+	if not master:
+		return "engine master switch did not set the master"
+	for a in ControlActions.LEVELS:
+		if not InputBindings.BUTTONS.has(a) or ControlSteps.handles(a):
+			return "%s must be a button that is not a press action" % a
+	return ""
+
+
+func test_captain_throttle_calibrated() -> String:
+	var t := InputBindings.defaults(InputProfiles.CAPTAIN_PACK, "macOS")
+	# lever 1 rests at the idle detent (raw -0.51), reverse is below it, TOGA at +1
+	for p in [[-1.0, 0.0], [-0.51, 0.0], [-0.48, 0.0], [1.0, 1.0]]:
+		if InputBindings.shape(p[0], t.throttle) != p[1]:
+			return "throttle raw %f -> %f, want %f" % [p[0], InputBindings.shape(p[0], t.throttle), p[1]]
+	if InputBindings.shape(0.26, t.throttle) < 0.4 or InputBindings.shape(0.26, t.throttle) > 0.6:
+		return "throttle mid-travel should be about half: %f" % InputBindings.shape(0.26, t.throttle)
+	return ""
+
+
+func test_captain_throttle_with_a_reverse_range() -> String:
+	# an airliner lever: the calibrated idle splits the travel, rest = idle (not REV MAX), below = reverse
+	var t := InputBindings.defaults(InputProfiles.CAPTAIN_PACK, "macOS")
+	var lo := float(t.throttle.lo)
+	for p in [[-0.51, 0.0], [lo, 0.0], [lo - 0.05, 0.0], [1.0, 1.0], [-1.0, -1.0]]:
+		var fwd := InputBindings.shape(p[0], t.throttle)
+		var pos := LeverDetents.calibrated_pos(p[0], fwd, lo)
+		if not _near(pos, p[1]):
+			return "reverse lever raw %f -> %f, want %f" % [p[0], pos, p[1]]
+	var half := LeverDetents.calibrated_pos(-0.75, 0.0, lo)
+	if half > -0.3 or half < -0.7:
+		return "a quarter into reverse travel should be partial reverse: %f" % half
+	return ""
+
+
+func test_captain_lever_ignored_until_it_reports() -> String:
+	var j := JoystickControls.new()
+	if not j._reported(0, 0, 0.0) == false:
+		return "an unreported lever (raw exactly 0) counted as live"
+	if not j._reported(0, 0, -0.51):
+		return "a moved lever did not count as live"
+	if not j._reported(0, 0, 0.0):
+		return "a lever that has reported must stay live at 0"
+	if j._reported(0, 1, 0.0):
+		return "readiness leaked between axes"
+	j._on_joy_connection(0, false)  # a re-plug starts again
+	var again := j._reported(0, 0, 0.0)
+	j.free()
+	return "" if not again else "re-plug did not reset lever readiness"
+
+
+func test_captain_mixture_never_cut_at_rest() -> String:
+	var t := InputBindings.defaults(InputProfiles.CAPTAIN_PACK, "macOS")
+	# the speed brake lever rests at RET (raw -1): that must be full rich, not cutoff
+	if not _near(InputBindings.shape(-1.0, t.mixture), 1.0):
+		return "mixture at the lever's rest end is %f, want 1 (rich)" % InputBindings.shape(-1.0, t.mixture)
+	if InputBindings.shape(1.0, t.mixture) != 0.0:
+		return "pulling the lever fully back should lean to cutoff"
+	if t.mixture.axis == 1:
+		return "mixture is bound to throttle lever 2 (its idle detent would cut the engine)"
+	# the same lever is the speedbrake on an airliner: RET = retracted
+	if t.speedbrake.axis != t.mixture.axis or InputBindings.shape(-1.0, t.speedbrake) != 0.0 \
+			or not _near(InputBindings.shape(1.0, t.speedbrake), 1.0):
+		return "speedbrake should be the same lever, retracted at RET"
+	return ""
+
+
+func test_captain_actions_follow_the_aircraft() -> String:
+	var c172 := AircraftControls.default_set()
+	var jet := AircraftControls.for_def(AircraftDef.make("jet", {"controls": {"actions": JET_GROUPS}}, "res://aircraft/c172", FX.turbine_config()))
+	for a in ["flaps_lever", "mixture", "parking_brake_switch", "magnetos_switch", "starter"]:
+		if not c172.offers(a):
+			return "C172 should offer %s" % a
+	for a in ["speedbrake", "engine_master_1_switch", "engine_master_2_switch"]:
+		if c172.offers(a):
+			return "C172 must not offer %s" % a
+	for a in ["flaps_lever", "speedbrake", "parking_brake_switch", "engine_master_1_switch", "engine_master_2_switch"]:
+		if not jet.offers(a):
+			return "airliner should offer %s" % a
+	for a in ["mixture", "magnetos_switch", "starter"]:
+		if jet.offers(a):
+			return "airliner must not offer %s" % a
+	# the one quadrant lever never drives two controls on the same aircraft
+	var d := InputBindings.defaults(InputProfiles.CAPTAIN_PACK, "macOS")
+	for c in [c172, jet]:
+		var seen := {}
+		for a in c.axes():
+			if int(d[a].axis) >= 0:
+				var k := "%s:%d" % [d[a].name, d[a].axis]
+				if seen.has(k):
+					return "%s and %s share an axis on one aircraft" % [seen[k], a]
+				seen[k] = a
+		seen.clear()
+		for a in c.buttons():
+			if int(d[a].button) >= 0:
+				var k := "%s:%d" % [d[a].name, d[a].button]
+				if seen.has(k):
+					return "%s and %s share a button on one aircraft" % [seen[k], a]
+				seen[k] = a
 	return ""

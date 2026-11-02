@@ -72,6 +72,19 @@ static func pos_to_axis(pos: float, reverse_frac: float) -> float:
 	return (1.0 + pos) * reverse_frac if pos < 0.0 else reverse_frac + pos * (1.0 - reverse_frac)
 
 
+## A joystick lever with a reverse range whose idle detent was calibrated (binding "lo" = raw at
+## idle, input_bindings.gd): from idle up it is the shaped forward travel `fwd` (0 at idle, 1 at
+## full), below idle it is reverse, down to REV MAX at raw `raw_min`. The detent has some play
+## (IDLE_BAND of raw travel) that reads as idle, not as reverse thrust.
+const IDLE_BAND := 0.05
+
+
+static func calibrated_pos(raw: float, fwd: float, idle_raw: float, raw_min := -1.0) -> float:
+	if raw >= idle_raw - IDLE_BAND:
+		return fwd
+	return -clampf((idle_raw - IDLE_BAND - raw) / maxf(idle_raw - IDLE_BAND - raw_min, 0.05), 0.0, 1.0)
+
+
 static func clamp_pos(pos: float, reverse: bool) -> float:
 	return clampf(pos, -1.0 if reverse else 0.0, 1.0)
 

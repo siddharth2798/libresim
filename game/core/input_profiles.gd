@@ -4,15 +4,27 @@ extends RefCounted
 ## case-insensitive substring of the pad's name), so the profile applies before the
 ## hardware is plugged in and survives joypad index changes on Linux and macOS.
 ##
-## Thrustmaster TCA Captain Pack X, Airbus Edition: two separate USB pads,
-##   sidestick  roll / pitch / twist (rudder) + buttons
-##   quadrant   lever 1 -> throttle, lever 2 -> mixture (the C172 has one throttle)
-##
-## PROVISIONAL: axis and button numbers are the usual HID order, not read from the
-## hardware. Linux (evdev) and macOS (IOKit) can number the same pad differently:
-## record any difference in OS_OVERRIDES, keyed by Godot's OS.get_name(). Until
-## then, Controls -> Bind captures the real numbers, and the quadrant levers need
-## their Lo / Hi calibration (idle detent and full), which depends on the unit.
+## Thrustmaster TCA Captain Pack X, Airbus Edition, in PC mode (switch on the sidestick's
+## back). Two pads: "TCA Sidestick X Copilot", and the quadrant plugged into the Mac or hub
+## directly as "TCA Q-Eng 1&2" (it does not pass through the sidestick's USB-A ports).
+##   sidestick  roll / pitch / twist (rudder), trigger = brakes, hat = trim, base keys
+##   quadrant   lever 1 throttle, speed brake lever = mixture on the C172 (RET = rich, pull back
+##              to lean; lever 2 is unbound: its idle detent would mean mixture cutoff and stop
+##              the engine) and speedbrake on the A320, flaps lever (notches 0-1-2-3-FULL; the
+##              aircraft's last flap setting is the top), engine mode switch IGN/START = starter,
+##              ENG 1 / ENG 2 master = magnetos OFF / BOTH (C172) or the engine masters (A320),
+##              park brake switch
+## An action only acts on an aircraft that offers it (input/aircraft_controls.gd), which is why
+## one physical control can carry a different action per aircraft.
+## Numbers were read off real hardware on macOS (Godot 4.7, IOKit) with the mapper page.
+## Linux (evdev) can number the same pad differently and is NOT yet checked: record any
+## difference in OS_OVERRIDES, keyed by Godot's OS.get_name(). Unused here, by design:
+## sidestick base wheel (axis 3), left base keys Y / unlabelled / B (buttons 11-14, the same
+## numbers as the hat), throttle lever 2 (axis 1), gear lever (button 20), auto brake dial
+## (21-25), pushbuttons (4, 5), rudder trim (16-18).
+## Throttle lo = the idle detent just above the reverse zone, estimated from where the
+## lever rested (-0.51) plus a little play: re-set it with Lo on the Controls page. On an
+## aircraft with a reverse range the same lo splits the travel at idle (lever_detents.gd).
 
 const CAPTAIN_PACK := "captain_pack"
 
@@ -25,23 +37,27 @@ const PROFILES := {
 				"pitch": {"axis": 1, "deadzone": 0.03, "expo": 0.3},
 				"yaw": {"axis": 2, "deadzone": 0.1, "expo": 0.25},
 			},
-			"buttons": {"brakes": 0, "view_next": 1, "flaps_up": 2, "flaps_down": 3,
-				"view_cockpit": 4, "toggle_map": 5},
+			"buttons": {"brakes": 0, "view_next": 2, "view_cockpit": 3, "flaps_up": 4,
+				"toggle_map": 5, "flaps_down": 8, "parking_brake": 9, "pause": 21,
+				"trim_down": 11, "trim_up": 12},  # hat up = nose down, hat down = nose up
 		},
 		"quadrant": {
-			"name": "quadrant",
+			"name": "q-eng",
 			"axes": {
-				"throttle": {"axis": 0, "deadzone": 0.02},
-				"mixture": {"axis": 1, "deadzone": 0.02},
+				"throttle": {"axis": 0, "deadzone": 0.02, "lo": -0.48, "hi": 1.0},
+				"mixture": {"axis": 5, "invert": true, "deadzone": 0.02},  # speed brake lever, RET = -1 = rich
+				"speedbrake": {"axis": 5, "deadzone": 0.02},  # same lever, RET = -1 = retracted
+				"flaps_lever": {"axis": 2, "detents": [-1.0, -0.49, -0.06, 0.44, 1.0]},
 			},
-			"buttons": {},
+			"buttons": {"starter": 7, "parking_brake_switch": 19, "magnetos_switch": 2,
+				"engine_master_1_switch": 2, "engine_master_2_switch": 3},
 		},
 	},
 }
 
 ## OS name -> profile -> device -> "axes" / "buttons" -> action -> values merged over PROFILES.
-## Empty until each OS's numbering is checked against real hardware. Example:
-##   "macOS": {"captain_pack": {"sidestick": {"axes": {"yaw": {"axis": 5}}}}}
+## Empty: macOS is the numbering above; Linux still has to be checked. Example:
+##   "Linux": {"captain_pack": {"sidestick": {"axes": {"yaw": {"axis": 5}}}}}
 const OS_OVERRIDES := {"Linux": {}, "macOS": {}}
 
 

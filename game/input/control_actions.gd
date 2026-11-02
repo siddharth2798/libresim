@@ -8,6 +8,7 @@ extends RefCounted
 ##
 ## Props published (written by input/*, consumed by fdm/ and systems/):
 ##   controls/speedbrake 0..1            controls/gear 0 (up) / 1 (down)
+##   controls/flaps 0..fdm/flap_detents-1 (a notched flaps lever sets it, joystick_controls.gd)
 ##   controls/autobrake 0..3 (off, LO, MED, MAX)
 ##   controls/engine_master_<n> bool     controls/engine_mode 0 NORM / 1 CRANK / 2 IGN-START
 ##   controls/apu_master bool            controls/apu_start bool (held)
@@ -25,10 +26,10 @@ const GROUPS := {
 	"throttle": ["throttle_up", "throttle_down", "throttle"],
 	"mixture": ["mixture_rich", "mixture_lean", "mixture"],
 	"trim": ["trim_up", "trim_down", "pitch_trim_axis"],
-	"flaps": ["flaps_up", "flaps_down"],
+	"flaps": ["flaps_up", "flaps_down", "flaps_lever"],
 	"brakes": ["brakes", "brake_left", "brake_right"],
-	"parking_brake": ["parking_brake"],
-	"magnetos": ["magnetos_next"],
+	"parking_brake": ["parking_brake", "parking_brake_switch"],
+	"magnetos": ["magnetos_next", "magnetos_switch"],
 	"starter": ["starter"],
 	"fuel_selector": ["fuel_selector"],
 	"fuel_shutoff": ["fuel_shutoff"],
@@ -38,7 +39,7 @@ const GROUPS := {
 	"speedbrake": ["speedbrake_out", "speedbrake_in", "speedbrake"],
 	"gear": ["gear_toggle"],
 	"autobrake": ["autobrake_next"],
-	"engine_master": ["engine_master_1", "engine_master_2"],
+	"engine_master": ["engine_master_1", "engine_master_2", "engine_master_1_switch", "engine_master_2_switch"],
 	"engine_mode": ["engine_mode_next"],
 	"apu": ["apu_master", "apu_start"],
 	"rudder_trim": ["rudder_trim_left", "rudder_trim_right", "rudder_trim_axis"],
@@ -77,6 +78,14 @@ const KNOBS := {
 	"fcu_hdg_right": ["controls/fcu/hdg_deg", 1.0, 0.0, 359.0, true], "fcu_hdg_left": ["controls/fcu/hdg_deg", -1.0, 0.0, 359.0, true],
 	"fcu_alt_up": ["controls/fcu/alt_ft", 100.0, 100.0, 39000.0, false], "fcu_alt_down": ["controls/fcu/alt_ft", -100.0, 100.0, 39000.0, false],
 	"fcu_vs_up": ["controls/fcu/vs_fpm", 100.0, -6000.0, 6000.0, false], "fcu_vs_down": ["controls/fcu/vs_fpm", -100.0, -6000.0, 6000.0, false],
+}
+## Latching switches (a joystick button that stays down): action -> [prop, value when off, value when on].
+## They act when the switch changes, on both edges, never on its position at start-up.
+const LEVELS := {
+	"parking_brake_switch": ["controls/parking_brake", false, true],
+	"magnetos_switch": ["controls/magnetos", 0, 3],  # OFF / BOTH
+	"engine_master_1_switch": ["controls/engine_master_1", false, true],
+	"engine_master_2_switch": ["controls/engine_master_2", false, true],
 }
 ## Initial Props of a group (only set when the prop does not exist yet); aircraft.json "defaults" wins.
 const SEEDS := {

@@ -34,6 +34,17 @@ static func press(action: String) -> bool:
 	return true
 
 
+## A latching switch changed: set its prop to the "on" or "off" value (ControlActions.LEVELS).
+static func level(action: String, on: bool) -> void:
+	var l: Array = ControlActions.LEVELS[action]
+	Props.set_v(l[0], l[2] if on else l[1])
+
+
+## The flap setting for a flaps-lever notch: notches beyond the aircraft's last detent stay on it.
+static func flap_setting(notch: int) -> int:
+	return clampi(notch, 0, int(Props.get_v("fdm/flap_detents", 4)) - 1)
+
+
 ## One FCU knob step (the first press) or a repeat while held; `state` keeps the hold timer per
 ## action. Returns true when the set-point changed.
 static func knob(action: String, down: bool, dt: float, state: Dictionary) -> bool:

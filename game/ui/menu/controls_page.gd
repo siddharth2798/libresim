@@ -104,7 +104,7 @@ func _reset(profile: String) -> void:
 			_rows[a].refresh()
 	_status.text = "Reset to %s defaults." % profile
 	if profile == InputProfiles.CAPTAIN_PACK:
-		_status.text += " Numbering is provisional: check each Bind. Set each quadrant lever's idle (Lo) and full (Hi)."
+		_status.text += " Move each quadrant lever once. Linux numbering is unchecked: press Bind to fix a row."
 	_save()
 
 
@@ -179,6 +179,7 @@ func _finish(device: int, key: String, idx: int) -> void:
 	b.name = ""  # now tied to this pad, not a profile's name match
 	b.erase("lo")  # a new axis has its own travel
 	b.erase("hi")
+	b.erase("detents")
 	_rows[_capture].set_waiting(false)
 	_rows[_capture].refresh()
 	_status.text = "%s -> %s" % [InputBindings.LABELS[_capture], InputBindings.describe(b)]

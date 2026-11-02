@@ -8,6 +8,9 @@ extends RefCounted
 ##   lo / hi (optional) calibrate the lever: the raw values at the low end (idle, closed)
 ##   and the high end (full) of its travel. Raw beyond lo or hi clamps, so a reverse
 ##   zone below idle reads as idle. Absent = the range's natural ends (-1..1, trigger 0..1).
+## "flaps_lever" is a notched lever: its binding also has detents, the raw value of each notch
+##   in order (0, 1, 2, ...); the nearest notch picks the flap setting (input/joystick_controls.gd).
+## Buttons in ControlActions.LEVELS follow the held state of a latching switch (on / off).
 ## Button binding: {button, device, guid, name}. axis / button == -1 means unbound.
 ## A binding finds its pad by guid, else by name (case-insensitive substring of the pad's
 ## name, set by profiles for pads that are not plugged in yet), else by device index.
@@ -20,7 +23,7 @@ const AXES := {
 	"pitch": "controls/pitch", "roll": "controls/roll", "yaw": "controls/yaw",
 	"throttle": "controls/throttle", "mixture": "controls/mixture",
 	"brake_left": "controls/brake_left", "brake_right": "controls/brake_right",
-	"pitch_trim_axis": "controls/pitch_trim",
+	"pitch_trim_axis": "controls/pitch_trim", "flaps_lever": "controls/flaps",
 	# airliner axes (offered per aircraft, input/control_actions.gd)
 	"throttle_2": "controls/throttle_2", "speedbrake": "controls/speedbrake",
 	"rudder_trim_axis": "controls/rudder_trim", "tiller": "controls/tiller",
@@ -29,7 +32,8 @@ const BUTTONS := ["flaps_up", "flaps_down", "brakes", "parking_brake", "trim_up"
 	"view_next", "view_cockpit", "starter", "magnetos_next", "toggle_map", "pause",
 	"gear_toggle", "autobrake_next", "reverse", "speedbrake_out", "speedbrake_in", "throttle_detent_up",
 	"throttle_detent_down", "engine_master_1", "engine_master_2", "engine_mode_next", "apu_master", "apu_start",
-	"fcu_ap1", "fcu_ap2", "fcu_athr", "fcu_loc", "fcu_appr"]
+	"fcu_ap1", "fcu_ap2", "fcu_athr", "fcu_loc", "fcu_appr",
+	"parking_brake_switch", "magnetos_switch", "engine_master_1_switch", "engine_master_2_switch"]
 const LABELS := {
 	"pitch": "Pitch (elevator)", "roll": "Roll (ailerons)", "yaw": "Yaw (rudder)",
 	"throttle": "Throttle", "mixture": "Mixture", "brake_left": "Left toe brake",
@@ -45,6 +49,9 @@ const LABELS := {
 	"engine_master_1": "Engine 1 master", "engine_master_2": "Engine 2 master", "engine_mode_next": "Engine mode cycle",
 	"apu_master": "APU master", "apu_start": "APU start (hold)", "fcu_ap1": "Autopilot 1", "fcu_ap2": "Autopilot 2",
 	"fcu_athr": "Autothrust", "fcu_loc": "FCU LOC", "fcu_appr": "FCU APPR",
+	"flaps_lever": "Flaps lever (notches)", "parking_brake_switch": "Parking brake (switch)",
+	"magnetos_switch": "Magnetos OFF / BOTH (switch)", "engine_master_1_switch": "Engine 1 master (switch)",
+	"engine_master_2_switch": "Engine 2 master (switch)",
 }
 const RANGES := ["full", "half", "trigger"]
 ## Actions whose output is 0..1 (default range "half").
@@ -165,6 +172,15 @@ static func _dead(m: float, dz: float) -> float:
 ## Expo: blend of linear and cubic, so small inputs are finer and full travel is still 1.
 static func _curve(m: float, e: float) -> float:
 	return (1.0 - e) * m + e * m * m * m
+
+
+## Index of the detent nearest to raw (0 for an empty list).
+static func detent_index(raw: float, detents: Array) -> int:
+	var best := 0
+	for i in detents.size():
+		if absf(raw - float(detents[i])) < absf(raw - float(detents[best])):
+			best = i
+	return best
 
 
 ## The raw axis value of a bound axis on a connected pad, else null.

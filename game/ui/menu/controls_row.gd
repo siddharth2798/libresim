@@ -103,6 +103,7 @@ func _clear() -> void:
 	b.name = ""
 	b.erase("lo")
 	b.erase("hi")
+	b.erase("detents")
 	refresh()
 	edited.emit()
 

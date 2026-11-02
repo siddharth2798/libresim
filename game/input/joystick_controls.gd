@@ -6,6 +6,8 @@ extends Node
 ## Publishes "controls/joystick_active" (a bound axis on a connected pad).
 ## View / map / pause buttons inject the matching key press so existing handlers run.
 ## Reloads the table when Props "input/bindings_rev" changes (the controls page bumps it).
+## A lever (half-range axis) is ignored until its pad has reported a non-zero value (macOS sends no
+## initial position), and the flaps lever / latching switches act only when they change.
 ## Only the axes / buttons the aircraft offers (aircraft_controls.gd) act. Held buttons that have no
 ## prop of their own (reverse, APU start) publish "input/held/<action>" for the keyboard side to use.
 
@@ -18,9 +20,11 @@ var _prev := {}  # button action -> was pressed
 var _owned := {}  # control name -> true while we own it
 var _ctl: AircraftControls
 var _lever_keys: LeverKeys
+var _flap_idx := -1  # last notch of the flaps lever, -1 until it has been read
+var _live := {}  # "device:axis" -> true once a lever axis has reported a non-zero value
 
 ## Axes with their own handling in _process (levers, brakes, trim); the rest are written as they are.
-const OWN_AXES := ["throttle", "throttle_2", "mixture", "brake_left", "brake_right", "pitch_trim_axis"]
+const OWN_AXES := ["throttle", "throttle_2", "mixture", "brake_left", "brake_right", "pitch_trim_axis", "flaps_lever"]
 
 
 func _ready() -> void:
@@ -44,6 +48,7 @@ func _on_joy_connection(device: int, connected: bool) -> void:
 	print("joystick %d %s: %s" % [device, "connected" if connected else "disconnected", Input.get_joy_name(device)])
 	Props.set_v("input/joy_event", "%s %s" % [Input.get_joy_name(device), "connected" if connected else "disconnected"])
 	_prev.clear()
+	_live.clear()
 
 
 ## Shaped value of an axis action, or null when unbound / its pad is missing.
@@ -54,7 +59,19 @@ func axis_value(action: String) -> Variant:
 	var dev := InputBindings.resolve_device(b)
 	if dev < 0:
 		return null
-	return InputBindings.shape(Input.get_joy_axis(dev, int(b.axis)), b)
+	var raw := Input.get_joy_axis(dev, int(b.axis))
+	if str(b.get("range", "full")) == "half" and not _reported(dev, int(b.axis), raw):
+		return null
+	return InputBindings.shape(raw, b)
+
+
+## A lever reads exactly 0.0 until it has moved once on some systems (macOS sends no initial
+## report), which would be a phantom mid-travel throttle. Ignore it until then.
+func _reported(dev: int, axis: int, raw: float) -> bool:
+	var k := "%d:%d" % [dev, axis]
+	if raw != 0.0:
+		_live[k] = true
+	return _live.has(k)
 
 
 func button_down(action: String) -> bool:
@@ -85,6 +102,8 @@ func _process(dt: float) -> void:
 		_reload()
 	var ctl := controls()
 	var active := _levers(ctl)
+	if ctl.offers("flaps_lever"):
+		_flaps_lever()
 	for a in ctl.axes():
 		if a in OWN_AXES:
 			continue
@@ -119,18 +138,29 @@ func _levers(ctl: AircraftControls) -> bool:
 	_own("throttle", v1 != null)
 	_own("throttle_2", v2 != null or (v1 != null and lv.separate))
 	if v1 != null:
-		var p := LeverDetents.snap(LeverDetents.axis_to_pos(v1, lv.reverse_frac), lv.detents)
+		var p := LeverDetents.snap(_lever_pos("throttle", v1, lv), lv.detents)
 		if lv.separate and v2 == null:
 			lv.write_pos_all(p)
 		else:
 			lv.write_pos(0, p)
 	if v2 != null:
-		lv.write_pos(1, LeverDetents.snap(LeverDetents.axis_to_pos(v2, lv.reverse_frac), lv.detents))
+		lv.write_pos(1, LeverDetents.snap(_lever_pos("throttle_2", v2, lv), lv.detents))
 	var m = axis_value("mixture") if ctl.offers("mixture") else null
 	_own("mixture", m != null)
 	if m != null:
 		lv.write_all("mixture", m)
 	return v1 != null or v2 != null or m != null
+
+
+## Lever position of a shaped axis value v. A lever with a reverse range and a calibrated idle
+## (binding "lo") reads reverse below its idle detent; otherwise the first reverse_frac of the
+## shaped travel is reverse.
+func _lever_pos(action: String, v: float, lv: EngineLevers) -> float:
+	var b: Dictionary = table.get(action, {})
+	var raw = InputBindings.raw_value(b)
+	if lv.reverse_frac > 0.0 and b.has("lo") and raw != null:
+		return LeverDetents.calibrated_pos(float(raw), v, float(b.lo))
+	return LeverDetents.axis_to_pos(v, lv.reverse_frac)
 
 
 func _brakes() -> void:
@@ -148,9 +178,31 @@ func _brakes() -> void:
 func _buttons(ctl: AircraftControls) -> void:
 	for a in ctl.buttons():
 		var down := button_down(a)
-		if down and not _prev.get(a, false):
+		if ControlActions.LEVELS.has(a):  # a latching switch: act when it changes, not when first seen
+			if _prev.has(a) and _prev[a] != down:
+				ControlSteps.level(a, down)
+		elif down and not _prev.get(a, false):
 			_press(a)
 		_prev[a] = down
+
+
+## The flaps lever's nearest notch sets the flaps (notches beyond the aircraft's last flap detent
+## stay on it). Only a change of notch acts, so the keyboard and buttons still work between moves.
+func _flaps_lever() -> void:
+	var b: Dictionary = table.get("flaps_lever", {})
+	var raw = InputBindings.raw_value(b)
+	if raw != null and not _reported(InputBindings.resolve_device(b), int(b.axis), float(raw)):
+		raw = null  # not moved yet: the pad has sent no real position
+	if raw == null or not b.get("detents") is Array or b.detents.is_empty():
+		_flap_idx = -1
+		return
+	flap_notch(InputBindings.detent_index(float(raw), b.detents))
+
+
+func flap_notch(i: int) -> void:
+	if _flap_idx >= 0 and i != _flap_idx:
+		Props.set_v("controls/flaps", ControlSteps.flap_setting(i))
+	_flap_idx = i
 
 
 func _press(a: String) -> void:
