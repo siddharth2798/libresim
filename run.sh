@@ -12,8 +12,8 @@ ROOT=$PWD
 
 GODOT_VERSION=4.7.2                     # must match docs/USAGE.md section 1
 PY=tools/.venv/bin/python
-PIP_PKGS="osmium jsbsim mapbox_earcut shapely matplotlib pillow numpy"
-PY_MODULES="osmium jsbsim mapbox_earcut shapely matplotlib PIL numpy"   # import names, same order
+PIP_PKGS="osmium jsbsim mapbox_earcut shapely matplotlib pillow numpy scipy"
+PY_MODULES="osmium jsbsim mapbox_earcut shapely matplotlib PIL numpy scipy"   # import names, same order
 STAMPS=data/.stamps
 LOG=data/run.log
 

@@ -38,7 +38,7 @@ The sections below describe the individual steps that `run.sh` automates.
 | GDAL + Python bindings | `sudo apt install gdal-bin python3-gdal` | already installed on this machine (GDAL 3.8) |
 | QGIS (optional) | `sudo apt install qgis` | only for inspecting data |
 | Godot 4.7.2 (standard build) | already installed at `~/.local/share/godot/`, with a symlink at `~/.local/bin/godot` | see below |
-| Python venv | `python3 -m venv --system-site-packages tools/.venv && tools/.venv/bin/pip install osmium jsbsim mapbox_earcut shapely` | `--system-site-packages` lets it use the apt GDAL bindings |
+| Python venv | `python3 -m venv --system-site-packages tools/.venv && tools/.venv/bin/pip install osmium jsbsim mapbox_earcut shapely scipy` | `--system-site-packages` lets it use the apt GDAL bindings |
 | Blender 4.x + AC3D add-on | `sudo apt install blender`; add-on: download https://github.com/NikolaiVChr/Blender-AC3D (branch `4.0`) into `data/raw/fg/addon/` | only to regenerate the aircraft models |
 | Disk | ~1.5 GB raw data + ~0.4 GB processed (+ 0.18 GB raw / 0.08 GB processed for WorldCover, + 0.37 GB processed for road / river tiles, 0.06 GB for shore tiles) | |
 
