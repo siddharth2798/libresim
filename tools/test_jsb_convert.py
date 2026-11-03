@@ -78,6 +78,7 @@ def test_a320():
     assert len(cfg["engines"]) == 2 and cfg["apu"]["model"] == "APS3200"
     e = cfg["engines"][0]
     assert abs(e["thrust_n"] - 120102.0) < 5 and e["type"] == "turbine" and e["thrust_table"]["cols"][0] == -10000
+    assert e["pos_m"] == [-5.34904, -5.62977, -2.26943], "thrust at the model's left fan (spec thrust_pos_m)"
     assert len(cfg["gear"]) == 15 and sum(g["retractable"] for g in cfg["gear"]) == 3
     assert [d["lever"] for d in cfg["controls"]["flaps"]["detents"]] == ["0", "1", "1+F", "2", "3", "FULL"]
     assert len(cfg["tanks"]) == 8 and abs(cfg["mass"]["empty_kg"] - 43277.0) < 1

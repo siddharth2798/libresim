@@ -27,6 +27,8 @@ var _eye := Vector3.ZERO
 var _free_enu := Vector3.ZERO
 var _free_speed := 40.0
 var _flyby_enu := Vector3.ZERO
+var _flyby_ahead := 0.0  # m ahead of the aircraft the camera was placed (FlybyPlacement.needs_replace)
+var _flyby_par := {}  # FlybyPlacement.params of this aircraft
 var _label: Label
 var _label_t := 0.0
 
@@ -38,6 +40,7 @@ func setup(model: AircraftModel) -> void:
 	for v in ["chase", "wing", "tail"]:
 		_cams[v] = def.camera(v)
 	_dist = float(def.camera("orbit")[0])
+	_flyby_par = FlybyPlacement.params(def)
 	near = 0.05
 	far = 160000.0
 	FloatingOrigin.shifted.connect(func(d: Vector3): _chase_pos += d)
@@ -80,10 +83,14 @@ func set_mode(m: int) -> void:
 	_label_t = 2.5
 
 
+## Fly-by: stand ahead of the aircraft, off its track, scaled by its size and speed (ui/flyby_placement.gd).
+## A re-placement jumps the camera by far more than PostFxRules.CUT_MIN_JUMP_M, so the effects see it as a cut.
 func _place_flyby(w: Vector3) -> void:
 	var v: Vector3 = aircraft.fdm_node.fdm.velocity_ned()
-	var ahead := Vector3(v.y, v.x, 0.0).normalized() * 250.0 if v.length() > 5.0 else Vector3(0, 60, 0)
-	_flyby_enu = w + ahead + Vector3(25.0, 0.0, 6.0)
+	var fwd := -aircraft.transform.basis.z
+	var r := FlybyPlacement.place(w, Vector3(v.y, v.x, -v.z), Vector2(fwd.x, -fwd.z), _flyby_par, FlybyPlacement.env_for(aircraft.fdm_node))
+	_flyby_enu = r.pos
+	_flyby_ahead = r.ahead_m
 
 
 func _unhandled_input(e: InputEvent) -> void:
@@ -168,11 +175,11 @@ func _process(dt: float) -> void:
 			fov = 70.0
 			global_transform = Transform3D(t.basis * Basis.from_euler(Vector3(-0.08 + _look.y, _look.x, 0.0)), t * Vector3(_cams.tail[0], _cams.tail[1], _cams.tail[2]))
 		Mode.FLYBY:
-			fov = 45.0
-			var p2 := FloatingOrigin.to_render(_flyby_enu)
-			if p2.distance_to(t.origin) > 450.0:
+			var v: Vector3 = aircraft.fdm_node.fdm.velocity_ned()
+			if FlybyPlacement.needs_replace(_flyby_enu, w, Vector3(v.y, v.x, -v.z), _flyby_ahead, _flyby_par):
 				_place_flyby(w)
-				p2 = FloatingOrigin.to_render(_flyby_enu)
+			var p2 := FloatingOrigin.to_render(_flyby_enu)
+			fov = FlybyPlacement.fov_deg(p2.distance_to(t.origin), _flyby_par)  # zoom: the aircraft keeps its share of the frame
 			look_at_from_position(p2, t.origin)
 
 

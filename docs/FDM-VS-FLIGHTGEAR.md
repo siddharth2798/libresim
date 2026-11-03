@@ -139,3 +139,15 @@ So our roll physics already matched JSBSim and FlightGear:
 - Default solo load (1880 lb), ISA+15, sea level, full throttle: 834 / 953 / 1102 / 1188 / 1139 fpm at 62 / 68 / 74 / 84 / 94 KIAS.
 - The POH gives 710 fpm at 2550 lb and 20 °C. Scaled to 1880 lb with the C172 drag polar (CD0 0.031, k 0.058), we expect about 1100–1150 fpm. Ours is within 6 %.
 - At gross weight the test card gives 663 fpm against the POH's 730 (−9 %). So the propeller boost was left alone.
+
+## Thrust points against the models (2026-11-04)
+
+Where `config.json` applies each engine's thrust compared with the engine on the 3D model (structural metres, x aft, y right, z up):
+
+| Aircraft | JSBSim thruster | Model | Now in config.json |
+|---|---|---|---|
+| A320 | [-5.349, +-2.8775, -1.048] | fan centres [-6.668, +-5.630, -2.269] (`exterior_pivots.json` fan_L / fan_R) | [-5.349, +-5.630, -2.269]: **deliberate deviation** |
+| C172 | [-0.958, 0, 0.676] (the same point as JSBSim's NOSE_SKID contact) | propeller hub [-0.879, 0.001, 0.926] (`prop` pivot + VRP, = `damage.prop_hubs_m`) | unchanged |
+
+- **A320:** the thrust now acts on the engines' centrelines. This doubles the engine-out yaw moment, and JSBSim's rudder could not hold it, so its three rudder terms are x3 as well. Numbers, reasons and effects: `docs/A320-STATUS.md` (FDM, "Deliberate deviation") and `tests/test_a320_engine_out.gd`. The JSBSim oracle runs keep the upstream data.
+- **C172:** laterally on the centreline. The thrust point is 0.25 m below and 0.08 m ahead of the hub. Moving it to the hub was tried. The climb card lost 10 fpm (653 -> 643) and the other flight cards stayed within 0.2. The static-RPM card failed, though: at full power on the brakes the higher thrust line moves weight onto the nose wheel, and the main-wheel brakes slid 2.1 m. The JSBSim value stays (it is the validated oracle). Moving it would need the brake / gear friction retuned first.

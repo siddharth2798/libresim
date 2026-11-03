@@ -190,6 +190,11 @@ def build(spec, src: Path):
     a["aero_inputs"] = {"jsbsim_builtin": [p for p in used if p.startswith(BUILTIN)],
                         "from_systems": [p for p in used if not p.startswith(BUILTIN)]}
     a["derived_from"] = spec["derived_from"]
+    k = spec.get("rudder_k", 1.0)  # rudder effectiveness (spec comment): the constant factor of each rudder term
+    for ax in a["axes"].values():
+        for fn in ax:
+            if fn.get("name") in ("aero/coefficient/CYdr", "aero/coefficient/Cldr", "aero/coefficient/Cndr") and k != 1.0:
+                fn["f"]["args"][-1] = round(fn["f"]["args"][-1] * k, 6)
     sysdir = base / "Systems"
     fcs, spo = x.parse(sysdir / "a320-fcs.xml"), x.parse(sysdir / "a320-spoilers.xml")
     fad = x.parse(sysdir / spec["fadec"])
@@ -204,6 +209,8 @@ def build(spec, src: Path):
         t = jt.turbine(er, e.find("thruster"), unc, er.get("name"))
         t["feed_tanks"] = [feed]
         eng.append(t)
+    for t, pos in zip(eng, spec.get("thrust_pos_m", [])):  # thrust line at the model's engines (spec comment)
+        t["pos_m"] = pos
     tk = tanks(prop)
     for s in root.findall("system"):
         unc.append({"where": "fde system", "name": s.get("file"), "why": "JSBSim system (control laws / systems): written in GDScript with JSBSim as oracle"})
