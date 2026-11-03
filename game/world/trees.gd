@@ -179,7 +179,7 @@ func _finish_chunk(k: Vector2i, buf: PackedFloat32Array) -> void:
 	var mi := MultiMeshInstance3D.new()
 	mi.multimesh = mm
 	mi.material_override = _mat
-	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF  # cut-out shadows would cost +6-10 ms (Ultra, trees_close)
 	mi.set_meta("chunk", k)
 	add_child(mi)
 	_chunks[k] = mi
