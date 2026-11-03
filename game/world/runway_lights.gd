@@ -3,14 +3,15 @@ extends Node3D
 ## Aerodrome lighting manager. Builds AirportLights lazily for airports within
 ## BUILD_RADIUS of the camera (frees them beyond FREE_RADIUS), keeps them on the
 ## floating origin, drives the day / night / visibility intensity of each light group,
-## places a few real OmniLights under the apron floodlight masts nearest the camera, and
+## lets ApronLamps put real SpotLights on the apron floodlight banks nearest the camera, and
 ## runs the rotating beacons (AirportBeacon). Data: runways.json, ils.json,
 ## airport_ops.json, airports.json. Run with "-- --lights-debug" to print PAPI readings.
 
 const BUILD_RADIUS := 25000.0
 const FREE_RADIUS := 30000.0
+## Real apron lamps by default; Graphics.apply_to_scene sets the preset's count (more on Forward+, which
+## has no Mobile-style limit on lights per mesh).
 const REAL_LIGHTS := 4
-const REAL_LIGHT_RANGE := 800.0  # masts farther than this only get the fake pool
 
 ## group -> [additive?, gain, base_m, min_px, max_m, halo]
 const GROUPS := {
@@ -31,8 +32,10 @@ var _ils: Array = []
 var _ops := {}
 var _built := {}  # icao -> AirportLights
 var _timer := 0.0
-var _lamps: Array[OmniLight3D] = []
+var _lamps: ApronLamps
 var _beacon: AirportBeacon
+var _mask_icao := ""
+var _mask: Array = []
 var _debug := false
 var _dbg_t := 0.0
 
@@ -56,21 +59,26 @@ func build(data: Dictionary, t: TerrainQuadtree) -> void:
 			c += Vector2(rw.ends[0].x + rw.ends[1].x, rw.ends[0].y + rw.ends[1].y) * 0.5
 		_airports[icao].center = c / _airports[icao].runways.size()
 	_assign_taxiways(data.get("taxiways", []))
-	for k in REAL_LIGHTS:
-		var l := OmniLight3D.new()
-		l.light_color = ApronFloodlights.WARM
-		l.omni_range = 90.0
-		l.omni_attenuation = 1.2
-		l.light_energy = 0.0
-		l.shadow_enabled = false
-		l.visible = false
-		add_child(l)
-		_lamps.append(l)
+	if _lamps == null:
+		set_real_lights(REAL_LIGHTS)
 	_beacon = AirportBeacon.new()
 	_beacon.name = "Beacons"
 	add_child(_beacon)
 	_beacon.setup(_beacon_sites(), _h, mats.beacon)
 	FloatingOrigin.shifted.connect(func(_d): _reposition())
+
+
+## Real apron SpotLights (graphics preset): n lamps, the `shadows` nearest the aircraft cast shadows.
+func set_real_lights(n: int, shadows := 0) -> void:
+	if _lamps == null:
+		_lamps = ApronLamps.new()
+		_lamps.name = "ApronLamps"
+		add_child(_lamps)
+	_lamps.set_budget(n, shadows)
+
+
+func real_light_count() -> int:
+	return _lamps.count() if _lamps else 0
 
 
 func _h(e: float, n: float) -> float:
@@ -145,7 +153,7 @@ static func levels(sun_deg: float, vis_m: float) -> Dictionary:
 	var on := maxf(night, clampf((6000.0 - vis_m) / 2000.0, 0.0, 1.0))
 	return {"rwy": lerpf(0.1, 1.0, on), "app": lerpf(0.3, 1.0, on), "flash": lerpf(0.35, 1.0, on),
 		"taxi": on, "stop": on, "papi": 1.0, "beacon": on,
-		"flood": clampf((2.0 - sun_deg) / 6.0, 0.0, 1.0), "pool": clampf((0.0 - sun_deg) / 6.0, 0.0, 1.0)}
+		"flood": NightSky.night_level(sun_deg), "pool": NightSky.night_level(sun_deg)}  # apron floods: night only
 
 
 func _process(dt: float) -> void:
@@ -161,7 +169,9 @@ func _process(dt: float) -> void:
 	if _timer <= 0.0:
 		_timer = 0.5
 		_update_built(c)
-		_update_lamps(c, lv.flood)
+		_update_mask(c)
+	if _lamps:
+		_lamps.update(dt, _built, w, Props.get_v("fdm/position_enu", w), lv.pool, mats.pool)
 	if _debug:
 		_dbg_t -= dt
 		if _dbg_t <= 0.0:
@@ -170,6 +180,7 @@ func _process(dt: float) -> void:
 
 
 func _exit_tree() -> void:
+	ApronMask.publish([])
 	for icao in _built:
 		_built[icao].release()
 
@@ -197,22 +208,21 @@ func _update_built(c: Vector2) -> void:
 			_built.erase(icao)
 
 
-## Real OmniLights under the floodlight masts nearest the camera.
-func _update_lamps(c: Vector2, level: float) -> void:
-	var near := []
-	if level > 0.01:
-		for icao in _built:
-			for m in _built[icao].masts:
-				if c.distance_to(m) < REAL_LIGHT_RANGE:
-					near.append(m)
-	near.sort_custom(func(a, b): return c.distance_squared_to(a) < c.distance_squared_to(b))
-	for k in _lamps.size():
-		var l := _lamps[k]
-		l.visible = k < near.size()
-		if l.visible:
-			var m: Vector2 = near[k]
-			l.position = FloatingOrigin.to_render_d(m.x, m.y, _h(m.x, m.y) + ApronFloodlights.MAST_H - 4.0)
-			l.light_energy = 2.5 * level
+## Airside mask (no city-light speckle on the apron, ApronMask) of the nearest airport in range.
+func _update_mask(c: Vector2) -> void:
+	var best := ""
+	var bd := BUILD_RADIUS
+	for icao in _built:
+		var d := c.distance_to(_airports[icao].center)
+		if d < bd:
+			bd = d
+			best = icao
+	if best != _mask_icao:
+		_mask_icao = best
+		_mask = ApronMask.paint(_ops.get(best, {}), _airports[best].runways) if best != "" else []
+		ApronMask.publish(_mask)
+	elif not _mask.is_empty():
+		ApronMask.place(_mask[1])  # the pattern wrap base may have moved
 
 
 ## Debug: what the nearest PAPI shows to the camera, with the elevation angle.
