@@ -18,7 +18,8 @@ PY="$ROOT/tools/.venv/bin/python"
 export FREESIM_SHOTS="${FREESIM_SHOTS:-/tmp/libresim-shots}"
 export FREESIM_SIZE=1920x1080
 DEST="$ROOT/docs/screenshots"
-USERDIR="$HOME/.local/share/godot/app_userdata/libresim"
+if [ "$(uname)" = Darwin ]; then USERDIR="$HOME/Library/Application Support/Godot/app_userdata/libresim"
+else USERDIR="${XDG_DATA_HOME:-$HOME/.local/share}/godot/app_userdata/libresim"; fi
 BACKUP="$FREESIM_SHOTS/.backup"
 
 # scene name : final file name (the order of the README gallery)
