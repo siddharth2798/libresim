@@ -23,7 +23,8 @@ LOG=data/run.log
 # those; 09 then runs again (runway heights) before 14 and 10; 16 (terminal base height) follows 17.
 # 19 (ESA WorldCover class tiles, needs network the first time) follows every lc tile writer (11, 12).
 # 20 (road / river distance tiles) and 21 (shore distance tiles) read the final land-class water mask, so they follow 17.
-PIPELINE=(05 04 02 03 06 09 11 12 19 13 15 17 20 21 09 14 16 10)
+# 27 (airport pavement masks) reads the final runways.json (second 09) and the stands (13 / 17).
+PIPELINE=(05 04 02 03 06 09 11 12 19 13 15 17 20 21 09 27 14 16 10)
 # OUT: first entry is the sentinel used when no stamp exists yet (a dir means "a file in it").
 # IN : files/globs whose change makes the step stale (script + raw data + helper modules).
 # DEP: upstream steps; if one ran this session (or its stamp is newer), this step re-runs.
@@ -43,7 +44,7 @@ IN[06a]="tools/06_jsbsim_to_json.py tools/jsb_expr.py tools/jsb_turbine.py tools
 OUT[09]="data/processed/runways.json"
 IN[09]="tools/09_runways.py tools/flatten.py";  DEP[09]="02 04 05 17"
 OUT[10]="data/processed/buildings"
-IN[10]="tools/10_buildings.py data/raw/imagery/s2.tif";  DEP[10]="02 04 16 17"
+IN[10]="tools/10_buildings.py tools/terminal_ref.py tools/ref/terminals_reference.json data/raw/imagery/s2.tif";  DEP[10]="02 04 16 17"
 OUT[11]="data/processed/terrain/lc/0"
 IN[11]="tools/11_landclass.py data/raw/imagery/s2.tif";  DEP[11]="02 03 04"
 OUT[12]="data/processed/terrain/h/6 data/processed/terrain/img/6 data/processed/terrain/lc/6"
@@ -54,16 +55,18 @@ OUT[20]="data/processed/terrain/ro/0"
 IN[20]="tools/20_roads_rivers.py tools/road_raster.py tools/ways_extract.py data/raw/osm/western-zone-latest.osm.pbf";  DEP[20]="04 11 17"
 OUT[21]="data/processed/terrain/sd/0"
 IN[21]="tools/21_shore.py";  DEP[21]="11 12 17"
+OUT[27]="data/processed/terrain/pv/0"
+IN[27]="tools/27_pavement.py tools/pavement_raster.py tools/road_raster.py";  DEP[27]="04 09 13 17"
 OUT[17]="data/processed/terrain/fixups.json"   # airport fixups: levelled sites, apron + stand ground, taxiway ground, no water/trees on airfields
 IN[17]="tools/17_airport_fixups.py tools/airport_fixups_io.py tools/apron_flatten.py";  DEP[17]="02 04 05 11 12 13 15"  # not 09: it re-runs after 17
 OUT[13]="data/processed/airport_ops.json"
-IN[13]="tools/13_airport_ops.py";  DEP[13]="04 05"
+IN[13]="tools/13_airport_ops.py tools/jetway_net.py tools/jetway_footprints.py";  DEP[13]="04 05"
 OUT[14]="data/processed/ils.json"
 IN[14]="tools/14_ils.py";  DEP[14]="09"
 OUT[15]="data/processed/terminals/VABB.json"
-IN[15]="tools/15_terminals.py";  DEP[15]="04 05"
+IN[15]="tools/15_terminals.py tools/osm_geom.py tools/ref/terminals_reference.json";  DEP[15]="04 05"
 OUT[16]="data/processed/terminals/landmarks.json"
-IN[16]="tools/16_terminal_models.py tools/terminal_styles.py tools/terminal_geom.py tools/glb_writer.py";  DEP[16]="15 17"
+IN[16]="tools/16_terminal_models.py tools/terminal_styles.py tools/terminal_styles_ref.py tools/terminal_ref.py tools/ref/terminals_reference.json tools/terminal_geom.py tools/glb_writer.py";  DEP[16]="15 17"
 
 # One function per step: adjust args here when a script grows a CLI.
 step_05() { $PY tools/05_airports_navaids.py; }
@@ -84,6 +87,7 @@ step_17() { $PY tools/17_airport_fixups.py; }
 step_19() { $PY tools/19_worldcover.py; }
 step_20() { $PY tools/20_roads_rivers.py; }
 step_21() { $PY tools/21_shore.py; }
+step_27() { $PY tools/27_pavement.py --force; }  # ~1.5 min: always rebuild
 
 # Raw data (section 2 of docs/USAGE.md)
 DEM30_TILES="N18_00_E072_00 N18_00_E073_00 N18_00_E074_00 N19_00_E072_00 N19_00_E073_00 N19_00_E074_00"
