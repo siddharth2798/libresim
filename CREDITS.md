@@ -55,6 +55,10 @@ All sounds are real recordings, listed file by file in `game/aircraft/c172/sound
 - **Seat-belt chime:** "Airplane Chime Sound Effect" by **Sharelk**, CC0, https://commons.wikimedia.org/wiki/File:Airplane_Chime_Sound_Effect.ogg
 - The A320 also reuses C172 sound files (wind, rain, tyres, flap motor, clicks, lever), credited above. No sound from the A320-family upstream project is used.
 
+### Terrain detail textures
+Tiling ground materials from **ambientCG** (https://ambientcg.com), all **CC0 1.0** (public domain), packed into texture arrays by `tools/26_terrain_textures.py` (high-passed albedo modulation, normal / roughness / AO; list with layers in `game/world/textures/terrain/SOURCES.md`):
+Ground048 (soil, https://ambientcg.com/view?id=Ground048), Grass004 (grass, https://ambientcg.com/view?id=Grass004), Ground103 (dry scrub ground, https://ambientcg.com/view?id=Ground103), Gravel025 (laterite, https://ambientcg.com/view?id=Gravel025), Rocks011 (cliff rock, https://ambientcg.com/view?id=Rocks011), Ground076 (forest floor, https://ambientcg.com/view?id=Ground076), Ground110 (built-up ground, https://ambientcg.com/view?id=Ground110), Ground080 (sand, https://ambientcg.com/view?id=Ground080), Ground036 (mud, https://ambientcg.com/view?id=Ground036), Concrete047A (apron concrete, https://ambientcg.com/view?id=Concrete047A), Asphalt031 (asphalt, https://ambientcg.com/view?id=Asphalt031).
+
 ### Engine (runtime)
 - **Godot Engine 4.7** (https://godotengine.org), MIT licence, © Juan Linietsky, Ariel Manzur and Godot Engine contributors. Godot bundles third-party components (FreeType, HarfBuzz, Vulkan loader, fonts and others); their licences are listed in full on the in-game credits screen (taken from the engine itself).
 

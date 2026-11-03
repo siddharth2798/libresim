@@ -42,3 +42,8 @@ void cls_blend(ivec4 c, vec4 w, out vec3 tint, out float desat, out vec4 amp, ou
 	amp = CLS_AMP[c.x] * w.x + CLS_AMP[c.y] * w.y + CLS_AMP[c.z] * w.z + CLS_AMP[c.w] * w.w;
 	streak = CLS_STREAK[c.x] * w.x + CLS_STREAK[c.y] * w.y + CLS_STREAK[c.z] * w.z + CLS_STREAK[c.w] * w.w;
 }
+
+// weight of class k among the 4 blended texels
+float cls_weight(ivec4 c, vec4 w, int k) {
+	return dot(w, vec4(c.x == k ? 1.0 : 0.0, c.y == k ? 1.0 : 0.0, c.z == k ? 1.0 : 0.0, c.w == k ? 1.0 : 0.0));
+}
