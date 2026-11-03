@@ -28,7 +28,7 @@ const DEFAULTS := {
 	"low_volts": 25.0, "powered_volts": 20.0,
 	"loads": {  # W
 		"dc_bat": 100.0, "dc_ess": 250.0, "ac_ess": 500.0, "ac_bus": 12000.0,
-		"nav": 80.0, "beacon": 60.0, "strobe": 100.0, "landing": 1200.0, "taxi": 250.0, "wing": 150.0,
+		"nav": 80.0, "beacon": 60.0, "strobe": 100.0, "landing": 1200.0, "taxi": 250.0, "takeoff": 250.0, "wing": 150.0,
 		"logo": 100.0, "rwy_turnoff": 250.0, "panel": 40.0,
 	},
 }
@@ -83,7 +83,7 @@ func _bat_on(i: int) -> bool:
 func _loads(b: Dictionary) -> Dictionary:
 	var ac_ess: float = _p.loads.ac_ess if b.ac_ess else 0.0
 	if b.ac_ess:
-		for l in ["nav", "beacon", "strobe", "landing", "taxi", "wing", "logo", "rwy_turnoff", "panel"]:
+		for l in ["nav", "beacon", "strobe", "landing", "taxi", "takeoff", "wing", "logo", "rwy_turnoff", "panel"]:
 			if Props.get_b("controls/lights/" + l):
 				ac_ess += _p.loads[l]
 	return {"dc_bat": _p.loads.dc_bat if b.dc_bat else 0.0, "dc_ess": _p.loads.dc_ess if b.dc_ess else 0.0, "ac_ess": ac_ess}
