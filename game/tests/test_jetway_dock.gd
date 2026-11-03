@@ -56,15 +56,14 @@ func test_jetway_dock_door_tip_is_left_of_the_centre_line() -> String:
 	return ""
 
 
-func test_jetway_pose_rest_is_the_legacy_scaled_layout_and_docking_has_no_clamp() -> String:
+func test_jetway_pose_rest_stops_short_of_the_drawn_cab_and_docking_has_no_clamp() -> String:
 	for length in [12.0, 22.0, 40.0, 65.0]:
 		var t := Vector2(10.0, -5.0)
 		var cab: Vector2 = t + Vector2.from_angle(0.7) * float(length)
 		var r := JetwayPose.rest(t, cab)
-		var k := clampf(float(length) / 22.0, 0.6, 1.8)
-		var tip := t + Vector2.from_angle(0.7) * JetwayPose.TIP_X * k
-		if absf(float(r.xscale) - k) > 1e-6 or JetwayPose.tip_of(t, r).distance_to(tip) > 0.01:
-			return "a %.0f m way: rest xscale %.3f want %.3f" % [length, r.xscale, k]
+		var want := t + Vector2.from_angle(0.7) * maxf(float(length) - JetwayPose.REST_BACK_M, JetwayPose.MIN_LEN + JetwayPose.CAB_LEN)
+		if r.has("xscale") or JetwayPose.tip_of(t, r).distance_to(want) > 0.01:
+			return "a %.0f m bridge: rest hood at %s, want %s (REST_BACK_M short of the cab end, never scaled)" % [length, JetwayPose.tip_of(t, r), want]
 		# docked: no clamp, the hood is exactly where asked, even 60 m out
 		var far := t + Vector2.from_angle(0.7) * float(length) * 0.9
 		var p := JetwayPose.docked(t, far, Vector2.from_angle(0.7), 0.0)
@@ -218,34 +217,51 @@ func test_jetway_rig_starts_docked_when_the_aircraft_is_already_there() -> Strin
 	return "" if ok else "a parked aircraft at start: the jetway is docked at once (progress %.2f)" % rig.progress
 
 
-## A rig at rest (an aircraft that does not dock, the C172) is exactly the old layout: the glb as one piece, scaled in X
-## by clamp(len / 22, 0.6, 1.8), turned along the way, at the terminal end. Every mesh's transform is compared.
-func test_jetway_rig_rest_equals_the_legacy_layout_for_a_non_dockable_aircraft() -> String:
+## A rig at rest (an aircraft that does not dock, the C172), measured on the instanced meshes: the hood face is where
+## JetwayPose.rest says, the cab is not scaled, the rotunda's fixed stub points along `back` (toward the building)
+## whatever the tunnel does, and the support's wheels stand on the ground under the girder, also when pitched.
+func test_jetway_rig_rest_layout_stub_and_wheels() -> String:
 	var host := Node3D.new()
 	add_child(host)
-	var scene := load("res://world/models/vehicles/jetway.glb") as PackedScene
 	var msg := ""
-	for case in [[Vector2(100.0, 50.0), Vector2(100.0, 72.0)], [Vector2(-30.0, 10.0), Vector2(-3.0, 40.0)], [Vector2(0.0, 0.0), Vector2(70.0, 20.0)], [Vector2(5.0, 5.0), Vector2(15.0, 12.0)]]:
+	for case in [[Vector2(100.0, 50.0), Vector2(100.0, 80.0), Vector2(0.0, -1.0)], [Vector2(-30.0, 10.0), Vector2(-3.0, 40.0), Vector2(1.0, 0.0)],
+			[Vector2(0.0, 0.0), Vector2(60.0, 20.0), Vector2.ZERO]]:
 		var t: Vector2 = case[0]
 		var cab: Vector2 = case[1]
-		var rig := _rig(host, t, cab, _gate(0.0, 0.0, 0.0), AircraftDef.load_def("c172"))
-		var ref: Node3D = scene.instantiate()  # the legacy placement
-		var d := cab - t
-		ref.position = Vector3(t.x, 0.0, -t.y)
-		ref.rotation.y = atan2(d.y, d.x)
-		ref.scale = Vector3(clampf(d.length() / 22.0, 0.6, 1.8), 1.0, 1.0)
-		host.add_child(ref)
-		if not rig.cands.is_empty():
-			msg = "the C172 has no dock candidates"
-		for mi in ref.find_children("*", "MeshInstance3D", true, false):
-			var other := rig.find_child(mi.name, true, false) as Node3D
-			var a: Transform3D = (mi as Node3D).global_transform
-			var b: Transform3D = other.global_transform if other else Transform3D()
-			if other == null or not a.origin.is_equal_approx(b.origin) or not a.basis.x.is_equal_approx(b.basis.x) \
-					or not a.basis.y.is_equal_approx(b.basis.y) or not a.basis.z.is_equal_approx(b.basis.z):
-				msg = "%s differs from the legacy placement for way %s -> %s: %s vs %s" % [mi.name, t, cab, a, b]
-				break
-		ref.queue_free()
+		var back: Vector2 = case[2]
+		var rig := JetwayRig.new()
+		rig.setup((load("res://world/models/vehicles/jetway.glb") as PackedScene).instantiate(), t, cab, [], back)
+		rig.position = Vector3(t.x, 0.0, -t.y)
+		host.add_child(rig)
+		rig.ground_at = func(_e: float, _n: float) -> float: return 0.0
+		rig.start(null, "0", 0.0)
+		var h := _hood(rig)
+		var hood := rig.find_child("Hood", true, false) as Node3D
+		var rot := rig.find_child("Rotunda1", true, false) as MeshInstance3D
+		var bb := rot.get_aabb()
+		var se := rot.global_transform * Vector3(bb.position.x, bb.get_center().y, bb.get_center().z)
+		var want_back := back if back != Vector2.ZERO else (t - cab).normalized()
+		var stub := (Vector2(se.x, -se.z) - t).normalized()
+		var bogie := rig.find_child("SupportBogie", true, false) as MeshInstance3D
+		var low := INF
+		for i in 8:
+			low = minf(low, (bogie.global_transform * bogie.get_aabb().get_endpoint(i)).y)
+		if (h[0] as Vector2).distance_to(JetwayPose.tip_of(t, rig.rest)) > 0.1:
+			msg = "way %s -> %s: rest hood face %s, the pose says %s" % [t, cab, h[0], JetwayPose.tip_of(t, rig.rest)]
+		elif not hood.global_transform.basis.get_scale().is_equal_approx(Vector3.ONE):
+			msg = "the cab is scaled at rest: %s" % hood.global_transform.basis.get_scale()
+		elif stub.distance_to(want_back) > 0.02:
+			msg = "the rotunda stub points %s, want %s" % [stub, want_back]
+		elif absf(low) > 0.02:
+			msg = "the wheels are %.2f m off the ground at rest" % low
+		else:
+			rig.apply({"yaw": rig.rest.yaw + 0.3, "len": 20.0, "cab_yaw": rig.rest.yaw, "pitch": 0.06})
+			low = INF
+			for i in 8:
+				low = minf(low, (bogie.global_transform * bogie.get_aabb().get_endpoint(i)).y)
+			var stub2 := (Vector2((rot.global_transform * Vector3(bb.position.x, 0, 0)).x, -(rot.global_transform * Vector3(bb.position.x, 0, 0)).z) - t).normalized()
+			if absf(low) > 0.02 or stub2.distance_to(want_back) > 0.02:
+				msg = "turned and pitched 3.4 deg: wheels %.2f m off the ground, stub %s (want %s)" % [low, stub2, want_back]
 		rig.queue_free()
 		if msg != "":
 			break

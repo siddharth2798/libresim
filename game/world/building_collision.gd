@@ -169,12 +169,7 @@ static func make_tile(polys: Array[PackedVector2Array], base: PackedFloat32Array
 			here.append(ring)
 	var cells := {}
 	for i in polys.size():
-		var skip := false
-		for ring in here:  # same centroid test as tools/10_buildings.py (mean of the vertices)
-			if Geometry2D.is_point_in_polygon(means[i], ring):
-				skip = true
-				break
-		if skip:
+		if not here.is_empty() and is_landmark(polys[i], means[i], here):
 			continue
 		for cy in range(floori(los[i].y / CELL), floori(his[i].y / CELL) + 1):
 			for cx in range(floori(los[i].x / CELL), floori(his[i].x / CELL) + 1):
@@ -183,6 +178,28 @@ static func make_tile(polys: Array[PackedVector2Array], base: PackedFloat32Array
 					cells[key] = []
 				cells[key].append(i)
 	return {"cells": cells, "polys": polys, "base": base, "top": top, "lo": los, "hi": his, "recs": {}}
+
+
+## Is a footprint drawn by a landmark terminal model? The same rule as tools/10_buildings.py is_landmark(): its vertex
+## mean is inside a landmark ring, or (a concave footprint, e.g. VABB T1, whose mean falls outside) 3/4 of the points
+## 0.5 m inside its edge midpoints are (rings are counter-clockwise, so inside is left of an edge).
+static func is_landmark(pts: PackedVector2Array, mean: Vector2, rings: Array[PackedVector2Array]) -> bool:
+	for ring in rings:
+		if Geometry2D.is_point_in_polygon(mean, ring):
+			return true
+	var n := 0
+	var hit := 0
+	for k in pts.size():
+		var e := pts[(k + 1) % pts.size()] - pts[k]
+		if e.length() <= 1.0:
+			continue
+		n += 1
+		var q := pts[k] + e * 0.5 + Vector2(-e.y, e.x).normalized() * 0.5
+		for ring in rings:
+			if Geometry2D.is_point_in_polygon(q, ring):
+				hit += 1
+				break
+	return n > 0 and hit >= 0.75 * n
 
 
 ## For tests and tools: install a tile built with make_tile.
