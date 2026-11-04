@@ -6,6 +6,9 @@ Per vertex: position, CUSTOM0 = (roof rgb from imagery, style) and CUSTOM1 = (he
   height cm = the wall height incl. parapet (16 bit), the shader lays floors out from the ground.
   band  = 0..200 across a roof's parapet strip (0 outer edge, 200 inside), 250 rooftop box, 253 water tank.
   wall  = 0 on the ground ring, 255 on every other ring (the shader interpolates the height above ground).
+Terminal buildings (term = Term(...), from the terminal reference via terminal_ref.py): roof type 2, the walls get
+their own top ring, so on wall vertices CUSTOM0.rgb = cladding colour (sRGB) and band = glazing share x 200
+(1..200), pid = glass luminance x 63; the roof keeps the roof colour (sRGB). No hip roof, no rooftop boxes / tanks.
 Flat roofs of footprints >= PARAPET_MIN_AREA get a sloped parapet strip (outer edge raised by PARAPET_H);
 small 4-corner footprints often get a hipped roof; big flat roofs get a stairwell box and/or a (hexagonal) water tank.
 """
@@ -16,6 +19,7 @@ import numpy as np
 from shapely.geometry import Polygon
 
 KIND_BOX, KIND_TANK = 250, 253
+ROOF_TERMINAL = 2
 BAND_IN = 200
 PARAPET_W, PARAPET_H = 0.55, 0.45
 PARAPET_MIN_AREA = 90.0
@@ -129,21 +133,33 @@ def hip_roof(acc, q, y_eave, rise_k, t, rgb, style, hcm, x0, y0, base_idx):
     return rise
 
 
-def add_building(acc, ring, x0, y0, base, h, rgb, pid, rnd, pitch_prob, area):
-    """Walls + roof of one CCW footprint; returns extra height above base + h (hip roof rise)."""
+def add_building(acc, ring, x0, y0, base, h, rgb, pid, rnd, pitch_prob, area, term=None):
+    """Walls + roof of one CCW footprint; returns extra height above base + h (hip roof rise).
+    term: None, or (cladding rgb 0..255, glazing share 0..1, glass luminance 0..1) of a terminal building."""
     n = len(ring)
-    pitched = n == 4 and area < 150.0 and h <= 7.5 and rnd(1) < pitch_prob
+    pitched = term is None and n == 4 and area < 150.0 and h <= 7.5 and rnd(1) < pitch_prob
     inner = None if pitched or area < PARAPET_MIN_AREA else inset_ring(ring, PARAPET_W)
     ph = PARAPET_H if inner is not None else 0.0
     hcm = int(min(65535, round((h + ph) * 100)))
-    style = (pid << 2) | (1 if pitched else 0)
-    g = len(acc.pos)
-    for p in ring:
-        acc.vert(p[0] - x0, base, -(p[1] - y0), rgb, style, hcm, 0, 0)
+    if term is not None:
+        pid = int(round(min(max(term[2], 0.0), 1.0) * 63))
+        style = (pid << 2) | ROOF_TERMINAL
+        gb = int(round(min(max(term[1], 0.005), 1.0) * BAND_IN))
+        g = len(acc.pos)
+        for z in (base, base + h + ph):  # walls with their own rings: cladding colour, glazing share
+            for p in ring:
+                acc.vert(p[0] - x0, z, -(p[1] - y0), term[0], style, hcm, gb, 0 if z == base else 255)
+        acc.walls(g, g + n, n)
+    else:
+        style = (pid << 2) | (1 if pitched else 0)
+        g = len(acc.pos)
+        for p in ring:
+            acc.vert(p[0] - x0, base, -(p[1] - y0), rgb, style, hcm, 0, 0)
     t0 = len(acc.pos)
     for p in ring:
         acc.vert(p[0] - x0, base + h + ph, -(p[1] - y0), rgb, style, hcm, 0 if inner is not None else BAND_IN, 255)
-    acc.walls(g, t0, n)
+    if term is None:
+        acc.walls(g, t0, n)
     if pitched:
         return hip_roof(acc, ring, base + h, 0.4 + 0.25 * rnd(11), 0.12 + 0.3 * rnd(12), rgb, style, hcm, x0, y0, t0)
     roof_ring, roof0 = ring, t0
@@ -159,6 +175,6 @@ def add_building(acc, ring, x0, y0, base, h, rgb, pid, rnd, pitch_prob, area):
     tri = earcut.triangulate_float64(roof_ring, np.array([n], np.uint32))
     for t in range(0, len(tri), 3):
         acc.ccw(roof0 + int(tri[t]), roof0 + int(tri[t + 1]), roof0 + int(tri[t + 2]))
-    if inner is not None and area >= BOX_MIN_AREA:
+    if inner is not None and area >= BOX_MIN_AREA and term is None:
         rooftop(acc, inner, base + h, area, rnd, x0, y0, rgb, style, hcm)
     return 0.0

@@ -8,7 +8,7 @@ Base height: each vertex is raised by the terrain height under it minus the orig
 (which is the ground under the landmark footprints, area-weighted), so every landmark sits on the
 levelled apron ground even when they are kilometres apart (VABB T1/T2, VAPO) or the airport slopes.
 Run after 15_terminals.py and 17_airport_fixups.py (the ground), then re-run 10_buildings.py.
-    python 16_terminal_models.py [VABB VAPO VOCI]
+    python 16_terminal_models.py [VABB VAPO VOCI VOKN]
 """
 import csv
 import importlib
@@ -22,8 +22,10 @@ from shapely.ops import unary_union
 import common as c
 from glb_writer import Glb
 import terminal_styles as ts
+import terminal_styles_ref as tsr
 
 DIR = c.OUT / "terminals"
+RECIPES = {**ts.RECIPES, **tsr.RECIPES}  # hand-tuned recipes + reference-data-driven ones
 
 
 def ground_height(icao, e, n):
@@ -78,7 +80,7 @@ def build(icao):
            "jet_bridges": [shift(j) for j in d.get("jet_bridges", [])],
            "elevated_roads": [shift(r) for r in d.get("elevated_roads", [])]}
     g = Glb()
-    landmarks, signs = ts.RECIPES[icao](g, ctx)
+    landmarks, signs = RECIPES[icao](g, ctx)
     gh = GroundFn()
     cents = np.array([lm.centroid.coords[0] for lm in landmarks]) + o
     h0 = ground_height(icao, *o)
@@ -103,7 +105,7 @@ def build(icao):
 
 
 def main():
-    icaos = sys.argv[1:] or list(ts.RECIPES)
+    icaos = sys.argv[1:] or list(RECIPES)
     lm_path = DIR / "landmarks.json"
     lm = json.loads(lm_path.read_text()) if lm_path.exists() else {}
     for icao in icaos:

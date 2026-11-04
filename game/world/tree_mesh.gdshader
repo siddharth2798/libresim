@@ -7,8 +7,9 @@ render_mode cull_disabled, fog_disabled;
 
 global uniform vec3 fog_color;
 global uniform float haze_density;
+#include "res://world/curvature.gdshaderinc"  // Earth curvature (G4)
+#include "res://world/haze_sky.gdshaderinc"  // view-dependent haze colour (G4)
 global uniform float wetness;
-global uniform vec3 terrain_eye;  // camera, render space (same in shadow passes)
 
 uniform float lod_r = 0.0;
 uniform float lod_band = 8.0;
@@ -43,6 +44,7 @@ void vertex() {
 	}
 	v_dist = length((MODELVIEW_MATRIX * vec4(VERTEX, 1.0)).xyz);
 	v_od = distance(terrain_eye, MODEL_MATRIX[3].xyz);
+	VERTEX += curve_local(MODEL_MATRIX, curve_drop(wp));  // whole tree, from its base
 }
 
 void fragment() {
@@ -79,7 +81,7 @@ void fragment() {
 	col *= mix(1.0, 0.8, wetness);
 	float haze = 1.0 - exp(-v_dist * haze_density);
 	ALBEDO = col * (1.0 - haze);
-	EMISSION = fog_color * haze;
+	EMISSION = haze_color(-(INV_VIEW_MATRIX * vec4(VIEW, 0.0)).xyz) * haze;
 	ROUGHNESS = mix(0.9, 0.55, wetness);
 	SPECULAR = mix(0.05, 0.25, wetness) * (1.0 - haze);
 	BACKLIGHT = col * bl;

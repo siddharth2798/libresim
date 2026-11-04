@@ -1,0 +1,2148 @@
+{
+ "about": "Researched passenger terminal buildings of every airport in libresim (docs/TERMINALS.md section 6). Facts from public web sources (URLs + access dates per terminal); null = unknown. confidence per field: high / medium / low. 'model' = values the pipeline builds with where research is null (estimates, basis given). 'osm' = OSM ids of the footprint(s) the entry describes. Colours are approximate sRGB judged from photos/satellite, not measured paint values. Read by tools/terminal_ref.py.",
+ "updated": "2026-11-04",
+ "others": "Heliports and helipads in airports.json (ident IN-xxxx, e.g. IN-0390 Kannur Heliport) have no passenger terminals and are not listed.",
+ "airports": [
+  {
+   "icao": "VAAV",
+   "airport": "Aamby Valley Airport (Lonavala, Pune district)",
+   "icao_note": "VAAV = private airstrip serving Aamby Valley City (Sahara), opened 2004, single runway 14/32 ~1200 m, elev ~689 m, ~18.61N 73.38E. Private aircraft/helicopters only, no scheduled service (included in an UDAN list in 2019 but never operated). No public passenger terminal documented; at most a small private lounge/hangar building.",
+   "has_passenger_terminal": false,
+   "terminals": []
+  },
+  {
+   "icao": "VOSR",
+   "airport": "Sindhudurg Airport (Chipi, near Malvan/Parule)",
+   "icao_note": "VOSR / IATA SDW. Greenfield airport built by IRB Sindhudurg Airport Pvt Ltd for MIDC (DBFOT, 95-yr concession); building works by L&T B&F; test flight Sep 2018, DGCA licence Sep 2021, inaugurated/first flight 9 Oct 2021. Fly91 operates since Mar 2024.",
+   "has_passenger_terminal": true,
+   "terminals": [
+    {
+     "name": "Passenger terminal",
+     "osm": [
+      "way/890926927"
+     ],
+     "status": "operational",
+     "opened": 2021,
+     "expanded": null,
+     "roof_top_m": null,
+     "eaves_m": null,
+     "storeys": null,
+     "plan_shape": null,
+     "length_m": null,
+     "width_m": null,
+     "footprint_m2": null,
+     "floor_area_m2": 9500,
+     "roof_form": null,
+     "roof_colour_hex": null,
+     "roof_colour": null,
+     "roof_material": null,
+     "facade_colour_hex": null,
+     "facade_colour": null,
+     "facade_material": null,
+     "glass_hex": null,
+     "glass_share": null,
+     "jet_bridges": 0,
+     "tower_attached": null,
+     "kerb_canopy": null,
+     "notable": [
+      "Peak capacity 200 dep + 200 arr pax/h",
+      "3 aircraft stands (remote)",
+      "Built physically complete 2018, opened 2021",
+      "No architect credited in sources; described only as 'modern, compact'"
+     ],
+     "osm_reflects_current": true,
+     "osm_note": "Only one terminal has ever existed (complete 2018), so any OSM terminal outline should be the current building. OSM way/890926927 \"Sindhudurg Airport Terminal\" 11,582 m2, 120 x 96 m.",
+     "model": {
+      "eaves_m": 9.0,
+      "roof_top_m": 12.0,
+      "basis": "libresim modelling estimate where research is null: small single-hall terminal"
+     },
+     "confidence": {
+      "floor_area_m2": "low",
+      "opened": "high",
+      "jet_bridges": "high"
+     },
+     "conflicts": [
+      "9500 m2 is from a single source (L&T newsletter, Nov 2018, 'approximate'); no IRB/AAI figure found"
+     ],
+     "sources": [
+      {
+       "url": "https://newsnviews.larsentoubro.com/Lists/Posts/Post.aspx?ID=307",
+       "title": "Sindhudurg Gets New Airport (L&T News n Views, 2018)",
+       "accessed": "2026-11-04",
+       "used_for": [
+        "floor_area_m2",
+        "stands"
+       ]
+      },
+      {
+       "url": "https://en.wikipedia.org/wiki/Sindhudurg_Airport",
+       "title": "Sindhudurg Airport - Wikipedia",
+       "accessed": "2026-11-04",
+       "used_for": [
+        "icao",
+        "dates",
+        "capacity"
+       ]
+      },
+      {
+       "url": "https://pib.gov.in/PressReleasePage.aspx?PRID=1762430",
+       "title": "PIB - Ministry of Civil Aviation, Sindhudurg airport inauguration (Oct 2021)",
+       "accessed": "2026-11-04",
+       "used_for": [
+        "opened"
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "icao": "VANM",
+   "airport": "Navi Mumbai International Airport (NMIA)",
+   "icao_note": "Greenfield second Mumbai airport at Ulwe, operated by NMIAL (Adani). Phase 1 Terminal 1 by Zaha Hadid Architects with Arup. Inaugurated 8 Oct 2025; commercial flights from about 25 Dec 2025.",
+   "has_passenger_terminal": true,
+   "terminals": [
+    {
+     "name": "Terminal 1",
+     "osm": [
+      "way/1413816601"
+     ],
+     "status": "operational",
+     "opened": 2025,
+     "expanded": null,
+     "roof_top_m": null,
+     "eaves_m": null,
+     "storeys": 3,
+     "plan_shape": "central processor/headhouse about 305 x 255 m with two linear pier wings totalling about 625 m (22-35 m wide); structural grid rotated 45 degrees",
+     "length_m": 305,
+     "width_m": 255,
+     "footprint_m2": null,
+     "floor_area_m2": 177000,
+     "roof_form": "undulating lotus-petal shell roof floating over the hall on 17 mega columns plus 12 hollow sculptural feature columns, with skylights between the petals",
+     "roof_colour_hex": "#e4e4e0",
+     "roof_colour": "white / pale silver (judged from aerial photos and renders)",
+     "roof_material": "standing-seam metal roof system over a steel structure (Arup); steel-and-glass petal canopies with skylights",
+     "facade_colour_hex": "#cfd3d4",
+     "facade_colour": "light grey frame, mostly glass under deep overhanging roof",
+     "facade_material": "modular prefabricated facade units (Arup); inside, milky-white GFRG cladding on the petal columns",
+     "glass_hex": "#7f969c",
+     "glass_share": 0.6,
+     "jet_bridges": 29,
+     "tower_attached": false,
+     "kerb_canopy": "roof overhang shades the forecourt; departures on Level 2 (exact kerb arrangement not confirmed)",
+     "notable": [
+      "levels: basement utilities; ground + L1 mezzanine arrivals; baggage mezzanine; L2 + mezzanine departures (3 floors + 3 mezzanines)",
+      "29 aerobridges + 10 bus stands (one source)",
+      "ZHA also designed the separate ATC tower",
+      "roof about 370 m long (one report)",
+      "T2 planned in a later phase"
+     ],
+     "osm_reflects_current": true,
+     "osm_note": "Built 2019-25; mapping probably caught up, but check the footprint is the finished lotus headhouse plus piers, not a construction-site outline. OSM way/1413816601 \"Terminal 1\" 87,320 m2, 942 x 251 m (headhouse + piers).",
+     "model": {
+      "eaves_m": 22.0,
+      "roof_top_m": 32.0,
+      "basis": "libresim modelling estimate where research is null: 3 floors + mezzanines under a long-span shell"
+     },
+     "confidence": {
+      "storeys": "medium",
+      "length_m": "medium",
+      "width_m": "medium",
+      "floor_area_m2": "low",
+      "roof_form": "high",
+      "jet_bridges": "low",
+      "colours": "low",
+      "glass_share": "low",
+      "roof_top_m": "low"
+     },
+     "conflicts": [
+      "floor area: L&T 177,000 m2 built-up vs Free Press Journal 234,000 m2 vs Indian Infrastructure about 200,000 m2",
+      "columns: 12 feature + 17 mega columns in most sources; some say the roof rests on 12 columns",
+      "roof height: no source gives it (left null)",
+      "commercial start date not confirmed here (about 25 Dec 2025)"
+     ],
+     "sources": [
+      {
+       "url": "https://newsnviews.larsentoubro.com/Lists/Posts/Post.aspx?ID=940",
+       "title": "L&T News n Views - An Airport Arrives",
+       "accessed": "2026-11-04",
+       "used_for": [
+        "storeys",
+        "length_m",
+        "width_m",
+        "floor_area_m2",
+        "facade_material"
+       ]
+      },
+      {
+       "url": "https://www.arup.com/projects/navi-mumbai-international-airport-terminal-1/",
+       "title": "Arup - NMIA Terminal 1",
+       "accessed": "2026-11-04",
+       "used_for": [
+        "roof_material",
+        "roof_form",
+        "facade_material",
+        "plan_shape"
+       ]
+      },
+      {
+       "url": "https://www.aci-asiapac.aero/media-centre/news/the-columns-of-navi-mumbai-international-airport-a-lotus-in-steel-and-glass-redefines-india-s-aviation-future",
+       "title": "ACI Asia-Pacific - The columns of NMIA",
+       "accessed": "2026-11-04",
+       "used_for": [
+        "roof_form",
+        "notable"
+       ]
+      },
+      {
+       "url": "https://livefromalounge.com/gorgeous-inside-navi-mumbai-international-airport/",
+       "title": "Live from a Lounge - Inside NMIA",
+       "accessed": "2026-11-04",
+       "used_for": [
+        "jet_bridges"
+       ]
+      },
+      {
+       "url": "https://www.freepressjournal.in/mumbai/navi-mumbai-international-airport-promises-european-style-experience-with-lotus-inspired-terminal",
+       "title": "Free Press Journal - lotus-inspired terminal",
+       "accessed": "2026-11-04",
+       "used_for": [
+        "conflicts"
+       ]
+      },
+      {
+       "url": "https://www.zaha-hadid.com/?p=11925",
+       "title": "Zaha Hadid Architects - NMIA (snippet only, page redirected)",
+       "accessed": "2026-11-04",
+       "used_for": [
+        "opened",
+        "notable"
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "icao": "VOSH",
+   "airport": "Shivamogga Airport (Rashtrakavi Kuvempu Airport), Sogane",
+   "icao_note": "VOSH / IATA RQY. State-owned (Govt of Karnataka; operator KSIIDC per Wikipedia), built by Karnataka PWD. Inaugurated 27 Feb 2023 by PM; regular flights from 31 Aug 2023 (IndiGo). Runway 3200 m. Lotus-inspired terminal; ATC designs unveiled alongside terminal in 2020 (separate building).",
+   "has_passenger_terminal": true,
+   "terminals": [
+    {
+     "name": "Passenger terminal (phase 1)",
+     "osm": [
+      "way/1433698918"
+     ],
+     "status": "operational",
+     "opened": 2023,
+     "expanded": null,
+     "roof_top_m": null,
+     "eaves_m": null,
+     "storeys": null,
+     "plan_shape": "lotus-inspired (3-D form/roof resembles lotus petals; exact plan unknown)",
+     "length_m": null,
+     "width_m": null,
+     "footprint_m2": null,
+     "floor_area_m2": 4340,
+     "roof_form": "folded / petal-shaped (lotus motif) - form specifics not documented",
+     "roof_colour_hex": "#e8e6e0",
+     "roof_colour": "off-white (low confidence, judged)",
+     "roof_material": null,
+     "facade_colour_hex": "#eeeeea",
+     "facade_colour": "white/light (low confidence)",
+     "facade_material": "glazing + painted/clad surfaces (not documented)",
+     "glass_hex": "#6b8794",
+     "glass_share": null,
+     "jet_bridges": 0,
+     "tower_attached": false,
+     "kerb_canopy": null,
+     "notable": [
+      "Lotus-flower design (political controversy 2020 as BJP symbol)",
+      "Architect: Kembhavi Architects (per Metro Rail Guy)",
+      "Peak 300 pax/h (other sources 200 or 350)",
+      "Suitable for A320; cost Rs 384-450 crore (airport)"
+     ],
+     "osm_reflects_current": true,
+     "osm_note": "Only one terminal exists (greenfield 2023); OSM outline, if mapped, is the current building. OSM way/1433698918 9,895 m2, 133 x 75 m.",
+     "model": {
+      "eaves_m": 10.0,
+      "roof_top_m": 16.0,
+      "basis": "libresim modelling estimate where research is null: single hall under the petal roof"
+     },
+     "confidence": {
+      "floor_area_m2": "high",
+      "opened": "high",
+      "roof_form": "low",
+      "roof_colour": "low",
+      "facade_colour": "low",
+      "jet_bridges": "high"
+     },
+     "conflicts": [
+      "One outlet gives 4,320 sq ft (unit error) vs 4,340 m2 (govt release, Aviation World, Housing.com)",
+      "Peak pax 200/300/350 across sources"
+     ],
+     "sources": [
+      {
+       "url": "https://housing.com/news/pm-inaugurates-shivamogga-airport-in-karnataka",
+       "title": "PM inaugurates Shivamogga airport (Housing.com, quoting govt release)",
+       "accessed": "2026-11-04",
+       "used_for": [
+        "floor_area_m2",
+        "design motif"
+       ]
+      },
+      {
+       "url": "https://aviationworld.in/?p=4024",
+       "title": "PM inaugurates Shivamogga airport in Karnataka (Aviation World)",
+       "accessed": "2026-11-04",
+       "used_for": [
+        "floor_area_m2"
+       ]
+      },
+      {
+       "url": "https://themetrorailguy.com/shivamogga-airport-status-update-news-plan-design/",
+       "title": "Shivamogga Airport - Status, Master Plan & Design",
+       "accessed": "2026-11-04",
+       "used_for": [
+        "architect",
+        "capacity"
+       ]
+      },
+      {
+       "url": "https://thenewsminute.com/article/lotus-shaped-design-shivamogga-airport-leads-political-controversy-karnataka-151163",
+       "title": "Lotus-shaped design for Shivamogga airport leads to controversy (The News Minute)",
+       "accessed": "2026-11-04",
+       "used_for": [
+        "design motif"
+       ]
+      },
+      {
+       "url": "https://en.wikipedia.org/wiki/Shivamogga_Airport",
+       "title": "Shivamogga Airport - Wikipedia",
+       "accessed": "2026-11-04",
+       "used_for": [
+        "icao",
+        "dates",
+        "operator"
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "icao": "VA1M",
+   "airport": "Karad Airport (Satara district)",
+   "icao_note": "VA1M is a pseudo/local code (not an official ICAO assignment) used by OurAirports/flight-sim databases for Karad airstrip. Built 1955 by PWD for the Koyna dam project; runway 10/28 ~4200 ft (~1280 m), elev ~580 m. Used by a flying school (Ambitions Flying Club, C172s); no navaids, no night ops, no scheduled airlines. Maharashtra approved Rs 221 crore (late 2023) to upgrade it via MADC (runway extension) but no passenger terminal has been reported built.",
+   "has_passenger_terminal": false,
+   "terminals": []
+  },
+  {
+   "icao": "VABB",
+   "airport": "Chhatrapati Shivaji Maharaj International Airport, Mumbai (CSMIA)",
+   "icao_note": "Main Mumbai airport, operated by MIAL (Adani). Terminals: T2 at Sahar (international + domestic) and T1 at Santacruz (domestic, T1A/T1B/T1C), which closed 25 Oct 2026.",
+   "has_passenger_terminal": true,
+   "terminals": [
+    {
+     "name": "Terminal 2",
+     "osm": [
+      "way/315613914"
+     ],
+     "status": "operational",
+     "opened": 2014,
+     "expanded": null,
+     "roof_top_m": 36,
+     "eaves_m": null,
+     "storeys": 4,
+     "plan_shape": "X-shaped central headhouse with four concourses/piers radiating from it; long-span coffered roof on 30 large columns (grid 64 m N-S x 34 m E-W)",
+     "length_m": null,
+     "width_m": null,
+     "footprint_m2": null,
+     "floor_area_m2": 450000,
+     "roof_form": "long-span coffered canopy on 30 mushroom/tree columns, about 70,000 m2 over the headhouse, no expansion joint",
+     "roof_colour_hex": "#d8d8d4",
+     "roof_colour": "off-white / very light grey (judged from photos)",
+     "roof_material": "metal roof cladding with small coloured glass skylight disks set into the coffers (material type not stated by SOM)",
+     "facade_colour_hex": "#c9cdd0",
+     "facade_colour": "silver-grey metal frame, mostly glass",
+     "facade_material": "glazed curtain walls incl. a long cable-wall system on the arrivals side; jali-pattern screens on the concourses",
+     "glass_hex": "#7d9298",
+     "glass_share": 0.6,
+     "jet_bridges": 52,
+     "tower_attached": false,
+     "kerb_canopy": "departures kerb on top level (L4) under the main roof overhang, reached by the Sahar Elevated Access Road (about 2.2 km)",
+     "notable": [
+      "Sahar Elevated Access Road feeds the top departure level",
+      "4 levels: L4 check-in/international departures, L3 domestic departures, L2 arrivals",
+      "coffered roof with coloured glass skylights",
+      "52 aerobridges (up from 20 at the old international terminal)",
+      "29 gates per SOM (counting may differ from the bridge count)",
+      "separate ATC tower, not attached"
+     ],
+     "osm_reflects_current": true,
+     "osm_note": "T2 opened in 2014 and is widely mapped; check that the footprint has the X headhouse plus 4 piers rather than the old Sahar terminal 2A/2B/2C (demolished).",
+     "model": {
+      "eaves_m": 30.0,
+      "basis": "VABB recipe: headhouse walls to 30 m under the 31-34 m canopy (SOM 36 m roof)"
+     },
+     "confidence": {
+      "roof_top_m": "medium",
+      "storeys": "high",
+      "floor_area_m2": "medium",
+      "roof_form": "high",
+      "jet_bridges": "medium",
+      "colours": "low",
+      "glass_share": "low",
+      "plan_shape": "high"
+     },
+     "conflicts": [
+      "floor area: SOM project page 450,000 m2 gross vs about 410,000 m2 (4.4 M sq ft) in other SOM/press material",
+      "roof height: SOM gives a 36 m building height; a third-party guide says the ceiling is about 30 m (interior, unofficial)",
+      "gates: SOM 29 gates vs press 52 boarding bridges (different counting)"
+     ],
+     "sources": [
+      {
+       "url": "https://www.som.com/project/chhatrapati-shivaji-international-airport-terminal-2",
+       "title": "SOM - CSMIA Terminal 2",
+       "accessed": "2026-11-04",
+       "used_for": [
+        "roof_top_m",
+        "storeys",
+        "floor_area_m2",
+        "roof_form",
+        "plan_shape",
+        "opened"
+       ]
+      },
+      {
+       "url": "https://www.dezeen.com/2014/02/20/chhatrapati-shivaji-airport-terminal-mumbai-som/amp/",
+       "title": "Dezeen - SOM completes Mumbai airport terminal with coffered canopy",
+       "accessed": "2026-11-04",
+       "used_for": [
+        "roof_form"
+       ]
+      },
+      {
+       "url": "https://gulfnews.com/world/asia/india/mumbais-terminal-2-elevated-road-open-1.1290204",
+       "title": "Gulf News - Mumbai's Terminal 2, elevated road open",
+       "accessed": "2026-11-04",
+       "used_for": [
+        "kerb_canopy",
+        "jet_bridges"
+       ]
+      },
+      {
+       "url": "https://www.businesstraveller.com/news/2014/01/17/new-terminal-at-mumbai-airport-to-open-soon/",
+       "title": "Business Traveller - New terminal at Mumbai airport to open soon",
+       "accessed": "2026-11-04",
+       "used_for": [
+        "storeys",
+        "jet_bridges"
+       ]
+      },
+      {
+       "url": "https://www.wikipedia.com/wiki/SEAR",
+       "title": "Wikipedia - Sahar Elevated Access Road (lead only)",
+       "accessed": "2026-11-04",
+       "used_for": [
+        "kerb_canopy"
+       ]
+      }
+     ]
+    },
+    {
+     "name": "Terminal 1 (T1A/T1B/T1C, Santacruz)",
+     "osm": [
+      "way/61569813"
+     ],
+     "status": "closed",
+     "opened": 1958,
+     "expanded": 2010,
+     "roof_top_m": null,
+     "eaves_m": null,
+     "storeys": null,
+     "plan_shape": "linear group of three linked sub-terminals (T1A, T1B, T1C) along the Santacruz apron",
+     "length_m": null,
+     "width_m": null,
+     "footprint_m2": null,
+     "floor_area_m2": null,
+     "roof_form": "flat (judged; low-rise buildings)",
+     "roof_colour_hex": null,
+     "roof_colour": null,
+     "roof_material": null,
+     "facade_colour_hex": null,
+     "facade_colour": null,
+     "facade_material": "older concrete/masonry blocks (T1A/T1B); T1C is a newer glass-and-steel addition (low confidence)",
+     "glass_hex": null,
+     "glass_share": null,
+     "jet_bridges": null,
+     "tower_attached": false,
+     "kerb_canopy": null,
+     "notable": [
+      "passenger terminal commissioned 1958 (built from 1950), remodelled about 2000; T1C added about 2010",
+      "MIAL halted all T1 flights from 25 Oct 2026; airlines moved to T2 or NMIA",
+      "demolition and rebuild from Jan 2027, new T1 expected 2029-30 (capacity 15 to 20 MPPA)",
+      "handled about 15 M passengers in FY2025-26"
+     ],
+     "osm_reflects_current": true,
+     "osm_note": "The buildings still stand (closed, demolition starts Jan 2027), so the OSM footprints are physically correct, but the terminal is not in use. In a 2026-11 sim it should be shown as closed or with no gates.",
+     "model": {
+      "eaves_m": 12.0,
+      "roof_top_m": 17.5,
+      "basis": "VABB recipe: arms 12-13 m, core 16-17.5 m (photos, low)"
+     },
+     "confidence": {
+      "status": "high",
+      "opened": "medium",
+      "expanded": "low",
+      "roof_form": "low",
+      "facade_material": "low"
+     },
+     "conflicts": [
+      "closure scope: The Week/Business Today (Oct 2026) say full closure from 25 Oct 2026; an earlier Business Today/Time Out version described a phased partial closure of T1B north from Jan 2027. The later reports of full closure are taken as current.",
+      "age: Business Today says the complex is about 84 years old (airfield from 1942), but the terminal building itself dates to 1958"
+     ],
+     "sources": [
+      {
+       "url": "https://www.theweek.in/news/biz-tech/2026/10/01/flying-out-of-mumbai-today-check-if-the-flight-or-terminal-has-shifted.amp.html",
+       "title": "The Week - Flying out of Mumbai today? (1 Oct 2026)",
+       "accessed": "2026-11-04",
+       "used_for": [
+        "status"
+       ]
+      },
+      {
+       "url": "https://www.businesstoday.in/india/story/mumbai-airport-terminal-1-to-shut-for-4-years-from-october-25-what-flyers-need-to-know-559256-2026-10-03",
+       "title": "Business Today - Mumbai airport T1 to shut for 4 years from Oct 25",
+       "accessed": "2026-11-04",
+       "used_for": [
+        "status",
+        "notable"
+       ]
+      },
+      {
+       "url": "https://www.businesstoday.in/industry/infra/story/mumbai-airport-to-partially-shut-t1b-from-january-2027-over-safety-concerns-559344-2026-10-03",
+       "title": "Business Today - partial T1B shutdown from Jan 2027",
+       "accessed": "2026-11-04",
+       "used_for": [
+        "conflicts"
+       ]
+      },
+      {
+       "url": "https://en.wikipedia.org/wiki/Chhatrapati_Shivaji_Maharaj_International_Airport",
+       "title": "Wikipedia - CSMIA (lead only)",
+       "accessed": "2026-11-04",
+       "used_for": [
+        "opened",
+        "expanded"
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "icao": "VOBM",
+   "airport": "Belagavi (Belgaum) Airport, Sambra",
+   "icao_note": "VOBM / IATA IXG, AAI-operated (code changed from VABM). Current integrated terminal opened Sep 2017 with a new 22.5 m ATC tower. A much larger Terminal 2 (AAI, contractor KMV Projects) began March 2024; ~87% complete in Jun 2026, opening 'within two months' per MP; inauguration not confirmed as of Nov 2026. Old 2017 terminal to become arrivals.",
+   "has_passenger_terminal": true,
+   "terminals": [
+    {
+     "name": "2017 integrated terminal (current)",
+     "osm": [
+      "way/555353911"
+     ],
+     "status": "operational",
+     "opened": 2017,
+     "expanded": null,
+     "roof_top_m": null,
+     "eaves_m": null,
+     "storeys": null,
+     "plan_shape": null,
+     "length_m": null,
+     "width_m": null,
+     "footprint_m2": null,
+     "floor_area_m2": 3600,
+     "roof_form": null,
+     "roof_colour_hex": null,
+     "roof_colour": null,
+     "roof_material": null,
+     "facade_colour_hex": null,
+     "facade_colour": null,
+     "facade_material": null,
+     "glass_hex": null,
+     "glass_share": null,
+     "jet_bridges": 0,
+     "tower_attached": false,
+     "kerb_canopy": null,
+     "notable": [
+      "Inaugurated 14 Sep 2017 by Ashok Gajapathi Raju; commissioned 16 Oct 2017",
+      "6 check-in counters, 2 belts, ~300-320 peak pax",
+      "Apron for 3 A320/B737",
+      "Separate 22.5 m ATC tower built 2015-17",
+      "To be repurposed for arrivals once T2 opens"
+     ],
+     "osm_reflects_current": true,
+     "osm_note": "Likely the terminal in OSM; T2 may appear as construction or not at all. OSM way/555353911 \"Belagavi Airport Terminal\" 6,205 m2, 90 x 69 m (the 2017 terminal; Terminal 2 not mapped).",
+     "model": {
+      "eaves_m": 9.0,
+      "roof_top_m": 11.0,
+      "basis": "libresim modelling estimate where research is null: small 2017 terminal"
+     },
+     "confidence": {
+      "floor_area_m2": "high",
+      "opened": "high",
+      "jet_bridges": "high",
+      "tower_attached": "medium"
+     },
+     "conflicts": [
+      "Wikipedia expansion section garbles areas (mentions 16,000 m2 'existing')"
+     ],
+     "sources": [
+      {
+       "url": "https://www.business-standard.com/article/pti-stories/upgraded-belagavi-airport-inaugurated-117091401645_1.html",
+       "title": "Upgraded Belagavi Airport inaugurated (Business Standard/PTI)",
+       "accessed": "2026-11-04",
+       "used_for": [
+        "floor_area_m2",
+        "opened"
+       ]
+      },
+      {
+       "url": "https://indianinfrastructure.com/2017/10/02/shirdi-and-kishangarh-airports-inaugurated-new-terminal-building-opened-at-belagavi-airport/",
+       "title": "New terminal building opened at Belagavi airport (Indian Infrastructure)",
+       "accessed": "2026-11-04",
+       "used_for": [
+        "opened"
+       ]
+      },
+      {
+       "url": "https://en.wikipedia.org/wiki/Belgaum_Airport",
+       "title": "Belgaum Airport - Wikipedia",
+       "accessed": "2026-11-04",
+       "used_for": [
+        "icao",
+        "ATC tower",
+        "apron"
+       ]
+      }
+     ]
+    },
+    {
+     "name": "New Terminal 2 (AAI)",
+     "osm": [],
+     "status": "under construction / nearing completion (87% Jun 2026; opening not confirmed)",
+     "opened": null,
+     "expanded": null,
+     "roof_top_m": null,
+     "eaves_m": null,
+     "storeys": 2,
+     "plan_shape": null,
+     "length_m": null,
+     "width_m": null,
+     "footprint_m2": null,
+     "floor_area_m2": 16000,
+     "roof_form": null,
+     "roof_colour_hex": null,
+     "roof_colour": null,
+     "roof_material": null,
+     "facade_colour_hex": null,
+     "facade_colour": null,
+     "facade_material": null,
+     "glass_hex": null,
+     "glass_share": null,
+     "jet_bridges": 4,
+     "tower_attached": false,
+     "kerb_canopy": "tensile-fabric canopy over external concourse between facade and pick-up kerbs (tender description)",
+     "notable": [
+      "GRIHA 5-star target",
+      "Peak 2400 pax/h (1200+1200)",
+      "Heritage-inspired; one report cites the ~1000-year-old Kamal Basadi Jain temple of Belagavi",
+      "Contractor KMV Projects; cost reported Rs 223-357 crore",
+      "No public renders seen by local press"
+     ],
+     "osm_reflects_current": false,
+     "osm_note": "Building is new (2024-26); OSM may not have it or tag it as construction.",
+     "model": {},
+     "confidence": {
+      "floor_area_m2": "medium",
+      "storeys": "medium",
+      "jet_bridges": "medium",
+      "status": "medium"
+     },
+     "conflicts": [
+      "Area 16,000 m2 (+3600 existing = 20,000) vs 16,400 m2 (one report)",
+      "Aerobridges 3 (early reports) vs 4 (2025-26 reports)",
+      "Storeys 'ground+first floor' from a single report"
+     ],
+     "sources": [
+      {
+       "url": "https://allaboutbelgaum.com/?p=95693",
+       "title": "New Terminal at Belagavi Airport Expected to Open Within Two Months (All About Belgaum, 17 Jun 2026)",
+       "accessed": "2026-11-04",
+       "used_for": [
+        "status",
+        "jet_bridges"
+       ]
+      },
+      {
+       "url": "https://swarajyamag.com/infrastructure/karnataka-belagavi-airport-to-undergo-rs-22957-crore-expansion-includes-new-terminal-building-and-runway-upgrades",
+       "title": "Belagavi airport Rs 229.57 crore expansion (Swarajya)",
+       "accessed": "2026-11-04",
+       "used_for": [
+        "floor_area_m2",
+        "storeys"
+       ]
+      },
+      {
+       "url": "https://themetrorailguy.com/2024/01/24/kmv-wins-belagavi-airport-new-terminals-construction-contract/",
+       "title": "KMV Wins Belagavi Airport New Terminal's Construction Contract",
+       "accessed": "2026-11-04",
+       "used_for": [
+        "contractor",
+        "kerb_canopy",
+        "capacity"
+       ]
+      },
+      {
+       "url": "https://hubliexpress.com/elevating-travel-experience-belagavi-airports-state-of-the-art-terminal-takes-shape/",
+       "title": "Belagavi Airport's terminal takes shape (Hubli Express)",
+       "accessed": "2026-11-04",
+       "used_for": [
+        "notable"
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "icao": "VAJJ",
+   "airport": "Juhu Aerodrome, Mumbai",
+   "icao_note": "AAI-owned general aviation aerodrome (runways 08/26 1,143 m and 16/34 731 m). Main base of Pawan Hans helicopters (offshore ONGC flights), plus flying clubs and charters. No scheduled airline service. OSM also maps \"ONGC Terminal\" way/564890874 (2,693 m2), the ONGC offshore helicopter passenger terminal at Juhu; not linked (no research data).",
+   "has_passenger_terminal": false,
+   "terminals": [
+    {
+     "name": "VIP / charter terminal (small)",
+     "osm": [],
+     "status": "operational",
+     "opened": null,
+     "expanded": null,
+     "roof_top_m": null,
+     "eaves_m": null,
+     "storeys": null,
+     "plan_shape": null,
+     "length_m": null,
+     "width_m": null,
+     "footprint_m2": null,
+     "floor_area_m2": null,
+     "roof_form": null,
+     "roof_colour_hex": null,
+     "roof_colour": null,
+     "roof_material": null,
+     "facade_colour_hex": null,
+     "facade_colour": null,
+     "facade_material": null,
+     "glass_hex": null,
+     "glass_share": null,
+     "jet_bridges": 0,
+     "tower_attached": null,
+     "kerb_canopy": null,
+     "notable": [
+      "Wikipedia (dated, about 2010-13) says the only terminal is a VIP terminal for private charters and that a new passenger terminal was under construction; current status not confirmed",
+      "most buildings are Pawan Hans / flying club hangars and offices",
+      "AAI hired KPMG for a development plan; sea-ward runway extension never approved; commercial service never resumed"
+     ],
+     "osm_reflects_current": null,
+     "osm_note": "Expect small low-rise hangar/office buildings. Do not build a passenger terminal mesh here unless OSM tags one.",
+     "model": {
+      "eaves_m": 6.0,
+      "basis": "libresim modelling estimate where research is null: small single-storey VIP terminal"
+     },
+     "confidence": {
+      "has_passenger_terminal": "medium",
+      "status": "low"
+     },
+     "conflicts": [
+      "an LLM-generated wiki page claims a terminal with lounge/restaurant; not trusted"
+     ],
+     "sources": [
+      {
+       "url": "https://en.wikipedia.org/wiki/Juhu_Aerodrome",
+       "title": "Wikipedia - Juhu Aerodrome (lead only)",
+       "accessed": "2026-11-04",
+       "used_for": [
+        "has_passenger_terminal",
+        "icao_note"
+       ]
+      },
+      {
+       "url": "https://www.knocksense.com/mumbai/from-the-archives-know-about-juhu-aerodrome-indias-first-civil-aviation-airport",
+       "title": "Knocksense - Juhu Aerodrome archives",
+       "accessed": "2026-11-04",
+       "used_for": [
+        "notable"
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "icao": "VAKP",
+   "airport": "Kolhapur Airport (Chhatrapati Rajaram Maharaj Airport), Ujlaiwadi",
+   "icao_note": "VAKP / IATA KLH, AAI-operated domestic airport. New terminal inaugurated 10 Mar 2024, ops from 29 Mar 2024; a new combined ATC tower + fire station were built in the same project.",
+   "has_passenger_terminal": true,
+   "terminals": [
+    {
+     "name": "New terminal building",
+     "osm": [],
+     "status": "operational",
+     "opened": 2024,
+     "expanded": null,
+     "roof_top_m": null,
+     "eaves_m": null,
+     "storeys": null,
+     "plan_shape": "compact rectangular block with arched front (city-side) facade",
+     "length_m": null,
+     "width_m": null,
+     "footprint_m2": null,
+     "floor_area_m2": 4000,
+     "roof_form": "flat (steel-framed, column-free hall; parapet behind arcade) - not confirmed",
+     "roof_colour_hex": "#9a9a96",
+     "roof_colour": "light grey (assumed metal/membrane roof, not visible in descriptions)",
+     "roof_material": "steel structure; roofing material not stated",
+     "facade_colour_hex": "#d8c7a6",
+     "facade_colour": "buff / sandstone beige with darker stone accents (judged; Kolhapur stonework inspiration)",
+     "facade_material": "stone-look cladding + glazing; large heritage arches",
+     "glass_hex": "#5f7d8c",
+     "glass_share": 0.35,
+     "jet_bridges": 0,
+     "tower_attached": false,
+     "kerb_canopy": "front arcade of large arches (Maharaja Palace / Bhavani Mandap / Panhala Fort inspired) acts as the kerb-side shade",
+     "notable": [
+      "Designed by Gian P Mathur Architects & Planners (GPM)",
+      "Maratha heritage motif: big front-facade archways",
+      "GRIHA 4-star; glazing mainly on north, opaque south",
+      "10 check-in counters, 2 baggage belts, peak 300 pax/h (one source 500)",
+      "Separate new ATC tower (not attached)",
+      "Cost ~Rs 71 crore (overall project ~Rs 256 crore)"
+     ],
+     "osm_reflects_current": null,
+     "osm_note": "Old small AAI terminal may still exist on site; new terminal completed early 2024 so recent OSM edits likely show it, but must be checked against imagery. OSM way/974682917 \"Kolhapur Airport Terminal\" is only 1,405 m2 (45 x 32 m): smaller than the 2024 terminal (~4,000 m2), probably the old terminal or a partial outline; not linked (unchecked against imagery).",
+     "model": {
+      "eaves_m": 10.0,
+      "roof_top_m": 12.0,
+      "basis": "libresim modelling estimate where research is null: 2-level hall behind heritage arches"
+     },
+     "confidence": {
+      "floor_area_m2": "medium",
+      "opened": "high",
+      "storeys": "low",
+      "roof_form": "low",
+      "facade_colour": "low",
+      "glass_share": "low",
+      "jet_bridges": "high",
+      "tower_attached": "medium"
+     },
+     "conflicts": [
+      "Area: 4000 m2 (Construction World, Free Press Journal, Indian Express-wire) vs 3900 m2 (Wikipedia)",
+      "Peak capacity 300 pax/h (most) vs 500 (Construction World)"
+     ],
+     "sources": [
+      {
+       "url": "https://www.constructionworld.in/gold/latest-construction-news/real-estate-news/new-terminal-building-kolhapur-airport/65521",
+       "title": "New Terminal Building - Kolhapur Airport (Construction World)",
+       "accessed": "2026-11-04",
+       "used_for": [
+        "floor_area_m2",
+        "architect",
+        "structure",
+        "glazing",
+        "notable"
+       ]
+      },
+      {
+       "url": "https://www.freepressjournal.in/amp/mumbai/kolhapur-airport-to-get-new-terminal-building-with-enhanced-capacity-check-details-of-project-here",
+       "title": "Kolhapur Airport to get new terminal building (FPJ)",
+       "accessed": "2026-11-04",
+       "used_for": [
+        "floor_area_m2",
+        "arches"
+       ]
+      },
+      {
+       "url": "https://www.deccanherald.com/india/maharashtra/pm-inaugurates-new-terminal-buildings-of-pune-and-kolhapur-airports-2930205",
+       "title": "PM inaugurates new terminal buildings of Pune and Kolhapur airports (Deccan Herald/PTI)",
+       "accessed": "2026-11-04",
+       "used_for": [
+        "opened"
+       ]
+      },
+      {
+       "url": "https://en.wikipedia.org/wiki/Kolhapur_Airport",
+       "title": "Kolhapur Airport - Wikipedia",
+       "accessed": "2026-11-04",
+       "used_for": [
+        "icao",
+        "floor_area_m2 (conflict)",
+        "ATC tower"
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "icao": "VAPO",
+   "airport": "Pune International Airport (Lohegaon)",
+   "icao_note": "Civil enclave at IAF Station Lohegaon; AAI runs the civil terminals. New Integrated Terminal Building (NITB) linked to the old terminal; a single 'Verandah' canopy runs along the city side of both.",
+   "has_passenger_terminal": true,
+   "terminals": [
+    {
+     "name": "New Integrated Terminal Building",
+     "osm": [
+      "way/1154418126"
+     ],
+     "status": "operational",
+     "opened": 2024,
+     "expanded": null,
+     "roof_top_m": null,
+     "eaves_m": null,
+     "storeys": null,
+     "plan_shape": "rectangular block next to the old terminal, joined to its departure area by a sky-bridge/corridor; one continuous city-side verandah about 360 m long covers old + new",
+     "length_m": null,
+     "width_m": null,
+     "footprint_m2": null,
+     "floor_area_m2": 51595,
+     "roof_form": "low-slope main roof (unverified) plus a long flat 'Verandah' canopy on the city side",
+     "roof_colour_hex": "#d0d0cc",
+     "roof_colour": "light grey metal (judged, low confidence)",
+     "roof_material": null,
+     "facade_colour_hex": "#3e3a36",
+     "facade_colour": "dark regional stone at the colonnade under a light verandah soffit; glazed terminal wall behind",
+     "facade_material": "Maratha-style arches and decorated columns faced in dark local stone under the verandah; glazing behind",
+     "glass_hex": "#7a8c90",
+     "glass_share": 0.4,
+     "jet_bridges": 10,
+     "tower_attached": false,
+     "kerb_canopy": "'Verandah': about 360 m city-side canopy over the kerb, shading old and new buildings; decorated as an urban fresco of Pune/Maharashtra culture",
+     "notable": [
+      "inaugurated virtually by the PM on 10 Mar 2024; flights from 14 Jul 2024; international flights from about Dec 2024",
+      "72 check-in counters (some sources 74), capacity about 9 MPPA added",
+      "facade motifs from Shaniwar Wada; forecourt garden modelled on Shaniwar Wada gardens",
+      "GRIHA 4-star",
+      "MLCP (G+3, 2 basements, 1,024 cars) linked to the departure area by sky bridge",
+      "no elevated departure road found"
+     ],
+     "osm_reflects_current": null,
+     "osm_note": "New since 2024. Check whether OSM shows the NITB as a separate building west/east of the old terminal; older extracts may only have the old terminal or construction outline.",
+     "model": {
+      "eaves_m": 17.0,
+      "roof_top_m": 18.5,
+      "glass_hex": "#545e66",
+      "basis": "VAPO recipe (photos, low)"
+     },
+     "confidence": {
+      "floor_area_m2": "medium",
+      "jet_bridges": "high",
+      "opened": "high",
+      "kerb_canopy": "high",
+      "roof_form": "low",
+      "colours": "low",
+      "glass_share": "low",
+      "storeys": "low"
+     },
+     "conflicts": [
+      "area: FPJ 51,595 m2 / Republic about 52,000 m2 vs AAI 2022 'over 5 lakh sq ft' (about 46,500 m2); 7.5 lakh sq ft (about 69,700 m2) is the combined old + new figure, but PTI/News Arena quote it for the new terminal alone",
+      "cost Rs 423 cr vs Rs 475 cr",
+      "check-in counters 72 vs 74 vs 35"
+     ],
+     "sources": [
+      {
+       "url": "https://theprint.in/india/pune-airport-to-get-new-terminal-building-with-enhanced-capacity-reflection-of-cultural-heritage/875663",
+       "title": "ThePrint/ANI (AAI release) - Pune airport new terminal",
+       "accessed": "2026-11-04",
+       "used_for": [
+        "kerb_canopy",
+        "facade_material",
+        "floor_area_m2",
+        "jet_bridges",
+        "plan_shape"
+       ]
+      },
+      {
+       "url": "https://curlytales.com/pune-international-airport-architecture-facilities-cost-and-operation-all-you-need-to-know",
+       "title": "Curly Tales - Pune airport architecture",
+       "accessed": "2026-11-04",
+       "used_for": [
+        "kerb_canopy",
+        "facade_material"
+       ]
+      },
+      {
+       "url": "https://newsarenaindia.com/economy/pm-inaugurates-new-terminal-buildings-at-pune-and-kolhapur-airports-featuring-10-aerobridges-and-72-check-in-counters/5399",
+       "title": "News Arena - PM inaugurates Pune and Kolhapur terminals",
+       "accessed": "2026-11-04",
+       "used_for": [
+        "opened",
+        "jet_bridges"
+       ]
+      },
+      {
+       "url": "https://www.freepressjournal.in/business/pune-and-kolhapur-airports-get-new-airport-terminal-buildings",
+       "title": "Free Press Journal - Pune and Kolhapur new terminals",
+       "accessed": "2026-11-04",
+       "used_for": [
+        "floor_area_m2"
+       ]
+      },
+      {
+       "url": "https://www.republicworld.com/india/pune-airport-new-terminal-inauguration-today-march-10-passenger-capacity-check-in-counters-parking-facility-details-here",
+       "title": "Republic - Pune airport new terminal",
+       "accessed": "2026-11-04",
+       "used_for": [
+        "floor_area_m2",
+        "notable"
+       ]
+      },
+      {
+       "url": "https://theprint.in/economy/new-terminal-at-pune-airport-gets-operational/2174216",
+       "title": "ThePrint - New terminal at Pune airport gets operational",
+       "accessed": "2026-11-04",
+       "used_for": [
+        "opened"
+       ]
+      }
+     ]
+    },
+    {
+     "name": "Old terminal (renovated)",
+     "osm": [
+      "way/69366490"
+     ],
+     "status": "renovated; reopening pending security clearance (as of May 2026, later status unconfirmed)",
+     "opened": null,
+     "expanded": 2026,
+     "roof_top_m": null,
+     "eaves_m": null,
+     "storeys": 2,
+     "plan_shape": "older rectangular terminal joined to the NITB; arrival hall converted to an extended departure hall, first floor to a security hold",
+     "length_m": null,
+     "width_m": null,
+     "footprint_m2": null,
+     "floor_area_m2": 22300,
+     "roof_form": "flat (judged)",
+     "roof_colour_hex": null,
+     "roof_colour": null,
+     "roof_material": null,
+     "facade_colour_hex": "#3e3a36",
+     "facade_colour": "behind the shared verandah with dark stone colonnade",
+     "facade_material": "shares the city-side verandah canopy with the NITB",
+     "glass_hex": null,
+     "glass_share": null,
+     "jet_bridges": null,
+     "tower_attached": false,
+     "kerb_canopy": "shared ~360 m Verandah",
+     "notable": [
+      "22,300 m2, about 7 MPPA (AAI 2022)",
+      "all flights moved to the NITB; renovation adds 16 check-in counters and a new security hold",
+      "May 2026: work complete, waiting for the BCAS nod"
+     ],
+     "osm_reflects_current": true,
+     "osm_note": "The building was renovated, not rebuilt, so its footprint is unchanged.",
+     "model": {
+      "eaves_m": 12.0,
+      "roof_top_m": 13.0,
+      "basis": "VAPO recipe (photos, low)"
+     },
+     "confidence": {
+      "floor_area_m2": "medium",
+      "status": "medium",
+      "storeys": "low"
+     },
+     "conflicts": [
+      "reopening target slipped from Aug 2025 to Aug 2026; no confirmation of reopening found by 2026-11-04"
+     ],
+     "sources": [
+      {
+       "url": "https://theprint.in/india/pune-airport-to-get-new-terminal-building-with-enhanced-capacity-reflection-of-cultural-heritage/875663",
+       "title": "ThePrint/ANI - AAI release",
+       "accessed": "2026-11-04",
+       "used_for": [
+        "floor_area_m2"
+       ]
+      },
+      {
+       "url": "https://www.freepressjournal.in/pune/pune-airports-old-terminal-renovated-awaits-final-security-nod-murlidhar-mohol",
+       "title": "FPJ - Pune old terminal renovated, awaits security nod",
+       "accessed": "2026-11-04",
+       "used_for": [
+        "status"
+       ]
+      },
+      {
+       "url": "https://indianinfrastructure.com/2024/08/28/old-terminal-building-at-pune-airport-maharashtra-likely-to-witness-renovations-from-october-2024/",
+       "title": "Indian Infrastructure - old terminal renovation",
+       "accessed": "2026-11-04",
+       "used_for": [
+        "plan_shape",
+        "storeys"
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "icao": "VARG",
+   "airport": "Ratnagiri Airport (Coast Guard Air Station Ratnagiri)",
+   "icao_note": "VARG / IATA RTC. Owned/operated by Indian Coast Guard (CGAS Ratnagiri); no scheduled civil service yet. Maharashtra (MADC) is building a civil enclave under UDAN/RCS: new passenger terminal, link taxiway, apron for 2 ATR-72s, runway 1300->1800 m. ICG-Maharashtra MoU for civil flights signed Jul 2026.",
+   "has_passenger_terminal": true,
+   "terminals": [
+    {
+     "name": "New civil passenger terminal (MADC civil enclave)",
+     "osm": [],
+     "status": "under construction (10% in Feb 2025; no completion/inauguration found as of Nov 2026)",
+     "opened": null,
+     "expanded": null,
+     "roof_top_m": null,
+     "eaves_m": null,
+     "storeys": null,
+     "plan_shape": null,
+     "length_m": null,
+     "width_m": null,
+     "footprint_m2": null,
+     "floor_area_m2": 3390,
+     "roof_form": null,
+     "roof_colour_hex": null,
+     "roof_colour": null,
+     "roof_material": null,
+     "facade_colour_hex": null,
+     "facade_colour": null,
+     "facade_material": null,
+     "glass_hex": null,
+     "glass_share": null,
+     "jet_bridges": 0,
+     "tower_attached": null,
+     "kerb_canopy": null,
+     "notable": [
+      "Contractor Nyati Engineers & Consultants (L1 Rs 57.64 crore; MADC estimate Rs 50.52 crore, 540-day schedule)",
+      "Foundation laid by CM Eknath Shinde Aug 2024; state approved Rs 100 crore",
+      "Peak ~125 pax/h",
+      "Design renders not found"
+     ],
+     "osm_reflects_current": false,
+     "osm_note": "OSM most likely shows only Coast Guard buildings or a construction site; no civil terminal existed before 2025. OSM has an unnamed aeroway=terminal way/1360873486 (1,096 m2) on the field: probably the existing small civil building, not the new terminal; not linked.",
+     "model": {},
+     "confidence": {
+      "floor_area_m2": "medium",
+      "status": "medium",
+      "jet_bridges": "high"
+     },
+     "conflicts": [
+      "Area 3390 m2 (Feb 2025 FPJ/SSMB) vs 3200 m2 (Jun 2024 tender report, Metro Rail Guy)",
+      "Completion: '1.5 years from Aug 2024' / 'mid-2026' targets; no confirmation of completion found"
+     ],
+     "sources": [
+      {
+       "url": "https://www.freepressjournal.in/mumbai/maharashtra-ratnagiri-airport-revamp-progresses-10-work-completed-under-rcs",
+       "title": "Ratnagiri Airport Revamp Progresses, 10% Work Completed (FPJ)",
+       "accessed": "2026-11-04",
+       "used_for": [
+        "floor_area_m2",
+        "status"
+       ]
+      },
+      {
+       "url": "https://themetrorailguy.com/2024/06/08/nyati-wins-ratnagiri-airports-new-terminal-contract-in-maharashtra/",
+       "title": "Nyati Wins Ratnagiri Airport's New Terminal Contract",
+       "accessed": "2026-11-04",
+       "used_for": [
+        "floor_area_m2 (conflict)",
+        "contractor",
+        "apron"
+       ]
+      },
+      {
+       "url": "https://www.sakshipost.com/news/eknath-shinde-lays-foundation-ratnagiri-airport-terminal-building-325539",
+       "title": "Eknath Shinde lays foundation for Ratnagiri airport terminal building",
+       "accessed": "2026-11-04",
+       "used_for": [
+        "status"
+       ]
+      },
+      {
+       "url": "https://swarajyamag.com/news-brief/coast-guard-and-maharashtra-government-sign-pact-to-enable-civil-flights-at-ratnagiri-air-station",
+       "title": "Coast Guard and Maharashtra sign pact for civil flights at Ratnagiri (Swarajya, Jul 2026)",
+       "accessed": "2026-11-04",
+       "used_for": [
+        "status",
+        "icao_note"
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "icao": "VOCC",
+   "airport": "INS Garuda (Naval Air Station Kochi), Willingdon Island",
+   "icao_note": "VOCC = INS Garuda, an Indian Navy air station on Willingdon Island, Kochi, and the Navy's oldest operating air station (airstrip built 1936, commissioned 1953). It held Cochin's civil enclave until 1 July 1999, when civil flights moved to CIAL (VOCI). No permanent passenger terminal is known today. In the August 2018 floods the Navy turned its School for Naval Airmen building into a temporary civil terminal (Alliance Air, IndiGo etc.), and it opened again briefly for civil flights in August 2019. The fate of the old civil terminal building was not found. The only OSM aeroway/terminal match near the field is an oil tank terminal (way/798820208), not an airport building.",
+   "has_passenger_terminal": false,
+   "terminals": []
+  },
+  {
+   "icao": "VOCI",
+   "airport": "Cochin International Airport (CIAL), Nedumbassery, Kochi",
+   "icao_note": "VOCI / IATA COK = Cochin International Airport Ltd (CIAL), a public-private company and the first airport in India built under a PPP model. Opened 1999 and solar-powered. Runway 09/27, 3,400 m. Not to be confused with VOCC (INS Garuda).",
+   "has_passenger_terminal": true,
+   "terminals": [
+    {
+     "name": "Terminal 3 (international)",
+     "osm": [
+      "way/452201953"
+     ],
+     "status": "operational",
+     "opened": 2017,
+     "expanded": null,
+     "roof_top_m": null,
+     "eaves_m": null,
+     "storeys": 4,
+     "plan_shape": "large processor hall with a linear contact pier and a separate arrival pier, fronted by an elevated departure kerb and flyover",
+     "length_m": null,
+     "width_m": null,
+     "footprint_m2": null,
+     "floor_area_m2": 150000,
+     "roof_form": "Kerala-style stepped, multi-tier pitched / hip roofs (temple-architecture inspired), with solar panels and a rooftop garden",
+     "roof_colour_hex": "#9C4A32",
+     "roof_colour": "terracotta / red-brown, like Kerala clay tiles (judged from descriptions and typical imagery)",
+     "roof_material": "metal roofing in tile colour on a steel frame (assumed); 2.5 MWp solar panels on the roof (sourced)",
+     "facade_colour_hex": "#E8DFCF",
+     "facade_colour": "off-white / cream walls with dark-timber-look trim",
+     "facade_material": "glazing, cladding and timber-style louvres (judged)",
+     "glass_hex": "#5E7F8C",
+     "glass_share": 0.45,
+     "jet_bridges": 10,
+     "tower_attached": false,
+     "kerb_canopy": "entrance canopy at the departure level; elevated departure kerb reached by a 725 m flyover",
+     "notable": [
+      "Built-up 1.5 lakh m2 (15 lakh sq ft), about Rs 1,000-1,150 crore; opened Feb 2016 but used for international flights from 2017",
+      "Floor levels above ground: arrival GF +0.15 m, arrival first floor +5.5 m, departure +10.5 m, security hold +15.5 m",
+      "Apron combination: 3 widebody + 4 narrowbody contact stands (each widebody gets 2 aerobridge limbs, 10 aerobridges in total) plus 4 remote stands, giving 11 peak-hour parking positions",
+      "84 check-in counters, 80 immigration counters, rooftop garden, Thrissur Pooram art installation (15 life-size fibre elephants)",
+      "Arrival pier in traditional style matching the existing terminals",
+      "CIAL has announced an expansion of T3 to about 21 lakh sq ft and +8 aerobridges (Rs 265 crore civil tender); progress by Nov 2026 not confirmed"
+     ],
+     "osm_reflects_current": null,
+     "osm_note": "Not checked. T3 dates from 2016-17, so OSM probably has it; any 2025-26 expansion would be missing.",
+     "model": {
+      "eaves_m": 17.0,
+      "roof_top_m": 32.0,
+      "basis": "CIAL floor levels +15.5 m, + 30 deg hip roofs (VOCI recipe)"
+     },
+     "confidence": {
+      "storeys": "high",
+      "floor_area_m2": "high",
+      "jet_bridges": "high",
+      "roof_form": "medium",
+      "roof_colour": "medium",
+      "facade": "low",
+      "glass_share": "low",
+      "opened": "high"
+     },
+     "conflicts": [
+      "Earlier pre-opening reports spoke of 13-15 aircraft at aerobridges; CIAL's T3 fact sheet gives 10 aerobridges and 7 contact stands",
+      "Opened: inaugurated 28 Feb 2016, in full international use from 2017"
+     ],
+     "sources": [
+      {
+       "url": "https://Cial.aero/UserFiles/CIAL/Terminals/T3-Details.pdf",
+       "title": "CIAL Terminal 3 fact sheet (CIAL PR dept.)",
+       "accessed": "2026-11-04",
+       "used_for": [
+        "floor_area_m2",
+        "storeys",
+        "jet_bridges",
+        "kerb_canopy",
+        "notable",
+        "roof_material"
+       ]
+      },
+      {
+       "url": "https://deccanchronicle.com/nation/current-affairs/260216/cial-international-terminal-inauguration-today.html",
+       "title": "CIAL international terminal inauguration today (Deccan Chronicle 2016)",
+       "accessed": "2026-11-04",
+       "used_for": [
+        "floor_area_m2",
+        "opened"
+       ]
+      },
+      {
+       "url": "https://www.onmanorama.com/news/kerala/blockbuster-t3-terminal-checks-in-cial-sneak-peek.html",
+       "title": "Exclusive pictures of Kochi airport's new swanky terminal (Onmanorama)",
+       "accessed": "2026-11-04",
+       "used_for": [
+        "roof_form"
+       ]
+      },
+      {
+       "url": "https://www.precize.in/unlistedsharesnews/cochin-airport-invites-bids-for-international-terminal-expansion-project",
+       "title": "Cochin airport invites bids for international terminal expansion project",
+       "accessed": "2026-11-04",
+       "used_for": [
+        "notable"
+       ]
+      }
+     ]
+    },
+    {
+     "name": "Terminal 1 (domestic)",
+     "osm": [
+      "way/254109738"
+     ],
+     "status": "operational",
+     "opened": 1999,
+     "expanded": 2018,
+     "roof_top_m": null,
+     "eaves_m": null,
+     "storeys": null,
+     "plan_shape": null,
+     "length_m": null,
+     "width_m": null,
+     "footprint_m2": null,
+     "floor_area_m2": 55742,
+     "roof_form": "Kerala-style sloped / hip roofs (traditional Kerala architecture per reports)",
+     "roof_colour_hex": "#9C4A32",
+     "roof_colour": "terracotta / red-brown (judged)",
+     "roof_material": null,
+     "facade_colour_hex": "#E8DFCF",
+     "facade_colour": "off-white / cream (judged)",
+     "facade_material": null,
+     "glass_hex": "#5E7F8C",
+     "glass_share": null,
+     "jet_bridges": null,
+     "tower_attached": false,
+     "kerb_canopy": null,
+     "notable": [
+      "The original 1999 international terminal, rebuilt for Rs 240 crore over 18 months and inaugurated Dec 2018 as the domestic terminal",
+      "56 check-in counters, 4,000 peak-hour passengers",
+      "Solar panels on the T1 car-park roof, not on the terminal"
+     ],
+     "osm_reflects_current": null,
+     "osm_note": "Not checked; the 2018 rebuild greatly enlarged the building, so an old OSM outline may be too small.",
+     "model": {
+      "eaves_m": 9.0,
+      "roof_top_m": 18.0,
+      "basis": "VOCI recipe, tile roofs at 9 m"
+     },
+     "confidence": {
+      "floor_area_m2": "low",
+      "roof_form": "medium",
+      "roof_colour": "low",
+      "expanded": "high"
+     },
+     "conflicts": [
+      "Area after the rebuild: 6 lakh sq ft = 55,742 m2 (Deccan Chronicle / Gulf Times) vs 4 lakh sq ft = 37,161 m2 (The News Minute); before: 1 lakh sq ft"
+     ],
+     "sources": [
+      {
+       "url": "https://deccanchronicle.com/nation/current-affairs/061218/new-terminal-to-open-at-cial.html",
+       "title": "New terminal to open at CIAL (Deccan Chronicle 2018)",
+       "accessed": "2026-11-04",
+       "used_for": [
+        "floor_area_m2",
+        "roof_form",
+        "expanded"
+       ]
+      },
+      {
+       "url": "https://www.thenewsminute.com/article/kerala-cm-inaugurates-renovated-domestic-terminal-kochi-airport-93271",
+       "title": "Kerala CM inaugurates renovated domestic terminal at Kochi airport (The News Minute)",
+       "accessed": "2026-11-04",
+       "used_for": [
+        "conflicts",
+        "notable"
+       ]
+      }
+     ]
+    },
+    {
+     "name": "Terminal 2 (Business Jet Terminal / general aviation)",
+     "osm": [
+      "way/254109742"
+     ],
+     "status": "operational",
+     "opened": 2022,
+     "expanded": null,
+     "roof_top_m": null,
+     "eaves_m": null,
+     "storeys": null,
+     "plan_shape": null,
+     "length_m": null,
+     "width_m": null,
+     "footprint_m2": null,
+     "floor_area_m2": 3716,
+     "roof_form": "unverified: Kerala-style sloped roof like the other CIAL terminals",
+     "roof_colour_hex": null,
+     "roof_colour": null,
+     "roof_material": null,
+     "facade_colour_hex": null,
+     "facade_colour": null,
+     "facade_material": null,
+     "glass_hex": null,
+     "glass_share": null,
+     "jet_bridges": 0,
+     "tower_attached": false,
+     "kerb_canopy": null,
+     "notable": [
+      "Built inside the old domestic Terminal 2 (about 1 lakh sq ft building); BJT is about 40,000 sq ft",
+      "Inaugurated 10 Dec 2022, billed as India's largest business jet terminal",
+      "The old T2 was used for domestic flights during the T1 rebuild (2017-18)"
+     ],
+     "osm_reflects_current": null,
+     "osm_note": "Not checked; OSM may still label it as the domestic terminal.",
+     "model": {
+      "eaves_m": 9.0,
+      "roof_top_m": 15.0,
+      "basis": "VOCI recipe, tile roofs at 9 m"
+     },
+     "confidence": {
+      "floor_area_m2": "medium",
+      "opened": "high"
+     },
+     "conflicts": [
+      "BJT area: 40,000 sq ft (CIAL, multiple news) vs 3,150 m2 (Routes Online, pre-opening)"
+     ],
+     "sources": [
+      {
+       "url": "https://onmanorama.com/travel/travel-news/2022/12/11/business-jet-terminal-inaugurated-cochin-international-airport-limited.html",
+       "title": "Business jet terminal inaugurated at CIAL (Onmanorama 2022)",
+       "accessed": "2026-11-04",
+       "used_for": [
+        "floor_area_m2",
+        "opened"
+       ]
+      },
+      {
+       "url": "https://www.routesonline.com/airports/5427/cochin-international-airport/news/298746/kochi-airport-to-commission-its-general-aviation-terminal",
+       "title": "Kochi Airport to commission its General Aviation terminal (Routes Online)",
+       "accessed": "2026-11-04",
+       "used_for": [
+        "conflicts"
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "icao": "VOCL",
+   "airport": "Calicut (Kozhikode) International Airport, Karipur",
+   "icao_note": "VOCL / IATA CCJ = Calicut/Kozhikode at Karipur, Malappuram district. AAI-operated tabletop airport (elevation about 104 m), runway 10/28, about 2,860 m. Opened 1988; international status 2006.",
+   "has_passenger_terminal": true,
+   "terminals": [
+    {
+     "name": "New International Arrival Block",
+     "osm": [
+      "way/254158852"
+     ],
+     "status": "operational",
+     "opened": 2019,
+     "expanded": null,
+     "roof_top_m": null,
+     "eaves_m": null,
+     "storeys": 2,
+     "plan_shape": null,
+     "length_m": null,
+     "width_m": null,
+     "footprint_m2": null,
+     "floor_area_m2": 17000,
+     "roof_form": null,
+     "roof_colour_hex": null,
+     "roof_colour": null,
+     "roof_material": null,
+     "facade_colour_hex": null,
+     "facade_colour": null,
+     "facade_material": null,
+     "glass_hex": null,
+     "glass_share": null,
+     "jet_bridges": 6,
+     "tower_attached": false,
+     "kerb_canopy": null,
+     "notable": [
+      "Rs 122 crore, green-building protocol, 1,527 peak-hour passengers; 16 immigration counters, 5 baggage belts",
+      "Dedicated Feb 2019 (it slipped from a March 2018 target); 3 new aerobridges, 6 at the airport in total",
+      "After it opened, the old arrival block was turned into the international departure terminal"
+     ],
+     "osm_reflects_current": null,
+     "osm_note": "Not checked. OSM (2026-11) maps all Karipur blocks as one footprint way/254158852 (44,000 m2, 519 x 113 m): this entry carries it; the departure and domestic entries have no separate OSM footprint.",
+     "model": {
+      "eaves_m": 10.0,
+      "roof_top_m": 12.0,
+      "basis": "libresim modelling estimate where research is null: 2-storey blocks"
+     },
+     "confidence": {
+      "storeys": "medium",
+      "floor_area_m2": "medium",
+      "jet_bridges": "medium",
+      "opened": "high"
+     },
+     "conflicts": [
+      "The 2024 environmental-clearance report gives the existing International Terminal Building as 39,920 m2 in total (arrival plus departure blocks?), which does not match 17,000 m2 for the arrival block alone; scopes probably differ"
+     ],
+     "sources": [
+      {
+       "url": "https://onmanorama.com/news/kerala/2019/02/25/new-arrival-terminal-at-karipur-airport-opened.html",
+       "title": "New arrival terminal at Karipur airport opened (Onmanorama, 2019)",
+       "accessed": "2026-11-04",
+       "used_for": [
+        "floor_area_m2",
+        "storeys",
+        "jet_bridges",
+        "notable"
+       ]
+      },
+      {
+       "url": "https://onmanorama.com/news/kerala/2024/07/13/environmental-clearance-recommended-additional-resa-development-calicut-airport.html",
+       "title": "Environmental clearance recommended for additional RESA development at Calicut Airport (Onmanorama, 2024)",
+       "accessed": "2026-11-04",
+       "used_for": [
+        "conflicts"
+       ]
+      }
+     ]
+    },
+    {
+     "name": "International Departure Terminal (former international terminal / 2007 arrival block)",
+     "osm": [],
+     "status": "operational",
+     "opened": 2007,
+     "expanded": 2019,
+     "roof_top_m": null,
+     "eaves_m": null,
+     "storeys": null,
+     "plan_shape": null,
+     "length_m": null,
+     "width_m": null,
+     "footprint_m2": null,
+     "floor_area_m2": 15000,
+     "roof_form": null,
+     "roof_colour_hex": null,
+     "roof_colour": null,
+     "roof_material": null,
+     "facade_colour_hex": null,
+     "facade_colour": null,
+     "facade_material": null,
+     "glass_hex": null,
+     "glass_share": null,
+     "jet_bridges": null,
+     "tower_attached": false,
+     "kerb_canopy": null,
+     "notable": [
+      "International arrival terminal of about 15,000 m2 opened 25 July 2007, converted to departures after 2019",
+      "With the 2019 block the 'International Terminal Building' totals 39,920 m2 and 1,500 peak-hour passengers (2024 EC report)"
+     ],
+     "osm_reflects_current": null,
+     "osm_note": "Not checked.",
+     "model": {
+      "eaves_m": 10.0,
+      "roof_top_m": 12.0,
+      "basis": "libresim modelling estimate where research is null: 2-storey blocks"
+     },
+     "confidence": {
+      "floor_area_m2": "low",
+      "opened": "medium"
+     },
+     "conflicts": [
+      "Which building held which role before and after 2019 is inferred from the Onmanorama 2019 report"
+     ],
+     "sources": [
+      {
+       "url": "https://www.oneindia.com/2007/07/25/calicut-airport-opens-international-arrival-terminal-1185361930.html",
+       "title": "Calicut airport opens international arrival terminal (Oneindia 2007)",
+       "accessed": "2026-11-04",
+       "used_for": [
+        "floor_area_m2",
+        "opened"
+       ]
+      },
+      {
+       "url": "https://onmanorama.com/news/kerala/2019/02/25/new-arrival-terminal-at-karipur-airport-opened.html",
+       "title": "New arrival terminal at Karipur airport opened (Onmanorama)",
+       "accessed": "2026-11-04",
+       "used_for": [
+        "expanded"
+       ]
+      }
+     ]
+    },
+    {
+     "name": "Domestic Terminal",
+     "osm": [],
+     "status": "operational",
+     "opened": null,
+     "expanded": null,
+     "roof_top_m": null,
+     "eaves_m": null,
+     "storeys": null,
+     "plan_shape": null,
+     "length_m": null,
+     "width_m": null,
+     "footprint_m2": null,
+     "floor_area_m2": 12000,
+     "roof_form": null,
+     "roof_colour_hex": null,
+     "roof_colour": null,
+     "roof_material": null,
+     "facade_colour_hex": null,
+     "facade_colour": null,
+     "facade_material": null,
+     "glass_hex": null,
+     "glass_share": null,
+     "jet_bridges": null,
+     "tower_attached": false,
+     "kerb_canopy": null,
+     "notable": [
+      "750 peak-hour passengers (2024 EC report)"
+     ],
+     "osm_reflects_current": null,
+     "osm_note": "Not checked.",
+     "model": {
+      "eaves_m": 8.0,
+      "roof_top_m": 10.0,
+      "basis": "libresim modelling estimate where research is null: 2-storey blocks"
+     },
+     "confidence": {
+      "floor_area_m2": "low"
+     },
+     "conflicts": [
+      "12,000 m2 (Onmanorama 2024) vs 5,531 m2 (IndiGo airport directory)"
+     ],
+     "sources": [
+      {
+       "url": "https://onmanorama.com/news/kerala/2024/07/13/environmental-clearance-recommended-additional-resa-development-calicut-airport.html",
+       "title": "Onmanorama 2024 EC report",
+       "accessed": "2026-11-04",
+       "used_for": [
+        "floor_area_m2"
+       ]
+      },
+      {
+       "url": "https://www.goindigo.in/airport-directory/india/kozhikode-ccj.html",
+       "title": "Kozhikode (CCJ) airport directory - IndiGo",
+       "accessed": "2026-11-04",
+       "used_for": [
+        "conflicts"
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "icao": "VOGA",
+   "airport": "Manohar International Airport, Mopa (North Goa)",
+   "icao_note": "VOGA / IATA GOX = the greenfield Mopa airport built and run by GMR Goa International Airport Ltd (GGIAL) as a DBFOT concession. Inaugurated 11 Dec 2022, commercial flights from 5 Jan 2023. Runway 10/28, 3,750 m.",
+   "has_passenger_terminal": true,
+   "terminals": [
+    {
+     "name": "Integrated Passenger Terminal Building (Phase 1)",
+     "osm": [
+      "way/1180144485"
+     ],
+     "status": "operational",
+     "opened": 2023,
+     "expanded": null,
+     "roof_top_m": null,
+     "eaves_m": null,
+     "storeys": null,
+     "plan_shape": "processor block (landside hall) plus a linear pier block along the apron, each under its own roof so each can grow in modules",
+     "length_m": null,
+     "width_m": null,
+     "footprint_m2": null,
+     "floor_area_m2": 65032,
+     "roof_form": "two separate roof structures, one over the processor and one over the pier; the processor roof has north-south linear skylights, with a linear north light where the two roofs meet. Low-slope / near-flat long-span roofs (form judged; exact profile not sourced)",
+     "roof_colour_hex": null,
+     "roof_colour": null,
+     "roof_material": null,
+     "facade_colour_hex": null,
+     "facade_colour": "unverified: one low-reliability source mentions oxblood-red accent walls and Mangalore-tile rooflines",
+     "facade_material": "glazing with Goan azulejo tile cladding/features (azulejos sourced; extent unknown)",
+     "glass_hex": null,
+     "glass_share": null,
+     "jet_bridges": 5,
+     "tower_attached": false,
+     "kerb_canopy": null,
+     "notable": [
+      "Masterplan/terminal design: Nordic Office of Architecture (Oslo); EPC contractor Megawide (terminal) / GMR",
+      "Interior said to be shaped like a shankha (conch shell); extensive azulejo tiles; Goan-cafe-style food court; flea-market area",
+      "14 aircraft stands, 5 of them with aerobridges (at opening)",
+      "Phase 1 capacity 4.4 mppa, about 1,000 peak-hour passengers; four phases up to 13.1 mppa (some sources say up to 33 mppa)",
+      "ATC tower stands separately, next to the cargo area"
+     ],
+     "osm_reflects_current": null,
+     "osm_note": "Not checked (no Overpass access). The building finished about 2022, so OSM probably has an outline, but it may still be a construction-era trace. OSM way/1180144485 36,924 m2, 335 x 168 m, plus 9 building:part and 14 jet bridges.",
+     "model": {
+      "eaves_m": 16.0,
+      "roof_top_m": 22.0,
+      "basis": "libresim modelling estimate where research is null: processor + pier, long-span roofs"
+     },
+     "confidence": {
+      "floor_area_m2": "medium",
+      "roof_form": "medium",
+      "roof_colour": "low",
+      "facade": "low",
+      "jet_bridges": "medium",
+      "opened": "high",
+      "storeys": "low"
+     },
+     "conflicts": [
+      "Floor area: 700,000 sq ft = 65,032 m2 (airport-technology, Housing.com, Wego) vs 67,726 m2 (Business Today)",
+      "Roof material: InfraLens claims Mangalore-tile rooflines, which no other source backs; treated as unverified"
+     ],
+     "sources": [
+      {
+       "url": "https://www.airport-technology.com/projects/mopa-international-airport-goa/",
+       "title": "Mopa International Airport, Goa - Airport Technology",
+       "accessed": "2026-11-04",
+       "used_for": [
+        "floor_area_m2",
+        "notable",
+        "facade_material"
+       ]
+      },
+      {
+       "url": "https://themetrorailguy.com/goa-mopa-international-airport-status-update-news-plan-design/",
+       "title": "New Goa Mopa Airport - Status, Master Plan & Design (The Metro Rail Guy)",
+       "accessed": "2026-11-04",
+       "used_for": [
+        "notable",
+        "floor_area_m2"
+       ]
+      },
+      {
+       "url": "https://www.constructionworld.in/transport-infrastructure/aviation-and-airport-infra/contemporary-goan-architecture-meets-mopa-airport-/38584",
+       "title": "Contemporary Goan architecture meets Mopa airport (Construction World)",
+       "accessed": "2026-11-04",
+       "used_for": [
+        "roof_form",
+        "notable"
+       ]
+      },
+      {
+       "url": "https://www.constructionworld.in/transport-infrastructure/aviation-and-airport-infra/prime-minister-modi-inaugurates-new-goa-airport-at-mopa/37960",
+       "title": "Prime Minister Modi inaugurates New Goa Airport at Mopa (Construction World)",
+       "accessed": "2026-11-04",
+       "used_for": [
+        "jet_bridges"
+       ]
+      },
+      {
+       "url": "https://infralens.in/projects/mopa-international-airport",
+       "title": "Mopa International Airport - InfraLens (low reliability)",
+       "accessed": "2026-11-04",
+       "used_for": [
+        "conflicts"
+       ]
+      },
+      {
+       "url": "https://en.wikipedia.org/wiki/Manohar_International_Airport",
+       "title": "Manohar International Airport - Wikipedia (lead only)",
+       "accessed": "2026-11-04",
+       "used_for": [
+        "icao_note",
+        "opened"
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "icao": "VOGO",
+   "airport": "Goa International Airport, Dabolim (Vasco da Gama)",
+   "icao_note": "VOGO / IATA GOI = Dabolim, an AAI civil enclave (about 14 ha) inside the Indian Navy's INS Hansa base. The Navy runs ATC, and naval flying blocks civil slots on weekday mornings. Since 2023 it has been losing traffic to Mopa (VOGA).",
+   "has_passenger_terminal": true,
+   "terminals": [
+    {
+     "name": "Integrated Terminal Building (ITB)",
+     "osm": [
+      "way/889406836"
+     ],
+     "status": "operational",
+     "opened": 2013,
+     "expanded": null,
+     "roof_top_m": null,
+     "eaves_m": null,
+     "storeys": 4,
+     "plan_shape": "single long linear block parallel to the apron, with a curved airside/landside glass front and contact stands along the apron face",
+     "length_m": null,
+     "width_m": null,
+     "footprint_m2": null,
+     "floor_area_m2": 62000,
+     "roof_form": "curved / wave-form solid metal roof with linear skylights and a large cantilevered overhang over the kerb",
+     "roof_colour_hex": "#B8BCC0",
+     "roof_colour": "light silver-grey (metal sheet; judged, not sourced)",
+     "roof_material": "metal standing-seam sheet on long-span steel structure (steel structure sourced; sheet type assumed)",
+     "facade_colour_hex": "#D9DCDD",
+     "facade_colour": "light grey / silver frame with glass",
+     "facade_material": "frameless and curtain-wall glazing on steel, sun-breaker louvres on the city side",
+     "glass_hex": "#6F8C9A",
+     "glass_share": 0.6,
+     "jet_bridges": 8,
+     "tower_attached": false,
+     "kerb_canopy": "the main roof cantilevers over the departure kerb as a large overhang (architect's description)",
+     "notable": [
+      "Architect: Creative Group (New Delhi) with Frederic Schwartz Architects / Gensler as partners",
+      "Levels: basement (BHS, services), ground (check-in, arrivals), first (arrivals, immigration, security), second (security hold). Described as 'four and a half levels' including a mezzanine",
+      "Multi-level car park for about 570-600 cars in front",
+      "Inaugurated 3 Dec 2013, cost about Rs 335-345 crore; old terminals closed",
+      "AAI extension of Rs 200 crore (+18,000 m2, 2 more aerobridges, bus lounge) started June 2021, target about 2024; completion not confirmed",
+      "ATC tower is the Navy's, separate from the terminal"
+     ],
+     "osm_reflects_current": null,
+     "osm_note": "Not checked (the Overpass API could not be reached from the sandbox). The 2013 ITB is old enough that OSM probably has its outline, but the 2021+ extension may be missing. OSM way/889406836 \"Goa Airport Terminal\" 27,133 m2, 370 x 113 m, tagged height ~10.6 m (too low for 4 storeys).",
+     "model": {
+      "eaves_m": 18.0,
+      "roof_top_m": 24.0,
+      "basis": "libresim modelling estimate where research is null: 4 storeys under a curved roof",
+      "recipe": "generic",
+      "roof": "curved",
+      "overhang_m": 6.0
+     },
+     "confidence": {
+      "storeys": "medium",
+      "floor_area_m2": "medium",
+      "roof_form": "medium",
+      "roof_colour": "low",
+      "facade": "medium",
+      "glass_share": "low",
+      "jet_bridges": "medium",
+      "opened": "high"
+     },
+     "conflicts": [
+      "Floor area: 61,957 / 62,000 / 63,913 m2 (airport-technology, aviationpros), 65,000 m2 (The Goan 2021, before the extension), 36,000 m2 (Wikipedia citing Navhind Times 2012)",
+      "Storeys: 'three levels including ground' (airport-technology) vs 'four and a half levels' (aviationpros) vs four-level with basement (Wikipedia)",
+      "Jet bridges: 5 (aviationpros, at design) vs 8 (Wikipedia; Herald Goa 2017 says 3 more were commissioned, giving 8 bays with bridges); +2 under the 2021 extension"
+     ],
+     "sources": [
+      {
+       "url": "https://www.airport-technology.com/projects/dabolim-international-airport-goa/",
+       "title": "Dabolim International Airport, Goa - Airport Technology",
+       "accessed": "2026-11-04",
+       "used_for": [
+        "floor_area_m2",
+        "storeys",
+        "notable"
+       ]
+      },
+      {
+       "url": "https://www.aviationpros.com/home/news/10454247/dabolim-next-aviations-next-style-icon",
+       "title": "Dabolim next aviation's next style icon",
+       "accessed": "2026-11-04",
+       "used_for": [
+        "floor_area_m2",
+        "storeys",
+        "jet_bridges"
+       ]
+      },
+      {
+       "url": "https://en.wikipedia.org/wiki/Dabolim_Airport",
+       "title": "Dabolim Airport - Wikipedia (lead only)",
+       "accessed": "2026-11-04",
+       "used_for": [
+        "icao_note",
+        "jet_bridges",
+        "opened",
+        "notable"
+       ]
+      },
+      {
+       "url": "https://www.thegoan.net/goa-news/rs-200cr-extension-work-of-dabolim-terminal-begins/70348.html",
+       "title": "Rs 200-cr extension work of Dabolim terminal begins (The Goan, 2021)",
+       "accessed": "2026-11-04",
+       "used_for": [
+        "expanded",
+        "conflicts"
+       ]
+      },
+      {
+       "url": "https://test2.ssmb.in/?p=1094",
+       "title": "GOA Integrated Terminal Building, Dabolim (consultant page; seen in search snippet only)",
+       "accessed": "2026-11-04",
+       "used_for": [
+        "roof_form",
+        "kerb_canopy",
+        "facade_material"
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "icao": "VOKN",
+   "airport": "Kannur International Airport",
+   "icao_note": "Kannur International Airport, Mattanur, Kerala; KIAL (state-promoted company); opened 9 Dec 2018; table-top airport on a levelled laterite plateau, runway 07/25 3,050 m.",
+   "has_passenger_terminal": true,
+   "terminals": [
+    {
+     "name": "Integrated Passenger Terminal Building",
+     "osm": [
+      "way/392012106"
+     ],
+     "status": "operational",
+     "opened": 2018,
+     "expanded": null,
+     "roof_top_m": 26,
+     "eaves_m": 14,
+     "storeys": 3,
+     "plan_shape": "near-square block (OSM 205 x 191 m, long axis 69 deg) with a raised central hall; landside canopy of 8 parallel gabled roof bays (each ~53 x 19 m, OSM building:part) cantilevering ~30 m over the departures kerb; 6 aerobridges on the north (airside) face",
+     "length_m": 205,
+     "width_m": 191,
+     "footprint_m2": 28266,
+     "floor_area_m2": 97000,
+     "roof_form": "folded: 8 gabled bays with glazed triangular gable ends on the landside canopy; the central hall roof curves up from the airside eaves (wave profile seen from the apron); flat roofs over the lower airside wings",
+     "roof_colour_hex": "#d6d8d4",
+     "roof_colour": "white / light grey metal (OSM roof:colour=white; Sentinel-2 roof pixels ~#bcbeb4 mixed)",
+     "roof_material": "double-skin aluminium standing-seam roof on a steel frame",
+     "facade_colour_hex": "#5f7286",
+     "facade_colour": "blue-grey glass and metal cladding (airside); laterite-red beam and piers with white round columns along the landside frontage",
+     "facade_material": "glass curtain wall, metal cladding, laterite-red rendered piers and band",
+     "accent_colour_hex": "#9a3d2c",
+     "soffit_colour_hex": "#4a4f55",
+     "glass_hex": "#3f5566",
+     "glass_share": 0.6,
+     "jet_bridges": 6,
+     "tower_attached": false,
+     "kerb_canopy": "deep canopy under the gabled bays, dark grey soffit with white diagonal edges, 'KANNUR INTERNATIONAL AIRPORT' in white capitals on the fascia; 750 m flyover to the departures level",
+     "notable": [
+      "8 glazed gable ends facing the city (the airport's signature view)",
+      "separate 30 m ATC tower in the technical block (not attached)",
+      "LEED Gold / green-building design",
+      "swing facility (sliding glass partitions) inside"
+     ],
+     "osm_reflects_current": true,
+     "osm_note": "way/392012106 (aeroway=terminal, height=30, building:levels=4) + 8 roof parts way/1178527723..30 (roof:shape=gabled, height=30). height=30 equals the published ATC tower height; applied to the whole 28,000 m2 footprint it drew a 30 m box. Photos show the main body at about half that.",
+     "model": {
+      "basis": "research values are photo estimates (see conflicts)"
+     },
+     "confidence": {
+      "roof_top_m": "low",
+      "eaves_m": "low",
+      "storeys": "high",
+      "floor_area_m2": "medium",
+      "plan_shape": "high",
+      "roof_form": "medium",
+      "roof_colour_hex": "medium",
+      "facade_colour_hex": "low",
+      "glass_share": "low",
+      "jet_bridges": "high",
+      "tower_attached": "medium"
+     },
+     "conflicts": [
+      "floor area: 97,000 m2 (Wikipedia, KIAL 'approx 10 lakh sq ft') vs 56,000 m2 (airport-technology) vs 807,293 / 900,000 sq ft (other reports)",
+      "check-in counters 24 expandable to 48 (KIAL) vs 48 (Wikipedia)",
+      "height: OSM height=30 (whole building) vs ~24-28 m gable ridges and ~14 m main eaves estimated from public photos with jet bridges / vehicles as scale; no published terminal height found",
+      "storeys: KIAL 3 levels (basement, arrival, departure) vs OSM building:levels=4"
+     ],
+     "sources": [
+      {
+       "url": "https://www.kannurairport.aero/corporate/passenger-terminals",
+       "title": "KIAL: passenger terminals",
+       "accessed": "2026-11-04",
+       "used_for": [
+        "storeys",
+        "floor_area_m2",
+        "jet_bridges",
+        "kerb_canopy"
+       ]
+      },
+      {
+       "url": "https://en.wikipedia.org/wiki/Kannur_International_Airport",
+       "title": "Wikipedia: Kannur International Airport (lead)",
+       "accessed": "2026-11-04",
+       "used_for": [
+        "floor_area_m2",
+        "jet_bridges",
+        "roof_material",
+        "tower_attached"
+       ]
+      },
+      {
+       "url": "https://www.airport-technology.com/projects/kannur-international-airport/",
+       "title": "Airport Technology: Kannur International Airport",
+       "accessed": "2026-11-04",
+       "used_for": [
+        "opened",
+        "floor_area_m2 (conflict)"
+       ]
+      },
+      {
+       "url": "https://www.jswsteel.in/project/kannur-international-airport/",
+       "title": "JSW Steel: Kannur project (steel frame, coated roof sheets)",
+       "accessed": "2026-11-04",
+       "used_for": [
+        "roof_material"
+       ]
+      },
+      {
+       "url": "https://commons.wikimedia.org/w/index.php?search=Kannur+International+Airport+terminal&title=Special:MediaSearch&type=image",
+       "title": "Wikimedia Commons photos of the terminal (viewed, not copied)",
+       "accessed": "2026-11-04",
+       "used_for": [
+        "roof_form",
+        "facade_colour_hex",
+        "roof_top_m",
+        "eaves_m",
+        "kerb_canopy"
+       ]
+      },
+      {
+       "url": "https://www.openstreetmap.org/way/392012106",
+       "title": "OSM terminal footprint and roof parts",
+       "accessed": "2026-11-04",
+       "used_for": [
+        "plan_shape",
+        "length_m",
+        "width_m",
+        "footprint_m2",
+        "jet_bridges"
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "icao": "VOML",
+   "airport": "Mangaluru International Airport (Bajpe)",
+   "icao_note": "VOML / IATA IXE = Mangaluru (Bajpe) on a tabletop plateau. Run by Adani's Mangaluru International Airport Ltd since 31 Oct 2020 under a 50-year concession; previously AAI. Runway 06/24, 2,450 m.",
+   "has_passenger_terminal": true,
+   "terminals": [
+    {
+     "name": "Integrated Terminal Building (incl. eastern extension / 'NITB')",
+     "osm": [
+      "relation/20984353"
+     ],
+     "status": "operational",
+     "opened": 2010,
+     "expanded": 2023,
+     "roof_top_m": null,
+     "eaves_m": null,
+     "storeys": 3,
+     "plan_shape": "linear terminal along the apron. The eastern extension (NITB) adds the international arrival hall and 2 more aerobridge stands (5, 6); 6 bridged stands in a row (5-10)",
+     "length_m": null,
+     "width_m": null,
+     "footprint_m2": 17574,
+     "floor_area_m2": 47464,
+     "roof_form": "unverified: low-slope curved / vaulted metal roof",
+     "roof_colour_hex": null,
+     "roof_colour": null,
+     "roof_material": null,
+     "facade_colour_hex": null,
+     "facade_colour": null,
+     "facade_material": "glazed airside front with aerobridges (general; not sourced in detail)",
+     "glass_hex": null,
+     "glass_share": null,
+     "jet_bridges": 6,
+     "tower_attached": false,
+     "kerb_canopy": "a passenger canopy was part of the 2006-10 project (Oneindia 2006); form unknown",
+     "notable": [
+      "Built by AAI for Rs 147-150 crore (some reports say Rs 250 crore); trial 16 Dec 2009, inaugurated 15 May 2010, in use from 2 Aug 2010",
+      "Levels: lower ground (exit), ground (baggage claim, duty free), first (aerobridge level)",
+      "11 apron stands: 6 with aerobridges, the rest open bays (Adani press release 2023)",
+      "AAI's Rs 132 crore terminal extension (eastern); international arrival hall in the NITB opened 23 Nov 2022; 2 new aerobridges in July 2023",
+      "Adani master plan (about Rs 5,200 crore) adds a new terminal: footprint 68,186 m2, built-up about 183,221 m2, 22.5 mppa. Proposal only; no confirmed start found by Nov 2026"
+     ],
+     "osm_reflects_current": null,
+     "osm_note": "Not checked. OSM probably has the 2010 building; the 2022-23 eastern extension may be missing. OSM relation/20984353 \"Mangalore International Airport New Terminal\" 25,185 m2, 273 x 150 m.",
+     "model": {
+      "eaves_m": 14.0,
+      "roof_top_m": 18.0,
+      "basis": "libresim modelling estimate where research is null: 3 levels under a curved roof"
+     },
+     "confidence": {
+      "storeys": "medium",
+      "floor_area_m2": "low",
+      "footprint_m2": "low",
+      "jet_bridges": "high",
+      "opened": "high",
+      "roof_form": "low"
+     },
+     "conflicts": [
+      "Cost: Rs 147 crore (Lok Sabha / Oneindia 2006) vs Rs 150 crore vs Rs 250 crore",
+      "Floor area and footprint come from one secondary source (mysuruinfrahub, quoting master-plan figures); not confirmed by a second source"
+     ],
+     "sources": [
+      {
+       "url": "https://www.adaniairports.com/-/media/Project/AAHL/Media-New/IXE/Press-Release-15-23_24.pdf",
+       "title": "Mangaluru International Airport press release 15/23-24 (aerobridges)",
+       "accessed": "2026-11-04",
+       "used_for": [
+        "jet_bridges"
+       ]
+      },
+      {
+       "url": "https://deccanherald.com/india/karnataka/mangaluru-international-airport-adds-two-new-aerobridges-1238905.html",
+       "title": "Mangaluru International Airport adds two new aerobridges (Deccan Herald)",
+       "accessed": "2026-11-04",
+       "used_for": [
+        "jet_bridges",
+        "expanded"
+       ]
+      },
+      {
+       "url": "https://www.aci-asiapac.aero/media-centre/news/mangaluru-international-airport-opens-international-arrival-hall-at-nitb",
+       "title": "Mangaluru International Airport opens international arrival hall at NITB (ACI Asia-Pacific)",
+       "accessed": "2026-11-04",
+       "used_for": [
+        "storeys",
+        "expanded"
+       ]
+      },
+      {
+       "url": "https://mysuruinfrahub.com/mangaluru-international-airport-expansion-project-at-rs-5200-crores/",
+       "title": "Mangaluru International Airport expansion project at Rs 5200 crores",
+       "accessed": "2026-11-04",
+       "used_for": [
+        "footprint_m2",
+        "floor_area_m2",
+        "notable"
+       ]
+      },
+      {
+       "url": "https://www.nbmcw.com/news/aai-launches-132-cr-mangaluru-airport-expansion.html",
+       "title": "AAI launches 132 cr Mangaluru airport expansion (NBM&CW)",
+       "accessed": "2026-11-04",
+       "used_for": [
+        "expanded"
+       ]
+      },
+      {
+       "url": "https://www.oneindia.com/2006/11/10/bajpe-airport-integrated-terminal-building-to-be-ready-in-18-months-1163224380.html",
+       "title": "Bajpe airport integrated terminal building to be ready in 18 months (Oneindia 2006)",
+       "accessed": "2026-11-04",
+       "used_for": [
+        "kerb_canopy",
+        "conflicts"
+       ]
+      },
+      {
+       "url": "https://en.wikipedia.org/wiki/Mangalore_International_Airport",
+       "title": "Mangalore International Airport - Wikipedia (lead only)",
+       "accessed": "2026-11-04",
+       "used_for": [
+        "opened",
+        "icao_note"
+       ]
+      }
+     ]
+    }
+   ]
+  }
+ ]
+}

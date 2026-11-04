@@ -13,6 +13,9 @@ extends Node3D
 ## uploading, or RESELECT_S passed. Anti-popping: split at d < size*lod_k, merge
 ## only at d > size*lod_k*HYSTERESIS; the shader geomorphs each node toward its
 ## parent's geometry over [MORPH_START, 1] x the parent's split distance.
+## Focus (the aircraft): nodes within FOCUS_KEEP_M of it always split to MIN_LEVEL and never geomorph, whatever
+## the camera distance, so the ground under the tyres is the drawn ground (= the FDM's, TerrainTileCache.height_at)
+## from a far tower or fly-by camera too; ground_focus tells the ground overlays (ground_lift.gdshaderinc).
 
 const MIN_LEVEL := -2
 const SKIRT_FRAC := 0.004
@@ -24,9 +27,12 @@ const MAX_RECS := 40000
 const MORPH_START := 0.6  # x parent split distance; must be > HYSTERESIS / 2
 const ROADS_NEAR_M := 3600.0  # nodes closer than this (horizontal) get the road / river tile (TerrainRoads)
 const ROADS_EVERY_S := 0.25
+const FOCUS_KEEP_M := 400.0  # horizontal; ground_lift.gdshaderinc fades its lift out inside this
+const NO_MORPH := Vector2(1e12, 2e12)
 
 @export var lod_k := 1.6
 @export var camera_path: NodePath
+var focus: Node3D  # the aircraft (set by the flight scene); null: no focus
 
 var cache: TerrainTileCache
 var roads := TerrainRoads.new()
@@ -44,11 +50,15 @@ var _since := INF
 var _is_root := {}
 var _ro_bound := {}  # Vector3i -> true: node currently shows a road tile
 var _ro_t := 0.0
+var _focus_enu := Vector3(INF, INF, INF)
+var _last_focus := Vector3(INF, INF, INF)
+var _unmorphed := {}  # Vector3i -> true: active node drawn without geomorph (near the focus)
 
 
 func _ready() -> void:
 	cache = TerrainTileCache.new()
 	_mesh = TerrainMesh.build()
+	TerrainDetail.apply(_shader)
 	_roots = cache.tmeta.roots()
 	for r in _roots:
 		_is_root[r] = true
@@ -71,6 +81,12 @@ func _process(dt: float) -> void:
 		return
 	_cam_enu = FloatingOrigin.to_world(cam.global_position)
 	RenderingServer.global_shader_parameter_set("terrain_eye", cam.global_position)
+	var fp := Vector3(1e9, 0.0, 1e9)
+	_focus_enu = Vector3(INF, INF, INF)
+	if is_instance_valid(focus) and focus.is_inside_tree():
+		fp = focus.global_position
+		_focus_enu = FloatingOrigin.to_world(fp)
+	RenderingServer.global_shader_parameter_set("ground_focus", fp)
 	var uploads := cache.process()
 	roads.process()
 	_ro_t += dt
@@ -78,10 +94,12 @@ func _process(dt: float) -> void:
 		_ro_t = 0.0
 		_update_roads()
 	_since += dt
-	if uploads == 0 and _since < RESELECT_S and _cam_enu.distance_to(_last_sel) < RESELECT_M:
+	var focus_moved := is_finite(_focus_enu.x) and not (_focus_enu.distance_to(_last_focus) < RESELECT_M)
+	if uploads == 0 and _since < RESELECT_S and _cam_enu.distance_to(_last_sel) < RESELECT_M and not focus_moved:
 		return
 	_since = 0.0
 	_last_sel = _cam_enu
+	_last_focus = _focus_enu
 	if _recs.size() > MAX_RECS:
 		_recs.clear()  # memo only; rebuilt on demand
 	var wanted: Array[Vector3i] = []
@@ -129,7 +147,7 @@ func _select(k: Vector3i, out: Array[Vector3i], split: Dictionary) -> void:
 		var dy := maxf(maxf(r[1] - _cam_enu.y, _cam_enu.y - r[3]), 0.0)
 		var dz := maxf(maxf(r[4] - _cam_enu.z, _cam_enu.z - r[5]), 0.0)
 		var limit: float = r[6] * lod_k * (HYSTERESIS if _split.has(k) else 1.0)
-		if dx * dx + dy * dy + dz * dz < limit * limit:
+		if dx * dx + dy * dy + dz * dz < limit * limit or _near_focus(r):
 			var kids := _children(k, r)
 			var ok := true
 			for c in kids:
@@ -153,14 +171,40 @@ func _apply(wanted: Array[Vector3i]) -> void:
 			_pool.append(mi)
 			_active.erase(k)
 			_ro_bound.erase(k)
-			mi.material_override.set_shader_parameter("ro_on", 0.0)
-			mi.material_override.set_shader_parameter("ro_tex", null)
+			_unmorphed.erase(k)
+			_unbind_roads(mi.material_override)
 	for k in wanted:
 		if not _active.has(k):
 			var mi := _make_instance(k)
 			_active[k] = mi
 			_place(k, mi)
+		elif _unmorphed.has(k) != _near_focus(_rec(k)):
+			_set_morph(k, _active[k].material_override)
 	visible_nodes = wanted.size()
+
+
+## Node record r within FOCUS_KEEP_M (horizontally) of the focus.
+func _near_focus(r: Array) -> bool:
+	if not is_finite(_focus_enu.x):
+		return false
+	var dx := maxf(maxf(r[0] - _focus_enu.x, _focus_enu.x - r[2]), 0.0)
+	var dy := maxf(maxf(r[1] - _focus_enu.y, _focus_enu.y - r[3]), 0.0)
+	return dx * dx + dy * dy < FOCUS_KEEP_M * FOCUS_KEEP_M
+
+
+## Geomorph toward the parent over the tail of the parent's split range (vertex distance >= box distance, so
+## a node is fully morphed whenever its parent splits or merges); none for roots and nodes near the focus.
+func _set_morph(k: Vector3i, m: ShaderMaterial) -> void:
+	var size := cache.level_size(k.x)
+	var par_split := 2.0 * size * lod_k
+	var morph := Vector2(par_split * MORPH_START, par_split)
+	_unmorphed.erase(k)
+	if _near_focus(_rec(k)):
+		_unmorphed[k] = true
+		morph = NO_MORPH
+	elif _is_root.has(k):
+		morph = NO_MORPH
+	m.set_shader_parameter("morph_range", morph)
 
 
 ## Binds the level-0 road / river tile to active nodes within ROADS_NEAR_M of the camera (levels <= 0
@@ -178,8 +222,7 @@ func _bind_roads(k: Vector3i, m: ShaderMaterial) -> void:
 	var dy := maxf(maxf(r[1] - _cam_enu.y, _cam_enu.y - r[3]), 0.0)
 	if dx * dx + dy * dy > ROADS_NEAR_M * ROADS_NEAR_M:
 		if _ro_bound.erase(k):
-			m.set_shader_parameter("ro_on", 0.0)
-			m.set_shader_parameter("ro_tex", null)
+			_unbind_roads(m)
 		return
 	if _ro_bound.has(k):
 		return
@@ -190,7 +233,15 @@ func _bind_roads(k: Vector3i, m: ShaderMaterial) -> void:
 		m.set_shader_parameter("ro_tex", tex)
 		m.set_shader_parameter("ro_rect", TerrainMeta.sub_rect(k, Vector3i(0, tx, ty)))
 		m.set_shader_parameter("ro_on", 1.0)
+		var pv := roads.pavement(tx, ty)  # airport pavement mask, same lattice (terrain_pavement.gdshaderinc)
+		m.set_shader_parameter("pv_tex", pv)
+		m.set_shader_parameter("pv_on", 1.0 if pv != null else 0.0)
 		_ro_bound[k] = true
+
+
+func _unbind_roads(m: ShaderMaterial) -> void:
+	for p in ["ro_on", "pv_on", "ro_tex", "pv_tex"]:
+		m.set_shader_parameter(p, 0.0 if p.ends_with("_on") else null)
 
 
 func _place(k: Vector3i, mi: MeshInstance3D) -> void:
@@ -224,13 +275,6 @@ func _make_instance(k: Vector3i) -> MeshInstance3D:
 	var ir := TerrainMeta.sub_rect(k, t.img_src)  # imagery may come from a coarser tile
 	var lr := TerrainMeta.sub_rect(k, t.lc_src)
 	var skirt := maxf(size * SKIRT_FRAC, 10.0)
-	# geomorph toward the parent over the tail of the parent's split range
-	# (vertex distance >= box distance, so a node is fully morphed whenever its
-	# parent splits or merges); roots have no parent
-	var par_split := 2.0 * size * lod_k
-	var morph := Vector2(par_split * MORPH_START, par_split)
-	if _is_root.has(k):
-		morph = Vector2(1e12, 2e12)
 	var m: ShaderMaterial = mi.material_override
 	m.set_shader_parameter("height_tex", t.htex)
 	m.set_shader_parameter("img_tex", t.itex)
@@ -248,7 +292,7 @@ func _make_instance(k: Vector3i) -> MeshInstance3D:
 	m.set_shader_parameter("h_offset", cache.h_offset)
 	m.set_shader_parameter("tile_n", float(cache.tile_n))
 	m.set_shader_parameter("skirt_depth", skirt)
-	m.set_shader_parameter("morph_range", morph)
+	_set_morph(k, m)
 	_bind_roads(k, m)
 	mi.custom_aabb = AABB(Vector3(0, r[4] - skirt, -size), Vector3(size, r[5] - r[4] + skirt, size))
 	return mi

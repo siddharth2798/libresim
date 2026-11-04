@@ -15,7 +15,7 @@ const CHECK_S := 0.5
 
 var _probe: ReflectionProbe
 var _model: Node3D
-var _cfg := {}
+var _cfg := {"on": false}  # until apply_preset runs (also if the Graphics autoload failed to load)
 var _last := {}
 var _since := 0.0
 var _check := 0.0

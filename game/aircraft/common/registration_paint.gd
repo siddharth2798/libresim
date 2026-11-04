@@ -19,6 +19,7 @@ extends RefCounted
 ## pixels (headless / dummy) returns an empty image: the model then keeps the original number.
 
 const FONT_PX := 200
+const ABORTED := &"registration_aborted"  # host meta: it left the tree during a glyph render
 const SHEAR := 0.22  # synthetic italic (x += SHEAR * y) when the font has no italic of its own
 
 static var _cache := {}  # "<aircraft id>|<TEXT>" -> ImageTexture
@@ -163,6 +164,8 @@ static func texture(host: Node, aircraft_id: String, section: Dictionary, atlas:
 ## White text on transparent, cropped to the glyphs, drawn once with the engine's default font
 ## (emboldened, sheared). Null when the renderer gives no pixels.
 static func render_glyphs(host: Node, text: String, italic: bool) -> Image:
+	if not is_instance_valid(host) or not host.is_inside_tree() or host.has_meta(ABORTED):
+		return null
 	var fv := FontVariation.new()
 	fv.base_font = ThemeDB.fallback_font
 	fv.variation_embolden = 0.55
@@ -182,10 +185,19 @@ static func render_glyphs(host: Node, text: String, italic: bool) -> Image:
 	lab.add_theme_color_override("font_color", Color.WHITE)
 	vp.add_child(lab)
 	host.add_child(vp)
-	await RenderingServer.frame_post_draw
-	var img := vp.get_texture().get_image() if is_instance_valid(vp) else null
-	if is_instance_valid(vp):
-		vp.queue_free()
+	# Resumed after the next drawn frame, or at once (ok = false) when the viewport leaves the tree first: the host
+	# freed or the game quitting. A chain of awaiting calls (apply -> texture -> here) that never resumes holds
+	# itself alive and leaks at exit, so it must always end.
+	vp.add_user_signal("drawn", [{"name": "ok", "type": TYPE_BOOL}])
+	RenderingServer.frame_post_draw.connect(vp.emit_signal.bind("drawn", true), CONNECT_ONE_SHOT)
+	vp.tree_exiting.connect(vp.emit_signal.bind("drawn", false), CONNECT_ONE_SHOT)
+	var ok: bool = await Signal(vp, "drawn")
+	if not ok:
+		if is_instance_valid(host):
+			host.set_meta(ABORTED, true)  # no more glyph renders under a host on its way out
+		return null
+	var img := vp.get_texture().get_image()
+	vp.queue_free()
 	if img == null or img.is_empty():
 		return null
 	img.convert(Image.FORMAT_RGBA8)

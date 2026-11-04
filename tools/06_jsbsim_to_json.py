@@ -60,6 +60,12 @@ SPECS = {
         "name": "A320-family twin-jet airliner (FlightGear A320-family JSBSim FDE, CFM56-5B4)",
         # Upstream wheels are used as published; tune per aircraft in the FDM phase if touchdown loads are wrong.
         "gear_damping": 1.0,
+        # Deliberate deviation (docs/A320-STATUS.md): upstream puts the thrusters at y +-2.8775, z -1.048 m; the
+        # model's fans (models/exterior_pivots.json fan_L / fan_R) are at y +-5.63, z -2.269. Thrust acts there.
+        "thrust_pos_m": [[-5.34904, -5.62977, -2.26943], [-5.34904, 5.62977, -2.26943]],
+        # ... and with that arm JSBSim's rudder (Cndr 0.042 / rad) cannot hold an engine failure at V2: the three
+        # rudder terms (fin force: CYdr, Cldr, Cndr) are scaled x3, so V2 needs ~70 % pedal (V2 ~ 1.2 VMCA).
+        "rudder_k": 3.0,
         "derived_from": {
             "upstream": "https://github.com/legoboyvdlp/A320-family", "commit": "fec1ecba767c8fffd145337b27012e89c01e3ade",
             "files": ["FDE/A320-200-CFM.xml", "FDE/Config/*.xml", "Engines/cfm56-5b4_*.xml", "Engines/APS3200.xml",

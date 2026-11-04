@@ -25,6 +25,7 @@ var _ae := AutoExposure.new()
 var _inside := CloudInside.new()  # the in-cloud presentation (world/cloud_inside.gd)
 var _atmo_key := Vector3(INF, 0.0, 0.0)
 var _atmo_cache: Array = [Color.BLACK, Color.BLACK]  # zenith, horizon (linear)
+var _haze := HazeLut.new()  # view-dependent far haze (world/haze_lut.gd, G4)
 
 
 func _ready() -> void:
@@ -127,6 +128,11 @@ func _process(dt: float) -> void:
 	_env.fog_light_color = hor
 	_env.fog_density = haze
 	_env.fog_sky_affect = clampf(1.0 - (vis - 1500.0) / 8000.0, 0.0, 0.85)
+	# far haze by view direction, measured from the horizon dipped by the altitude (Earth curvature, G4)
+	var dip := HazeLut.horizon_dip_sin(cam_alt)
+	_sky.set_shader_parameter("horizon_dip", dip)
+	_haze.update(d, el_deg, Atmosphere.aerosol_for_visibility(rain_vis), _sun.light_color.srgb_to_linear() * _sun.light_energy * day,
+		m_hor, (1.0 - smoothstep(0.0, 0.8, occl)) * (1.0 - _inside.k), dip)  # in cloud: the in-cloud fog colour only
 	_update_clouds(dt, occl, rain, hor, day * ls.dark)  # last: in-cloud fog overrides the visibility fog
 	_update_exposure(dt, d, el_deg, hor, top, 1.0 - day)
 	_update_glare(dt, d, el_deg, occl, rain)
@@ -181,6 +187,7 @@ func _update_clouds(dt: float, occl: float, rain: float, hor: Color, light: floa
 		if _night.moon_dir.y > 0.0:
 			light_dir = light_dir.lerp(_night.moon_dir, m).normalized()
 	var amb := Color(0.5, 0.56, 0.66).lerp(Color(0.06, 0.07, 0.1) + NightSky.CITY_GLOW * 0.8, 1.0 - day).lerp(hor * 0.95, occl)
+	layer.air_haze = _env.fog_density  # clear-air extinction, before CloudInside turns it into the in-cloud fog
 	layer.update_layer(w, Units.ft_to_m(Props.get_f("weather/cloud_base_ft", 4500.0)), Props.get_f("weather/cloud_cover"),
 		_drift, light_dir, sun_col, amb, occl * 0.5 + rain * 0.25)
 	var d := layer.density_at(w)

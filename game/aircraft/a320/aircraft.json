@@ -156,7 +156,8 @@
    "trim",
    "brakes",
    "parking_brake",
-   "anti_ice"
+   "anti_ice",
+   "ext_lights"
   ],
   "levers": {
    "throttle": {
@@ -316,8 +317,7 @@
       0.0
      ]
     ],
-    "compress": "NOSE_LG",
-    "lift_m": -0.04
+    "compress": "NOSE_LG"
    },
    "nose_steer": {
     "drive": "nose_steer_deg",
@@ -340,8 +340,7 @@
       0.0
      ]
     ],
-    "compress": "LEFT_MLG",
-    "lift_m": 0.0
+    "compress": "LEFT_MLG"
    },
    "wheel_main_L": {
     "drive": "wheel_main_l_rad",
@@ -360,8 +359,7 @@
       0.0
      ]
     ],
-    "compress": "RIGHT_MLG",
-    "lift_m": 0.0
+    "compress": "RIGHT_MLG"
    },
    "wheel_main_R": {
     "drive": "wheel_main_r_rad",
@@ -1004,175 +1002,32 @@
   }
  },
  "lights": {
+  "_doc": "Structural metres (x aft, y right, z up; model frame of models/exterior_pivots.json). Measured on the exterior glb with tools/glb_probe.py: nav lenses (lens_red / lens_green) in the wingtip leading-edge fairings, strobe lenses (lens_white) at the tips, beacon lenses on the crown and belly, white nav + strobe on the tail cone above the APU exhaust. Lamps: retractable landing lights under each wing between the main gear and the engine (light only, the model has no moving housing; lit when systems/lights/landing_<l|r>_on: extended and powered), taxi (left housing) + take-off (right housing) on the front of the nose gear strut and the two runway turn-off lights on its sides (follow pivot_gear_nose, off with the gear up), logo lights on the stabiliser lighting the fin, wing / engine scan lights on the fuselage sides lighting the slats and the engine inlets.",
   "nav": [
-   {
-    "pos": [
-     1.9,
-     -17.13,
-     0.5
-    ],
-    "side": "left",
-    "color": "red",
-    "size": 1.4,
-    "range": 4.0,
-    "omni_off": [
-     0.4,
-     0.15,
-     0
-    ]
-   },
-   {
-    "pos": [
-     1.9,
-     17.13,
-     0.5
-    ],
-    "side": "right",
-    "color": "green",
-    "size": 1.4,
-    "range": 4.0,
-    "omni_off": [
-     -0.4,
-     0.15,
-     0
-    ]
-   },
-   {
-    "pos": [
-     18.8,
-     0.0,
-     0.67
-    ],
-    "side": "tail",
-    "color": "white",
-    "size": 1.2,
-    "range": 3.0,
-    "omni_off": [
-     0,
-     0.2,
-     0.2
-    ]
-   }
+   {"pos": [1.54, -16.37, 0.3], "side": "left", "color": "red", "size": 1.4, "range": 4.0, "bulb": 0.05, "omni_off": [0.3, 0.15, -0.1]},
+   {"pos": [1.54, 16.37, 0.3], "side": "right", "color": "green", "size": 1.4, "range": 4.0, "bulb": 0.05, "omni_off": [-0.3, 0.15, -0.1]},
+   {"pos": [18.7, 0.0, 1.12], "side": "tail", "color": "white", "size": 1.2, "range": 3.0, "bulb": 0.05, "omni_off": [0, 0.2, 0.2]}
   ],
   "beacon": [
-   {
-    "pos": [
-     -3.59,
-     0.0,
-     1.97
-    ],
-    "color": "red",
-    "size": 1.6,
-    "range": 4.0,
-    "omni_off": [
-     0,
-     0.3,
-     0
-    ]
-   },
-   {
-    "pos": [
-     -3.97,
-     0.0,
-     -2.52
-    ],
-    "color": "red",
-    "size": 1.6,
-    "range": 4.0,
-    "omni_off": [
-     0,
-     -0.3,
-     0
-    ]
-   }
+   {"pos": [-3.58, 0.0, 1.95], "color": "red", "size": 1.6, "range": 4.0, "bulb": 0.07, "omni_off": [0, 0.3, 0]},
+   {"pos": [-3.965, 0.0, -2.51], "color": "red", "size": 1.6, "range": 4.0, "bulb": 0.07, "omni_off": [0, -0.3, 0]}
   ],
   "strobe": [
-   {
-    "pos": [
-     2.31,
-     -17.1,
-     0.69
-    ],
-    "color": "strobe",
-    "size": 1.6,
-    "range": 9.0,
-    "omni_off": [
-     0.8,
-     0.5,
-     0
-    ]
-   },
-   {
-    "pos": [
-     2.31,
-     17.1,
-     0.69
-    ],
-    "color": "strobe",
-    "size": 1.6,
-    "range": 9.0,
-    "omni_off": [
-     -0.8,
-     0.5,
-     0
-    ]
-   },
-   {
-    "pos": [
-     18.8,
-     0.0,
-     0.8
-    ],
-    "color": "strobe",
-    "size": 1.2,
-    "range": 7.0,
-    "omni_off": [
-     0,
-     0.5,
-     0.4
-    ]
-   }
+   {"pos": [2.33, -17.09, 0.67], "color": "strobe", "size": 1.6, "range": 9.0, "bulb": 0.05, "omni_off": [0.8, 0.5, 0]},
+   {"pos": [2.33, 17.09, 0.67], "color": "strobe", "size": 1.6, "range": 9.0, "bulb": 0.05, "omni_off": [-0.8, 0.5, 0]},
+   {"pos": [18.6, 0.0, 1.2], "color": "strobe", "size": 1.2, "range": 7.0, "bulb": 0.05, "omni_off": [0, 0.5, 0.4]}
   ],
   "lamps": [
-   {
-    "switch": "landing",
-    "pos": [
-     -2.08,
-     -2.22,
-     -1.69
-    ],
-    "energy": 40,
-    "range": 1400,
-    "angle": 9,
-    "beam": 24,
-    "tilt": 6
-   },
-   {
-    "switch": "landing",
-    "pos": [
-     -2.08,
-     2.22,
-     -1.69
-    ],
-    "energy": 40,
-    "range": 1400,
-    "angle": 9,
-    "beam": 24,
-    "tilt": 6
-   },
-   {
-    "switch": "taxi",
-    "pos": [
-     -13.95,
-     0.0,
-     -2.3
-    ],
-    "energy": 14,
-    "range": 450,
-    "angle": 24,
-    "beam": 14,
-    "tilt": 10
-   }
+   {"switch": "landing", "lit": "systems/lights/landing_l_on", "pos": [-3.0, -4.4, -1.32], "energy": 40, "range": 1400, "angle": 9, "beam": 24, "tilt": 5, "bulb": 0.07},
+   {"switch": "landing", "lit": "systems/lights/landing_r_on", "pos": [-3.0, 4.4, -1.32], "energy": 40, "range": 1400, "angle": 9, "beam": 24, "tilt": 5, "bulb": 0.07},
+   {"switch": ["taxi", "takeoff"], "parent": "gear_nose", "gear": true, "pos": [-13.89, -0.12, -2.92], "energy": 14, "range": 450, "angle": 26, "beam": 14, "tilt": 9, "bulb": 0.05},
+   {"switch": "takeoff", "parent": "gear_nose", "gear": true, "pos": [-13.71, 0.06, -2.92], "energy": 30, "range": 1000, "angle": 11, "beam": 22, "tilt": 4, "bulb": 0.04},
+   {"switch": "rwy_turnoff", "parent": "gear_nose", "gear": true, "pos": [-13.52, -0.27, -2.84], "energy": 10, "range": 250, "angle": 24, "beam": 10, "tilt": 8, "yaw": -55, "bulb": 0.035},
+   {"switch": "rwy_turnoff", "parent": "gear_nose", "gear": true, "pos": [-13.52, 0.27, -2.84], "energy": 10, "range": 250, "angle": 24, "beam": 10, "tilt": 8, "yaw": 55, "bulb": 0.035},
+   {"switch": "logo", "skin": true, "parent": "stabilizer", "pos": [15.2, -3.0, 1.1], "aim": [0.8, 3.0, 3.1], "energy": 25, "range": 14, "angle": 35, "beam": 0, "bulb": 0.05, "size": 0.8},
+   {"switch": "logo", "skin": true, "parent": "stabilizer", "pos": [15.2, 3.0, 1.1], "aim": [0.8, -3.0, 3.1], "energy": 25, "range": 14, "angle": 35, "beam": 0, "bulb": 0.05, "size": 0.8},
+   {"switch": "wing", "skin": true, "pos": [-9.5, -1.95, 0.3], "aim": [5.5, -6.1, -1.3], "energy": 12, "range": 26, "angle": 22, "beam": 0, "bulb": 0.05, "size": 0.8},
+   {"switch": "wing", "skin": true, "pos": [-9.5, 1.95, 0.3], "aim": [5.5, 6.1, -1.3], "energy": 12, "range": 26, "angle": 22, "beam": 0, "bulb": 0.05, "size": 0.8}
   ]
  },
  "audio": {
@@ -1983,30 +1838,26 @@
   "hold_short_m": 80.0,
   "min_runway_m": 1800.0,
   "stand_class": "gate",
-  "tug_scale": 1.8,
-  "service": {
-   "gpu": [
-    3.0,
-    5.0
-   ],
-   "baggage": [
-    -14.0,
-    7.0
-   ],
-   "fuel": [
-    -12.0,
-    12.0
-   ],
-   "bus": [
-    -2.0,
-    -8.0
-   ]
-  }
+  "tug_scale": 1.8
  },
  "pushback": {
   "straight_m": 40.0,
   "radius_m": 30.0,
   "speed_mps": 1.6
+ },
+ "ramp": {
+  "_doc": "Ramp crew service points and airframe keep-out (world/ramp_points.gd): [forward, right] m about the CG on the stand, heights above the ground. Airbus A320 ground servicing layout.",
+  "fuselage_half_m": 2.0,
+  "wing": {"outline": [[3.4, 1.9], [-4.3, 17.9], [-5.9, 17.9], [-3.4, 6.3], [-3.2, 1.9]], "low_m": [2.3, 4.3]},
+  "tailplane": {"outline": [[-15.5, 0.6], [-19.3, 6.2], [-20.7, 6.2], [-19.6, 0.6]], "low_m": [4.6, 5.0]},
+  "engines": [
+   {"at": [3.0, -5.63], "length_m": 4.6, "radius_m": 1.15, "intake_m": 3.0, "exhaust_m": 6.0},
+   {"at": [3.0, 5.63], "length_m": 4.6, "radius_m": 1.15, "intake_m": 3.0, "exhaust_m": 6.0}
+  ],
+  "gpu": [13.2, 1.0],
+  "refuel": [-0.8, 8.9],
+  "cargo": [[6.8, 2.0], [-8.6, 2.0]],
+  "doors": [[11.3, -1.95], [-14.6, -1.95]]
  },
  "icing": {
   "protection": "wing_and_engine",
@@ -2019,6 +1870,14 @@
   "engine_anti_ice_prop": "controls/anti_ice/eng_%d",
   "bleed_wing": 0.015,
   "bleed_engine": 0.02
+ },
+ "exhausts": {
+  "_doc": "Heat shimmer behind the nozzles (world/postfx/heat_shimmer.gd). Model frame of models/*_pivots.json (x aft, y right, z up from the VRP): the fan faces are at x -6.67, y +-5.63, z -2.27, the core nozzle about 4.3 m aft of them.",
+  "strength": 1.0,
+  "list": [
+   {"pos": [-2.4, -5.63, -2.35], "dir": [1.0, 0.0, 0.02], "radius": 0.75, "kind": "jet", "engine": 1},
+   {"pos": [-2.4, 5.63, -2.35], "dir": [1.0, 0.0, 0.02], "radius": 0.75, "kind": "jet", "engine": 2}
+  ]
  },
  "payload": {
   "fuel_unit": "kg",

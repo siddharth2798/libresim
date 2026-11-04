@@ -164,6 +164,7 @@ func _wheel(contact: Vector3, r: float, zc: float, k: float) -> void:
 	c.height = 0.7 * r
 	mi.mesh = c
 	mi.material_override = _dark
+	mi.name = "Wheel%d" % get_child_count()  # unique; TyreContact raises it by the gear compression
 	mi.position = _s.call(center)
 	mi.rotation_degrees = Vector3(0, 0, 90)
 	add_child(mi)

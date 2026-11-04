@@ -12,8 +12,7 @@ static func a320() -> AircraftDef:
 	return AircraftDef.make("a320_fixture", {"name": "A320 fixture",
 		"ground": {"tow_ahead_m": 16.0, "ahead_m": 19.5, "behind_m": 19.0, "across_m": 18.3, "height_m": 11.8,
 			"cg_to_door_m": 12.5, "door_height_m": 3.0, "nose_gear_m": 11.0, "taxi_half_m": 15.0, "max_taxi_kt": 20.0,
-			"hold_short_m": 80.0, "min_runway_m": 1800.0, "stand_class": "gate", "tug_scale": 1.7,
-			"service": {"gpu": [2.0, -4.0], "fuel": [-8.0, 20.0]}},
+			"hold_short_m": 80.0, "min_runway_m": 1800.0, "stand_class": "gate", "tug_scale": 1.7},
 		"pushback": {"straight_m": 45.0, "radius_m": 30.0, "speed_mps": 1.8}}, "res://aircraft/c172")
 
 
@@ -235,9 +234,6 @@ func test_ground_ops_taxi_speed_advice() -> String:
 
 
 func test_ground_ops_service_offsets_and_tug_scale() -> String:
-	var own: Dictionary = GroundParams.ground(a320()).service
-	if own.gpu != [2.0, -4.0] or own.has("bus") or GroundParams.ground(c172()).has("service"):
-		return "service offsets: A320 gives gpu and fuel, the C172 none (legacy offsets)"
 	if AirportOps.SERVICE.gpu != [1.0, -5.0] or AirportOps.SERVICE.baggage != [-12.0, 9.0] or AirportOps.SERVICE.bus != [0.0, 16.0]:
 		return "legacy service offsets changed"
 	var t := GroundVehicles.make("pushback_tug", float(GroundParams.ground(a320()).tug_scale))

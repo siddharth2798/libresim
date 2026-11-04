@@ -10,7 +10,9 @@ Per airport (nearest OurAirports airport within 6 km):
                remote bays along the apron lanes; each is linked into the taxi graph.
                src "synth": GA tie-downs on aprons where OSM maps no stands (clear of taxiways)
   gates:       [{ref, x, y}] aeroway=gate nodes (terminal-side gate numbers)
-  jetbridges:  [{pts: [[x, y], ...]}] aeroway=jet_bridge ways
+  jetbridges:  [{pts: [[x, y], ...], rot, tip, back, own_rot | fixed | orphan}] aeroway=jet_bridge ways; the
+               movable bridge of each (rotunda, cab end, stub direction) from jetway_net.py
+  jetlinks:    [{a, b}] fixed corridors from the terminal wall to the rotundas (jetway_net.py)
   holds:       [{x, y}] aeroway=holding_position nodes
   windsocks, towers: [{x, y}]
   taxi:        {nodes: {id: [x, y]}, edges: [[id_a, id_b, ref, width_m, kind]]}
@@ -28,6 +30,8 @@ from shapely.geometry import Polygon
 
 import airport_stands as ST
 import common as c
+import jetway_footprints as JF
+import jetway_net as JN
 import osm_regions as R
 
 KEYS = ("aeroway",)
@@ -198,6 +202,7 @@ def finish(out, airports, osm_ways, nearest_airport):
     had_osm = {k: bool(v["stands"]) for k, v in out.items()}
     sites = ST.add_stands(out, osm_ways, aprons_of, nearest_airport, ends_of)
     synth_ga_stands(out, sites, aprons, nearest_airport, had_osm)
+    JN.apply(out, JF.polys_of)  # movable bridges vs fixed links of the jet-bridge networks
     (c.OUT / "airport_ops.json").write_text(json.dumps(out))
     for apt, A in sorted(out.items(), key=lambda kv: -len(kv[1]["stands"])):
         src = defaultdict(int)

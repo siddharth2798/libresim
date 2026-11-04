@@ -4,15 +4,24 @@ extends RefCounted
 ## chamfered boxes, extruded profiles, lathes. Every vertex carries its material in COLOR:
 ## rgb = linear albedo, a = kind / 10 (see K and world/follow_me.gdshader). All faces are
 ## described counter-clockwise about their outward normal; Godot wants clockwise, tri() flips.
-## Vehicle frame: x right, y up, -z forward.
+## Vehicle frame: x right, y up, -z forward. CUSTOM0 (optional) = pivot of the vertex for the shader:
+## xyz = hub / beacon centre, w = wheel radius (+20 when the wheel steers), 100 = beacon lens, 0 = none.
+## wheels / lamps record what the vehicle has (contact shadow, steering, light points).
 
-enum K { PAINT, PLASTIC, RUBBER, METAL, TAPE, SIGN, LENS_L, LENS_R, HEAD, TAIL }
+enum K { PAINT, PLASTIC, RUBBER, METAL, TAPE, SIGN, LENS_L, LENS_R, HEAD, TAIL, NUMBER }
+const STEERS := 20.0  # added to the radius in CUSTOM0.w for a steering wheel
+const BEACON := 100.0
 
 var pos := PackedVector3Array()
 var nrm := PackedVector3Array()
 var cols := PackedColorArray()
 var uvs := PackedVector2Array()
 var idx := PackedInt32Array()
+var cust := PackedFloat32Array()
+var pivot := Vector4.ZERO  # CUSTOM0 of the vertices added now
+var wheels: Array = []  # [centre, radius, width, steers]
+var lamps: Array = []  # [kind ("head" | "tail" | "beacon"), position]
+var _has_pivot := false
 
 
 ## Material colour: sRGB albedo plus kind (stored linear, as the shader reads it).
@@ -30,6 +39,9 @@ func vert(p: Vector3, n: Vector3, c: Color, uv := Vector2.ZERO) -> int:
 	nrm.append(n)
 	cols.append(c)
 	uvs.append(uv)
+	cust.append_array([pivot.x, pivot.y, pivot.z, pivot.w])
+	if pivot.w != 0.0:
+		_has_pivot = true
 	return pos.size() - 1
 
 
@@ -226,12 +238,19 @@ func to_arrays() -> Array:
 	arr[Mesh.ARRAY_COLOR] = cols
 	arr[Mesh.ARRAY_TEX_UV] = uvs
 	arr[Mesh.ARRAY_INDEX] = idx
+	if _has_pivot:
+		arr[Mesh.ARRAY_CUSTOM0] = cust
 	return arr
+
+
+## Mesh format flags for to_arrays() (CUSTOM0 as four floats).
+func format() -> int:
+	return (Mesh.ARRAY_CUSTOM_RGBA_FLOAT << Mesh.ARRAY_FORMAT_CUSTOM0_SHIFT) if _has_pivot else 0
 
 
 ## Adds this geometry as one surface of `mesh` (nothing if empty).
 func commit(mesh: ArrayMesh, material: Material) -> void:
 	if pos.is_empty():
 		return
-	mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, to_arrays())
+	mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, to_arrays(), [], {}, format())
 	mesh.surface_set_material(mesh.get_surface_count() - 1, material)

@@ -22,7 +22,8 @@ const PRESS := ["flaps_down", "flaps_up", "parking_brake", "magnetos_next", "mou
 	"landing_light", "taxi_light", "pitot_heat",
 	"throttle_detent_up", "throttle_detent_down", "speedbrake_out", "speedbrake_in", "gear_toggle",
 	"autobrake_next", "engine_master_1", "engine_master_2", "engine_mode_next", "apu_master",
-	"fcu_ap1", "fcu_ap2", "fcu_athr", "fcu_loc", "fcu_appr", "anti_ice_wing", "anti_ice_eng_1", "anti_ice_eng_2"]
+	"fcu_ap1", "fcu_ap2", "fcu_athr", "fcu_loc", "fcu_appr", "anti_ice_wing", "anti_ice_eng_1", "anti_ice_eng_2",
+	"takeoff_light", "turnoff_lights", "wing_lights", "logo_lights"]
 ## Switch-row toggles: action -> Props path (fuel_selector cycles OFF/L/R/BOTH instead).
 const SWITCHES := {"avionics": "controls/electrical/avionics", "fuel_shutoff": "controls/fuel/shutoff",
 	"beacon": "controls/lights/beacon", "nav_lights": "controls/lights/nav", "strobes": "controls/lights/strobe",
@@ -46,6 +47,8 @@ const LABELS := {
 	"gear_toggle": "Landing gear up / down", "autobrake_next": "Autobrake cycle",
 	"engine_master_1": "Engine 1 master", "engine_master_2": "Engine 2 master", "engine_mode_next": "Engine mode cycle",
 	"apu_master": "APU master", "apu_start": "APU start (hold)",
+	"takeoff_light": "Take-off light (nose gear)", "turnoff_lights": "Runway turn-off lights",
+	"wing_lights": "Wing / engine scan lights", "logo_lights": "Logo lights",
 	"anti_ice_wing": "Wing anti-ice", "anti_ice_eng_1": "Engine 1 anti-ice", "anti_ice_eng_2": "Engine 2 anti-ice",
 	"rudder_trim_left": "Rudder trim left", "rudder_trim_right": "Rudder trim right",
 	"fcu_ap1": "Autopilot 1", "fcu_ap2": "Autopilot 2", "fcu_athr": "Autothrust", "fcu_loc": "FCU LOC", "fcu_appr": "FCU APPR",
@@ -122,6 +125,10 @@ static func _add_airliner_defaults(t: Dictionary) -> void:
 	t.anti_ice_wing = [spec(KEY_W, false, true)]
 	t.anti_ice_eng_1 = [spec(KEY_E, false, false, true)]
 	t.anti_ice_eng_2 = [spec(KEY_D, false, false, true)]
+	t.takeoff_light = [spec(KEY_T, false, false, true)]
+	t.turnoff_lights = [spec(KEY_R, false, false, true)]
+	t.wing_lights = [spec(KEY_W, false, false, true)]
+	t.logo_lights = [spec(KEY_O, false, false, true)]
 	t.rudder_trim_left = [spec(KEY_Z, false, false, true)]
 	t.rudder_trim_right = [spec(KEY_X, false, false, true)]
 	for i in 5:  # Ctrl+1..5 (the view keys ignore Ctrl)

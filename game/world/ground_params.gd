@@ -12,8 +12,8 @@ extends RefCounted
 ##           gate dock to this aircraft, see JetwayDocks), nose_gear_m (nose wheel ahead of the CG, where the
 ##           stop bar is), taxi_half_m (taxiway corridor half width), max_taxi_kt (advice only, absent = none),
 ##           follow_gap_m (follow-me car ahead of the CG), hold_short_m ("hold short" call distance),
-##           min_runway_m, stand_class ("any" | "ga" | "gate"), tug_scale, service {gpu, baggage, fuel, bus}
-##           (each [forward, right] from the door; absent = the legacy fixed offsets, see AirportOps).
+##           min_runway_m, stand_class ("any" | "ga" | "gate"), tug_scale. Where the ramp crew services the aircraft:
+##           the "ramp" section (world/ramp_points.gd).
 ## pushback: straight_m, radius_m, speed_mps (path = PushbackPath).
 
 const GROUND := {"tow_ahead_m": 3.2, "ahead_m": 3.3, "behind_m": 7.4, "across_m": 6.7, "height_m": 2.5,
@@ -28,7 +28,7 @@ static func _def(def: AircraftDef) -> AircraftDef:
 	return def if def != null else AircraftDef.current()
 
 
-## The "ground" section over the defaults (max_taxi_kt, door_height_m and service only when given).
+## The "ground" section over the defaults (max_taxi_kt and door_height_m only when given).
 static func ground(def: AircraftDef = null) -> Dictionary:
 	return _def(def).section_or("ground", GROUND)
 

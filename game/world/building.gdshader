@@ -1,15 +1,18 @@
 shader_type spatial;
 render_mode fog_disabled;  // haze is applied below (aerial perspective, as terrain.gdshader)
 // OSM buildings (tools/10_buildings.py, tools/building_geom.py). Per vertex:
-//   CUSTOM0 = roof colour from imagery (rgb) + style (a = pid << 2 | roof type, 0 flat / 1 hip roof)
+//   CUSTOM0 = roof colour from imagery (rgb) + style (a = pid << 2 | roof type, 0 flat / 1 hip roof / 2 terminal:
+//             building_terminal.gdshaderinc, cladding colour on the walls, curtain-wall glazing, even night glow)
 //   CUSTOM1 = wall height in cm (rg, 16 bit), parapet band / rooftop kind (b), height fraction (a)
 // Everything else is procedural and seeded by a hash of the building: wall colour, window shape and
 // rhythm, balconies, shopfronts, glass towers, weathering and rain streaks, roof material, tile courses
 // on hip roofs, parapet cap, stairwell boxes and water tanks. Fine detail fades to its average colour
-// with distance (no shimmer); windows light up at night.
+// with distance (no shimmer); windows light up at night (building_night.gdshaderinc).
 
 global uniform vec3 fog_color;
 global uniform float haze_density;
+#include "res://world/curvature.gdshaderinc"  // Earth curvature (G4)
+#include "res://world/haze_sky.gdshaderinc"  // view-dependent haze colour (G4)
 global uniform float wetness;
 global uniform vec2 pattern_origin;  // FloatingOrigin: origin mod ~50 km (float32-safe)
 uniform float night = 0.0;  // 0 day .. 1 night (set by Buildings from the sun)
@@ -25,6 +28,7 @@ void vertex() {
 	// world-stable facade coordinates (no window jump on a floating-origin shift)
 	v_world = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz + vec3(pattern_origin.x, 0.0, -pattern_origin.y);
 	v_dist = length((MODELVIEW_MATRIX * vec4(VERTEX, 1.0)).xyz);
+	VERTEX += curve_local(MODEL_MATRIX, curve_drop((MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz));
 }
 
 float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
@@ -40,6 +44,8 @@ float box1(float x, float a, float b, float w) {
 	w = max(w, 0.001);
 	return smoothstep(a - w, a + w, x) - smoothstep(b - w, b + w, x);
 }
+#include "res://world/building_night.gdshaderinc"
+#include "res://world/building_terminal.gdshaderinc"
 
 vec3 wall_palette(float r) {  // Indian city facades: whitewash, cream, ochre, concrete, pastels, weathered brown
 	if (r < 0.14) return vec3(0.60, 0.57, 0.50);
@@ -97,6 +103,8 @@ void fragment() {
 		vec3 cap = wall_palette(rb(id, 1.0)) * 1.2;
 		if (band > 240.0) {  // stairwell box top or water tank lid
 			col = band > 251.0 ? vec3(0.04, 0.045, 0.05) : cap * 0.85;
+		} else if (rtype > 1.5) {  // passenger terminal: the researched roof colour
+			col = terminal_roof(roof, v_world, band);
 		} else if (rtype > 0.5) {  // hip roof: tile courses
 			col = mix(tile_palette(rb(id, 12.0)), roof * 1.2, 0.12);
 			float course = v_world.y / 0.17;
@@ -124,7 +132,10 @@ void fragment() {
 		float age = rb(id, 9.0);
 		vec3 pal = wall_palette(rb(id, 1.0)) * (0.9 + 0.2 * rb(id, 2.0));
 		bool tower = Hh > 32.0 && rb(id, 3.0) < 0.6;
-		if (band > 240.0) {  // sides of a rooftop box / tank
+		if (rtype > 1.5) {  // passenger terminal (no storey windows, balconies or shops)
+			vec3 favg = terminal_wall(v_c0.rgb, band / 200.0, floor(s / 4.0) / 63.0, u, hg, Hh, id, night, fog_color, col, emit, gloss);
+			col = mix(col, favg * 0.95, smoothstep(800.0, 2500.0, v_dist));
+		} else if (band > 240.0) {  // sides of a rooftop box / tank
 			col = band > 251.0 ? vec3(0.05, 0.055, 0.06) : pal * 0.8 + 0.1;
 			gloss = band > 251.0 ? 0.4 : 0.0;
 		} else {
@@ -206,32 +217,27 @@ void fragment() {
 				col = mix(col, g, wmix * 0.97);
 				lit_win = wmix;
 			}
-			// night: per-building occupancy (offices mostly dark, homes warmer), soft warm/cool lamps
-			float occ = mix(0.06, 0.3, rb(id, 17.0));
-			if (tower) {
-				occ = 0.35;
+			// night: lit windows (world/building_night.gdshaderinc), shops lit at street level
+			if (!plain_top) {
+				if (tower) {
+					emit = window_glow(id, cell, f, lit_win, 0.7, detail, true, night, vec2(ws, fh), fw);
+				} else if (shop && hg < 3.3) {
+					float sh_on = step(0.45, hash(vec2(floor(u / 4.2), id * 7.0)));
+					emit = vec3(1.0, 0.78, 0.5) * WIN_EMIT * 0.8 * night * mix(0.5 * lit_win, lit_win * sh_on, detail);
+				} else {
+					emit = window_glow(id, cell, f, lit_win, cov, detail, false, night, vec2(ws, fh), fw);
+				}
 			}
-			float on = step(1.0 - occ, hash(floor(cell) + id * 31.0));
-			vec3 lamp = mix(vec3(1.0, 0.76, 0.48), vec3(0.82, 0.88, 1.0), step(0.8, rb(id, 23.0)));
-			float lit = mix(occ * cov, on * lit_win, detail) * night;
-			if (tower) {
-				lit = lit_win * on * night;
-			} else if (shop && hg < 3.3) {
-				lit = mix(lit_win * 0.5, lit_win * on, detail) * night * 1.2;
-			}
-			if (plain_top) {
-				lit = 0.0;
-			}
-			emit = lamp * lit * 0.75;
 			// far away: the facade pattern gives way to the building's average colour
 			float far = smoothstep(800.0, 2500.0, v_dist);
 			col = mix(col, mix(pal, roof, 0.2) * 0.9, far);
 		}
 	}
+	col = mix(col, vec3(dot(col, vec3(0.299, 0.587, 0.114))), 0.45 * night);  // scotopic: colour fades at night
 	col *= mix(1.0, 0.72, wetness);
 	float haze = 1.0 - exp(-v_dist * haze_density);
 	ALBEDO = col * (1.0 - haze);
-	EMISSION = emit * (1.0 - haze * 0.5) + fog_color * haze;
+	EMISSION = emit * (1.0 - haze * 0.5) + haze_color(-(INV_VIEW_MATRIX * vec4(VIEW, 0.0)).xyz) * haze;
 	ROUGHNESS = mix(mix(0.85, 0.25, gloss), 0.4, wetness);
 	SPECULAR = mix(0.4, 0.8, gloss) * (1.0 - haze);
 }

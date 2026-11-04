@@ -18,7 +18,12 @@ Vertex rings per footprint (ground, wall top, parapet inner edge), shared betwee
 Footprints listed in terminals/landmarks.json (16_terminal_models.py) are skipped in the
 mesh (but kept in .col): those buildings are drawn as landmark terminal models.
 Heights: OSM height / building:levels when tagged, else a deterministic synthetic
-height from footprint area (Mumbai: small = 1-4 floors, large blocks up to ~40 m).
+height from footprint area (Mumbai: small = 1-4 floors, large blocks up to ~40 m; inside an OSM
+aerodrome outline (osm/aerodromes.json) low airport buildings: 3.5-6.5 m, 6-10 m, 11-19 m for 1500 m2+).
+Researched passenger terminals (tools/ref/terminals_reference.json via terminal_ref.py, matched by their OSM
+footprint in terminals/<ICAO>.json) take the reference height and roof colour instead, over any OSM tag, and
+a terminal look (roof type 2 in the style byte: cladding colour on the walls, curtain-wall glazing share; see
+building_geom.py).
 """
 import gzip
 import json
@@ -35,6 +40,7 @@ from osgeo import gdal
 import building_geom as bg
 import common as c
 import osm_regions as R
+import terminal_ref
 
 gdal.UseExceptions()
 SRC = c.OUT / "osm" / "buildings"
@@ -87,10 +93,12 @@ def area(p):
 MAX_TAGGED_H = 320.0  # tallest Mumbai towers are ~300 m; larger tags are OSM errors
 
 
-def synth_height(a, cx, cy, tagged):
+def synth_height(a, cx, cy, tagged, airfield=False):
     if tagged != DEFAULT_H and 2.0 <= tagged <= MAX_TAGGED_H:
         return tagged
     r = (math.sin(cx * 12.9898 + cy * 78.233) * 43758.5453) % 1.0  # deterministic per building
+    if airfield:  # inside an aerodrome: terminals, hangars, sheds, not 13-storey blocks beside the jet bridges
+        return (3.5 + r * 3.0) if a < 400 else (6.0 + r * 4.0) if a < 1500 else (11.0 + r * 8.0)
     if a < 80:
         floors = 1 + int(r * 2)
     elif a < 400:
@@ -142,6 +150,64 @@ def landmark_paths():
 LANDMARKS = landmark_paths()
 
 
+def is_landmark(ring, cx, cy):
+    """Is this (CCW) footprint drawn by a landmark terminal model? Its vertex mean is inside a landmark ring, or (a
+    concave footprint, e.g. VABB T1, whose mean falls outside it) 3/4 of the points 0.5 m inside its edge midpoints
+    are. game/world/building_collision.gd make_tile() applies the same rule."""
+    if not LANDMARKS:
+        return False
+    if any(lp.contains_point((cx, cy)) for lp in LANDMARKS):
+        return True
+    e = np.roll(ring, -1, 0) - ring
+    n = np.hypot(e[:, 0], e[:, 1])
+    ok = n > 1.0
+    if not ok.any():
+        return False
+    mid = (ring + e * 0.5)[ok]
+    inward = np.stack([-e[ok, 1], e[ok, 0]], 1) / n[ok, None] * 0.5  # left of a CCW edge = inside
+    pts = mid + inward
+    inside = np.zeros(len(pts), bool)
+    for lp in LANDMARKS:
+        inside |= lp.contains_points(pts)
+    return inside.mean() >= 0.75
+
+
+def airfield_paths():
+    """OSM aerodrome outlines (17_airport_fixups.py caches them in osm/aerodromes.json)."""
+    f = c.OUT / "osm" / "aerodromes.json"
+    if not f.exists():
+        return []
+    from matplotlib.path import Path
+    out = []
+    for a in json.loads(f.read_text()):
+        if len(a["pts"]) >= 3:
+            p = np.asarray(a["pts"])
+            out.append((p.min(0), p.max(0), Path(p)))
+    return out
+
+
+AIRFIELDS = airfield_paths()
+
+
+def on_airfield(x, y):
+    return any(lo[0] <= x <= hi[0] and lo[1] <= y <= hi[1] and pa.contains_point((x, y)) for lo, hi, pa in AIRFIELDS)
+
+
+TERMINAL_REF = terminal_ref.terminal_overrides()
+
+
+def terminal_override(x, y):
+    """(height, roof rgb or None, facade look) of the researched terminal whose OSM footprint holds (x, y), else None."""
+    return next(((h, col, look) for pa, h, col, look in TERMINAL_REF if pa.contains_point((x, y))), None)
+
+
+def imagery_to_srgb(rgb):
+    """An imagery roof colour as the sRGB colour the ordinary roof shading shows it as (pow 0.8 x 1.35, taken as
+    linear): terminal roofs are stored in sRGB and linearised by the shader."""
+    lin = np.clip((rgb / 255.0) ** 0.8 * 1.35, 0.0, 1.0)
+    return np.round(np.where(lin <= 0.0031308, lin * 12.92, 1.055 * lin ** (1 / 2.4) - 0.055) * 255).astype(int)
+
+
 def write_atomic(path, data):
     """Temp file + rename: a running game never reads a half-written tile."""
     tmp = path.with_name(path.name + ".tmp")
@@ -172,18 +238,21 @@ def build_tile(path):
         n = len(ring)
         cx, cy = ring.mean(0)
         base = float(hts.at(ring[:, 0], ring[:, 1]).min()) - 0.3
-        h = synth_height(abs(a), cx, cy, tagged_h)
+        h = synth_height(abs(a), cx, cy, tagged_h, on_airfield(cx, cy))
         pi = int(np.clip((cx - x0) / res, 0, npx))
         pj = int(np.clip((y0 + c.TILE_SIZE - cy) / res, 0, npx))
         rgb = img[pj, pi].astype(int)
         if (tx, ty) not in GRID and not rgb.any():  # corridor imagery gap
             rgb = np.array([150, 140, 130])
+        term = None
+        if (ov := terminal_override(cx, cy)) is not None:  # researched terminal: reference height, roof, facade
+            h, rgb, term = ov[0], imagery_to_srgb(rgb) if ov[1] is None else ov[1], ov[2]
         style = int((math.sin(cx * 3.1 + cy * 7.7) * 9999.0) % 1.0 * 255)
         rise = 0.0
-        if not any(lp.contains_point((cx, cy)) for lp in LANDMARKS):  # else drawn by the landmark terminal model (still collides)
+        if not is_landmark(ring, cx, cy):  # else drawn by the landmark terminal model (still collides)
             def rnd(k, cx=cx, cy=cy):
                 return (math.sin(cx * 12.9898 + cy * 78.233 + k * 37.719) * 43758.5453) % 1.0
-            rise = bg.add_building(acc, ring, x0, y0, base, h, rgb, style >> 2, rnd, pitch_prob, abs(a))
+            rise = bg.add_building(acc, ring, x0, y0, base, h, rgb, style >> 2, rnd, pitch_prob, abs(a), term)
         colrec.append(struct.pack("<Hff", n, base, base + h + rise) + ring.astype("<f4").tobytes())
     if not acc.pos:
         return path.stem, 0, 0

@@ -10,6 +10,7 @@
 // ground under a light never clip half of its glow.
 global uniform float haze_density;
 global uniform vec3 fog_color;
+#include "res://world/curvature.gdshaderinc"  // Earth curvature (G4)
 
 uniform float level = 1.0;    // group intensity 0..1 (day / night / visibility)
 uniform float gain = 2.5;     // HDR multiplier of the core (glow threshold is 1.2)
@@ -26,6 +27,7 @@ const vec3 PAPI_WHITE = vec3(1.0, 0.97, 0.92);
 
 void vertex() {
 	vec3 wp = (MODEL_MATRIX * vec4(0.0, 0.0, 0.0, 1.0)).xyz;
+	wp.y -= curve_drop(wp);  // on the bent ground (curvature.gdshaderinc)
 	vec3 to_cam = INV_VIEW_MATRIX[3].xyz - wp;
 	float dist = max(length(to_cam), 0.1);
 	vec3 col = COLOR.rgb;

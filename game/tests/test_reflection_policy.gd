@@ -16,7 +16,7 @@ func test_probe_presets() -> String:
 		return "Low should not run the probe"
 	var far := 0.0
 	var gap := 1e9
-	for p in ["medium", "high", "ultra"]:
+	for p in ["medium", "high", "ultra", "max"]:
 		var c := ReflectionPolicy.for_preset(p)
 		if not c.on or c.far_m < far or c.gap_s > gap or c.gap_s < ReflectionPolicy.MIN_GAP_S:
 			return "%s: must be on, see further and refresh faster than the one below" % p

@@ -1,0 +1,14 @@
+[remap]
+
+importer="glsl"
+type="RDShaderFile"
+uid="uid://bcpvx42oltiv6"
+path="res://.godot/imported/pf_copy.glsl-86f31f722f44401237fa12f900a14e6e.res"
+
+[deps]
+
+source_file="res://world/postfx/pf_copy.glsl"
+dest_files=["res://.godot/imported/pf_copy.glsl-86f31f722f44401237fa12f900a14e6e.res"]
+
+[params]
+
