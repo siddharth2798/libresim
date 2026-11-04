@@ -23,7 +23,7 @@
 	"radio_type": "Cessna 172",
 	"atc": {"profile": "ga", "wake": "L"},
 	"cameras": {"chase": [16.0, 4.0], "wing": [-5.6, 0.9, 1.6], "tail": [0.0, 2.4, 6.8], "orbit_m": 18.0},
-	"registration": {"source": "callsign", "texture": "models/exterior_fuselage.png", "targets": [
+	"registration": {"source": "callsign", "baked": "4X-CHV", "texture": "models/exterior_fuselage.png", "targets": [
 		{"erase": [1322, 296, 256, 74], "text": [1330, 302, 240, 62], "align": "center", "color": [0.64, 0.647, 0.625], "italic": true},
 		{"erase": [302, 1402, 256, 74], "text": [310, 1408, 240, 62], "align": "center", "color": [0.64, 0.647, 0.625], "italic": true},
 		{"texture": "models/exterior_wing.png", "rotate": 90, "erase_axis": "x", "erase": [164, 147, 104, 356], "text": [172, 153, 88, 343],
@@ -36,9 +36,10 @@
 			{"id": "wing", "texture": "models/exterior_wing.png"},
 			{"id": "tail", "texture": "models/exterior_tail.png"}],
 		"regions": [
-			{"key": "body", "label": "Body paint", "default": [0.925, 0.925, 0.925], "masks": [{"atlas": "fuselage", "mask": "livery/fuselage_body.png", "luma": 0.933}, {"atlas": "wing", "mask": "livery/wing_body.png", "luma": 0.936}, {"atlas": "tail", "mask": "livery/tail_body.png", "luma": 0.839}]},
+			{"key": "body", "label": "Body paint", "default": [0.925, 0.925, 0.925], "masks": [{"atlas": "fuselage", "mask": "livery/fuselage_body.png", "luma": 0.934}, {"atlas": "wing", "mask": "livery/wing_body.png", "luma": 0.936}, {"atlas": "tail", "mask": "livery/tail_body.png", "luma": 0.839}]},
 			{"key": "accent", "label": "Main accent", "default": [0.0, 0.122, 0.353], "masks": [{"atlas": "fuselage", "mask": "livery/fuselage_accent.png", "luma": 0.114}, {"atlas": "wing", "mask": "livery/wing_accent.png", "luma": 0.121}, {"atlas": "tail", "mask": "livery/tail_accent.png", "luma": 0.101}]},
-			{"key": "stripe", "label": "Pin stripe", "default": [0.541, 0.545, 0.525], "masks": [{"atlas": "fuselage", "mask": "livery/fuselage_stripe.png", "luma": 0.513}, {"atlas": "tail", "mask": "livery/tail_stripe.png", "luma": 0.545}]}]
+			{"key": "stripe", "label": "Pin stripe", "default": [0.541, 0.545, 0.525], "masks": [{"atlas": "fuselage", "mask": "livery/fuselage_stripe.png", "luma": 0.513}, {"atlas": "tail", "mask": "livery/tail_stripe.png", "luma": 0.545}]},
+			{"key": "struts", "label": "Struts and gear legs", "default": [0.882, 0.882, 0.882], "masks": [{"atlas": "fuselage", "mask": "livery/fuselage_struts.png", "luma": 0.812}]}]
 	},
 	"start": {"pitch_trim": -0.05,
 		"air": {"alt_ft": 1500, "dist_nm": 5.0, "kias": 90, "gear": "down", "flaps": 0,

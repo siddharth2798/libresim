@@ -10,7 +10,11 @@ rule (Livery.recolor). `default` = median colour of the same pixels. Regions:
   body    the white paint (fuselage, wing, fin, tailplane): everything light that is not blue or grey stripe
   accent  the blue paint (nose and cowl, side sweeps, deck stripe, wing-tip caps, fin and tailplane stripes)
   stripe  the grey pin stripe (fuselage sides, fin)
-Kept out of every mask: tyres, propeller, spinner, hub, struts, lamps, glass, antennas (not in any island rectangle),
+  struts  the white wing struts and the main gear legs (fuselage atlas only; optional: the pilot may leave it at its factory
+          colour). Found with the UV islands of the glb (they are on the lower edge of the atlas): two diagonal strips (distance
+          to a line) and the gear-leg capsule (a flood fill of the island, cut from the fairing next to it). The nose gear leg is
+          bare steel (a metal texture tile shared with the tie-down rings and rudder-cable hinges): left as it is.
+Kept out of every mask: tyres, propeller, spinner, hub, lamps, glass, antennas (not in any island rectangle),
 the registration boxes of aircraft.json "registration" (livery.gd paints before RegistrationPaint, which wipes and
 re-stamps the number from the recoloured rows around it) and the baked "Cessna" logo and "SKYHAWK" on the fin.
 Usage: tools/.venv/bin/python -I tools/25_livery_masks.py [--preview <dir>]   (--preview writes overlay PNGs, not into the repo)
@@ -20,12 +24,12 @@ import sys
 from pathlib import Path
 
 import numpy as np
-from PIL import Image, ImageFilter
+from PIL import Image, ImageDraw, ImageFilter
 
 ROOT = Path(__file__).resolve().parents[1]
 AC = ROOT / "game/aircraft/c172"
 ATLASES = {"fuselage": "models/exterior_fuselage.png", "wing": "models/exterior_wing.png", "tail": "models/exterior_tail.png"}
-LABELS = {"body": "Body paint", "accent": "Main accent", "stripe": "Pin stripe"}
+LABELS = {"body": "Body paint", "accent": "Main accent", "stripe": "Pin stripe", "struts": "Struts and gear legs"}
 FEATHER = 1.6  # px sigma of the soft edge on rectangle borders (colour edges are soft already)
 
 # (x0, y0, x1, y1) in atlas pixels (CUT, LOGO: x, y, w, h). KEEP = the atlas islands the paint is on (the white background inside them is
@@ -49,6 +53,14 @@ LOGO = {"tail": [(1125, 86, 60, 56), (955, 280, 125, 30), (208, 918, 60, 58), (3
 STRIPE_BOX = {"fuselage": [(620, 285, 1100, 395), (790, 1395, 1270, 1500)], "wing": [], "tail": [(768, 294, 1240, 400), (156, 1118, 650, 1232)]}
 
 
+# the struts, fuselage atlas (looked up in the UV layout of exterior.glb, see the overlay previews): the axis of each wing strut strip
+# (top, bottom) and its half width incl. margin, the capsule island of the main gear legs (seed inside it, region it lives in, the
+# fairing next to it starts at x = box end). The nose gear leg is a bare steel tile (metal texture, not paint): not in the region.
+STRUT_AXES = {"fuselage": [((1235, 1690), (1140, 2025)), ((1463, 1690), (1558, 2017))]}
+STRUT_HALF = 28
+CAPSULE = {"fuselage": {"seed": (330, 1850), "box": (40, 1660, 470, 2040), "grow": 10}}
+
+
 def xyxy(r):
     return r[0], r[1], r[0] + r[2], r[1] + r[3]
 
@@ -65,6 +77,38 @@ def box_field(shape, boxes, feather=FEATHER):
         f[y0:y1, x0:x1] = 1.0
     img = Image.fromarray((f * 255).astype(np.uint8)).filter(ImageFilter.GaussianBlur(feather))
     return np.asarray(img, np.float32) / 255.0
+
+
+def strut_field(atlas_id, luma):
+    """Weight 0..1 of the struts region on this atlas (zeros when it has none)."""
+    f = np.zeros(luma.shape, np.float32)
+    h, w = luma.shape
+    yy, xx = np.mgrid[0:h, 0:w].astype(np.float32)
+    for (ax, ay), (bx, by) in STRUT_AXES.get(atlas_id, []):
+        dx, dy = bx - ax, by - ay
+        t = np.clip(((xx - ax) * dx + (yy - ay) * dy) / (dx * dx + dy * dy), 0.0, 1.0)
+        d = np.hypot(xx - (ax + t * dx), yy - (ay + t * dy))
+        f = np.maximum(f, (d < STRUT_HALF).astype(np.float32))
+    c = CAPSULE.get(atlas_id)
+    if c:
+        x0, y0, x1, y1 = c["box"]
+        solid = Image.new("L", (w, h), 0)
+        solid.paste(Image.fromarray(((luma[y0:y1, x0:x1] < 0.985) * 255).astype(np.uint8)), (x0, y0))
+        ImageDraw.floodfill(solid, (x0 + 1, y0 + 1), 64)  # the background of the box; what it does not reach is island (shading, rim, the
+        # white highlight in the middle of the capsule)
+        shapes = Image.fromarray(((np.asarray(solid) != 64) * 255).astype(np.uint8))
+        shapes.paste(0, (0, 0, w, y0))
+        shapes.paste(0, (0, y1, w, h))
+        shapes.paste(0, (0, y0, x0, y1))
+        shapes.paste(0, (x1, y0, w, y1))  # outside the box: not part of it
+        if shapes.getpixel(c["seed"]) != 255:
+            raise SystemExit("capsule seed is on the background")
+        ImageDraw.floodfill(shapes, c["seed"], 128)  # the capsule alone (the other capsule is a separate island)
+        island = Image.fromarray(((np.asarray(shapes) == 128) * 255).astype(np.uint8))
+        grown = island.filter(ImageFilter.MaxFilter(2 * c["grow"] + 1))
+        f = np.maximum(f, np.asarray(grown, np.float32) / 255.0)
+    img = Image.fromarray((f * 255).astype(np.uint8)).filter(ImageFilter.GaussianBlur(FEATHER))
+    return (np.asarray(img, np.float32) / 255.0) * smooth(luma, 0.15, 0.35)  # black rims and seams stay as they are
 
 
 def registration_boxes(atlas_id):
@@ -99,10 +143,13 @@ def masks_for(atlas_id):
             x0, y0, x1, y1 = xyxy(c)
             stripe[y0:y1, x0:x1] = 0.0
     lit = smooth(luma, 0.14 if atlas_id == "tail" else 0.30, 0.45 if atlas_id == "tail" else 0.60)  # shadows, seams stay
+    struts = strut_field(atlas_id, luma)
     body = np.clip(1.0 - accent - stripe, 0.0, 1.0) * lit
     out = {"body": body, "accent": accent, "stripe": stripe}
     for k in out:
-        out[k] = out[k] * keep
+        out[k] = out[k] * keep * (1.0 - struts)  # a strut is never half body paint
+    out["struts"] = struts
+    for k in out:
         for x, y, w, h in registration_boxes(atlas_id):
             out[k][y:y + h, x:x + w] = 0.0  # exactly 0: the registration boxes stay out of every mask
     return im, luma, out
@@ -126,7 +173,7 @@ def main():
             print(f"{name:34s} coverage {100.0 * (m8 >= 128).mean():5.2f} %  luma {luma[core].mean():.3f}  {(AC / name).stat().st_size / 1024:5.0f} KB")
         if preview:
             preview.mkdir(parents=True, exist_ok=True)
-            col = {"body": (255, 0, 0), "accent": (0, 255, 0), "stripe": (255, 0, 255)}
+            col = {"body": (255, 0, 0), "accent": (0, 255, 0), "stripe": (255, 0, 255), "struts": (0, 200, 255)}
             ov = im * 0.35
             for key, m in ms.items():
                 ov = ov * (1 - m[..., None]) + np.array(col[key], np.float32) * m[..., None] * 0.9

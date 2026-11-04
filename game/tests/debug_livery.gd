@@ -8,9 +8,9 @@ extends Node
 ## Prints "LIVERY PROBE PASS|FAIL ..." lines, exit code 0 when all pass. Frame of the glb as in render_aircraft_previews.gd.
 
 const TESTS := {
-	"yellow": {"body": "#fff0a0", "accent": "#c01010", "stripe": "#0d4d26"},
-	"red": {"body": "#c8101a", "accent": "#f2f2f2", "stripe": "#26262b"},
-	"navy": {"body": "#0d1f66", "accent": "#f5f5f5", "stripe": "#d1a61a"},
+	"yellow": {"body": "#fff0a0", "accent": "#c01010", "stripe": "#0d4d26", "struts": "#c01010"},
+	"red": {"body": "#c8101a", "accent": "#f2f2f2", "stripe": "#26262b", "struts": "#26262b"},
+	"navy": {"body": "#0d1f66", "accent": "#f5f5f5", "stripe": "#d1a61a", "struts": "#d1a61a"},
 }
 const STRIDE := 3
 const TOL := 2.0 / 255.0 + 0.0001

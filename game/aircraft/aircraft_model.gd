@@ -88,7 +88,7 @@ func _build_glb(path: String) -> void:
 	fix_glass(inst, true)
 	lift_tyres(inst)
 	_tyres = TyreContact.build(inst, self, fdm_node.fdm, _model)
-	RegistrationPaint.apply(self, inst, def)  # tail number from the call sign (async the first time, then cached)
+	PaintPipeline.apply(self, inst, def)  # livery colours + tail number from the call sign, one pass per atlas (async the first time, then cached)
 
 
 ## FlightGear glass uses an effect shader; make it a clear, slightly reflective pane.

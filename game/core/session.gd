@@ -3,6 +3,7 @@ extends Node
 ## line), handed to the flight scene. Saved to user://last_flight.json so the start
 ## screen reopens with the previous choices.
 ## Command-line flight options (after "--") skip the start screen; see world/flight.gd.
+## --livery=body=#c8101a,accent=#f2f2f2 paints the chosen aircraft's regions (or c172:body=#c8101a,...), see Livery.parse_cli.
 
 const SAVE := "user://last_flight.json"
 const DEFAULT := {
@@ -22,6 +23,7 @@ const DEFAULT := {
 	"random": {"enabled": false, "count": 1, "from_min": 2.0, "to_min": 30.0,
 		"categories": ["Engine", "Fuel", "Electrical", "Vacuum & gyros", "Pitot-static", "Flight controls", "Avionics"]},
 	"notify": true,
+	"livery": {},  # aircraft id -> {colors: {region key: "#rrggbb"}} (aircraft/common/livery.gd); a missing entry = the factory paint
 	"record": false, "record_dir": "", "record_height": 720, "record_fps": 30, "record_mp4": true,  # tell the pilot when a failure happens (off = find out yourself)
 }
 ## Weather presets: name -> weather/* values (wind is chosen separately).
@@ -81,6 +83,7 @@ func _load() -> void:
 		var def := AircraftDef.load_def(str(setup.aircraft))
 		setup.air_kt_given = not AirStart.stale_kias(def, float(setup.air_kt))
 	apply_air_defaults()
+	setup.livery = Livery.repair_setup(setup.livery)  # a hand-edited or damaged entry never reaches the flight
 
 
 ## Nautical miles as the start screen writes them: "5", "1.5".
@@ -178,6 +181,7 @@ func _parse_args(args: PackedStringArray) -> void:
 		return  # no flight options: start screen with the last setup
 	# a command-line flight starts from the defaults, not from the last saved setup
 	setup = DEFAULT.duplicate(true)
+	var livery_cli := ""
 	var air_given := []  # --air / --air-nm / --air-kt the pilot gave a value for
 	skip_menu = not cmd.has("menu")
 	for k in cmd:
@@ -203,6 +207,7 @@ func _parse_args(args: PackedStringArray) -> void:
 			"aircraft":  # --aircraft=a320 (an unknown id falls back to the c172); its payload defaults apply
 				setup.aircraft = v.to_lower()
 				apply_payload_defaults(AircraftDef.load_def(setup.aircraft))
+			"livery": livery_cli = v  # --livery=body=#c8101a,accent=#f2f2f2 (Livery.parse_cli)
 			"callsign": setup.callsign = v.to_upper()  # --callsign=VT-ABC (radio call sign and tail number)
 			"tod": setup.time_h = float(v)
 			"day": setup.day_of_year = float(v)  # day of the year (moon phase, sun times)
@@ -225,6 +230,8 @@ func _parse_args(args: PackedStringArray) -> void:
 			"view": view = v
 			"clean": clean = true
 			"record": setup.record = true
+	if livery_cli != "":
+		setup.livery = Livery.repair_setup(Livery.parse_cli(livery_cli, str(setup.aircraft)))
 	apply_air_defaults(air_given)  # what was not given: the aircraft's own height, distance and speed
 	setup.air_custom = not air_given.is_empty()
 	setup.air_kt_given = "air_kt" in air_given

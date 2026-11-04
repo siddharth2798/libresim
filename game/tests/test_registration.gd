@@ -200,3 +200,31 @@ func test_registration_every_target_atlas_is_on_the_exterior_model() -> String:
 			if not used.has(path):
 				return "%s: no surface of the exterior model uses %s (registration would not show)" % [id, path]
 	return ""
+
+
+func test_registration_baked_number_is_not_repainted() -> String:
+	var sec := AircraftDef.load_def("c172").section("registration")
+	if not RegistrationPaint.is_baked(sec, " 4x-chv ") or RegistrationPaint.is_baked(sec, "VT-FSM") or RegistrationPaint.is_baked(sec, ""):
+		return "c172: the baked number is 4X-CHV (any case), nothing else"
+	return "" if not RegistrationPaint.is_baked({"source": "fixed", "text": "A"}, "A") else "no \"baked\" key: never baked"
+
+
+## stamp_steps works on whatever is on the image: the paint around the number carries into the wiped area, the old number goes.
+func test_registration_stamp_steps_wipes_then_stamps_on_a_painted_image() -> String:
+	var img := Image.create(80, 40, false, Image.FORMAT_RGBA8)
+	img.fill(Color(0.8, 0.1, 0.1))  # a recoloured atlas
+	for y in range(15, 25):
+		for x in range(20, 60):
+			img.set_pixel(x, y, Color(0.1, 0.1, 0.1))  # the old number
+	var sec := {"texture": "a.png", "targets": [{"erase": [10, 10, 60, 20], "text": [20, 12, 40, 16], "align": "center", "color": [0.0, 0.0, 1.0]}]}
+	var g := Image.create(20, 10, false, Image.FORMAT_RGBA8)
+	g.fill(Color.WHITE)
+	RegistrationPaint.stamp_steps(img, RegistrationPaint.plan(sec, "ab"), {true: g})
+	var corner := img.get_pixel(11, 11)  # wiped, outside the new number
+	var mid := img.get_pixel(40, 20)
+	var outside := img.get_pixel(2, 2)
+	if absf(corner.r - 0.8) > 0.01 or absf(corner.b - 0.1) > 0.01:
+		return "the old number is wiped to the paint around it: %s" % [corner]
+	if mid.b < 0.95 or mid.r > 0.05:
+		return "the new number is stamped on top: %s" % [mid]
+	return "" if absf(outside.r - 0.8) < 0.01 else "outside the wipe nothing changes: %s" % [outside]

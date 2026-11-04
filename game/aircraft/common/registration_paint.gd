@@ -17,12 +17,15 @@ extends RefCounted
 ## in. Each edited atlas is an ImageTexture cached per (aircraft, text, atlas) and set as a surface override
 ## on the glb's surfaces that use the atlas; the file on disk is never changed. A renderer without
 ## pixels (headless / dummy) returns an empty image: the model then keeps the original number.
+## "baked" (optional): the number painted in the atlas as shipped; when the registration is that text nothing is repainted.
+## The game paints the livery colours (livery.gd) and this registration in ONE pass per atlas, in this order: recolour, wipe + stamp
+## the number, mipmaps (aircraft/common/paint_pipeline.gd). texture() below is the registration-only variant of that pass.
 
 const FONT_PX := 200
 const ABORTED := &"registration_aborted"  # host meta: it left the tree during a glyph render
 const SHEAR := 0.22  # synthetic italic (x += SHEAR * y) when the font has no italic of its own
 
-static var _cache := {}  # "<aircraft id>|<TEXT>" -> ImageTexture
+static var _cache := {}  # "<aircraft id>|<TEXT>[|<atlas>]" -> ImageTexture (registration only; PaintPipeline has its own cache)
 
 
 ## The registration this aircraft shows now ("" = none).
@@ -31,6 +34,12 @@ static func text_for(section: Dictionary) -> String:
 		"callsign": return AtcSession.callsign().to_upper()
 		"fixed": return str(section.get("text", "")).strip_edges().to_upper()
 	return ""
+
+
+## True when `text` is the number the atlas already carries (section "baked"): no wipe, no stamp.
+static func is_baked(section: Dictionary, text: String) -> bool:
+	var b := str(section.get("baked", "")).strip_edges().to_upper()
+	return b != "" and b == text.strip_edges().to_upper()
 
 
 ## Draw plan: one entry per target, the text upper-cased, rectangles as Rect2i. [] for no section / no text.
@@ -128,7 +137,7 @@ static func turned(g: Image, deg: int) -> Image:
 
 ## The edited atlas for this registration (cached): `atlas_rel` is the atlas file relative to the aircraft
 ## folder, "" for the section's own; null when no target paints on it or nothing could be drawn. Awaits one
-## rendered frame per glyph style the first time.
+## rendered frame per glyph style the first time. (Registration only; the game goes through PaintPipeline.)
 static func texture(host: Node, aircraft_id: String, section: Dictionary, atlas: Texture2D, text: String, atlas_rel := "") -> Texture2D:
 	var own := str(section.get("texture", ""))
 	var rel := own if atlas_rel == "" else atlas_rel
@@ -138,27 +147,42 @@ static func texture(host: Node, aircraft_id: String, section: Dictionary, atlas:
 	var steps := plan(section, text).filter(func(s): return s.texture == rel)
 	if steps.is_empty() or atlas == null:
 		return null
-	var glyphs := {}  # italic -> image
-	for s in steps:
-		if not glyphs.has(s.italic):
-			glyphs[s.italic] = await render_glyphs(host, text.to_upper(), s.italic)
-		if glyphs[s.italic] == null:
-			return null
+	var glyphs := {}
+	if not await glyph_set(host, text, steps, glyphs):
+		return null
 	var img := atlas.get_image()
 	if img == null or img.is_empty():
 		return null
 	if img.is_compressed():
 		img.decompress()
 	img.convert(Image.FORMAT_RGBA8)
+	stamp_steps(img, steps, glyphs)
+	img.generate_mipmaps()
+	var tex := ImageTexture.create_from_image(img)
+	_cache[key] = tex
+	return tex
+
+
+## Fills `glyphs` ({italic: Image}, kept between calls) with the glyph image of every style the steps need. False when the
+## renderer gives no pixels (headless / dummy) or the host is on its way out.
+static func glyph_set(host: Node, text: String, steps: Array, glyphs: Dictionary) -> bool:
+	for s in steps:
+		if not glyphs.has(s.italic):
+			glyphs[s.italic] = await render_glyphs(host, text.to_upper(), s.italic)
+		if glyphs[s.italic] == null:
+			glyphs.erase(s.italic)
+			return false
+	return true
+
+
+## The registration on an image: every old number wiped first, then every new one stamped (the wipe reads the rows and columns
+## around the number, so whatever was painted on the image before, such as the livery, carries through). No mipmaps here.
+static func stamp_steps(img: Image, steps: Array, glyphs: Dictionary) -> void:
 	for s in steps:
 		erase(img, s.erase, s.erase_axis)
 	for s in steps:
 		var g := turned(glyphs[s.italic], int(s.get("rotate", 0)))
 		stamp(img, g, fit(s.box, s.align, g.get_size()), s.color)
-	img.generate_mipmaps()
-	var tex := ImageTexture.create_from_image(img)
-	_cache[key] = tex
-	return tex
 
 
 ## White text on transparent, cropped to the glyphs, drawn once with the engine's default font
@@ -207,34 +231,6 @@ static func render_glyphs(host: Node, text: String, italic: bool) -> Image:
 	return img.get_region(used)
 
 
-## Called from AircraftModel.build() once the exterior glb is in the tree: repaints every atlas a target names.
+## Registration (and livery) of the exterior model: see PaintPipeline.apply, which AircraftModel.build calls.
 static func apply(host: Node, glb_root: Node, def: AircraftDef) -> void:
-	var section := def.section("registration")
-	var text := text_for(section)
-	if text == "":
-		return
-	var rels := []  # the atlases the targets paint on
-	for st in plan(section, text):
-		if st.texture != "" and not rels.has(st.texture):
-			rels.append(st.texture)
-	for rel in rels:
-		var tex_path: String = def.dir + "/" + rel
-		if not ResourceLoader.exists(tex_path):
-			continue
-		var tex: Texture2D = await texture(host, def.id, section, load(tex_path) as Texture2D, text, rel)
-		if tex == null or not is_instance_valid(glb_root):
-			continue
-		_override(glb_root, tex_path, tex)
-
-
-static func _override(glb_root: Node, tex_path: String, tex: Texture2D) -> void:
-	for mi in glb_root.find_children("*", "MeshInstance3D", true, false):
-		var m := mi as MeshInstance3D
-		if m.mesh == null:
-			continue
-		for i in m.mesh.get_surface_count():
-			var mat := m.get_active_material(i) as BaseMaterial3D
-			if mat != null and mat.albedo_texture != null and mat.albedo_texture.resource_path == tex_path:
-				var d := mat.duplicate() as BaseMaterial3D
-				d.albedo_texture = tex
-				m.set_surface_override_material(i, d)
+	await PaintPipeline.apply(host, glb_root, def)
