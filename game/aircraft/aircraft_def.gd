@@ -20,6 +20,10 @@ extends RefCounted
 ##   short_name  the aircraft on the start-screen chips (name is the full title, preview.jpg the picture)
 ##   cameras  chase / wing / tail / orbit view positions (ui/camera_rig.gd), see camera()
 ##   registration  tail number painted at flight start: {source: callsign | fixed, text, texture, targets: [{erase, text, align, color, italic, rotate, erase_axis, texture}]} (common/registration_paint.gd; the C172 also repaints its wing undersides)
+##   livery   paint colours the pilot may change (L0: data + compositor, not yet used by the game; tools/25_livery_masks.py makes it for the C172):
+##            {atlases: [{id, texture}], regions: [{key, label, default [r,g,b], masks: [{atlas, mask, luma}]}]}: one region may be on several
+##            atlases, each with its own 8-bit grey mask PNG (livery/<atlas>_<region>.png) and the shading reference `luma` of the atlas under it
+##            (common/livery.gd parses and merges colours, common/livery_paint.gd + livery.gdshader recolour an atlas on the GPU)
 ##   start    pitch_trim of a parked start; air {alt_ft, dist_nm, kias, gear "up"|"down", flaps (detent), limits {alt_ft, dist_nm: [min, max]}}
 ##            the default "In the air" start (height, distance on final, speed, config; aircraft/air_start.gd derives what is
 ##            missing, air_start() returns it); air_kt is the older spelling of air.kias
