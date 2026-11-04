@@ -88,10 +88,12 @@ func _refresh() -> void:
 		var here := i == cur
 		var done := i < STEPS.size() and _visited.has(i) and not here
 		b.text = ("✓  " if done else ("%d  " % (i + 1) if i < STEPS.size() else "▶  ")) + (STEPS[i][0] if i < STEPS.size() else "Fly")
-		b.add_theme_stylebox_override("normal", MenuTheme.box(Color(MenuTheme.ACCENT, 0.8) if here else Color(1, 1, 1, 0.07), 19))
-		b.add_theme_stylebox_override("hover", MenuTheme.box(Color(MenuTheme.ACCENT, 0.9) if here else Color(1, 1, 1, 0.16), 19))
+		b.add_theme_stylebox_override("normal", MenuTheme.box(MenuTheme.ACCENT if here else Color(1, 1, 1, 0.07), 19))
+		b.add_theme_stylebox_override("hover", MenuTheme.box(MenuTheme.ACCENT.lerp(Color.WHITE, 0.33) if here else Color(1, 1, 1, 0.16), 19))
 		b.add_theme_stylebox_override("pressed", MenuTheme.box(Color(MenuTheme.ACCENT, 0.9), 19))
-		b.add_theme_color_override("font_color", Color.WHITE if here else (MenuTheme.ACCENT if done else MenuTheme.DIM))
+		b.add_theme_color_override("font_color", MenuTheme.ACCENT_INK if here else (MenuTheme.ACCENT if done else MenuTheme.DIM))
+		b.add_theme_color_override("font_hover_color", MenuTheme.ACCENT_INK if here else Color.WHITE)
+		b.add_theme_color_override("font_pressed_color", MenuTheme.ACCENT_INK)
 	prompt.text = "Step %d of %d  ·  %s" % [cur + 1, STEPS.size(), STEPS[cur][2]]
 	set_primary("FLY  ▶" if cur == last else "Next:  %s  ▶" % STEPS[cur + 1][0].get_slice(" (", 0))
 	primary_btn.add_theme_font_size_override("font_size", 26 if cur == last else 20)
