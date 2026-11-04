@@ -46,8 +46,7 @@ func _ready() -> void:
 	_fly = Button.new()
 	_fly.text = "Fly from this save  ▶"
 	_fly.custom_minimum_size = Vector2(240, 48)
-	_fly.add_theme_stylebox_override("normal", MenuTheme.box(Color(MenuTheme.ACCENT, 0.6), 8))
-	_fly.add_theme_stylebox_override("hover", MenuTheme.box(MenuTheme.ACCENT, 8))
+	MenuTheme.style_primary(_fly)
 	_fly.pressed.connect(_fly_save)
 	bar.add_child(_fly)
 	_del = Button.new()

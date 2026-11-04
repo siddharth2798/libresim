@@ -31,7 +31,7 @@ stage_docs() {  # $1 = destination folder
 	cp "$ROOT/docs/USAGE.md" "$ROOT/docs/LICENSING.md" "$1/docs/"
 	cp -r "$ROOT/docs/site" "$1/docs/"
 	cp -r "$ROOT/third_party" "$1/"
-	cp "$ROOT/packaging/licenses/"* "$1/licenses/"
+	cp "$ROOT/packaging/licenses/"* "$1/licenses/"  # godot-*.txt and fira-sans-OFL.txt (the UI font is shipped; its OFL text must travel with it)
 }
 
 # 2. Linux

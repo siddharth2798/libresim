@@ -995,6 +995,10 @@ game/         Godot project
 docs/USAGE.md this file
 ```
 
+### UI font (Fira Sans)
+
+The menus and in-game panels that use `MenuTheme.make()` (start screen, pause, saves, controls overlay) are set in **Fira Sans** (SIL OFL 1.1), shipped unmodified as four TTFs in `game/ui/fonts/` with `OFL.txt` and `FONT-NOTICE.txt` (copy and checksums in `third_party/fira-sans/`). In code: `MenuTheme.font("regular" | "medium" | "semibold" | "bold")` returns the cached `FontFile`, `MenuTheme.use_font(control, "semibold", 28)` sets weight and size on a control, and `Theme.default_font` is Regular. The design tokens (`ACCENT` `#59BFFF`, `ACCENT_INK` for dark text on a filled accent button, `DIM`, `PANEL`, `OK` / `WARN` / `BAD`, the `SIZE_*` type scale, the 3 px accent focus ring `MenuTheme.focus_box()`) live in `ui/menu/menu_theme.gd`. The F12 credits screen and `CREDITS.md` credit the font, and `tools/package/make_release.sh` puts `packaging/licenses/fira-sans-OFL.txt` into the release `licenses/` folder. Replace a font file only with the identical upstream file (never rename or edit it: Reserved Font Name "Fira"). In-flight HUD and gauge drawing still uses Godot's fallback font. Tests: `tests/test_menu_theme.gd`, `tests/test_attribution.gd`.
+
 ---
 
 ## 6b. Knowledge graph of the repository (optional, graphify)

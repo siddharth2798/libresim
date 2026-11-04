@@ -4,6 +4,9 @@ extends Control
 
 const ATTRIBUTION := "Imagery: EOxCloudless (Sentinel-2) cloudless.eox.at by EOX IT Services GmbH (Contains modified Copernicus Sentinel data 2024) CC BY-NC-SA  ·  Elevation: Copernicus DEM © DLR/Airbus  ·  Land cover: ESA WorldCover 2021 CC BY 4.0  ·  Map data © OpenStreetMap contributors (ODbL)  ·  F12 credits"
 
+## Fira Sans is the UI font and ships inside the game: its licence (OFL 1.1) asks for this credit.
+const FONT_CREDIT := "Fira Sans, Copyright The Mozilla Foundation and Telefonica S.A., SIL Open Font License 1.1 (https://github.com/mozilla/Fira); shipped unmodified."
+
 var _panel: PanelContainer
 var _text: RichTextLabel
 
@@ -49,6 +52,7 @@ func _load_text() -> String:
 	var t := "libresim — Credits & licences   (F12 / Esc to close)\n\n"
 	var f := FileAccess.open(path, FileAccess.READ)
 	t += f.get_as_text() if f else "CREDITS.md not found next to the game.\n"
+	t += "\n\n==== UI font ====\n\n" + FONT_CREDIT + "\nThe licence text is in licenses/fira-sans-OFL.txt (and game/ui/fonts/OFL.txt).\n"
 	t += "\n\n==== Godot Engine licence ====\n\n" + Engine.get_license_text()
 	t += "\n\n==== Third-party components inside Godot ====\n"
 	for c in Engine.get_copyright_info():

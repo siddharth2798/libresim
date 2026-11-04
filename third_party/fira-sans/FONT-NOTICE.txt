@@ -1,0 +1,15 @@
+Fira Sans: the user-interface font of libresim
+==============================================
+Files:    FiraSans-Regular.ttf, FiraSans-Medium.ttf, FiraSans-SemiBold.ttf, FiraSans-Bold.ttf  (version 4.203)
+Status:   shipped UNMODIFIED and NOT renamed (byte-identical to the Google Fonts download; sha256 in third_party/fira-sans/README.md).
+Licence:  SIL Open Font License, Version 1.1  (OFL.txt in this folder; the upstream copy is OFL-upstream-bBoxType.txt)
+
+Copyright (c) 2012-2015, The Mozilla Foundation and Telefonica S.A.
+Digitized data copyright 2012-2016, The Mozilla Foundation and Telefonica S.A. (from the fonts' name table).
+Upstream notice: "Fira is a trademark of The Mozilla Corporation. Digitized data copyright 2012-2018, The Mozilla Foundation
+and Telefonica S.A., bBox Type GmbH and Carrois Corporate GbR, with Reserved Font Name 'Fira'".
+
+Reserved Font Name: "Fira". Do not rename, edit or sell these files by themselves.
+
+Source:   https://github.com/google/fonts/tree/main/ofl/firasans  (Google Fonts)
+Upstream: https://github.com/mozilla/Fira
