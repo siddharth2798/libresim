@@ -201,13 +201,15 @@ func test_menu_cold_and_dark_exists_only_where_it_is_a_choice() -> String:
 	setup.start = "runway"
 	setup.cold = true
 	p._refresh()
-	if not p._cold.visible or not p._cold.button_pressed or p._cold.disabled:
+	if not p._cold.visible or not p._cold.is_on() or p._cold.disabled:
 		err = "runway start: the cold & dark box should be shown, enabled and keep its value"
+	if err == "" and (not (p._cold is SwitchRow) or not p.find_children("*", "CheckBox", true, false).is_empty() or not p.find_children("*", "CheckButton", true, false).is_empty()):
+		err = "the cold & dark control is the shared SwitchRow (a raw CheckBox shows no box in the dark theme)"
 	setup.start = "air"
 	p._refresh()
 	if err == "" and (p._cold.visible or setup.cold):
 		err = "air start: no cold & dark control, and cold must be forced off (cold=%s)" % setup.cold
-	if err == "" and p._cold.get_parent().get_children().filter(func(c): return c.visible and c is CheckBox).size() != 0:
+	if err == "" and p._cold.get_parent().get_children().filter(func(c): return c.visible and c is SwitchRow).size() != 0:
 		err = "air start: no check box should take up room"
 	setup.start = "stand"
 	p._refresh()

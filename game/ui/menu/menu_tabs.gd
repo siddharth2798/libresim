@@ -4,7 +4,8 @@ extends BoxContainer
 ## selected, MenuTheme.focus_box ring on keyboard focus) and a stack of pages; only the selected page shows.
 ## All pages are built up front and only hidden, so every control stays alive (and findable by tests).
 ##
-##     var tabs := MenuTabs.new().setup(false)         # false: bar on top; true: a rail at the left
+##     var tabs := MenuTabs.new().setup(false, true)   # (as_rail, sticky): bar on top / rail at the left; sticky = the pages
+##                                                     # scroll under a bar that stays in view (the page must fill its height)
 ##     tabs.add_tab("sound", "Sound", page_control)
 ##     tabs.tab_changed.connect(func(id): ...)
 ##     tabs.select("sound")                            # also emits tab_changed unless emit := false
@@ -19,6 +20,8 @@ const RAIL_W := 190.0
 
 var rail := false
 var content: Control  # the stack the pages sit in
+var header: Container  # the bar, plus whatever add_extra() put beside it (a rail: its scroll area)
+var scroll: ScrollContainer  # sticky tabs: the pages scroll in this, the bar stays
 var _bar: Container
 var _group := ButtonGroup.new()
 var _ids: Array[String] = []
@@ -27,28 +30,56 @@ var _pages := {}  # id -> Control
 var _cur := ""
 
 
-## `as_rail`: tabs stacked at the left of the pages instead of a row above them.
-func setup(as_rail := false) -> MenuTabs:
+## `as_rail`: tabs stacked at the left of the pages instead of a row above them. `sticky`: the pages scroll inside this
+## control (both ways when they need to, the focused control is kept in view) and the tab bar never scrolls away; the
+## page that holds the tabs must then give them its whole height instead of scrolling as a whole.
+func setup(as_rail := false, sticky := false) -> MenuTabs:
 	rail = as_rail
 	vertical = not as_rail
-	add_theme_constant_override("separation", 22 if as_rail else 14)
+	add_theme_constant_override("separation", 22 if as_rail else 10)
 	size_flags_horizontal = SIZE_EXPAND_FILL
 	if as_rail:
 		_bar = VBoxContainer.new()
 		_bar.custom_minimum_size = Vector2(RAIL_W, 0)
+		_bar.add_theme_constant_override("separation", 6)
+		_bar.size_flags_horizontal = SIZE_FILL
+		var rs := ScrollContainer.new()  # a window too short for all the tabs scrolls the rail instead of cutting the last ones off
+		rs.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+		rs.follow_focus = true
+		rs.custom_minimum_size = Vector2(RAIL_W, 0)
+		rs.add_child(_bar)
+		header = rs
 	else:
-		_bar = HFlowContainer.new()  # a narrow window wraps the tabs instead of widening the page
-	_bar.add_theme_constant_override("separation" if as_rail else "h_separation", 6)
-	if not as_rail:
-		_bar.add_theme_constant_override("v_separation", 6)
-	_bar.size_flags_horizontal = SIZE_EXPAND_FILL if not as_rail else SIZE_FILL
-	add_child(_bar)
+		_bar = HBoxContainer.new()
+		_bar.add_theme_constant_override("separation", 6)
+		var flow := HFlowContainer.new()  # a narrow window wraps the extras under the tabs instead of widening the page
+		flow.add_theme_constant_override("h_separation", 18)
+		flow.add_theme_constant_override("v_separation", 8)
+		flow.size_flags_horizontal = SIZE_EXPAND_FILL
+		flow.add_child(_bar)
+		header = flow
+	add_child(header)
 	var m := MarginContainer.new()
 	m.size_flags_horizontal = SIZE_EXPAND_FILL
 	m.size_flags_vertical = SIZE_EXPAND_FILL
 	content = m
-	add_child(m)
+	if sticky:
+		size_flags_vertical = SIZE_EXPAND_FILL
+		scroll = ScrollContainer.new()
+		scroll.follow_focus = true
+		scroll.size_flags_horizontal = SIZE_EXPAND_FILL
+		scroll.size_flags_vertical = SIZE_EXPAND_FILL
+		m.add_theme_constant_override("margin_right", 10)  # room for the scroll bar
+		scroll.add_child(m)
+		add_child(scroll)
+	else:
+		add_child(m)
 	return self
+
+
+## Puts a control beside the tabs on a bar on top (it wraps to a second line when the window is narrow); on a rail it goes under the tabs.
+func add_extra(c: Control) -> void:
+	(_bar if rail else header).add_child(c)
 
 
 ## Adds a tab and its page (hidden unless it becomes the selected one). The first tab added is selected.
@@ -73,6 +104,18 @@ func add_tab(id: String, title: String, page: Control) -> Button:
 	if _cur == "":
 		select(id, false)
 	return b
+
+
+## Swaps the page of a tab for a new one (the old one is freed); the tab keeps its place and selection state.
+func replace_page(id: String, page: Control) -> void:
+	if not _pages.has(id):
+		return
+	var old: Control = _pages[id]
+	content.remove_child(old)
+	old.queue_free()
+	content.add_child(page)
+	page.visible = id == _cur
+	_pages[id] = page
 
 
 func current() -> String:

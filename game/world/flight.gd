@@ -125,7 +125,7 @@ func _reset() -> void:
 			p = GroundParams.cg_at_stand(st)  # a gate's point is the door: the CG sits ground.cg_to_door_m behind it
 			hdg = float(st.heading_deg)
 			FloatingOrigin.set_origin(p)
-			Props.set_v("ops/stand", "%s %s%s" % [_apt, st.ref, " (jetbridge)" if st.jetbridge else ""])
+			Props.set_v("ops/stand", StandNames.prop_text(_apt, $AirportOps.stand_name(_apt, st), str(st.ref), bool(st.jetbridge)))
 		fdm_node.place_on_ground(p.x, p.y, hdg)
 		for u in fdm_node.fdm.units:
 			u.warm_start(false)

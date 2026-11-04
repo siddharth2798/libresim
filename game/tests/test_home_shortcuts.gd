@@ -352,3 +352,58 @@ func test_quiet_links_still_emit_and_saved_flights_says_what_is_there() -> Strin
 	if HomeShortcuts.saves_line([]) != "No saves yet" or HomeShortcuts.saves_line([{"name": "Pune", "date": "2026-11-04 10:22"}]) != "Pune · 11-04":
 		return "saves line: %s | %s" % [HomeShortcuts.saves_line([]), HomeShortcuts.saves_line([{"name": "Pune", "date": "2026-11-04 10:22"}])]
 	return ""
+
+
+func test_training_card_lists_every_lessons_stars() -> String:
+	_begin()
+	_write(STARS, JSON.stringify({"takeoff": 3, "cruise": 1}))
+	var before := FileAccess.get_file_as_string(STARS)
+	var h := _home()
+	var c: Button = h._cards[1]
+	if c.marks_text() != "Takeoff ★★★ · Cruise ★☆☆ · Landing ☆☆☆":
+		return "star row: '%s'" % c.marks_text()
+	if not c._marks.visible or c._marks.get_child_count() != 3:
+		return "the star row should show one cell per lesson"
+	var marks := HomeShortcuts.lesson_marks(HomeShortcuts.lessons("c172"), {"takeoff": 9, "cruise": -2})
+	if marks.map(func(m): return m.stars) != [3, 0, 0]:
+		return "stars are clamped to 0..3: %s" % [marks]
+	h.refresh()  # visiting again rebuilds the row, it does not add to it
+	if c._marks.get_child_count() != 3:
+		return "refresh should replace the row, not grow it (%d)" % c._marks.get_child_count()
+	if FileAccess.get_file_as_string(STARS) != before:
+		return "showing the stars must not write the training file"
+	return ""
+
+
+func test_star_row_is_hidden_until_a_lesson_is_flown_and_follows_new_stars() -> String:
+	_begin()
+	var h := _home()
+	var c: Button = h._cards[1]
+	if c._marks.visible or c.marks_text() != "":
+		return "no lesson flown: no star row ('%s')" % c.marks_text()
+	_write(STARS, JSON.stringify({"landing": 2}))
+	h.refresh()
+	return "" if c._marks.visible and c.marks_text().ends_with("Landing ★★☆") else "after a flight the row should show: '%s'" % c.marks_text()
+
+
+func test_home_scale_follows_the_room_and_the_links_scale_with_it() -> String:
+	var big := Home.scale_for(Vector2(1920, 1080))
+	var base := Home.scale_for(Vector2(1280, 720))
+	var s150 := Home.scale_for(Vector2(1280, 720) / 1.5)  # 1280x720 window at UI scale 150 %
+	var s200 := Home.scale_for(Vector2(1280, 720) / 2.0)
+	if not is_equal_approx(base, 1.0) or not is_equal_approx(big, Home.MAX_K):
+		return "design size 1.0 and a big window %.2f capped at %.1f, got %.2f / %.2f" % [big, Home.MAX_K, base, big]
+	if not (s200 < s150 and s150 < 1.0 and s200 >= Home.MIN_K):
+		return "a bigger UI scale leaves fewer units, so the home screen must shrink: %.2f %.2f" % [s150, s200]
+	if Home.scale_for(Vector2(1000, 2000)) * Home.CARDS_W > 1000.0 - Home.MARGIN_X + 1.0:
+		return "a narrow window must cap the scale so both cards fit"
+	_begin()
+	var h := _home()
+	var t: Button = h._more[0]
+	t.set_scale_k(1.0)
+	var icon1: Vector2 = t._icon.custom_minimum_size
+	var w1 := t.custom_minimum_size
+	t.set_scale_k(0.6)
+	if not t._icon.custom_minimum_size.is_equal_approx(icon1 * 0.6) or not t.custom_minimum_size.is_equal_approx(w1 * 0.6):
+		return "the quiet-link icon and tile must scale below 1.0: %s vs %s" % [t._icon.custom_minimum_size, icon1 * 0.6]
+	return ""

@@ -5,8 +5,15 @@ extends Control
 const ATTRIBUTION := "Imagery: EOxCloudless (Sentinel-2) cloudless.eox.at by EOX IT Services GmbH (Contains modified Copernicus Sentinel data 2024) CC BY-NC-SA  ·  Elevation: Copernicus DEM © DLR/Airbus  ·  Land cover: ESA WorldCover 2021 CC BY 4.0  ·  Map data © OpenStreetMap contributors (ODbL)  ·  F12 credits"
 
 ## Fira Sans is the UI font and ships inside the game: its licence (OFL 1.1) asks for this credit.
-const FONT_CREDIT := "Fira Sans, Copyright The Mozilla Foundation and Telefonica S.A., SIL Open Font License 1.1 (https://github.com/mozilla/Fira); shipped unmodified."
+const FONT_CREDIT := "Fira Sans, Copyright The Mozilla Foundation and Telefonica S.A., SIL Open Font License 1.1 (https://github.com/mozilla/Fira); shipped unmodified.\nSymbols (arrows, stars, check marks): libresim Symbols, a 12-glyph subset of DejaVu Sans renamed as its licence asks, Copyright Bitstream, Inc. 2003 and Tavmjong Bah 2006, DejaVu changes public domain (https://dejavu-fonts.github.io/)."
 
+## The attribution line's height changed (UI units, with a little air): a screen that must not run into it (the start
+## screen) keeps its bottom margin above it.
+signal attribution_resized(height: float)
+
+var margin_left := 330.0  # in flight the line sits between the instrument stacks; the start screen sets both to 24
+var margin_right := 130.0
+var _attr: Label
 var _panel: PanelContainer
 var _text: RichTextLabel
 
@@ -22,8 +29,8 @@ func _ready() -> void:
 	attr.add_theme_constant_override("outline_size", 3)
 	# bottom centre, between the instrument stacks; wraps to two lines on narrow windows
 	attr.set_anchors_and_offsets_preset(PRESET_BOTTOM_WIDE)
-	attr.offset_left = 330
-	attr.offset_right = -130
+	attr.offset_left = margin_left
+	attr.offset_right = -margin_right
 	attr.offset_top = -32
 	attr.offset_bottom = -4
 	attr.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -32,6 +39,8 @@ func _ready() -> void:
 	attr.grow_vertical = Control.GROW_DIRECTION_BEGIN  # a third line on a narrow window grows upward
 	attr.mouse_filter = MOUSE_FILTER_IGNORE
 	add_child(attr)
+	_attr = attr
+	attr.resized.connect(func(): attribution_resized.emit(attr.size.y + 4.0))
 	_panel = PanelContainer.new()
 	_panel.set_anchors_preset(PRESET_FULL_RECT)
 	_panel.offset_left = 60
@@ -52,7 +61,7 @@ func _load_text() -> String:
 	var t := "libresim — Credits & licences   (F12 / Esc to close)\n\n"
 	var f := FileAccess.open(path, FileAccess.READ)
 	t += f.get_as_text() if f else "CREDITS.md not found next to the game.\n"
-	t += "\n\n==== UI font ====\n\n" + FONT_CREDIT + "\nThe licence text is in licenses/fira-sans-OFL.txt (and game/ui/fonts/OFL.txt).\n"
+	t += "\n\n==== UI font ====\n\n" + FONT_CREDIT + "\nThe licence texts are in licenses/fira-sans-OFL.txt and licenses/dejavu-symbols-LICENSE.txt (and game/ui/fonts/OFL.txt, third_party/).\n"
 	t += "\n\n==== Godot Engine licence ====\n\n" + Engine.get_license_text()
 	t += "\n\n==== Third-party components inside Godot ====\n"
 	for c in Engine.get_copyright_info():

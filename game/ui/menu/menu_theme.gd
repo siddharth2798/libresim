@@ -16,6 +16,7 @@ const WARN := Color("ffb454")
 const BAD := Color("ff6b57")
 const HOVER_FILL := Color(1, 1, 1, 0.17)  # a plain button: lighter fill on hover
 const FOCUS_WIDTH := 3  # px of the accent focus ring
+const PRIMARY_TYPE := &"PrimaryButton"  # Button variation of a filled button: its focus ring is white (an accent ring would vanish into the fill)
 
 ## Type scale (px at UiScale 1.0): body, title, section label, note, big button.
 const SIZE_BODY := 16
@@ -31,7 +32,13 @@ const FONT_PATHS := {
 	"bold": "res://ui/fonts/FiraSans-Bold.ttf",
 }
 
+## Fira Sans has no triangles, circles, stars, check marks or cog; this 12 KB subset of DejaVu Sans is the
+## explicit fallback of all four weights (tools/make_symbols_font.py, third_party/dejavu-symbols/), so those
+## symbols look the same on every system and are never left to whichever font the OS offers.
+const SYMBOLS_PATH := "res://ui/fonts/LibresimSymbols.ttf"
+
 static var _fonts := {}
+static var _symbols: Font
 
 
 ## The Fira Sans weight "regular" | "medium" | "semibold" | "bold" (loaded once; unknown names give regular).
@@ -39,8 +46,18 @@ static func font(weight := "regular") -> Font:
 	if not FONT_PATHS.has(weight):
 		weight = "regular"
 	if not _fonts.has(weight):
-		_fonts[weight] = load(FONT_PATHS[weight]) as Font
+		var f := load(FONT_PATHS[weight]) as FontFile
+		f.fallbacks = [symbols()]
+		f.allow_system_fallback = true  # anything else (accents beyond Latin, CJK in a call sign) still finds a system font
+		_fonts[weight] = f
 	return _fonts[weight]
+
+
+## The symbols fallback font (see SYMBOLS_PATH).
+static func symbols() -> Font:
+	if _symbols == null:
+		_symbols = load(SYMBOLS_PATH) as Font
+	return _symbols
 
 
 ## Sets a Control's font and (optionally) size to a weight, e.g. MenuTheme.use_font(label, "semibold", 28).
@@ -79,6 +96,7 @@ static func card(lit: bool) -> StyleBoxFlat:
 static func style_primary(b: Button, primary := true, tone := ACCENT) -> void:
 	var lit := tone.lerp(Color.WHITE, 0.33)
 	var fill := tone if primary else Color(1, 1, 1, 0.07)
+	b.theme_type_variation = PRIMARY_TYPE if primary else &""  # the white focus ring comes from the theme (make()), not from an override
 	b.add_theme_stylebox_override("normal", box(fill, 8, Color(0, 0, 0, 0) if primary else Color(ACCENT, 0.9)))
 	b.add_theme_stylebox_override("hover", box(lit if primary else HOVER_FILL, 8))
 	b.add_theme_stylebox_override("pressed", box(tone.lerp(Color.BLACK, 0.2) if primary else Color(ACCENT, 0.3), 8))
@@ -101,12 +119,12 @@ static func style_quiet(b: Button) -> void:
 	b.add_theme_color_override("font_focus_color", Color.WHITE)
 
 
-## The 3 px accent focus ring: no fill, drawn just outside the control (keyboard / gamepad focus).
-static func focus_box(radius := 8) -> StyleBoxFlat:
+## The 3 px focus ring (accent; white on a filled accent button): no fill, drawn just outside the control (keyboard / gamepad focus).
+static func focus_box(radius := 8, ring := ACCENT) -> StyleBoxFlat:
 	var s := StyleBoxFlat.new()
 	s.draw_center = false
 	s.bg_color = Color(0, 0, 0, 0)
-	s.border_color = ACCENT
+	s.border_color = ring
 	s.set_border_width_all(FOCUS_WIDTH)
 	s.set_corner_radius_all(radius)
 	s.set_expand_margin_all(2.0)
@@ -129,6 +147,8 @@ static func make() -> Theme:
 			t.set_stylebox(k, type, b)
 	for type in ["Button", "OptionButton", "CheckBox", "CheckButton", "MenuButton", "HSlider", "VSlider", "LineEdit", "SpinBox"]:
 		t.set_stylebox("focus", type, focus_box())
+	t.set_type_variation(PRIMARY_TYPE, "Button")
+	t.set_stylebox("focus", PRIMARY_TYPE, focus_box(10, Color.WHITE))
 	t.set_color("font_color", "Button", TEXT)
 	t.set_color("font_pressed_color", "Button", Color.WHITE)
 	t.set_color("font_hover_color", "Button", Color.WHITE)

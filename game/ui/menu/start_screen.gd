@@ -31,6 +31,7 @@ var _loading: Label
 var dry_run := false  # tests: count the flight but do not load the flight scene
 var flights_started := 0
 var lessons_started := 0  # tests: lessons started from the home screen's Continue (dry_run does not load the flight scene)
+var _top_buttons: Array[Control] = []  # Handbook, Credits, Quit
 var _confirm: FlyConfirm  # the open "Fly anyway?" question, or null
 
 
@@ -52,11 +53,16 @@ func _ready() -> void:
 	shade.color = Color(0.02, 0.03, 0.05, 0.45)
 	shade.set_anchors_preset(PRESET_FULL_RECT)
 	add_child(shade)
+	var guard := ScrollContainer.new()  # a window (or UI scale) too small for a page scrolls instead of pushing Fly and Quit off-screen
+	guard.set_anchors_preset(PRESET_FULL_RECT)
+	guard.follow_focus = true
+	add_child(guard)
 	var m := MarginContainer.new()
-	m.set_anchors_preset(PRESET_FULL_RECT)
+	m.size_flags_horizontal = SIZE_EXPAND_FILL
+	m.size_flags_vertical = SIZE_EXPAND_FILL
 	for side in ["left", "right", "top", "bottom"]:
 		m.add_theme_constant_override("margin_" + side, 28)
-	add_child(m)
+	guard.add_child(m)
 	var root := VBoxContainer.new()
 	root.add_theme_constant_override("separation", 16)
 	m.add_child(root)
@@ -72,6 +78,10 @@ func _ready() -> void:
 	var credits := Control.new()
 	credits.set_script(load("res://ui/credits_screen.gd"))
 	credits.name = "Credits"
+	credits.set("margin_left", 24.0)  # no instrument stacks here: the line may use the whole width
+	credits.set("margin_right", 24.0)
+	credits.connect("attribution_resized", func(h: float):  # a narrow window wraps it to more lines: keep the page above it
+		m.add_theme_constant_override("margin_bottom", maxi(28, int(h) + 6)))
 	add_child(credits)
 	Session.end_lesson()  # coming back from a lesson: restore the free-flight setup
 	go("home")
@@ -102,9 +112,13 @@ func _top_bar() -> Control:
 	sub.add_theme_color_override("font_color", MenuTheme.DIM)
 	sub.add_theme_font_size_override("font_size", 16)
 	sub.size_flags_vertical = SIZE_SHRINK_END
+	sub.size_flags_horizontal = SIZE_EXPAND_FILL
+	sub.clip_text = true  # a narrow window shortens the line (ellipsis) before it pushes Handbook / Credits / Quit away
+	sub.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	_brand.add_child(sub)
 	var gap := Control.new()  # keeps the buttons right when the brand is hidden
 	gap.size_flags_horizontal = SIZE_EXPAND_FILL
+	gap.size_flags_stretch_ratio = 0.01
 	hb.add_child(gap)
 	for item in [["Handbook", _open_handbook], ["Credits", func(): _press(KEY_F12)], ["Quit", func(): get_tree().quit()]]:
 		var b := Button.new()
@@ -112,6 +126,7 @@ func _top_bar() -> Control:
 		b.custom_minimum_size = Vector2(100, 40)
 		b.pressed.connect(item[1])
 		hb.add_child(b)
+		_top_buttons.append(b)
 	return hb
 
 
@@ -146,6 +161,7 @@ func _build(id: String) -> Control:
 		var h: Control = Home.new()
 		h.choose.connect(_choose)
 		h.open_page.connect(go)
+		h.outer = _top_buttons
 		h.fly_again.connect(_fly_again)
 		h.continue_lesson.connect(_continue_lesson)
 		return h

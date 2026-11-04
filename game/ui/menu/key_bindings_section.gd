@@ -19,6 +19,8 @@ var path := KeyBindings.PATH
 var controls: AircraftControls  # set before adding to the tree; default = the current aircraft
 var table := {}
 var _slots := {}  # action -> Array[Button]
+var _rows := {}  # action -> its row (hidden by filter())
+var _query := ""
 var _warn: Label
 var _hint: Label
 var _grid: GridContainer
@@ -62,6 +64,7 @@ func _add_row(a: String) -> void:
 	r.add_theme_constant_override("separation", 6)
 	r.size_flags_horizontal = SIZE_EXPAND_FILL
 	_grid.add_child(r)
+	_rows[a] = r
 	var n := Label.new()
 	n.text = KeyBindings.LABELS[a]
 	n.tooltip_text = n.text
@@ -91,6 +94,23 @@ func _add_row(a: String) -> void:
 	r.add_child(x)
 
 
+## Shows only the rows that match the search words (controls_filter.gd: action name, id, bound keys); returns how many show.
+func filter(query: String) -> int:
+	_query = query
+	var n := 0
+	for a in _rows:
+		var texts := [KeyBindings.LABELS[a], a]
+		texts.append_array(table[a].map(func(k): return KeyBindings.describe(k)))
+		var ok := ControlsFilter.matches(query, texts)
+		(_rows[a] as Control).visible = ok
+		n += int(ok)
+	return n
+
+
+func row_count() -> int:
+	return _rows.size()
+
+
 func _refresh() -> void:
 	var bad := {}
 	for a in _slots:
@@ -114,6 +134,8 @@ func _refresh() -> void:
 	var cf := KeyBindings.conflicts(table, _slots.keys())
 	_warn.text = "" if cf.is_empty() else "Conflicts:\n• " + "\n• ".join(cf)
 	_warn.visible = not cf.is_empty()
+	if _query != "":
+		filter(_query)  # a changed binding can change what matches
 
 
 func _start(a: String, slot: int) -> void:

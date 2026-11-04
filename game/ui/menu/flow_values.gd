@@ -125,8 +125,8 @@ static func _start(s: Dictionary, short: bool) -> String:
 	var icao := str(s.get("airport", ""))
 	match str(s.get("start", "runway")):
 		"stand":
-			var st := str(s.get("stand", ""))
-			return "%s · %s" % [icao, ("stand " + st) if st != "" else "gate"]
+			var st := StandNames.label(str(s.get("stand", "")))  # "stand 12", "Bay 3": one rule everywhere
+			return "%s · %s" % [icao, st if st != "" else "gate"]
 		"air":
 			return "%s · %s ft · %s nm" % [icao, _thousands(roundi(float(s.get("air_ft", 0.0)))), Session.nm_text(float(s.get("air_nm", 0.0)))]
 	var rw := str(s.get("runway", ""))

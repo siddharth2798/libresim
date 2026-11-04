@@ -38,6 +38,7 @@ func _init() -> void:
 	add_child(content)
 	var scroll := ScrollContainer.new()
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	scroll.follow_focus = true  # Tab to a control below the fold scrolls it into view
 	content.add_child(scroll)
 	_stack = MarginContainer.new()
 	_stack.size_flags_horizontal = SIZE_EXPAND_FILL

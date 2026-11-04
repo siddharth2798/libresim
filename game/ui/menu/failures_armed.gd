@@ -4,14 +4,19 @@ extends VBoxContainer
 ## trigger and a remove button, a line for random failures, "0 armed" when empty, Clear all) and the RANDOM
 ## FAILURES settings (switch, how many, time window, which systems) with the "Tell me when something fails"
 ## switch. All values live in Session.setup (failures, random, notify). `refresh()` repaints everything from there.
-## Signals: `changed` after any edit; `removed(id)` when an armed row's button disarmed a failure.
+## Signals: `changed` after any edit; `removed(id)` when an armed row's button disarmed a failure (or Clear all, id "").
+## After a remove the list is rebuilt, so the keyboard focus is put back at once: on the next armed row's x, else the
+## previous one's, else Clear all while it is shown; when none of those exists `focus_lost` tells the page
+## (failures_page.gd), which focuses the first failure switch. (After `changed`: the page repaints this list again.)
 
 signal changed
 signal removed(id: String)
+signal focus_lost  # a remove left nothing here to focus: the page picks a control
 
 var count_label: Label
 var list: VBoxContainer
 var clear_btn: Button
+var remove_btns := {}  # failure id -> its x Button (rebuilt with the list)
 var random_switch: SwitchRow
 var notify_switch: SwitchRow
 var _random_box: VBoxContainer
@@ -126,6 +131,7 @@ func _rebuild_list() -> void:
 	for c in list.get_children():
 		list.remove_child(c)
 		c.queue_free()
+	remove_btns.clear()
 	var rows := FailuresLogic.armed(Session.setup.failures, FailureCatalog.categories())
 	for a in rows:
 		list.add_child(_armed_row(a))
@@ -171,12 +177,34 @@ func _armed_row(a: Dictionary) -> Control:
 	PageStyles.tiny_button(x)
 	var id: String = a.id
 	x.pressed.connect(func():
+		var ids := _armed_ids()
 		FailuresLogic.set_trigger(Session.setup.failures, id, 0)
 		refresh()
 		removed.emit(id)
-		changed.emit())
+		changed.emit()
+		_focus_after_remove(ids, ids.find(id)))
+	remove_btns[id] = x
 	hb.add_child(x)
 	return p
+
+
+func _armed_ids() -> Array:
+	return FailuresLogic.armed(Session.setup.failures, FailureCatalog.categories()).map(func(a): return a.id)
+
+
+## Focus after the armed list was rebuilt without ids[at]: the next row's x, else the previous row's, else Clear all,
+## else `focus_lost`. at = -1 (Clear all): only Clear all or `focus_lost`.
+func _focus_after_remove(ids: Array, at: int) -> void:
+	if not is_inside_tree():
+		return
+	for k in ([at + 1, at - 1] if at >= 0 else []):
+		if k >= 0 and k < ids.size() and remove_btns.has(ids[k]):
+			(remove_btns[ids[k]] as Button).grab_focus()
+			return
+	if clear_btn.visible and clear_btn.is_visible_in_tree():
+		clear_btn.grab_focus()
+	else:
+		focus_lost.emit()
 
 
 func _text_row(title: String, text: String) -> Control:
@@ -198,3 +226,4 @@ func _clear_all() -> void:
 	refresh()
 	removed.emit("")
 	changed.emit()
+	_focus_after_remove([], -1)

@@ -36,8 +36,8 @@ Real in-game captures at 1920x1080 on the Ultra graphics preset, nothing edited 
     <td width="50%"><img src="docs/screenshots/08-moving-map.jpg" alt="Chase view of a Cessna 172 over Mumbai harbour beside the moving map, which shows satellite imagery, airports, ILS beams and a GPS direct-to line" width="100%"><br><sub>Moving map with a GPS direct-to line, over Mumbai and Navi Mumbai.</sub></td>
   </tr>
   <tr>
-    <td width="50%"><img src="docs/screenshots/09-start-screen.jpg" alt="libresim start screen with Free flight and Training choices over a flight scene" width="100%"><br><sub>Start screen: Free flight or Training.</sub></td>
-    <td width="50%"><img src="docs/screenshots/10-airport-picker.jpg" alt="Free-flight setup showing the airport list and the Mumbai airport diagram with runways, taxiways and gate and remote stands" width="100%"><br><sub>Free-flight setup: pick an airport and a stand on its real taxiway map.</sub></td>
+    <td width="50%"><img src="docs/screenshots/09-start-screen.jpg" alt="libresim start screen with Free flight and Training cards over a flight scene, with Fly again and Continue shortcuts" width="100%"><br><sub>Start screen: Free flight or Training, with Fly again and Continue shortcuts and each lesson's stars.</sub></td>
+    <td width="50%"><img src="docs/screenshots/10-airport-picker.jpg" alt="Free-flight setup, airport step: the step rail at the left, the airport search box, the clickable Mumbai airport map with runways, taxiways and gate and remote stands, the stand list and the footer chips with the Fly button" width="100%"><br><sub>Free-flight setup: search for an airport, then click a runway end or a stand on its real taxiway map; the footer shows the whole setup and the one Fly button.</sub></td>
   </tr>
   <tr>
     <td width="50%"><img src="docs/screenshots/11-a320-gate-kochi.jpg" alt="A320-family airliner parked at a gate at Kochi airport in warm evening light, with a jetway, the terminal's red tiled roof and a line of trees beyond the apron" width="100%"><br><sub>A320-family airliner at a gate at Kochi (VOCI), golden hour, seen from the nose.</sub></td>
@@ -48,7 +48,7 @@ Real in-game captures at 1920x1080 on the Ultra graphics preset, nothing edited 
     <td width="50%"><img src="docs/screenshots/14-a320-final-dusk.jpg" alt="A320-family airliner with its landing gear down on approach over the lit buildings of Mumbai at dusk, red wing-tip light visible, orange sky and first stars" width="100%"><br><sub>A320 on approach to Mumbai (VABB) runway 27 at dusk, gear down, over the lit suburbs.</sub></td>
   </tr>
   <tr>
-    <td width="50%"><img src="docs/screenshots/15-a320-aircraft-page.jpg" alt="Free-flight setup, aircraft step, showing the A320-family card with its key specifications, the fuel and payload sliders and the weight and balance envelope chart" width="100%"><br><sub>Start screen, aircraft step: A320 key figures, fuel and payload sliders, and the weight and balance envelope (approximate).</sub></td>
+    <td width="50%"><img src="docs/screenshots/15-a320-aircraft-page.jpg" alt="Free-flight setup, aircraft step, showing the A320-family card with its key specifications, the registration field, the fuel and payload sliders and the weight and balance envelope chart" width="100%"><br><sub>Start screen, aircraft step: A320 key figures, fuel and payload sliders, and the weight and balance envelope (approximate).</sub></td>
     <td width="50%"><img src="docs/screenshots/16-callsign-tail-number.jpg" alt="Side view of a Cessna 172 parked at a gate with a fuel truck and terminal behind it, with the custom registration VT-LBR painted on the rear fuselage" width="100%"><br><sub>Cessna 172 at Pune (VAPO) wearing the call sign you choose as its tail number (VT-LBR here).</sub></td>
   </tr>
 </table>

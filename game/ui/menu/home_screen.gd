@@ -21,6 +21,10 @@ const MODES := [
 ## [icon, title, page, line under the title]; the Saved flights line is the newest save.
 const MORE := [["save", "Saved flights", "saves", ""], ["pad", "Controls", "controls", "Keyboard, joystick, gamepad"],
 	["gear", "Options", "options", "Sound, graphics, units"]]
+const MIN_K := 0.5
+const MAX_K := 1.4
+const MARGIN_X := 56.0  # the start screen's side margins (start_screen.gd)
+const CARDS_W := 884.0  # two cards (410) + their gap (24) + a little air
 const HINT := "Left / Right or 1 / 2 to choose  ·  Enter to confirm"
 
 var _cards: Array[Button] = []
@@ -30,6 +34,9 @@ var _sub: Label
 var _question: Label
 var _hint: Label
 var _more: Array[Button] = []
+## Controls outside the home screen that belong to its Tab ring (the top bar's Handbook / Credits / Quit, set by start_screen.gd):
+## Tab continues from the last quiet link into them and Shift+Tab from the first card goes back to them.
+var outer: Array[Control] = []
 var _next_lesson := {}  # the lesson "Continue" starts, {} = no shortcut
 
 
@@ -107,6 +114,7 @@ func refresh() -> void:
 	_next_lesson = HomeShortcuts.next_lesson(list, stars)
 	var tc: Button = _cards[1]
 	tc.set_last(prog.get("detail", ""), prog.get("title", ""))
+	tc.set_marks(HomeShortcuts.lesson_marks(list, stars) if not prog.is_empty() else [])
 	tc.set_action("Continue: %s  (C)" % _next_lesson.title if not _next_lesson.is_empty() else "", true, "Start the next lesson (key C)")
 	_more[0].set_sub(HomeShortcuts.saves_line(Situation.list_saves()))
 	_hint.text = HINT + ("  ·  R fly again" if fc.action_btn.visible else "") + ("  ·  C continue" if tc.action_btn.visible else "")
@@ -126,6 +134,7 @@ func _link_focus() -> void:
 	order.append_array(_cards)
 	order.append_array(sc)
 	order.append_array(_more)
+	order.append_array(outer)
 	for i in order.size():
 		order[i].focus_next = order[i].get_path_to(order[(i + 1) % order.size()])
 		order[i].focus_previous = order[i].get_path_to(order[(i - 1 + order.size()) % order.size()])
@@ -167,9 +176,12 @@ func _gap(h: float) -> Control:
 	return g
 
 
-## Bigger window, bigger home screen (1.0 at 1280x720, at most 1.4). The UI is never lower than 720 units (UiScale).
+## The home screen follows the room it has, in UI units (the window divided by the UI scale): 1.0 at 1280x720, up to
+## 1.4 in a bigger window, and down to 0.5 when a large UI scale (125 to 200 %) or a small window leaves less than the
+## design size, so the two cards and the three links always fit side by side instead of running off the screen.
+## It reads the viewport size, which already is the window in UI units (UiScale).
 func _apply_scale() -> void:
-	var k := clampf(get_viewport_rect().size.y / 720.0, 1.0, 1.4)
+	var k := scale_for(get_viewport_rect().size)
 	if _logo:
 		_logo.custom_minimum_size = Vector2.ONE * 72.0 * k
 	_title.add_theme_font_size_override("font_size", int(44 * k))
@@ -181,6 +193,12 @@ func _apply_scale() -> void:
 	for b in _more:
 		b.set_scale_k(k)
 		b.custom_minimum_size.x = 236.0 * k
+
+
+## The home screen's scale for a viewport of this many UI units: the height sets it (720 = 1.0), the width caps it so
+## two cards (410 each) with their gap and the screen margins fit. Clamped to MIN_K .. MAX_K.
+static func scale_for(units: Vector2) -> float:
+	return clampf(minf(units.y / 720.0, (units.x - MARGIN_X) / CARDS_W), MIN_K, MAX_K)
 
 
 ## Called each time the home screen is shown: refresh the shortcuts, focus the card chosen last time.

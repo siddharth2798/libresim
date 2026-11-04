@@ -3,7 +3,8 @@ extends HBoxContainer
 ## lesson is a short guided exercise with a step-by-step card, live target gauges, 3D markers and coach messages,
 ## graded with 1-3 stars at the end (best stars are remembered in user://training.json, TrainingLogic.save_path).
 ## Lessons live in training/lessons.json; the right side shows the chosen lesson: goal, what you will learn, the
-## steps, where you start and the help level's note (texts: lesson_info.gd). The START LESSON button is the start
+## steps, where you start (text, and the start drawn on a small airport diagram: lesson_map.gd) and the help level's
+## note (texts: lesson_info.gd). The START LESSON button is the start
 ## screen's bottom bar (it calls start()), so it never scrolls out of sight; summary() is the text next to it.
 
 signal changed
@@ -26,6 +27,7 @@ var _summary: Label
 var _learn: VBoxContainer
 var _steps: VBoxContainer
 var _where: Label
+var _diagram: AirportDiagram  # the lesson's start on the airport diagram (read only, LessonMap)
 var _markers: Label
 var _assist_note: Label
 var _assist := "full"
@@ -123,6 +125,11 @@ func _build_right() -> void:
 	var cv := VBoxContainer.new()
 	cv.add_theme_constant_override("separation", 6)
 	card.add_child(cv)
+	_diagram = AirportDiagram.new()
+	_diagram.read_only = true
+	_diagram.custom_minimum_size = Vector2(0, 120)  # compact: as wide as the card, a fixed height
+	_diagram.size_flags_horizontal = SIZE_EXPAND_FILL
+	cv.add_child(_diagram)
 	_where = _wrapped(cv, "")
 	_markers = MenuTheme.note("")
 	cv.add_child(_markers)
@@ -173,6 +180,7 @@ func _select(i: int) -> void:
 	_fill(_learn, LessonInfo.learn(l), false)
 	_fill(_steps, LessonInfo.step_titles(l), true)
 	_where.text = LessonInfo.where(l)
+	LessonMap.apply(_diagram, LessonMap.spec(l))
 	_markers.text = LessonInfo.markers(l)
 	_markers.visible = _markers.text != ""
 	changed.emit()

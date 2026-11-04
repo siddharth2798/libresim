@@ -59,6 +59,11 @@ func find_stand(icao: String, ref: String, stand_class := "") -> Dictionary:
 	return GroundChoice.default_stand(stands, stand_class if stand_class != "" else str(GroundParams.ground().stand_class))
 
 
+## The display name of a stand of `icao` (StandNames: the real ref, else the made-up "Bay 3" / "Gate 4").
+func stand_name(icao: String, st: Dictionary) -> String:
+	return StandNames.name_of(data.get(icao, {}).get("stands", []), st)
+
+
 func _h(x: float, y: float) -> float:
 	return terrain.height_at(x, y) if terrain else 0.0
 

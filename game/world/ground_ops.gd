@@ -130,9 +130,15 @@ func request_taxi_to_stand() -> String:
 	if r.is_empty():
 		_say("No taxi route to a stand found")
 		return ""
-	var ref := str(best.get("ref", ""))
-	_set_route(r, "Taxi to the apron%s%s" % [(" (stand " + ref + ")") if ref != "" else "", (" via " + ", ".join(r.via)) if not r.via.is_empty() else ""], false)
+	_set_route(r, apron_text(ops.stand_name(icao, best), r.via), false)
 	return _route_txt
+
+
+## The taxi instruction to a stand: "Taxi to the apron (stand 12) via B", "Taxi to the apron (Bay 3) via B". `stand` is the
+## stand's display name (StandNames: the real ref, else the made-up one); "" leaves the brackets out.
+static func apron_text(stand: String, via: Array) -> String:
+	var nm := StandNames.label(stand)
+	return "Taxi to the apron%s%s" % [(" (" + nm + ")") if nm != "" else "", (" via " + ", ".join(via)) if not via.is_empty() else ""]
 
 
 func _set_route(r: Dictionary, txt: String, hold_at_end: bool) -> void:

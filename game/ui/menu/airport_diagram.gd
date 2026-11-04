@@ -20,13 +20,15 @@ var selected_runway := ""  # ident
 var selected_stand := ""  # stand name
 var short_ends := {}  # ident -> true: the runway is too short for the aircraft (its ident is dimmed)
 var hover := {}  # what AirportMapMath.pick found under the pointer
+var read_only := false  # a picture only (the Training page): no hover, no clicks; set before add_child
 var _view := {}
 
 
 func _ready() -> void:
-	custom_minimum_size = Vector2(300, 230)
+	if custom_minimum_size == Vector2.ZERO:  # a caller may have set a compact size
+		custom_minimum_size = Vector2(300, 230)
 	clip_contents = true
-	mouse_filter = Control.MOUSE_FILTER_STOP
+	mouse_filter = Control.MOUSE_FILTER_IGNORE if read_only else Control.MOUSE_FILTER_STOP
 	resized.connect(queue_redraw)
 
 
@@ -54,7 +56,7 @@ func _fit() -> void:
 
 
 func _gui_input(e: InputEvent) -> void:
-	if runways.is_empty():
+	if runways.is_empty() or read_only:
 		return
 	if e is InputEventMouseMotion:
 		_fit()

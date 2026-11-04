@@ -268,8 +268,8 @@ func test_flow_focus_ring_and_order_are_kept() -> String:
 	for b in f.rail.entries + f.chips.chips + [f.fly_btn, f.primary_btn, f.back_btn]:
 		if b.has_theme_stylebox_override("focus"):
 			return "a button overrides 'focus', which would hide the ring"
-	if not f.chips is HFlowContainer:
-		return "chips should wrap (HFlowContainer)"
+	if not f.chips is FlowChips:  # one row that shortens its chips (was an HFlowContainer that wrapped); see test_flow_reasons
+		return "the footer should hold a FlowChips"
 	var rail_i: int = f.rail.get_parent().get_index()
 	var foot_i: int = f.footer.get_parent().get_index()
 	if rail_i != 0 or foot_i <= rail_i or f.rail.get_index() != 0 or f.content.get_parent() != f.rail.get_parent().get_child(1):

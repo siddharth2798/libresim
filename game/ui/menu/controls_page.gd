@@ -5,6 +5,9 @@ extends HBoxContainer
 ## clear, a live bar and, for axes, Tune: invert / range / deadzone / curve; reset to gamepad or joystick
 ## defaults; controls_row.gd) and Other keys (the fixed hotkeys, keyboard_reference.gd). Saves on every change. Only the actions the
 ## aircraft offers (aircraft_controls.gd) are listed; the rest stay in the saved profile.
+## The tab bar is sticky (the rows scroll under it) and carries two extras: "Controls for" (the aircraft whose action list is
+## shown, show_aircraft(); it only changes the list, never the flight setup or a binding) and a search box that hides the
+## rows that do not match (controls_filter.gd; Ctrl+F or Cmd+F focuses it).
 
 signal changed
 
@@ -18,7 +21,13 @@ var table := {}
 var start_tab := "keyboard"  # "keyboard" | "joystick" | "other"; set before adding to the tree
 var tabs: MenuTabs
 var keys: VBoxContainer  # the Keyboard tab (key_bindings_section.gd)
+var search: LineEdit
+var aircraft_switch: Segmented  # null when only one aircraft is installed
 var _rows := {}  # action -> row
+var _heads: Array[Label] = []  # the Axes / Buttons headings of the joystick tab, hidden with their rows
+var _empties := {}  # tab id -> the "No match" note
+var _query := ""
+var _other: GridContainer  # the Other keys tab's hotkey list (keyboard_reference.gd)
 var _devices: Label
 var _status: Label
 var _capture := ""  # action waiting for input
@@ -31,15 +40,77 @@ func _ready() -> void:
 	if controls == null:
 		controls = AircraftControls.current()
 	table = InputBindings.load_from(bindings_path)
-	tabs = MenuTabs.new().setup(false)
+	tabs = MenuTabs.new().setup(false, true)
 	add_child(tabs)
-	tabs.add_tab("keyboard", "Keyboard", _keyboard_tab())
-	tabs.add_tab("joystick", "Joystick & gamepad", _joystick_tab())
-	tabs.add_tab("other", "Other keys", _other_keys_tab())
+	_header_extras()
+	_fill_tabs()
 	tabs.select(start_tab if tabs.page(start_tab) else "keyboard", false)
 	tabs.tab_changed.connect(func(_id): _cancel_capture())
 	Input.joy_connection_changed.connect(func(_d, _c): _list_devices())
 	_list_devices()
+
+
+## The three tabs for the current `controls` (first time: add_tab; after an aircraft switch: replace_page).
+func _fill_tabs() -> void:
+	_rows.clear()
+	_heads.clear()
+	_empties.clear()
+	for t in [["keyboard", "Keyboard", _keyboard_tab()], ["joystick", "Joystick & gamepad", _joystick_tab()], ["other", "Other keys", _other_keys_tab()]]:
+		if tabs.page(t[0]) == null:
+			tabs.add_tab(t[0], t[1], t[2])
+		else:
+			tabs.replace_page(t[0], t[2])
+	apply_filter(_query)
+
+
+func _header_extras() -> void:
+	var h := ControlsHeader.add(tabs, controls.id if controls.id != "" else AircraftDef.current().id, show_aircraft, apply_filter)
+	aircraft_switch = h.switch
+	search = h.search
+
+
+## Lists the actions of another aircraft. Only this page changes: the flight setup, the saved bindings and the
+## key profile are untouched (actions an aircraft lacks stay in the profile). The search words stay.
+func show_aircraft(id: String) -> void:
+	var def := AircraftDef.load_def(id) if AircraftDef.list_ids().has(id) else null  # load_def would turn an unknown id into the default aircraft
+	if def == null or def.id == controls.id:
+		return
+	_cancel_capture()
+	controls = AircraftControls.for_def(def)
+	_fill_tabs()
+	if aircraft_switch != null:
+		aircraft_switch.select(def.id)
+
+
+## Hides the rows that do not match `query` on every tab (controls_filter.gd) and shows a "No match" note on a tab
+## that ends up empty. Returns the number of rows left on the tab that shows.
+func apply_filter(query: String) -> int:
+	_query = query
+	var shown := {"keyboard": keys.filter(query), "other": _other.filter(query), "joystick": _filter_joystick(query)}
+	for t in _empties:
+		(_empties[t] as Control).visible = shown[t] == 0 and not ControlsFilter.words(query).is_empty()
+	return shown.get(tabs.current(), 0)
+
+
+func _filter_joystick(query: String) -> int:
+	var n := 0
+	var group_shown := {}
+	for a in _rows:
+		var texts := [InputBindings.LABELS.get(a, a), a, InputBindings.describe(table[a])]
+		var ok := ControlsFilter.matches(query, texts)
+		(_rows[a] as Control).visible = ok
+		n += int(ok)
+		group_shown[InputBindings.is_axis(a)] = group_shown.get(InputBindings.is_axis(a), false) or ok
+	if _heads.size() == 2:
+		_heads[0].visible = group_shown.get(true, false)
+		_heads[1].visible = group_shown.get(false, false)
+	return n
+
+
+func _unhandled_key_input(e: InputEvent) -> void:
+	if is_visible_in_tree() and e is InputEventKey and e.pressed and not e.echo and e.keycode == KEY_F and (e.ctrl_pressed or e.meta_pressed):
+		search.grab_focus()
+		get_viewport().set_input_as_handled()
 
 
 func _keyboard_tab() -> Control:
@@ -47,6 +118,8 @@ func _keyboard_tab() -> Control:
 	keys.set_script(load("res://ui/menu/key_bindings_section.gd"))
 	keys.set("controls", controls)
 	keys.connect("changed", func(): changed.emit())
+	_empties["keyboard"] = ControlsHeader.no_match_note()
+	keys.add_child(_empties["keyboard"])
 	return keys
 
 
@@ -71,12 +144,15 @@ func _joystick_tab() -> Control:
 		top.add_child(b)
 	_status = MenuTheme.note("Bind, then move an axis or press a button (Esc cancels). Keyboard keeps working for anything not bound.")
 	col.add_child(_status)
-	col.add_child(MenuTheme.heading("Axes"))
+	_heads = [MenuTheme.heading("Axes"), MenuTheme.heading("Buttons")]
+	col.add_child(_heads[0])
 	for a in controls.axes():
 		_add_row(col, a)
-	col.add_child(MenuTheme.heading("Buttons"))
+	col.add_child(_heads[1])
 	for a in controls.buttons():
 		_add_row(col, a)
+	_empties["joystick"] = ControlsHeader.no_match_note()
+	col.add_child(_empties["joystick"])
 	return col
 
 
@@ -87,7 +163,10 @@ func _other_keys_tab() -> Control:
 	var kb := GridContainer.new()
 	kb.set_script(load("res://ui/menu/keyboard_reference.gd"))
 	kb.set("controls", controls)
+	_other = kb
 	col.add_child(kb)
+	_empties["other"] = ControlsHeader.no_match_note()
+	col.add_child(_empties["other"])
 	return col
 
 

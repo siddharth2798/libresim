@@ -17,7 +17,7 @@ var mode_btns := {}
 var alt: SpinBox
 var dist: SpinBox
 var air_note: Label  # the aircraft's default start
-var cold: CheckBox
+var cold: SwitchRow
 var stand_note: Label
 var mode_note: Label
 var profile: GlideProfile
@@ -61,10 +61,8 @@ func _init() -> void:
 	_build_runways()
 	_build_stands()
 	_build_air()
-	cold = CheckBox.new()
-	cold.text = "Cold & dark start"
+	cold = SwitchRow.new().setup("Cold & dark start", "Engine off, everything off: run the checklists.")
 	cold.tooltip_text = "Engine off, everything off: run the checklists."
-	cold.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	cold.toggled.connect(func(on): cold_toggled.emit(on))
 	add_child(cold)
 	stand_note = MenuTheme.note("Stand starts are cold & dark, brake set.")

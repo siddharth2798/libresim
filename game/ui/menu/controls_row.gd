@@ -7,8 +7,8 @@ extends VBoxContainer
 signal edited
 signal bind_requested(action: String)
 
-const W_NAME := 150.0  # minimum
-const W_BIND := 150.0
+const W_NAME := 120.0  # minimum
+const W_BIND := 110.0
 
 var action := ""
 var b := {}  # the binding dictionary (shared with the page's table)
@@ -51,7 +51,7 @@ func setup(a: String, binding: Dictionary) -> void:
 		_tune_btn = _button(line, "⚙ Tune", 84, func(): _show_tune(not tune.visible))
 		_tune_btn.toggle_mode = true
 	_bar = Control.new()
-	_bar.custom_minimum_size = Vector2(96, 18)
+	_bar.custom_minimum_size = Vector2(72, 18)
 	_bar.size_flags_vertical = SIZE_SHRINK_CENTER
 	_bar.draw.connect(_draw_bar)
 	line.add_child(_bar)

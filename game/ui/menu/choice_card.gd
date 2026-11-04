@@ -17,6 +17,8 @@ var _hint: Label
 var _body: MarginContainer
 var _box: PanelContainer  # the "last setup" / "progress" box
 var _box_lines: Array[Label] = []
+var _marks: HFlowContainer  # one "Title ★★☆" per lesson under the box (Training card only, see set_marks)
+var _mark_labels: Array[Label] = []
 var _k := 1.0
 var _lit_normal: StyleBoxFlat
 var _normal: StyleBoxFlat
@@ -84,6 +86,12 @@ func setup(kind: String, title: String, blurb: String, hint: String) -> void:
 		l.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 		bl.add_child(l)
 		_box_lines.append(l)
+	_marks = HFlowContainer.new()
+	_marks.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_marks.add_theme_constant_override("h_separation", 14)
+	_marks.add_theme_constant_override("v_separation", 0)
+	_marks.visible = false
+	v.add_child(_marks)
 	action_btn = Button.new()
 	action_btn.visible = false
 	action_btn.clip_text = true
@@ -119,6 +127,37 @@ func set_last(small: String, main: String, extra := "") -> void:
 	_fit()
 
 
+## A compact row of the stars of every lesson under the box: `marks` = [{title, stars 0..3}] (HomeShortcuts.lesson_marks).
+## Flown lessons get amber stars, a lesson not flown yet three dim ones. An empty list hides the row.
+func set_marks(marks: Array) -> void:
+	for c in _marks.get_children():
+		_marks.remove_child(c)
+		c.free()
+	_mark_labels.clear()
+	for m in marks:
+		var cell := HBoxContainer.new()
+		cell.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		cell.add_theme_constant_override("separation", 5)
+		var t := _label(str(m.title), MenuTheme.DIM)
+		var n := int(m.stars)
+		var st := _label("★".repeat(n) + "☆".repeat(3 - n), MenuTheme.WARN if n > 0 else MenuTheme.FAINT)
+		cell.add_child(t)
+		cell.add_child(st)
+		_marks.add_child(cell)
+		_mark_labels.append(t)
+		_mark_labels.append(st)
+	_marks.visible = not marks.is_empty()
+	set_scale_k(_k)
+
+
+## The text of the star row, "Takeoff ★★☆ · Cruise ☆☆☆" (tests, tooltips).
+func marks_text() -> String:
+	var parts: Array[String] = []
+	for i in range(0, _mark_labels.size(), 2):
+		parts.append("%s %s" % [_mark_labels[i].text, _mark_labels[i + 1].text])
+	return " · ".join(parts)
+
+
 ## Show the shortcut button with this text (primary: filled accent with dark ink; else outlined). "" hides it.
 func set_action(text: String, primary: bool, tip := "") -> void:
 	action_btn.visible = text != ""
@@ -145,6 +184,8 @@ func _lit_changed() -> void:
 ## Scale the card for bigger windows (1.0 at 1280x720).
 func set_scale_k(k: float) -> void:
 	_k = k
+	for side in ["left", "right", "top", "bottom"]:
+		_body.add_theme_constant_override("margin_" + side, int(PAD * minf(k, 1.0)))  # tighter in a small window
 	_glyph.custom_minimum_size = Vector2.ONE * 56.0 * k
 	_title.add_theme_font_size_override("font_size", int(30 * k))
 	_blurb.add_theme_font_size_override("font_size", int(16 * k))
@@ -153,6 +194,8 @@ func set_scale_k(k: float) -> void:
 	_box_lines[0].add_theme_font_size_override("font_size", int(13 * k))
 	_box_lines[1].add_theme_font_size_override("font_size", int(15 * k))
 	_box_lines[2].add_theme_font_size_override("font_size", int(13 * k))
+	for l in _mark_labels:
+		l.add_theme_font_size_override("font_size", int(13 * k))
 	action_btn.add_theme_font_size_override("font_size", int(16 * k))
 	action_btn.custom_minimum_size = Vector2(0, 42.0 * k)
 	_fit()

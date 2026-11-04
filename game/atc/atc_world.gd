@@ -136,19 +136,23 @@ static func geometry(w: Dictionary, rwys: Array, ops: Dictionary) -> void:
 			hd2 = minf(hd2, p.distance_to(hp))
 	w.hold_dist = hd2
 	var sd := 30.0
-	for s in ops.get("stands", []):
+	var near := {}
+	var stands: Array = ops.get("stands", [])
+	for s in stands:
 		var d2 := p.distance_to(Vector2(s.x, s.y))
 		if d2 < sd:
 			sd = d2
 			w.at_stand = true
-			w.where = _stand_text(str(s.get("ref", "")))
+			near = s
+	if w.at_stand:
+		w.where = _stand_text(StandNames.name_of(stands, near))
 
 
-static func _stand_text(ref: String) -> String:
-	if ref == "":
-		return "the apron"
-	var low := ref.to_lower()
-	return ref if low.begins_with("bay") or low.begins_with("stand") or low.begins_with("gate") else "stand " + ref
+## How ATC says where the aircraft stands: StandNames.label() of the stand's display name (the real ref, else the
+## made-up "Bay 3" / "Gate 4"); "the apron" only when there is no name.
+static func _stand_text(name: String) -> String:
+	var t := StandNames.label(name)
+	return t if t != "" else "the apron"
 
 
 static func _ang(a: float, b: float) -> float:

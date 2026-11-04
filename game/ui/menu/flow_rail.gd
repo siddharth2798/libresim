@@ -3,6 +3,8 @@ extends PanelContainer
 ## The left rail of the Free-flight flow: a readiness box and one flat Button per step with a number
 ## badge, the title, the live value (FlowValues) and a status mark (StatusDot). The current step is
 ## highlighted, every entry is clickable (signal step_pressed) and Up / Down move between entries.
+## Below the steps, at the bottom, the reasons the setup is not ready (SetupChecks texts, "bad" first, then
+## "warn"; hidden when there are none); each is a Button that jumps to the step it belongs to (step_pressed).
 ## It only shows what start_flow.gd hands to refresh(); it owns no setup state.
 
 signal step_pressed(index: int)
@@ -14,6 +16,9 @@ var entries: Array[Button] = []
 var current := -1  # the highlighted step
 var ready_title: Label
 var ready_sub: Label
+var reason_box: VBoxContainer  # the reasons list (hidden when empty)
+var reason_btns: Array[Button] = []
+var _reason_sig := ""
 var _ready_dot: StatusDot
 var _ready_box: PanelContainer
 var _badges: Array[Label] = []
@@ -32,6 +37,7 @@ func _init() -> void:
 	add_child(scroll)
 	var col := VBoxContainer.new()
 	col.size_flags_horizontal = SIZE_EXPAND_FILL
+	col.size_flags_vertical = SIZE_EXPAND_FILL  # so the reasons sit at the bottom of a tall rail
 	col.add_theme_constant_override("separation", 4)
 	scroll.add_child(col)
 	col.add_child(_ready_panel())
@@ -39,6 +45,14 @@ func _init() -> void:
 		var b := _entry(i)
 		col.add_child(b)
 		entries.append(b)
+	var gap := Control.new()
+	gap.size_flags_vertical = SIZE_EXPAND_FILL
+	gap.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	col.add_child(gap)
+	reason_box = VBoxContainer.new()
+	reason_box.add_theme_constant_override("separation", 2)
+	reason_box.visible = false
+	col.add_child(reason_box)
 
 
 func _ready_panel() -> Control:
@@ -141,6 +155,7 @@ func _ready() -> void:  # Up / Down (and Left) stay inside the rail; Right and T
 		entries[i].focus_neighbor_top = entries[maxi(i - 1, 0)].get_path()
 		entries[i].focus_neighbor_bottom = entries[mini(i + 1, entries.size() - 1)].get_path()
 		entries[i].focus_neighbor_left = entries[i].get_path()
+	_link_reasons()
 
 
 ## Repaint from the setup: `list` is SetupChecks.checks(setup); `cur` the shown step; `visited` step -> true.
@@ -149,6 +164,7 @@ func refresh(setup: Dictionary, list: Array, cur: int, visited: Dictionary) -> v
 	ready_title.text = rt[0]
 	ready_sub.text = rt[1]
 	current = cur
+	_set_reasons(list)
 	var worst := SetupChecks.worst(list)
 	_ready_dot.level = worst
 	var tone := StatusDot.color_of(worst)
@@ -182,3 +198,64 @@ func _style_entry(b: Button, here: bool) -> void:
 	b.add_theme_stylebox_override("pressed", MenuTheme.box(Color(MenuTheme.ACCENT, 0.32), 10, edge))
 	b.add_theme_stylebox_override("hover_pressed", MenuTheme.box(Color(MenuTheme.ACCENT, 0.32), 10, edge))
 	# no "focus" override: the theme's 3 px accent ring (MenuTheme.focus_box) stays visible
+
+
+## The reasons under the steps: bad first, then warn, one wrapped Button each that jumps to its step. Rebuilt only
+## when the list changes (a repaint every frame must not drop the focus).
+func _set_reasons(list: Array) -> void:
+	var items := reason_items(list)
+	var sig := JSON.stringify(items.map(func(c): return [c.step, c.level, c.text]))
+	if sig == _reason_sig:
+		return
+	_reason_sig = sig
+	var had_focus := false
+	for b in reason_btns:
+		had_focus = had_focus or b.has_focus()
+		reason_box.remove_child(b)
+		b.queue_free()
+	reason_btns.clear()
+	for c in items:
+		var b := _reason_button(c)
+		reason_box.add_child(b)
+		reason_btns.append(b)
+	reason_box.visible = not items.is_empty()
+	_link_reasons()
+	if had_focus and current >= 0:
+		entries[current].grab_focus()
+
+
+## Down from the last step reaches the reasons; Up / Down move along them; Left stays.
+func _link_reasons() -> void:
+	if not is_inside_tree():  # get_path() needs the tree; _ready links again
+		return
+	for i in reason_btns.size():
+		reason_btns[i].focus_neighbor_left = reason_btns[i].get_path()
+		reason_btns[i].focus_neighbor_top = (reason_btns[i - 1] if i > 0 else entries[-1]).get_path()
+		reason_btns[i].focus_neighbor_bottom = reason_btns[mini(i + 1, reason_btns.size() - 1)].get_path()
+	entries[-1].focus_neighbor_bottom = (reason_btns[0] if not reason_btns.is_empty() else entries[-1]).get_path()
+
+
+## SetupChecks items in the order shown: the "bad" ones first, then the rest (a stable order within each).
+static func reason_items(list: Array) -> Array:
+	return list.filter(func(c): return c.level == "bad") + list.filter(func(c): return c.level != "bad")
+
+
+func _reason_button(c: Dictionary) -> Button:
+	var b := Button.new()
+	var bad: bool = c.level == "bad"
+	var tone: Color = MenuTheme.BAD if bad else MenuTheme.WARN
+	b.text = "▲ " + str(c.text)
+	b.alignment = HORIZONTAL_ALIGNMENT_LEFT
+	b.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	b.focus_mode = Control.FOCUS_ALL
+	b.add_theme_font_size_override("font_size", 13)
+	for k in ["font_color", "font_hover_color", "font_pressed_color", "font_hover_pressed_color", "font_focus_color"]:
+		b.add_theme_color_override(k, tone)
+	b.add_theme_stylebox_override("normal", MenuTheme.box(Color(0, 0, 0, 0), 8, Color(0, 0, 0, 0), 6.0))
+	b.add_theme_stylebox_override("hover", MenuTheme.box(Color(tone, 0.12), 8, Color(0, 0, 0, 0), 6.0))
+	b.add_theme_stylebox_override("pressed", MenuTheme.box(Color(tone, 0.2), 8, Color(0, 0, 0, 0), 6.0))
+	b.add_theme_stylebox_override("hover_pressed", MenuTheme.box(Color(tone, 0.2), 8, Color(0, 0, 0, 0), 6.0))
+	var at := FlowValues.KEYS.find(str(c.step))
+	b.tooltip_text = "%s: go to %s" % ["Problem" if bad else "Note", FlowValues.TITLES.get(str(c.step), "the step")]
+	b.pressed.connect(func(): step_pressed.emit(at))
+	return b

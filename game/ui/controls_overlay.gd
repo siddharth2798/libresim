@@ -29,15 +29,12 @@ func _ready() -> void:
 	close.text = "Close (J)"
 	close.pressed.connect(toggle)
 	bar.add_child(close)
-	var scroll := ScrollContainer.new()
-	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	v.add_child(scroll)
-	var page := HBoxContainer.new()
+	var page := HBoxContainer.new()  # its tabs scroll their rows themselves (sticky tab bar), so no scroll area around it
 	page.set_script(load("res://ui/menu/controls_page.gd"))
 	page.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	page.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	page.set("start_tab", "joystick")  # J was the joystick panel; the keyboard and the other keys are one tab away
-	scroll.add_child(page)
+	v.add_child(page)
 	visible = false
 
 

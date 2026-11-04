@@ -198,11 +198,11 @@ static func say_again(c: AtcController, w: Dictionary, now: float) -> void:
 	c.say_raw("atc", c.s.last_who, c.s.last_instr, c.s.last_instr_spoken, c.reply_time(t))
 
 
-## "Taxi to runway 09 via A, B — hold short" -> {rwy: "09", via: " via A, B", stand: ""}; "(stand 3)" gives stand.
+## "Taxi to runway 09 via A, B — hold short" -> {rwy: "09", via: " via A, B", stand: ""}; "(stand 3)", "(Bay 3)" or "(Gate 4)" gives stand.
 static func parse_route(t: String) -> Dictionary:
 	var via := ""
 	var stand := ""
-	var sm := RegEx.create_from_string("\\((stand [^)]+|gate [^)]+|bay [^)]+)\\)").search(t)
+	var sm := RegEx.create_from_string("(?i)\\((stand [^)]+|gate [^)]+|bay [^)]+)\\)").search(t)
 	if sm != null:
 		stand = sm.get_string(1)
 	var i := t.find(" via ")

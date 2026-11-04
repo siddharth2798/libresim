@@ -15,12 +15,14 @@ extends HBoxContainer
 ##   signal selected(value)   the player picked a different segment (not on select(), not on a re-click)
 ## Keyboard: Tab enters the row, Left / Right move the focus between segments, Space / Enter picks the one with
 ## the focus. The focus ring is MenuTheme.focus_box(). Minimum width is the sum of the labels (fixed),
-## `equal_width` (default true) stretches the segments to the width the row is given.
+## `equal_width` (default true) stretches the segments to the width the row is given; `pad_x` (12) is the space beside
+## each label.
 ## Pure helpers (headless tests): normalize, index_of, corner_radii.
 
 signal selected(value: Variant)
 
 var equal_width := true
+var pad_x := 12  # space left and right of each label; set before set_options (a tight row uses less)
 var disabled := false:
 	set = set_disabled
 
@@ -113,8 +115,8 @@ func _style(b: Button, i: int, n: int) -> void:
 		s.corner_radius_top_right = r.y
 		s.corner_radius_bottom_right = r.z
 		s.corner_radius_bottom_left = r.w
-		s.content_margin_left = 12
-		s.content_margin_right = 12
+		s.content_margin_left = pad_x
+		s.content_margin_right = pad_x
 		s.content_margin_top = 6
 		s.content_margin_bottom = 6
 		b.add_theme_stylebox_override(k, s)

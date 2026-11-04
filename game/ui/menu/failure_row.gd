@@ -30,6 +30,7 @@ func setup(id: String, label: String) -> FailureRow:
 	add_child(indent)
 	trigger = Segmented.new()
 	trigger.equal_width = false
+	trigger.pad_x = 8  # four labels in a column that has to fit next to the 240 px rail
 	trigger.set_options(FailuresLogic.TRIGGERS.map(func(t): return [t[0], t[1], t[2]]))
 	trigger.selected.connect(_on_trigger)
 	_detail.add_child(trigger)

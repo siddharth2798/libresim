@@ -24,6 +24,37 @@ static func _norm(name: String) -> String:
 	return name.to_lower().replace(" ", "")
 
 
+## How a stand name reads in a sentence, on screen or spoken: a plain ref is "stand 12", a name that already says
+## what it is ("Bay 3", "Gate 4", "Stand B") stays as it is; "" = no name. One rule for the rail, chips, summaries,
+## the taxi banner and ATC.
+static func label(name: String) -> String:
+	var t := name.strip_edges()
+	if t == "":
+		return ""
+	var low := t.to_lower()
+	return t if low.begins_with("bay") or low.begins_with("stand") or low.begins_with("gate") else "stand " + t
+
+
+## The debug property "ops/stand" for a stand start: "VABB Bay 3 (jetbridge)". `shown` = display name (falls back to `ref`).
+static func prop_text(icao: String, shown: String, ref: String, jetbridge: bool) -> String:
+	return "%s %s%s" % [icao, shown if shown != "" else ref, " (jetbridge)" if jetbridge else ""]
+
+
+## The display name of one stand `st` of `stands` (the real ref, else the made-up name); "" when it is not in the list.
+static func name_of(stands: Array, st: Dictionary) -> String:
+	var at := -1
+	for i in stands.size():
+		if is_same(stands[i], st):
+			at = i
+			break
+	if at < 0:
+		for i in stands.size():
+			if stands[i].get("x", 0.0) == st.get("x", 1e9) and stands[i].get("y", 0.0) == st.get("y", 1e9):
+				at = i
+				break
+	return "" if at < 0 else str(assign(stands)[at])
+
+
 ## One unique name per stand, same order as `stands`.
 static func assign(stands: Array) -> Array:
 	var names := []

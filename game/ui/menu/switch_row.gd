@@ -85,6 +85,13 @@ func setup(title: String, description := "", initial := false) -> SwitchRow:
 	return self
 
 
+## A narrow row (a short title such as "Mute" in a table cell): lets the title take less than the usual 120 px minimum.
+func compact(title_min_w := 40.0) -> SwitchRow:
+	_title.custom_minimum_size.x = title_min_w
+	_desc.custom_minimum_size.x = title_min_w
+	return self
+
+
 func set_title(text: String) -> void:
 	_title.text = text
 

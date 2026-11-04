@@ -11,6 +11,8 @@ extends Node
 ##   FREESIM_OVERWEIGHT=1    load the chosen aircraft over its maximum takeoff weight (amber Fly anyway)
 ##   FREESIM_FLOW_ONLY=1     only the five free-flight steps (skip home, Training, Saved flights, Controls, Options)
 ##   FREESIM_CALLSIGN=VT-SID  type that call sign (Session.setup.callsign) first
+##   FREESIM_WIND=360/25     wind direction / speed (deg / kt) in the setup (a crosswind on runway 27 of VABB: reasons list)
+##   FREESIM_STAND="Terminal 1 Gate 12A ..."  a long stand name in the setup after the pages are built (footer chip width)
 ##   FREESIM_TAG=u2_         prefix of the file names (menu_<tag><name>.png)
 
 var _s: Control
@@ -34,6 +36,9 @@ func _ready() -> void:
 	if OS.get_environment("FREESIM_START") != "":  # runway | stand | air
 		Session.setup.start = OS.get_environment("FREESIM_START")
 		Session.setup.airport = OS.get_environment("FREESIM_AIRPORT") if OS.get_environment("FREESIM_AIRPORT") != "" else "VABB"
+	if OS.get_environment("FREESIM_WIND").contains("/"):
+		Session.setup.wind_dir_deg = float(OS.get_environment("FREESIM_WIND").get_slice("/", 0))
+		Session.setup.wind_kt = float(OS.get_environment("FREESIM_WIND").get_slice("/", 1))
 	_s = load("res://ui/menu/start_screen.tscn").instantiate()
 	add_child(_s)
 	_out = OS.get_environment("FREESIM_SHOTS")
@@ -48,6 +53,8 @@ func _ready() -> void:
 		_s.screen("flight").pages[2]._show_more(true)
 	for i in _s.screen("flight").STEPS.size():
 		_s.screen("flight").show_step(i)
+		if i == 2 and OS.get_environment("FREESIM_STAND") != "":  # after the Airport step: it replaces a stand it does not know
+			Session.setup.stand = OS.get_environment("FREESIM_STAND")
 		await _shot("flight_%d" % (i + 1))
 	for id in ([] if OS.get_environment("FREESIM_FLOW_ONLY") != "" else ["training", "saves", "controls", "options"]):
 		_s.go(id)

@@ -57,8 +57,8 @@ static func where(s: Dictionary) -> String:
 	var icao := str(s.get("airport", ""))
 	match str(s.get("start", "runway")):
 		"stand":
-			var st := str(s.get("stand", ""))
-			return "%s %s" % [icao, ("stand " + st) if st != "" else "gate"]
+			var st := StandNames.label(str(s.get("stand", "")))
+			return "%s %s" % [icao, st if st != "" else "gate"]
 		"air":
 			return "%s · %s ft · %s nm final" % [icao, _thousands(roundi(float(s.get("air_ft", 0.0)))), Session.nm_text(float(s.get("air_nm", 0.0)))]
 	var rw := str(s.get("runway", ""))
@@ -98,6 +98,12 @@ static func progress_info(list: Array, stars: Dictionary) -> Dictionary:
 	var got := clampi(int(stars.get(str(list[at].id), 0)), 0, 3)
 	return {"title": "%s %s%s" % [list[at].title, STAR.repeat(got), EMPTY_STAR.repeat(3 - got)],
 		"detail": "%d of %d lessons flown" % [n, list.size()]}
+
+
+## One entry per lesson for the Training card's star row: [{title: "Takeoff", stars: 2}, ...] (0 = not flown). Reads the stars
+## it is given (TrainingLogic.load_stars()); nothing is written.
+static func lesson_marks(list: Array, stars: Dictionary) -> Array:
+	return list.map(func(l): return {"title": str(l.title), "stars": clampi(int(stars.get(str(l.id), 0)), 0, 3)})
 
 
 ## Saved flights tile line: "No saves yet", else the newest save "Name · 11-04".

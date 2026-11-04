@@ -21,7 +21,7 @@ var _restart_note: Label  # the Graphics tab's "restart to apply" line
 
 func _ready() -> void:
 	AudioSettings.apply()
-	tabs = MenuTabs.new().setup(true)
+	tabs = MenuTabs.new().setup(true, true)
 	add_child(tabs)
 	var gfx := OptionsGraphics.new()
 	gfx.changed.connect(func(): changed.emit())
@@ -42,7 +42,7 @@ func _sound() -> Control:
 	var v := OptionRows.tab_body("Sound", "Volumes are saved immediately and apply in flight. Muting Master silences everything.")
 	var grid := GridContainer.new()
 	grid.columns = 4
-	grid.add_theme_constant_override("h_separation", 16)
+	grid.add_theme_constant_override("h_separation", 12)
 	grid.add_theme_constant_override("v_separation", 10)
 	v.add_child(grid)
 	for b in AudioSettings.BUSES:
@@ -95,7 +95,8 @@ func _aids() -> Control:
 func _bus_row(grid: GridContainer, bus: String) -> void:
 	var l := Label.new()
 	l.text = AudioSettings.LABELS.get(bus, bus)
-	l.custom_minimum_size = Vector2(190, 0)
+	l.custom_minimum_size = Vector2(130, 0)  # "Wind & environment" wraps rather than widening the tab
+	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	grid.add_child(l)
 	var sl := HSlider.new()
 	sl.min_value = 0.0
@@ -104,14 +105,14 @@ func _bus_row(grid: GridContainer, bus: String) -> void:
 	sl.value = AudioSettings.volume(bus) * 100.0
 	sl.size_flags_horizontal = SIZE_EXPAND_FILL
 	sl.size_flags_vertical = SIZE_SHRINK_CENTER
-	sl.custom_minimum_size = Vector2(160, 0)
+	sl.custom_minimum_size = Vector2(110, 0)
 	grid.add_child(sl)
 	var v := Label.new()
 	v.custom_minimum_size = Vector2(56, 0)
 	v.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	v.text = "%d %%" % int(sl.value)
 	grid.add_child(v)
-	var m := SwitchRow.new().setup("Mute", "", AudioSettings.muted(bus))
+	var m := SwitchRow.new().setup("Mute", "", AudioSettings.muted(bus)).compact()
 	grid.add_child(m)
 	sl.value_changed.connect(func(x):
 		v.text = "%d %%" % int(x)

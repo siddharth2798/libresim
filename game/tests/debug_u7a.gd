@@ -5,6 +5,7 @@ extends Node
 ##   U7A_ARMED=0|3        failures: how many scheduled failures are armed first (3 = engine after 10 min, alternator at
 ##                        start, pitot above 1500 ft AGL)
 ##   U7A_RANDOM=1         failures: random failures on
+##   U7A_REMOVE=1         failures: press the x of the first armed row (the focus moves to the next row's x)
 ##   U7A_AIRCRAFT=a320    choose that aircraft first
 ##   U7A_REC=1            recording: switched on at 1080p 60 fps
 ##   U7A_LESSON=0..2      training: which lesson is chosen (stars: Takeoff 3, Cruise 1)
@@ -63,12 +64,20 @@ func _ready() -> void:
 	await get_tree().process_frame
 	var p: Control = scr.screen("flight").pages[3 if page == "failures" else 4] if page in ["failures", "recording"] else scr.screen(page).pages[0]
 	print("u7a page minimum size ", page, " ", p.get_combined_minimum_size())
+	for c in p.get_children():
+		print("  column ", c.get_class(), " min ", c.get_combined_minimum_size())
 	if page == "training":
 		p._cards[int(_env("U7A_LESSON", "0"))].button_pressed = true  # the group lights only this one
 		p._cards[int(_env("U7A_LESSON", "0"))].pressed.emit()
 	if page == "saves" and _env("U7A_PICK") != "":
 		p._cards[int(_env("U7A_PICK"))].button_pressed = true
 		p._cards[int(_env("U7A_PICK"))].pressed.emit()
+	if page == "failures" and _env("U7A_REMOVE") == "1":
+		var xs: Array = p._armed.list.find_children("*", "Button", true, false)
+		(xs.front() as Button).grab_focus()
+		(xs.front() as Button).pressed.emit()
+		var fo := get_viewport().gui_get_focus_owner()
+		print("u7a focus after remove: ", fo, " tooltip ", fo.tooltip_text if fo != null else "-")
 	if _env("U7A_FOCUS") == "switch":  # the focus ring of the first switch row
 		p.find_children("*", "SwitchRow", true, false).front().grab_focus()
 	elif _env("U7A_FOCUS") == "1":

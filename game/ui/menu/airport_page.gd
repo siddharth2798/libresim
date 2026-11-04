@@ -20,7 +20,7 @@ var _mode_btns := {}
 var _alt: SpinBox
 var _dist: SpinBox
 var _air_note: Label
-var _cold: CheckBox
+var _cold: SwitchRow
 var _stand_note: Label
 
 
@@ -78,7 +78,7 @@ func _ready() -> void:
 			if not _cur.is_empty():
 				_select(_cur, false)  # keeps the runway and stand, re-filters the lists for the aircraft
 			_refresh())  # the diagram marks the distance
-	_cold.set_pressed_no_signal(bool(s.cold))
+	_cold.set_on(bool(s.cold))
 	for a in _airports:
 		if a.icao == s.airport:
 			_select(a, false)
@@ -219,7 +219,7 @@ func _refresh() -> void:
 	if s.start == "air":
 		s.cold = false  # an air start is never cold & dark and never keeps a stale value
 	_panel.show_mode(str(s.start), not stands.is_empty())
-	_cold.set_pressed_no_signal(bool(s.cold))
+	_cold.set_on(bool(s.cold))
 	_panel.mark_runway(str(s.runway))
 	_panel.mark_stand(str(s.stand))
 	_panel.refresh_profile()

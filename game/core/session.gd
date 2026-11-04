@@ -286,7 +286,7 @@ func apply_to_props() -> void:
 ## One-line summary for the start screen.
 func summary() -> String:
 	var where: String = {"runway": "runway %s" % (setup.runway if setup.runway != "" else "(longest)"),
-		"stand": "stand %s" % (setup.stand if setup.stand != "" else "(gate)"),
+		"stand": StandNames.label(str(setup.stand)) if setup.stand != "" else "stand (gate)",
 		"air": "%d ft, %s nm final" % [int(setup.air_ft), nm_text(float(setup.air_nm))]}[setup.start]
 	var t := float(setup.time_h)
 	var nf := 0

@@ -21,7 +21,7 @@ var _cur := ""
 
 
 func _ready() -> void:
-	add_theme_constant_override("separation", 18)
+	add_theme_constant_override("separation", 14)
 	var left := VBoxContainer.new()
 	left.custom_minimum_size = Vector2(150, 0)
 	left.add_theme_constant_override("separation", 8)
@@ -52,6 +52,7 @@ func _ready() -> void:
 	_armed.size_flags_horizontal = SIZE_EXPAND_FILL
 	_armed.changed.connect(_on_changed)
 	_armed.removed.connect(_on_removed)
+	_armed.focus_lost.connect(_on_focus_lost)
 	var pad := MarginContainer.new()  # room for the scroll bar
 	pad.add_theme_constant_override("margin_right", 12)
 	pad.size_flags_horizontal = SIZE_EXPAND_FILL
@@ -139,3 +140,11 @@ func _on_changed() -> void:
 func _on_removed(_id: String) -> void:
 	for id in _rows:
 		(_rows[id] as FailureRow).refresh()
+
+
+## A remove left no armed row's x or Clear all to focus: the area's first failure switch.
+func _on_focus_lost() -> void:
+	if is_visible_in_tree() and _lists.has(_cur):
+		var rows := (_lists[_cur] as Control).get_children().filter(func(r): return r is FailureRow)
+		if not rows.is_empty():
+			(rows[0] as FailureRow).switch.grab_focus()

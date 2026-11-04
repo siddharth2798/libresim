@@ -181,3 +181,54 @@ func test_failures_page_catalog_follows_the_aircraft() -> String:
 		if p._rows.has(id):
 			return "a disabled failure (%s) must stay hidden" % id
 	return ""
+
+
+func _armed_page(ids: Array) -> Control:
+	_begin()
+	var p := _page()
+	for id in ids:
+		p._rows[id].switch.toggled.emit(true)
+	return p
+
+
+func _focus() -> Control:
+	return get_viewport().gui_get_focus_owner()
+
+
+func test_failures_focus_moves_to_the_next_armed_row_after_a_remove() -> String:
+	var p := _armed_page(["engine", "mag_left", "mag_right"])
+	var ids: Array = p._armed.remove_btns.keys()
+	if ids.size() != 3:
+		return "three armed rows: %s" % [ids]
+	(p._armed.remove_btns[ids[0]] as Button).grab_focus()
+	(p._armed.remove_btns[ids[0]] as Button).pressed.emit()
+	if _focus() != p._armed.remove_btns[ids[1]]:
+		return "after removing the first row the focus should be on the next row's x, is %s" % [_focus()]
+	(p._armed.remove_btns[ids[2]] as Button).grab_focus()  # the last row: the previous one is next in line
+	(p._armed.remove_btns[ids[2]] as Button).pressed.emit()
+	if _focus() != p._armed.remove_btns[ids[1]]:
+		return "after removing the last row the focus should be on the previous row's x, is %s" % [_focus()]
+	return ""
+
+
+func test_failures_focus_falls_back_to_clear_all_then_the_first_switch() -> String:
+	var p := _armed_page(["engine"])
+	p._armed.random_switch.toggled.emit(true)
+	var x: Button = p._armed.remove_btns["engine"]
+	x.grab_focus()
+	x.pressed.emit()
+	if _focus() != p._armed.clear_btn or not p._armed.clear_btn.visible:
+		return "with random failures still on, Clear all stays and takes the focus, is %s" % [_focus()]
+	p._armed.clear_btn.pressed.emit()  # Clear all hides itself: the focus goes to the first failure switch of the area
+	var first: FailureRow = (p._lists[p._cur] as Control).get_children().filter(func(r): return r is FailureRow)[0]
+	if _focus() != first.switch:
+		return "nothing armed any more: the first failure switch should have the focus, is %s" % [_focus()]
+	return ""
+
+
+func test_failures_page_is_narrower_than_the_room_next_to_the_rail() -> String:
+	var p := _armed_page(["engine", "alternator", "pitot_blocked"])
+	var w := p.get_combined_minimum_size().x
+	if w > 835.0:  # 821 headless (813 in the screenshots with the menu theme), was 853 there; the room at 1280 x 720 is about 880
+		return "the page needs %.0f px" % w
+	return ""

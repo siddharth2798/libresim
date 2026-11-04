@@ -49,8 +49,10 @@ static func build(id: String, flight: Node, pause: Control) -> Control:
 			scroll = false  # short: the panel shrinks to it and the scene shows below
 		"options":
 			page = _script_page(HBoxContainer.new(), "res://ui/menu/options_page.gd")
+			scroll = false  # the tabs scroll their own pages (sticky rail)
 		"controls":
 			page = _script_page(HBoxContainer.new(), "res://ui/menu/controls_page.gd")
+			scroll = false  # sticky tab bar: the rows scroll under it
 		"settings":
 			page = _script_page(PanelContainer.new(), "res://ui/settings_menu.gd")
 			page.set("embedded", true)

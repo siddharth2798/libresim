@@ -72,6 +72,10 @@ func _press_key(code: Key, keep_focus := false) -> void:
 	await get_tree().process_frame
 
 
+func _chips_text(flow: Control) -> String:
+	return " | ".join(flow.chips.chips.map(func(b): return (b as Button).text))
+
+
 func _inside(c: Control) -> bool:
 	return c.is_visible_in_tree() and get_viewport().get_visible_rect().encloses(c.get_global_rect())
 
@@ -103,7 +107,7 @@ func _phase1() -> void:
 		var pg: Control = flow.pages[i]
 		check("step %d %s" % [i + 1, flow.STEPS[i][0]], pg.visible and flow.pages.filter(func(p): return p.visible).size() == 1 and pg.get_child_count() > 0 and pg.size.y > 50.0,
 			"children %d, size %s" % [pg.get_child_count(), pg.size])
-		check("step %d buttons fit" % (i + 1), _inside(flow.back_btn) and _inside(flow.primary_btn) and (not flow.fly_btn.visible or _inside(flow.fly_btn)), "next %s" % flow.primary_btn.get_global_rect())
+		check("step %d buttons fit" % (i + 1), _inside(flow.back_btn) and (not flow.primary_btn.visible or _inside(flow.primary_btn)) and (not flow.fly_btn.visible or _inside(flow.fly_btn)), "next %s fly %s" % [flow.primary_btn.get_global_rect(), flow.fly_btn.get_global_rect()])  # Next is hidden on the last step
 		await shot("step_%d" % (i + 1))
 	for i in [2, 4, 0]:  # number keys jump to a step
 		await _press_key(KEY_1 + i)
@@ -127,8 +131,8 @@ func _phase1() -> void:
 	_s.go("home")
 	Session.setup.merge(SETUP, true)
 	Session.apply_weather_preset("Overcast")
-	flow._update_summary()
-	var summary: String = flow.summary.text
+	flow.refresh_chrome()  # the footer chips carry the setup since the rework (the old summary line is hidden)
+	var summary := _chips_text(flow)
 	check("summary_updates", summary.contains("VAPO") and summary.contains("Overcast") and summary.contains("07:30"), summary)
 	UserOptions.set_v("start_mode", "training")  # phase 2 checks that the home screen focuses it
 	write(out, "menu_phase1", checks, shots)
@@ -149,7 +153,7 @@ func _phase2() -> void:
 	await shot("home_remembered")
 	_s.go("flight")
 	await get_tree().create_timer(0.5).timeout
-	check("summary_shows_it", _s.screen("flight").summary.text.contains("VAPO"), _s.screen("flight").summary.text)
+	check("summary_shows_it", _chips_text(_s.screen("flight")).contains("VAPO"), _chips_text(_s.screen("flight")))
 	await shot("remembered")
 	UserOptions.set_v("start_mode", "flight")  # back to the default (tools/e2e.sh also restores options.cfg)
 	write(out, "menu_phase2", checks, shots)
