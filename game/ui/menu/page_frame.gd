@@ -12,7 +12,8 @@ var prompt: Label
 var summary: Label
 var back_btn: Button
 var primary_btn: Button
-var footer: HBoxContainer  # the bottom bar's row (start_flow.gd adds its Fly now button)
+var footer: HBoxContainer  # the bottom bar's row (start_flow.gd adds its chips and Fly button)
+var content: PanelContainer  # the glass panel around the scroll area (start_flow.gd moves it next to its rail)
 var pages: Array[Control] = []
 var _stack: MarginContainer
 
@@ -32,7 +33,7 @@ func _init() -> void:
 	prompt = Label.new()
 	prompt.add_theme_font_size_override("font_size", 20)
 	add_child(prompt)
-	var content := PanelContainer.new()
+	content = PanelContainer.new()
 	content.size_flags_vertical = SIZE_EXPAND_FILL
 	add_child(content)
 	var scroll := ScrollContainer.new()

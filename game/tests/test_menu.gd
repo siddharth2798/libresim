@@ -102,8 +102,8 @@ func test_menu_free_flight_is_a_linear_stepper() -> String:
 		var shown: Array = f.pages.filter(func(p): return p.visible)
 		if err == "" and (shown.size() != 1 or shown[0] != f.pages[i]):
 			err = "step %d should show only its own page" % [i + 1]
-		if err == "" and (i == f.STEPS.size() - 1) != (f.primary_btn.text.find("FLY") >= 0):
-			err = "FLY should appear on the last step only (step %d: %s)" % [i + 1, f.primary_btn.text]
+		if err == "" and (i == f.STEPS.size() - 1) == f.primary_btn.visible:  # Next is on every step but the last
+			err = "Next should be hidden on the last step only (step %d: visible %s)" % [i + 1, f.primary_btn.visible]
 	f.show_step(2)
 	f.go_back()
 	if err == "" and f.cur != 1:
@@ -270,8 +270,8 @@ func test_menu_fly_now_everywhere_and_optional_steps_are_named() -> String:
 	var err := ""
 	for i in f.STEPS.size():
 		f.show_step(i)
-		if err == "" and f.fly_btn.visible != (i < f.STEPS.size() - 1):
-			err = "step %d: Fly now should show on every step but the last (the main button is FLY there)" % [i + 1]
+		if err == "" and not f.fly_btn.visible:
+			err = "step %d: the footer's one Fly button should show on every step" % [i + 1]
 	if err == "" and (not str(f.STEPS[3][0]).contains("optional") or not str(f.STEPS[4][0]).contains("optional")):
 		err = "Failures and Recording should be named optional: %s / %s" % [f.STEPS[3][0], f.STEPS[4][0]]
 	f.show_step(0)

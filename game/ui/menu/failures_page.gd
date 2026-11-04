@@ -51,17 +51,17 @@ func _row(g: GridContainer, f: Array, s: Dictionary) -> void:
 	var l := Label.new()
 	l.text = f[1]
 	l.size_flags_horizontal = SIZE_EXPAND_FILL
-	l.custom_minimum_size = Vector2(230, 0)
+	l.custom_minimum_size = Vector2(150, 0)  # (was 230: the flow's left rail takes 250 px of the width)
 	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	g.add_child(l)
 	var ob := OptionButton.new()
 	for m in FailureCatalog.MODES:
 		ob.add_item(m)
-	ob.custom_minimum_size = Vector2(150, 0)
+	ob.custom_minimum_size = Vector2(140, 0)
 	g.add_child(ob)
 	var sb := SpinBox.new()
 	sb.max_value = 20000
-	sb.custom_minimum_size = Vector2(120, 0)
+	sb.custom_minimum_size = Vector2(110, 0)
 	g.add_child(sb)
 	_rows[f[0]] = [ob, sb]
 	var cur: Array = s.failures.get(f[0], [0, 0.0])

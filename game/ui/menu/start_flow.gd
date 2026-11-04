@@ -1,11 +1,13 @@
 extends "res://ui/menu/page_frame.gd"
-## Free flight: the guided setup. A stepper (Aircraft > Airport & start > Weather & time >
-## Failures > Recording > Fly) above one page at a time; Back / Next name where they go, every
-## step but the last has a filled Fly now, and the last has the big FLY button. Back on the
-## first step leaves for the home screen (back_pressed). The choices go into Session.setup.
-## The aircraft comes first because the airport page depends on it (air-start height and
-## distance, runways long enough, stands that suit it). Keys: 1-5 jump to a step,
-## Page Up / Page Down step, Ctrl+Enter flies.
+## Free flight: the guided setup. A left rail (FlowRail: the five steps with their live value and a
+## status mark) beside one page at a time; a footer with Back, the setup as clickable chips
+## (FlowChips), Next (names the next step, hidden on the last) and the one filled Fly button. Fly
+## is never disabled: it is the normal accent when the setup is ready (or only has warnings) and
+## amber "Fly anyway" when SetupChecks finds a "bad" problem (start_screen.gd then asks first).
+## Back on the first step leaves for the home screen (back_pressed). The choices go into
+## Session.setup. The aircraft comes first because the airport page depends on it (air-start
+## height and distance, runways long enough, stands that suit it). Keys: 1-5 jump to a step,
+## Page Up / Page Down step, Ctrl+Enter flies, Esc goes back. Texts: flow_values.gd.
 
 signal fly_requested
 
@@ -19,91 +21,89 @@ const STEPS := [
 ]
 
 var cur := 0
-var fly_btn: Button  # "Fly now", in the footer on every step but the last (whose main button is FLY)
-var _pills: Array[Button] = []
+var fly_btn: Button  # the one filled button, in the footer on every step
+var rail: FlowRail
+var chips: FlowChips
 var _visited := {}
+var _sig := 0  # hash of Session.setup at the last repaint: a change by anything else repaints too
 
 
 func _init() -> void:
 	super()
-	var stepper := _stepper()
-	add_child(stepper)
-	move_child(stepper, 0)
+	rail = FlowRail.new()
+	rail.step_pressed.connect(show_step)
+	chips = FlowChips.new()
+	chips.chip_pressed.connect(show_step)
+	_layout()
 	fly_btn = Button.new()
-	fly_btn.text = "Fly now  ▶"
-	fly_btn.tooltip_text = "Start flying with this setup (Ctrl+Enter)"
-	fly_btn.custom_minimum_size = Vector2(170, 56)
+	fly_btn.custom_minimum_size = Vector2(150, 56)
 	fly_btn.add_theme_font_size_override("font_size", 20)
 	fly_btn.pressed.connect(func(): fly_requested.emit())
-	MenuTheme.style_primary(fly_btn)
 	footer.add_child(fly_btn)
-	footer.move_child(fly_btn, primary_btn.get_index())
+	primary_btn.add_theme_font_size_override("font_size", 18)
+	primary_btn.custom_minimum_size = Vector2(0, 56)
+	back_btn.custom_minimum_size = Vector2(100, 56)
 	for st in STEPS:
 		var p := make_page(st[1])
-		p.connect("changed", _update_summary)
+		p.connect("changed", refresh_chrome)
 		add_page(p)
 	show_step(0)
 
 
-## Stepper pills: the current step is filled, finished steps get a tick, every pill is clickable.
-func _stepper() -> Control:
-	var hb := HBoxContainer.new()
-	hb.add_theme_constant_override("separation", 6)
-	for i in STEPS.size() + 1:
-		var b := Button.new()
-		b.custom_minimum_size = Vector2(0, 38)
-		b.focus_mode = Control.FOCUS_NONE
-		if i < STEPS.size():
-			b.pressed.connect(show_step.bind(i))
-		else:
-			b.pressed.connect(func(): fly_requested.emit())
-		hb.add_child(b)
-		_pills.append(b)
-		if i < STEPS.size():
-			var arrow := Label.new()
-			arrow.text = "›"
-			arrow.add_theme_color_override("font_color", MenuTheme.DIM)
-			arrow.add_theme_font_size_override("font_size", 22)
-			hb.add_child(arrow)
-	return hb
+## [rail | prompt + page panel] above the footer; the chips take the footer's summary slot.
+func _layout() -> void:
+	var col := VBoxContainer.new()
+	col.size_flags_horizontal = SIZE_EXPAND_FILL
+	col.size_flags_vertical = SIZE_EXPAND_FILL
+	col.add_theme_constant_override("separation", 10)
+	var row := HBoxContainer.new()
+	row.size_flags_vertical = SIZE_EXPAND_FILL
+	row.add_theme_constant_override("separation", 12)
+	remove_child(prompt)
+	remove_child(content)
+	col.add_child(prompt)
+	col.add_child(content)
+	row.add_child(rail)
+	row.add_child(col)
+	add_child(row)
+	move_child(row, 0)
+	footer.add_child(chips)
+	footer.move_child(chips, summary.get_index())
+	summary.visible = false
 
 
 ## Called each time the flow is opened from the home screen: start at the first step.
 func enter() -> void:
 	show_step(0)
-	_update_summary()
 
 
 func show_step(i: int) -> void:
 	_visited[cur] = true  # leaving a step counts as having looked at it
 	cur = clampi(i, 0, STEPS.size() - 1)
 	show_page(cur)
-	_refresh()
-
-
-func _refresh() -> void:
 	var last := STEPS.size() - 1
-	for i in _pills.size():
-		var b := _pills[i]
-		var here := i == cur
-		var done := i < STEPS.size() and _visited.has(i) and not here
-		b.text = ("✓  " if done else ("%d  " % (i + 1) if i < STEPS.size() else "▶  ")) + (STEPS[i][0] if i < STEPS.size() else "Fly")
-		b.add_theme_stylebox_override("normal", MenuTheme.box(MenuTheme.ACCENT if here else Color(1, 1, 1, 0.07), 19))
-		b.add_theme_stylebox_override("hover", MenuTheme.box(MenuTheme.ACCENT.lerp(Color.WHITE, 0.33) if here else Color(1, 1, 1, 0.16), 19))
-		b.add_theme_stylebox_override("pressed", MenuTheme.box(Color(MenuTheme.ACCENT, 0.9), 19))
-		b.add_theme_color_override("font_color", MenuTheme.ACCENT_INK if here else (MenuTheme.ACCENT if done else MenuTheme.DIM))
-		b.add_theme_color_override("font_hover_color", MenuTheme.ACCENT_INK if here else Color.WHITE)
-		b.add_theme_color_override("font_pressed_color", MenuTheme.ACCENT_INK)
 	prompt.text = "Step %d of %d  ·  %s" % [cur + 1, STEPS.size(), STEPS[cur][2]]
-	set_primary("FLY  ▶" if cur == last else "Next:  %s  ▶" % STEPS[cur + 1][0].get_slice(" (", 0))
-	primary_btn.add_theme_font_size_override("font_size", 26 if cur == last else 20)
-	primary_btn.custom_minimum_size = Vector2(220 if cur == last else 250, 56)
-	MenuTheme.style_primary(primary_btn, cur == last)  # Next is the quiet outline; Fly now / FLY is the filled button
-	fly_btn.visible = cur != last
+	set_primary("" if cur == last else "Next:  %s  ▶" % STEPS[cur + 1][0].get_slice(" (", 0))
+	MenuTheme.style_primary(primary_btn, false)  # Next is the quiet outline; Fly is the one filled button
+	refresh_chrome()
 
 
-func _update_summary() -> void:
-	summary.text = Session.summary()
+## Repaint the rail, the chips and the Fly button from Session.setup (a page changed it, or it was replaced).
+func refresh_chrome() -> void:
+	var setup: Dictionary = Session.setup
+	var list := SetupChecks.checks(setup)
+	rail.refresh(setup, list, cur, _visited)
+	chips.refresh(setup, list)
+	fly_btn.text = FlowValues.fly_label(list)
+	var bad := SetupChecks.worst(list) == "bad"
+	MenuTheme.style_primary(fly_btn, true, MenuTheme.WARN if bad else MenuTheme.ACCENT)
+	fly_btn.tooltip_text = ("Fly anyway: %s (Ctrl+Enter asks first)" % "; ".join(SetupChecks.reasons(list))) if bad else "Start flying with this setup (Ctrl+Enter)"
+	_sig = setup.hash()
+
+
+func _process(_dt: float) -> void:
+	if is_visible_in_tree() and Session.setup.hash() != _sig:
+		refresh_chrome()
 
 
 func go_back() -> void:

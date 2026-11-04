@@ -54,7 +54,7 @@ func _ready() -> void:
 	root.add_theme_constant_override("separation", 12)
 	add_child(root)
 	var top := HBoxContainer.new()
-	top.add_theme_constant_override("separation", 28)
+	top.add_theme_constant_override("separation", 20)
 	root.add_child(top)
 	var weather := _column(top, "Weather", WEATHER_TIP)
 	_weather_row = PresetRow.new().setup(Session.WEATHER.keys(), 3)
@@ -89,7 +89,7 @@ func _ready() -> void:
 	_more_btn.pressed.connect(func(): _show_more(not _more_open))
 	root.add_child(_more_btn)
 	_more = HBoxContainer.new()
-	_more.add_theme_constant_override("separation", 28)
+	_more.add_theme_constant_override("separation", 20)
 	root.add_child(_more)
 	var sky := _column(_more, "Sky")
 	for k in ["cloud_cover", "cloud_base_ft", "visibility_m", "precip"]:

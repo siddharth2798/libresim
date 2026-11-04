@@ -7,6 +7,9 @@ extends Node
 ##   FREESIM_START=stand     start-at choice of step 2, Airport (runway | stand | air)
 ##   FREESIM_OPEN=1          open 'More weather' and the aircraft 'Details' first
 ##   FREESIM_FLY=1           also launch a flight from VABB and grab it
+##   FREESIM_OVERWEIGHT=1    load the chosen aircraft over its maximum takeoff weight (amber Fly anyway)
+##   FREESIM_FLOW_ONLY=1     only the five free-flight steps (skip home, Training, Saved flights, Controls, Options)
+##   FREESIM_TAG=u2_         prefix of the file names (menu_<tag><name>.png)
 
 var _s: Control
 var _out := ""
@@ -19,6 +22,11 @@ func _ready() -> void:
 	if OS.get_environment("FREESIM_AIRCRAFT") != "":  # e.g. a320: the start screen opens with that aircraft chosen
 		Session.setup.aircraft = OS.get_environment("FREESIM_AIRCRAFT")
 		Session.apply_payload_defaults(AircraftDef.load_def(Session.setup.aircraft))
+	if OS.get_environment("FREESIM_OVERWEIGHT") != "":
+		Session.setup.fuel_gal = 19400.0 if Session.setup.aircraft == "a320" else 20.0
+		for k in ["cabin_kg", "cargo_kg", "copilot_kg", "rear_kg", "baggage_kg"]:
+			Session.setup[k] = {"cabin_kg": 14000.0, "cargo_kg": 5000.0, "copilot_kg": 120.0, "rear_kg": 200.0, "baggage_kg": 54.0}[k]
+		print("checks: ", SetupChecks.checks(Session.setup))
 	if OS.get_environment("FREESIM_START") != "":  # runway | stand | air
 		Session.setup.start = OS.get_environment("FREESIM_START")
 		Session.setup.airport = "VABB"
@@ -28,7 +36,8 @@ func _ready() -> void:
 	if _out == "":
 		_out = OS.get_user_data_dir()
 	await get_tree().create_timer(1.0).timeout
-	await _shot("home")
+	if OS.get_environment("FREESIM_FLOW_ONLY") == "":
+		await _shot("home")
 	_s.go("flight")
 	if OS.get_environment("FREESIM_OPEN") != "":
 		_s.screen("flight").pages[0]._show_details(true)  # the aircraft page
@@ -36,7 +45,7 @@ func _ready() -> void:
 	for i in _s.screen("flight").STEPS.size():
 		_s.screen("flight").show_step(i)
 		await _shot("flight_%d" % (i + 1))
-	for id in ["training", "saves", "controls", "options"]:
+	for id in ([] if OS.get_environment("FREESIM_FLOW_ONLY") != "" else ["training", "saves", "controls", "options"]):
 		_s.go(id)
 		await _shot(id)
 	if OS.get_environment("FREESIM_FLY") != "":  # also launch the flight and grab it
@@ -53,4 +62,4 @@ func _ready() -> void:
 func _shot(tag: String) -> void:
 	await get_tree().create_timer(0.5).timeout
 	await RenderingServer.frame_post_draw
-	get_viewport().get_texture().get_image().save_png(_out.path_join("menu_%s.png" % tag))
+	get_viewport().get_texture().get_image().save_png(_out.path_join("menu_%s%s.png" % [OS.get_environment("FREESIM_TAG"), tag]))
