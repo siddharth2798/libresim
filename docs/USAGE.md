@@ -989,6 +989,17 @@ docs/USAGE.md this file
 
 ---
 
+## 6b. Knowledge graph of the repository (optional, graphify)
+
+`/graphify .` (the graphify skill for Claude Code) builds `graphify-out/` (gitignored: `graph.html`, `GRAPH_REPORT.md`, `graph.json`) from the Python tools and the docs, but it has no GDScript parser, so the game is missing. `tools/gd_graph.py` adds it without any model calls:
+
+```
+$(cat graphify-out/.graphify_python) tools/gd_graph.py          # from the repo root, after /graphify .
+$(cat graphify-out/.graphify_python) tools/gd_graph.py --dry    # only print the counts
+```
+
+It reads `game/**/*.gd`, `*.gdshader` and `*.tscn` (tracked and new files) and adds scripts, funcs, signals, scenes, resource json, and one node per property-tree path used with a literal (`Props.get_f("fdm/ias_mps")`), with edges `contains`, `inherits`, `references` (preload/load/scene resources), `uses` (class_name, autoloads, preload aliases), `calls` (`Foo.func()` and same-file calls) and `reads_property` / `writes_property`. Not resolved: calls through instance variables, dynamic `load()` paths, property paths built at run time, signal connections. Run it again after code changes: its earlier nodes are replaced and the rest of the graph is kept. Above 5000 nodes graphify's `graph.html` shows one node per community; use `graphify query` / `explain` / `path` for node-level questions.
+
 ## 7. Troubleshooting
 
 | Symptom | Fix |

@@ -44,3 +44,9 @@ Thumbs.db
 .directory
 *.log
 .claude/settings.local.json
+
+# HTML UI-rework prototypes (local feedback only)
+docs/ui-rework/
+
+# graphify knowledge graph output (local)
+graphify-out/
