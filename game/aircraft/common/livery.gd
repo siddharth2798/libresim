@@ -10,6 +10,8 @@ extends RefCounted
 ## The pilot's choice is {region key: "#rrggbb"}; a missing or invalid entry is the factory colour. Nothing here knows a
 ## specific aircraft.
 ##
+## The pilot's livery lives in Session.setup.livery (see entry / repair_setup / parse_cli below); paint_pipeline.gd applies it.
+##
 ## Recolour rule (all in sRGB values as stored, Rec.709 luma): out = lerp(orig, colour * clamp(luma(orig) / luma_base, 0, 1.3), mask).
 ## Why sRGB and not linear: the baked shading (ambient occlusion, dirt) is a darkening multiplied onto the paint in display
 ## space, so the same ratio keeps its look on any colour; in linear space the ratio would be crushed on dark colours (a dark
@@ -101,6 +103,74 @@ static func colors_of(lv: Dictionary, stored: Variant) -> Dictionary:
 		var c = parse_hex(stored.get(k))
 		if c != null:
 			out[k] = c
+	return out
+
+
+## The regions of this atlas only, {key: Color} (a region at the factory colour included): what one atlas' paint depends on.
+static func colors_on(lv: Dictionary, atlas_id: String, colors: Dictionary) -> Dictionary:
+	var out := {}
+	for r in regions_on(lv, atlas_id):
+		var c = colors.get(r.key, r.default)
+		out[r.key] = c if c is Color else r.default
+	return out
+
+
+## ---- Session.setup.livery: {aircraft id: {colors: {region key: "#rrggbb"}, ...}} (L3 adds "stickers"; a missing entry = factory) ----
+
+## The entry of one aircraft ({} = factory livery); anything that is not a dictionary is {}.
+static func entry(all: Variant, aircraft_id: String) -> Dictionary:
+	if all is Dictionary and all.get(aircraft_id) is Dictionary:
+		return all[aircraft_id]
+	return {}
+
+
+## `all` as it may be stored or loaded, made safe: not a dictionary gives {}, an unknown aircraft or one without a livery is dropped,
+## unknown regions and bad hex are dropped, colours are written as lowercase "#rrggbb", an entry left with nothing is dropped.
+## Other keys of an entry (the stickers of L3) are kept as they are for their own validation. Never raises.
+static func repair_setup(all: Variant) -> Dictionary:
+	var out := {}
+	if not all is Dictionary:
+		return out
+	var ids := AircraftDef.list_ids()
+	for id in all:
+		if not id is String or not id in ids or not all[id] is Dictionary:
+			continue
+		var lv := of(AircraftDef.load_def(id))
+		var colors := {}
+		var raw = all[id].get("colors")
+		if raw is Dictionary:
+			for r in lv.regions:
+				var c = parse_hex(raw.get(r.key))
+				if c != null:
+					colors[r.key] = to_hex(c)
+		var e := {}
+		if not colors.is_empty():
+			e["colors"] = colors
+		if all[id].get("stickers") is Dictionary and not all[id].stickers.is_empty():
+			e["stickers"] = all[id].stickers.duplicate(true)
+		if not e.is_empty():
+			out[id] = e
+	return out
+
+
+## The command-line value of --livery: "body=#c8101a,accent=#f2f2f2" for `default_id`, or per aircraft "c172:body=#c8101a,a320:fin=#102030"
+## (a bare "rrggbb" is fine too). Bad items are skipped. Result in the shape of Session.setup.livery (regions are not checked
+## here: repair_setup does that).
+static func parse_cli(v: String, default_id: String) -> Dictionary:
+	var out := {}
+	for item in v.split(",", false):
+		var kv := item.split("=", true, 1)
+		if kv.size() != 2:
+			continue
+		var head := kv[0].strip_edges().split(":", true, 1)
+		var id := head[0].strip_edges().to_lower() if head.size() == 2 else default_id
+		var key := head[head.size() - 1].strip_edges()
+		var c = parse_hex(kv[1])
+		if id == "" or key == "" or c == null:
+			continue
+		if not out.has(id):
+			out[id] = {"colors": {}}
+		out[id].colors[key] = to_hex(c)
 	return out
 
 
