@@ -12,6 +12,8 @@ extends RefCounted
 ##            asi_min_kias / asi_max_kias; tach {max_rpm, green [lo, hi], red}; gauges {fuel_gal,
 ##            oil_temp_f, oil_press_psi, egt_f, fuel_flow_gph, suction_inhg, ammeter_a: {min, max,
 ##            green [lo, hi], red}} (the engine strip, ui/gauges/*.gd)
+##            max_crosswind_kt: the crosswind the start screen's readiness check (core/setup_checks.gd) calls too much; absent = 15. CONFIRMED by the owner
+##            2026-11-04: C172 15, A320 33 (the in-flight UI keeps its own 15 kt colour, ui/menu/conditions_page.gd)
 ##   damage   touchdown and gear thresholds, propeller hub positions (damage.gd)
 ##   systems  electrical / fuel / pitot_static numbers (systems/*.gd, keys in each script's header)
 ##   radio_type  how the pilot calls the aircraft on the radio ("Cessna 172", atc/atc_phraseology.gd)
@@ -30,7 +32,8 @@ extends RefCounted
 ##            missing, air_start() returns it); air_kt is the older spelling of air.kias
 ##   fcs      {"law": "airbus_fbw"}: fly-by-wire control law (fdm/fbw_law.gd); absent = direct control
 ##   callouts optional {alive_kt, rotate_kt, v1_kt, low_kt, heights}: the training callouts (ui/callouts.gd)
-##   ground   footprint, height, tow point, optional min_runway_m (the start screen flags shorter runways) for stands, taxi corridors and jetways (world/ops_*.gd); all keys in world/ground_params.gd
+##   ground   footprint, height, tow point, optional min_runway_m (the start screen flags shorter runways and SetupChecks asks before flying from one; 0 = no limit; CONFIRMED by
+##            the owner 2026-11-04: C172 175.3 = 575 ft, the C172S POH landing ground roll at sea level in ideal conditions, so no margin for density altitude, wind or surface; A320 1800) for stands, taxi corridors and jetways (world/ops_*.gd); all keys in world/ground_params.gd
 ##   pushback  straight_m, radius_m, speed_mps of the pushback path (world/pushback_path.gd)
 ##   ramp     optional ramp-crew service points (GPU, refuel, cargo, doors) and airframe keep-out (world/ramp_points.gd)
 ##   payload  start-screen fuel slider and stations (ui/menu/aircraft_page.gd, weight_balance.gd):
