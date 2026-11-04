@@ -1,142 +1,102 @@
 extends HBoxContainer
-## Start screen page: options. Audio volume + mute per bus (core/audio_settings.gd),
-## graphics preset (Graphics autoload, same as F10), units and HUD-at-start
-## (core/user_options.gd). Everything is saved as soon as it changes.
+## Start screen page (and the pause screen's Options): options in tabs (ui/menu/menu_tabs.gd), a rail at the left.
+##   Sound            audio volume + mute per bus (core/audio_settings.gd)
+##   Graphics         preset, renderer, post effects (options_graphics.gd; the Graphics autoload, same as F10)
+##   Display & units  UI size (UiScale), HUD at start, units (core/user_options.gd)
+##   Flight controls  yoke keys, input smoothing, auto-coordination
+##   Radio / ATC      call sign, radio assist, ATC voice (atc/atc_options_box.gd)
+##   Training aids    callouts and their voice
+## Everything is saved as soon as it changes. Every tab is built at once and only hidden.
 
 signal changed
 
-## Low / Medium run on the Mobile renderer, High and up on Forward+ (core/graphics_settings.gd).
-const PRESET_NOTES := {
-	"low": "Mobile renderer. 70 % render scale with FSR, no shadows, short scenery range. For integrated graphics.",
-	"medium": "Mobile renderer. 85 % render scale with FSR, shadows to 700 m, medium scenery range.",
-	"high": "Forward+ renderer: ambient occlusion, more apron lights. Full resolution, MSAA 2x, shadows to 1.8 km, long scenery range.",
-	"ultra": "Forward+: ambient occlusion, screen-space reflections on water and wet runways, TAA. MSAA 4x, shadows to 4 km, denser trees and buildings, more cloud steps.",
-	"max": "Everything in Ultra plus indirect light (SSIL), 125 % supersampling, shadows to 6 km, 16 km buildings, the finest clouds. For a strong dedicated GPU.",
-}
-const RESTART_NOTE := "Restart libresim to apply: the next start uses the %s renderer."
+const PRESET_NOTES := OptionsGraphics.PRESET_NOTES
+const TABS := [["sound", "Sound"], ["graphics", "Graphics"], ["display", "Display & units"],
+	["controls", "Flight controls"], ["radio", "Radio / ATC"], ["aids", "Training aids"]]
 const UNIT_ROWS := [["Altitude", "alt_unit"], ["Speed", "speed_unit"], ["Pressure", "pressure_unit"]]
 
-var _preset_note: Label
-var _restart_note: Label
+var tabs: MenuTabs
+var _restart_note: Label  # the Graphics tab's "restart to apply" line
 
 
 func _ready() -> void:
-	add_theme_constant_override("separation", 32)
 	AudioSettings.apply()
-	var left := VBoxContainer.new()
-	left.size_flags_horizontal = SIZE_EXPAND_FILL
-	left.add_theme_constant_override("separation", 8)
-	add_child(left)
-	left.add_child(MenuTheme.heading("Sound"))
-	for b in AudioSettings.BUSES:
-		_bus_row(left, b)
-	left.add_child(MenuTheme.note("Volumes are saved immediately and apply in flight. Muting Master silences everything."))
-	var right := VBoxContainer.new()
-	right.custom_minimum_size = Vector2(380, 0)
-	right.add_theme_constant_override("separation", 8)
-	add_child(right)
-	right.add_child(MenuTheme.heading("Graphics quality"))
-	var row := HBoxContainer.new()
-	right.add_child(row)
-	var g := ButtonGroup.new()
-	for p in Graphics.ORDER:
-		var bt := Button.new()
-		bt.text = p.capitalize()
-		bt.toggle_mode = true
-		bt.button_group = g
-		bt.size_flags_horizontal = SIZE_EXPAND_FILL
-		bt.button_pressed = p == Graphics.preset
-		bt.pressed.connect(func():
-			Graphics.set_preset(p)
-			_preset_note.text = PRESET_NOTES.get(p, "")
-			_refresh_restart()
-			changed.emit())
-		row.add_child(bt)
-	_preset_note = MenuTheme.note(PRESET_NOTES.get(Graphics.preset, ""))
-	right.add_child(_preset_note)
-	_restart_note = MenuTheme.note("")
-	_restart_note.add_theme_color_override("font_color", Color(1.0, 0.8, 0.4))
-	right.add_child(_restart_note)
-	_refresh_restart()
-	right.add_child(MenuTheme.heading("Post effects"))
-	right.add_child(PostFxToggles.new())
-	right.add_child(MenuTheme.note("Turn effects off on a weaker machine. Dimmed ones do not run on this preset (hover for why)."))
-	right.add_child(MenuTheme.heading("Units"))
+	tabs = MenuTabs.new().setup(true)
+	add_child(tabs)
+	var gfx := OptionsGraphics.new()
+	gfx.changed.connect(func(): changed.emit())
+	for t in TABS:
+		var body: Control
+		match t[0]:
+			"sound": body = _sound()
+			"graphics": body = gfx
+			"display": body = _display()
+			"controls": body = _flight_controls()
+			"radio": body = _radio()
+			"aids": body = _aids()
+		tabs.add_tab(t[0], t[1], body)
+	_restart_note = gfx.restart_note
+
+
+func _sound() -> Control:
+	var v := OptionRows.tab_body("Sound", "Volumes are saved immediately and apply in flight. Muting Master silences everything.")
 	var grid := GridContainer.new()
-	grid.columns = 2
+	grid.columns = 4
 	grid.add_theme_constant_override("h_separation", 16)
-	right.add_child(grid)
+	grid.add_theme_constant_override("v_separation", 10)
+	v.add_child(grid)
+	for b in AudioSettings.BUSES:
+		_bus_row(grid, b)
+	return v
+
+
+func _display() -> Control:
+	var v := OptionRows.tab_body("Display", "Auto sizes text and panels to the window (4K, ultrawide, small windows). A percentage is fixed, relative to your system scale.")
+	v.add_child(OptionRows.choice("UI size", "ui_scale", func(_x):
+		UiScale.apply()
+		changed.emit()))
+	v.add_child(OptionRows.switch("Show the HUD overlay at start (H toggles in flight)", "hud_at_start", func(_on): changed.emit()))
+	v.add_child(MenuTheme.heading("Units"))
 	for u in UNIT_ROWS:
-		_unit_row(grid, u[0], u[1])
-	right.add_child(MenuTheme.note("Stored for later: instruments and the HUD still read ft, kt and inHg, like the real C172 panel."))
-	right.add_child(MenuTheme.heading("Display"))
-	var ug := GridContainer.new()
-	ug.columns = 2
-	ug.add_theme_constant_override("h_separation", 16)
-	right.add_child(ug)
-	_unit_row(ug, "UI size", "ui_scale")
-	right.add_child(MenuTheme.note("Auto sizes text and panels to the window (4K, ultrawide, small windows). A percentage is fixed, relative to your system scale."))
-	var hud := CheckBox.new()
-	hud.text = "Show the HUD overlay at start (H toggles in flight)"
-	hud.button_pressed = bool(UserOptions.get_v("hud_at_start"))
-	hud.toggled.connect(func(on):
-		UserOptions.set_v("hud_at_start", on)
-		changed.emit())
-	right.add_child(hud)
-	right.add_child(MenuTheme.heading("Training callouts"))
-	var co := CheckBox.new()
-	co.text = "Training callouts (K toggles in flight)"
-	co.button_pressed = bool(UserOptions.get_v("callouts"))
-	co.toggled.connect(func(on):
-		UserOptions.set_v("callouts", on)
-		changed.emit())
-	right.add_child(co)
-	var cv := CheckBox.new()
-	cv.text = "Speak them (system voice)"
-	cv.button_pressed = bool(UserOptions.get_v("callouts_voice"))
-	var cv_note := SpeechNote.new("callouts_voice")
-	cv.toggled.connect(func(on):
-		UserOptions.set_v("callouts_voice", on)
-		cv_note.refresh()
-		changed.emit())
-	right.add_child(cv)
-	right.add_child(cv_note)
-	right.add_child(MenuTheme.note("Airspeed alive, Rotate, Positive rate; 500 / 100 / 50 / 30 / 20 / 10 ft on the approach; sink rate, low airspeed and bank angle warnings. Off by default: a real C172 has none."))
+		v.add_child(OptionRows.choice(u[0], u[1], func(_x): changed.emit()))
+	v.add_child(MenuTheme.note("Stored for later: instruments and the HUD still read ft, kt and inHg, like the real C172 panel."))
+	return v
+
+
+func _flight_controls() -> Control:
+	var v := OptionRows.tab_body("Flight controls")
+	v.add_child(OptionRows.choice("Yoke keys", "keyboard_mode", func(_x): changed.emit()))
+	v.add_child(MenuTheme.note("Spring: arrow keys re-centre when released. Sticky: they stay where you leave them, like FlightGear (tap the opposite key to return to centre)."))
+	v.add_child(OptionRows.choice("Input smoothing", "control_smoothing", func(_x): changed.emit()))
+	v.add_child(OptionRows.switch("Auto-coordination (rudder follows aileron)", "auto_coordination", func(_on): changed.emit()))
+	v.add_child(MenuTheme.note("Key and joystick bindings, deadzone and curve are on the Controls page (J in flight)."))
+	return v
+
+
+func _radio() -> Control:
 	var atc := AtcOptionsBox.new()
+	atc.size_flags_horizontal = SIZE_EXPAND_FILL
 	atc.changed.connect(func(): changed.emit())
-	right.add_child(atc)
-	left.add_child(MenuTheme.heading("Flight controls"))
-	var cg := GridContainer.new()
-	cg.columns = 2
-	cg.add_theme_constant_override("h_separation", 16)
-	left.add_child(cg)
-	_unit_row(cg, "Yoke keys", "keyboard_mode")
-	_unit_row(cg, "Input smoothing", "control_smoothing")
-	var ac := CheckBox.new()
-	ac.text = "Auto-coordination (rudder follows aileron)"
-	ac.button_pressed = bool(UserOptions.get_v("auto_coordination"))
-	ac.toggled.connect(func(on):
-		UserOptions.set_v("auto_coordination", on)
-		changed.emit())
-	left.add_child(ac)
-	left.add_child(MenuTheme.note("Spring: arrow keys re-centre when released. Sticky: they stay where you leave them, like FlightGear (tap the opposite key to return to centre)."))
+	return atc
 
 
-## "Restart to apply" while the renderer saved for the next start is not the running one.
-func _refresh_restart() -> void:
-	var fp := Graphics.next_renderer() == "forward_plus"
-	_restart_note.text = RESTART_NOTE % ("Forward+" if fp else "Mobile") if Graphics.restart_needed() else ""
-	_restart_note.visible = Graphics.restart_needed()
+func _aids() -> Control:
+	var v := OptionRows.tab_body("Training callouts")
+	v.add_child(OptionRows.switch("Training callouts (K toggles in flight)", "callouts", func(_on): changed.emit()))
+	var cv_note := SpeechNote.new("callouts_voice")
+	v.add_child(OptionRows.switch("Speak them (system voice)", "callouts_voice", func(_on):
+		cv_note.refresh()
+		changed.emit()))
+	v.add_child(cv_note)
+	v.add_child(MenuTheme.note("Airspeed alive, Rotate, Positive rate; 500 / 100 / 50 / 30 / 20 / 10 ft on the approach; sink rate, low airspeed and bank angle warnings. Off by default: a real C172 has none."))
+	return v
 
 
-func _bus_row(parent: Control, bus: String) -> void:
-	var hb := HBoxContainer.new()
-	hb.add_theme_constant_override("separation", 10)
-	parent.add_child(hb)
+func _bus_row(grid: GridContainer, bus: String) -> void:
 	var l := Label.new()
 	l.text = AudioSettings.LABELS.get(bus, bus)
 	l.custom_minimum_size = Vector2(190, 0)
-	hb.add_child(l)
+	grid.add_child(l)
 	var sl := HSlider.new()
 	sl.min_value = 0.0
 	sl.max_value = 100.0
@@ -144,39 +104,19 @@ func _bus_row(parent: Control, bus: String) -> void:
 	sl.value = AudioSettings.volume(bus) * 100.0
 	sl.size_flags_horizontal = SIZE_EXPAND_FILL
 	sl.size_flags_vertical = SIZE_SHRINK_CENTER
-	hb.add_child(sl)
+	sl.custom_minimum_size = Vector2(160, 0)
+	grid.add_child(sl)
 	var v := Label.new()
-	v.custom_minimum_size = Vector2(48, 0)
+	v.custom_minimum_size = Vector2(56, 0)
 	v.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	v.text = "%d %%" % int(sl.value)
-	hb.add_child(v)
-	var m := CheckBox.new()
-	m.text = "Mute"
-	m.button_pressed = AudioSettings.muted(bus)
-	hb.add_child(m)
+	grid.add_child(v)
+	var m := SwitchRow.new().setup("Mute", "", AudioSettings.muted(bus))
+	grid.add_child(m)
 	sl.value_changed.connect(func(x):
 		v.text = "%d %%" % int(x)
 		AudioSettings.set_volume(bus, x / 100.0)
 		changed.emit())
-	m.toggled.connect(func(on):
+	m.toggled.connect(func(on: bool):
 		AudioSettings.set_muted(bus, on)
 		changed.emit())
-
-
-func _unit_row(grid: GridContainer, label: String, key: String) -> void:
-	var l := Label.new()
-	l.text = label
-	l.add_theme_color_override("font_color", MenuTheme.DIM)
-	grid.add_child(l)
-	var ob := OptionButton.new()
-	ob.size_flags_horizontal = SIZE_EXPAND_FILL
-	var choices: Array = UserOptions.CHOICES[key]
-	for c in choices:
-		ob.add_item(c)
-	ob.select(maxi(choices.find(UserOptions.get_v(key)), 0))
-	ob.item_selected.connect(func(i):
-		UserOptions.set_v(key, choices[i])
-		if key == "ui_scale":
-			UiScale.apply()
-		changed.emit())
-	grid.add_child(ob)

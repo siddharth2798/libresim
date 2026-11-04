@@ -6,6 +6,7 @@ extends RefCounted
 
 const PATH := "res://training/lessons.json"
 const SAVE := "user://training.json"
+static var save_path := SAVE  # where progress is read from (tests and the home-screen probe redirect it)
 const WARN_COOLDOWN := 5.0
 const ABORT_GRACE := 1.5  # s after a (re)start before the lesson can end early: Props still hold the last frame
 
@@ -231,8 +232,8 @@ static func grade(run: Dictionary) -> Dictionary:
 
 
 static func load_stars() -> Dictionary:
-	if FileAccess.file_exists(SAVE):
-		var d = JSON.parse_string(FileAccess.get_file_as_string(SAVE))
+	if FileAccess.file_exists(save_path):
+		var d = JSON.parse_string(FileAccess.get_file_as_string(save_path))
 		if d is Dictionary:
 			return d
 	return {}

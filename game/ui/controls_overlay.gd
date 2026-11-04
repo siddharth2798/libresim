@@ -1,6 +1,6 @@
 class_name ControlsOverlay
 extends CanvasLayer
-## In-flight joystick / gamepad bindings: the start screen's controls page in a
+## In-flight bindings (opens on the joystick / gamepad tab): the start screen's controls page in a
 ## centred glass panel. J (or toggle()) opens / closes it; Esc closes it.
 
 var _panel: PanelContainer
@@ -22,7 +22,7 @@ func _ready() -> void:
 	_panel.add_child(v)
 	var bar := HBoxContainer.new()
 	v.add_child(bar)
-	var t := MenuTheme.heading("Controls — joystick & gamepad", 18)
+	var t := MenuTheme.heading("Controls — keyboard, joystick & gamepad", 18)
 	t.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	bar.add_child(t)
 	var close := Button.new()
@@ -36,6 +36,7 @@ func _ready() -> void:
 	var page := HBoxContainer.new()
 	page.set_script(load("res://ui/menu/controls_page.gd"))
 	page.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	page.set("start_tab", "joystick")  # J was the joystick panel; the keyboard and the other keys are one tab away
 	scroll.add_child(page)
 	visible = false
 

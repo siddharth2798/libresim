@@ -11,7 +11,7 @@ const DEFAULT := {
 	"stand": "", "air_ft": 1500.0, "air_nm": 5.0, "air_kt": 90.0, "cold": false,
 	"air_custom": false,  # false: air_ft / air_nm follow the aircraft (apply_air_defaults); true: the pilot (start screen), a lesson or --air* chose them
 	"air_kt_given": false,  # true only for --air-kt and lesson speeds: otherwise air_kt is always the aircraft's own (the start screen has no speed control)
-	"aircraft": "c172",
+	"aircraft": "c172", "callsign": "",  # callsign "" = untouched: the aircraft's own registration (core/callsign.gd), else what the pilot typed
 	"fuel_gal": 17.0, "copilot_kg": 0.0, "rear_kg": 0.0, "baggage_kg": 0.0,  # per tank (total kg when payload.fuel_unit is "kg") / per station
 	"cabin_kg": 0.0, "cargo_kg": 0.0,  # A320 stations
 	"weather": "Fair", "time_h": 10.0, "time_rate": 1.0, "day_of_year": 45.0,
@@ -63,6 +63,7 @@ func _ready() -> void:
 	setup = DEFAULT.duplicate(true)
 	_load()
 	_parse_cmdline()
+	Callsign.migrate_legacy()  # after the command line (interactive() needs it): a call sign typed in the old Options field moves into the setup
 
 
 func _load() -> void:
@@ -72,7 +73,7 @@ func _load() -> void:
 	if not d is Dictionary:
 		return
 	for k in d:
-		if setup.has(k):
+		if setup.has(k) and (typeof(d[k]) == typeof(setup[k]) or (d[k] is float and setup[k] is int)):  # a damaged value keeps the default
 			setup[k] = d[k]
 	for k in ["convection", "storms"]:  # a setup saved before the cloud physics: no thermals, no storms
 		if not d.has(k):

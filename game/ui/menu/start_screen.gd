@@ -30,6 +30,7 @@ var _brand: Control
 var _loading: Label
 var dry_run := false  # tests: count the flight but do not load the flight scene
 var flights_started := 0
+var lessons_started := 0  # tests: lessons started from the home screen's Continue (dry_run does not load the flight scene)
 var _confirm: FlyConfirm  # the open "Fly anyway?" question, or null
 
 
@@ -145,6 +146,8 @@ func _build(id: String) -> Control:
 		var h: Control = Home.new()
 		h.choose.connect(_choose)
 		h.open_page.connect(go)
+		h.fly_again.connect(_fly_again)
+		h.continue_lesson.connect(_continue_lesson)
 		return h
 	if id == "flight":
 		var f: Control = Flow.new()
@@ -180,6 +183,35 @@ func _press(key: Key) -> void:
 ## Training page: the lesson was already written into Session.setup (start_requested).
 func _start_lesson() -> void:
 	await _load_flight("Loading lesson…")
+
+
+## Home "Continue: next lesson": start that lesson with full guidance (the Training page's default help level).
+func _continue_lesson(id: String) -> void:
+	var lesson := TrainingLogic.find(id)
+	if lesson.is_empty():
+		return
+	TrainingLogic.begin(lesson, "full")
+	lessons_started += 1
+	if not dry_run:
+		await _start_lesson()
+
+
+## Home "Fly again": the last saved Free-flight setup goes through the same _fly as Fly now (readiness check,
+## "Fly anyway?"). The live setup is replaced in place for it and put back if the pilot goes back.
+func _fly_again() -> void:
+	var saved := HomeShortcuts.last_flight()
+	if _confirm != null or saved.is_empty():
+		return
+	var before := Session.setup.duplicate(true)
+	_set_setup(saved)
+	await _fly()
+	if _confirm != null:
+		_confirm.cancelled.connect(_set_setup.bind(before))
+
+
+func _set_setup(d: Dictionary) -> void:
+	Session.setup.clear()
+	Session.setup.merge(d.duplicate(true))
 
 
 ## Free flight (Fly now, the FLY button, Ctrl+Enter): a ready setup flies at once; one with a "bad" check

@@ -1,9 +1,9 @@
 extends HBoxContainer
-## Controls page (start screen, and in flight via ui/controls_overlay.gd): connected
-## joysticks / gamepads, one row per action with Bind (capture the next axis moved
-## > 0.5 or button pressed), invert / range / deadzone / curve and a live bar, reset
-## to gamepad or joystick defaults, rebindable flight keys
-## (key_bindings_section.gd) and the other hotkeys. Saves on every change. Only the actions the
+## Controls page (start screen, pause screen, and in flight via ui/controls_overlay.gd), in tabs
+## (ui/menu/menu_tabs.gd): Keyboard (rebindable flight keys, key_bindings_section.gd), Joystick & gamepad
+## (connected devices, one row per action with Bind (capture the next axis moved > 0.5 or button pressed),
+## clear, a live bar and, for axes, Tune: invert / range / deadzone / curve; reset to gamepad or joystick
+## defaults; controls_row.gd) and Other keys (the fixed hotkeys, keyboard_reference.gd). Saves on every change. Only the actions the
 ## aircraft offers (aircraft_controls.gd) are listed; the rest stay in the saved profile.
 
 signal changed
@@ -15,6 +15,9 @@ const MAX_BUTTONS := 40
 var bindings_path := InputBindings.PATH
 var controls: AircraftControls  # set before adding to the tree; default = the current aircraft
 var table := {}
+var start_tab := "keyboard"  # "keyboard" | "joystick" | "other"; set before adding to the tree
+var tabs: MenuTabs
+var keys: VBoxContainer  # the Keyboard tab (key_bindings_section.gd)
 var _rows := {}  # action -> row
 var _devices: Label
 var _status: Label
@@ -25,14 +28,31 @@ var _base_btn := {}  # Vector2i(device, button) -> pressed when capture started
 
 
 func _ready() -> void:
-	add_theme_constant_override("separation", 16)
 	if controls == null:
 		controls = AircraftControls.current()
 	table = InputBindings.load_from(bindings_path)
+	tabs = MenuTabs.new().setup(false)
+	add_child(tabs)
+	tabs.add_tab("keyboard", "Keyboard", _keyboard_tab())
+	tabs.add_tab("joystick", "Joystick & gamepad", _joystick_tab())
+	tabs.add_tab("other", "Other keys", _other_keys_tab())
+	tabs.select(start_tab if tabs.page(start_tab) else "keyboard", false)
+	tabs.tab_changed.connect(func(_id): _cancel_capture())
+	Input.joy_connection_changed.connect(func(_d, _c): _list_devices())
+	_list_devices()
+
+
+func _keyboard_tab() -> Control:
+	keys = VBoxContainer.new()
+	keys.set_script(load("res://ui/menu/key_bindings_section.gd"))
+	keys.set("controls", controls)
+	keys.connect("changed", func(): changed.emit())
+	return keys
+
+
+func _joystick_tab() -> Control:
 	var col := VBoxContainer.new()
-	col.size_flags_horizontal = SIZE_EXPAND_FILL
-	col.add_theme_constant_override("separation", 6)
-	add_child(col)
+	col.add_theme_constant_override("separation", 8)
 	var top := HBoxContainer.new()
 	top.add_theme_constant_override("separation", 16)
 	col.add_child(top)
@@ -43,13 +63,12 @@ func _ready() -> void:
 	_devices = Label.new()
 	_devices.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	dev.add_child(_devices)
-	var btns := VBoxContainer.new()
-	top.add_child(btns)
 	for p in [["Reset: gamepad defaults", "gamepad"], ["Reset: joystick defaults", "joystick"]]:
 		var b := Button.new()
 		b.text = p[0]
+		b.size_flags_vertical = SIZE_SHRINK_CENTER
 		b.pressed.connect(_reset.bind(p[1]))
-		btns.add_child(b)
+		top.add_child(b)
 	_status = MenuTheme.note("Bind, then move an axis or press a button (Esc cancels). Keyboard keeps working for anything not bound.")
 	col.add_child(_status)
 	col.add_child(MenuTheme.heading("Axes"))
@@ -58,22 +77,22 @@ func _ready() -> void:
 	col.add_child(MenuTheme.heading("Buttons"))
 	for a in controls.buttons():
 		_add_row(col, a)
-	var keys := VBoxContainer.new()
-	keys.set_script(load("res://ui/menu/key_bindings_section.gd"))
-	keys.set("controls", controls)
-	keys.connect("changed", func(): changed.emit())
-	col.add_child(keys)
-	col.add_child(MenuTheme.heading("Other keys"))
+	return col
+
+
+func _other_keys_tab() -> Control:
+	var col := VBoxContainer.new()
+	col.add_theme_constant_override("separation", 8)
+	col.add_child(MenuTheme.note("These hotkeys are fixed. The flight-control keys are rebindable under Keyboard."))
 	var kb := GridContainer.new()
 	kb.set_script(load("res://ui/menu/keyboard_reference.gd"))
 	kb.set("controls", controls)
 	col.add_child(kb)
-	Input.joy_connection_changed.connect(func(_d, _c): _list_devices())
-	_list_devices()
+	return col
 
 
 func _add_row(parent: Control, a: String) -> void:
-	var r: HBoxContainer = HBoxContainer.new()
+	var r: VBoxContainer = VBoxContainer.new()
 	r.set_script(ROW)
 	parent.add_child(r)
 	r.setup(a, table[a])

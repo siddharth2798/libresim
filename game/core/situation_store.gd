@@ -5,12 +5,13 @@ extends RefCounted
 ## <file> is the save name with characters unsafe in file names replaced.
 
 const DIR := "user://saves/"
+static var dir := DIR  # where saves are read and written (tests and the start-screen probes redirect it)
 const THUMB := Vector2i(320, 180)
 
 
 static func write(d: Dictionary, name: String, thumb: Image = null) -> String:
-	DirAccess.make_dir_recursive_absolute(DIR)
-	var base := DIR + file_name(name)
+	DirAccess.make_dir_recursive_absolute(dir)
+	var base := dir + file_name(name)
 	var fa := FileAccess.open(base + ".json", FileAccess.WRITE)
 	if fa == null:
 		return "Cannot write %s.json" % base
@@ -26,7 +27,7 @@ static func write(d: Dictionary, name: String, thumb: Image = null) -> String:
 
 
 static func read(file: String) -> Dictionary:
-	var path := DIR + file + ".json"
+	var path := dir + file + ".json"
 	if not FileAccess.file_exists(path):
 		return {}
 	var d = JSON.parse_string(FileAccess.get_file_as_string(path))
@@ -36,7 +37,7 @@ static func read(file: String) -> Dictionary:
 ## Metadata of every save, newest first, plus "file" and "thumb" (png path or "").
 static func list() -> Array:
 	var out := []
-	var da := DirAccess.open(DIR)
+	var da := DirAccess.open(dir)
 	if da == null:
 		return out
 	for fname in da.get_files():
@@ -48,7 +49,7 @@ static func list() -> Array:
 			continue
 		var m: Dictionary = d.meta.duplicate()
 		m.file = file
-		m.thumb = DIR + file + ".png" if FileAccess.file_exists(DIR + file + ".png") else ""
+		m.thumb = dir + file + ".png" if FileAccess.file_exists(dir + file + ".png") else ""
 		out.append(m)
 	out.sort_custom(func(a, b): return float(a.get("unix", 0)) > float(b.get("unix", 0)))
 	return out
@@ -56,8 +57,8 @@ static func list() -> Array:
 
 static func delete(file: String) -> void:
 	for ext in [".json", ".png"]:
-		if FileAccess.file_exists(DIR + file + ext):
-			DirAccess.remove_absolute(DIR + file + ext)
+		if FileAccess.file_exists(dir + file + ext):
+			DirAccess.remove_absolute(dir + file + ext)
 
 
 static func file_name(name: String) -> String:

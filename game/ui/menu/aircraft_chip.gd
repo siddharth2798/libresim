@@ -3,8 +3,8 @@ extends Button
 ## One choice on the aircraft page: the aircraft's picture, its name and a short line (the first part
 ## of aircraft.json "category"). Toggle button in a ButtonGroup, so exactly one chip is lit.
 
-const SIZE := Vector2(300, 58)
-const THUMB := Vector2(96, 38)
+const SIZE := Vector2(210, 58)  # minimum: the page lets a chip grow to the column
+const THUMB := Vector2(80, 38)
 
 var id := ""
 
@@ -16,6 +16,7 @@ func setup(j: Dictionary, group: ButtonGroup) -> AircraftChip:
 	focus_mode = Control.FOCUS_ALL
 	mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 	custom_minimum_size = SIZE
+	size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	add_theme_stylebox_override("normal", MenuTheme.box(Color(1, 1, 1, 0.05), 10, Color(1, 1, 1, 0.10)))
 	add_theme_stylebox_override("hover", MenuTheme.box(Color(1, 1, 1, 0.12), 10, Color(1, 1, 1, 0.25)))
 	var lit := MenuTheme.box(Color(MenuTheme.ACCENT, 0.20), 10, Color(MenuTheme.ACCENT, 0.95))

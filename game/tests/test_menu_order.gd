@@ -123,11 +123,8 @@ func test_airport_page_refreshes_its_lists_for_a_new_aircraft() -> String:
 		err = "no airport with a runway shorter than the A320's %d m in the data" % int(short_m)
 	else:
 		page._select(apt)
-		var marked := func() -> int:
-			var n := 0
-			for i in page._rwy.item_count:
-				n += 1 if page._rwy.get_item_text(i).contains("too short") else 0
-			return n
+		var marked := func() -> int:  # the runway ends the page flags "short" (U5: chips replaced the drop-down)
+			return page.short_runway_count()
 		if marked.call() != 0:
 			err = "the C172 should find no runway too short at %s" % apt.icao
 		Session.setup.aircraft = "a320"  # what the aircraft page does

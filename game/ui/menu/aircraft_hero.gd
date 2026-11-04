@@ -3,7 +3,7 @@ extends VBoxContainer
 ## The big picture on the aircraft page: the chosen aircraft's preview.jpg with rounded corners and,
 ## under it, the full name with its category. Without a picture only the dark panel remains.
 
-const HEIGHT := 150.0
+const HEIGHT := 128.0  # the page has to fit 1280x720 with the A320's three-line tiles and a two-line credit
 
 var _pic: TextureRect
 var _title: Label
@@ -25,7 +25,7 @@ func _init() -> void:
 	row.add_theme_constant_override("separation", 14)
 	add_child(row)
 	_title = Label.new()
-	_title.add_theme_font_size_override("font_size", 26)
+	_title.add_theme_font_size_override("font_size", 24)
 	row.add_child(_title)
 	_sub = Label.new()
 	_sub.size_flags_horizontal = SIZE_EXPAND_FILL

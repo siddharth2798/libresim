@@ -5,10 +5,12 @@ extends Node
 ##   FREESIM_SIZE=1920x1080  window size (default 1280x720)
 ##   FREESIM_AIRCRAFT=a320   choose that aircraft first
 ##   FREESIM_START=stand     start-at choice of step 2, Airport (runway | stand | air)
+##   FREESIM_AIRPORT=VAPO    airport of step 2 (default VABB; only with FREESIM_START)
 ##   FREESIM_OPEN=1          open 'More weather' and the aircraft 'Details' first
 ##   FREESIM_FLY=1           also launch a flight from VABB and grab it
 ##   FREESIM_OVERWEIGHT=1    load the chosen aircraft over its maximum takeoff weight (amber Fly anyway)
 ##   FREESIM_FLOW_ONLY=1     only the five free-flight steps (skip home, Training, Saved flights, Controls, Options)
+##   FREESIM_CALLSIGN=VT-SID  type that call sign (Session.setup.callsign) first
 ##   FREESIM_TAG=u2_         prefix of the file names (menu_<tag><name>.png)
 
 var _s: Control
@@ -22,6 +24,8 @@ func _ready() -> void:
 	if OS.get_environment("FREESIM_AIRCRAFT") != "":  # e.g. a320: the start screen opens with that aircraft chosen
 		Session.setup.aircraft = OS.get_environment("FREESIM_AIRCRAFT")
 		Session.apply_payload_defaults(AircraftDef.load_def(Session.setup.aircraft))
+	if OS.get_environment("FREESIM_CALLSIGN") != "":
+		Session.setup.callsign = OS.get_environment("FREESIM_CALLSIGN")
 	if OS.get_environment("FREESIM_OVERWEIGHT") != "":
 		Session.setup.fuel_gal = 19400.0 if Session.setup.aircraft == "a320" else 20.0
 		for k in ["cabin_kg", "cargo_kg", "copilot_kg", "rear_kg", "baggage_kg"]:
@@ -29,7 +33,7 @@ func _ready() -> void:
 		print("checks: ", SetupChecks.checks(Session.setup))
 	if OS.get_environment("FREESIM_START") != "":  # runway | stand | air
 		Session.setup.start = OS.get_environment("FREESIM_START")
-		Session.setup.airport = "VABB"
+		Session.setup.airport = OS.get_environment("FREESIM_AIRPORT") if OS.get_environment("FREESIM_AIRPORT") != "" else "VABB"
 	_s = load("res://ui/menu/start_screen.tscn").instantiate()
 	add_child(_s)
 	_out = OS.get_environment("FREESIM_SHOTS")

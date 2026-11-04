@@ -37,7 +37,8 @@ func _ready() -> void:
 	await get_tree().create_timer(0.8).timeout
 	get_viewport().get_texture().get_image().save_png(out.path_join("controls_page.png"))
 	page._start_capture("throttle")  # waiting state
-	var keys: Control = page.get_child(0).get_children().filter(func(c): return c.has_method("_start"))[0]
+	page.tabs.select("keyboard")
+	var keys: Control = page.keys
 	keys.table.starter = [KeyBindings.spec(KEY_M)]  # in-memory conflict, not saved
 	keys._start("mixture_rich", 1)
 	scroll.scroll_vertical = int(keys.position.y)

@@ -1,93 +1,76 @@
 extends HBoxContainer
-## Start screen page 2: airport list (searchable), diagram, and where to start:
-## on a runway, parked at a stand / gate, or in the air on final to a runway.
+## Start screen page 2: Airport & start. Left, the map panel: an airport search box, the airport's name and facts, a
+## clickable diagram (runway ends and stands) and its legend. Right (AirportStartPanel): where the flight starts, on a
+## runway, parked at a stand / gate, or in the air on final to a runway, with only the controls that start needs.
+## The map, the search box and the lists all end in the same four calls (pick_airport, pick_runway, pick_stand, _put),
+## so any of them gives the same Session.setup. Stand names: world/stand_names.gd. Data: airport_data.gd.
 
 signal changed
 
-var _airports: Array = []  # [{icao, name, elev_m, runways, stands, taxiways}]
-var _list: ItemList
-var _search: LineEdit
-var _diagram: Control
-var _info: Label
+var _airports: Array = []  # [{icao, name, city, elev_m, runways, stands, taxiways, type}]
+var _search: AirportSearch
+var _diagram: AirportDiagram
+var _panel: AirportStartPanel
+var _name: Label
+var _facts: Label
+var _cur := {}
+var _stand_rows := []  # the stands on offer at _cur for this aircraft, in list order: [{name, stand, sub}]
+# the start panel's controls, where tests and other pages look for them
 var _mode_btns := {}
-var _rwy: OptionButton
-var _stand: OptionButton
-var _air_box: Control
 var _alt: SpinBox
 var _dist: SpinBox
-var _air_note: Label  # the aircraft's default start, under the two controls
-var _syncing := false  # the spin boxes are being set from the setup: not an edit by the pilot
+var _air_note: Label
 var _cold: CheckBox
 var _stand_note: Label
-var _cur := {}
 
 
 func _ready() -> void:
 	add_theme_constant_override("separation", 16)
-	_load()
+	_airports = AirportData.load_all()
 	var left := VBoxContainer.new()
-	left.custom_minimum_size = Vector2(250, 0)
+	left.size_flags_horizontal = SIZE_EXPAND_FILL
+	left.custom_minimum_size = Vector2(340, 0)
+	left.add_theme_constant_override("separation", 6)
 	add_child(left)
-	left.add_child(MenuTheme.heading("Airport"))
-	_search = LineEdit.new()
-	_search.placeholder_text = "Search ICAO or name…"
-	_search.text_changed.connect(func(_t): _fill_list())
+	_search = AirportSearch.new()
+	_search.tooltip_text = "Type an ICAO code, an airport name or a city."
+	_search.picked.connect(pick_airport)
 	left.add_child(_search)
-	_list = ItemList.new()
-	_list.size_flags_vertical = SIZE_EXPAND_FILL
-	_list.item_selected.connect(func(i): _select(_list.get_item_metadata(i)))
-	left.add_child(_list)
-	_diagram = Control.new()
-	_diagram.set_script(load("res://ui/menu/airport_diagram.gd"))
+	_name = Label.new()
+	_name.clip_text = true
+	_name.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	MenuTheme.use_font(_name, "semibold", 17)
+	left.add_child(_name)
+	_facts = MenuTheme.note("")
+	left.add_child(_facts)
+	_diagram = AirportDiagram.new()
 	_diagram.size_flags_horizontal = SIZE_EXPAND_FILL
-	add_child(_diagram)
-	var right := VBoxContainer.new()
-	right.custom_minimum_size = Vector2(310, 0)
-	right.add_theme_constant_override("separation", 8)
-	add_child(right)
-	_info = Label.new()
-	_info.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	right.add_child(_info)
-	right.add_child(MenuTheme.heading("Start at"))
-	var modes := HBoxContainer.new()
-	right.add_child(modes)
-	var g := ButtonGroup.new()
-	for m in [["runway", "Runway"], ["stand", "Stand / gate"], ["air", "In the air"]]:
-		var b := Button.new()
-		b.text = m[1]
-		b.toggle_mode = true
-		b.button_group = g
-		b.size_flags_horizontal = SIZE_EXPAND_FILL
-		b.pressed.connect(func(): _put("start", m[0]))
-		if m[0] == "stand":
-			b.tooltip_text = "Stands come from OpenStreetMap: gates with jetbridges at the big airports, remote bays and GA parking."
-		modes.add_child(b)
-		_mode_btns[m[0]] = b
-	_rwy = OptionButton.new()
-	_rwy.tooltip_text = "The runway to start on, or to land on for an air start."
-	_rwy.item_selected.connect(func(i): _put("runway", _rwy.get_item_metadata(i)))
-	right.add_child(_rwy)
-	_stand = OptionButton.new()
-	_stand.item_selected.connect(func(i): _put("stand", _stand.get_item_metadata(i)))
-	right.add_child(_stand)
-	_air_box = GridContainer.new()
-	_air_box.columns = 2
-	right.add_child(_air_box)
-	_alt = _spin("Height (ft)", 300, 12000, 100, "air_ft", "Height above the field.")
-	_dist = _spin("Distance (nm)", 1, 25, 0.5, "air_nm", "Distance out on final approach.")
-	_air_note = MenuTheme.note("")
-	right.add_child(_air_note)
-	_cold = CheckBox.new()
-	_cold.text = "Cold & dark start"
-	_cold.tooltip_text = "Engine off, everything off: run the checklists."
-	_cold.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_cold.toggled.connect(func(on): _put("cold", on))
-	right.add_child(_cold)
-	_stand_note = MenuTheme.note("Stand starts are cold & dark, brake set.")
-	right.add_child(_stand_note)
-	_fill_list()
+	_diagram.size_flags_vertical = SIZE_EXPAND_FILL
+	_diagram.runway_picked.connect(pick_runway)
+	_diagram.stand_picked.connect(func(st): pick_stand(str(st.get("name", st.get("ref", "")))))
+	left.add_child(_diagram)
+	left.add_child(_legend())
+	_panel = AirportStartPanel.new()
+	_panel.size_flags_horizontal = SIZE_SHRINK_END
+	_panel.mode_picked.connect(func(m): _put("start", m))
+	_panel.runway_picked.connect(pick_runway)
+	_panel.stand_picked.connect(pick_stand)
+	_panel.cold_toggled.connect(func(on): _put("cold", on))
+	_panel.air_edited.connect(func(k, v):
+		Session.setup.air_custom = true  # the pilot's own numbers: they stop following the aircraft
+		_put(k, v))
+	_panel.air_reset.connect(func():
+		Session.setup.air_custom = false
+		_sync_air()
+		_refresh())
+	add_child(_panel)
+	_mode_btns = _panel.mode_btns
+	_alt = _panel.alt
+	_dist = _panel.dist
+	_air_note = _panel.air_note
+	_cold = _panel.cold
+	_stand_note = _panel.stand_note
 	var s: Dictionary = Session.setup
-	_mode_btns[s.start].button_pressed = true
 	_sync_air()
 	visibility_changed.connect(func():  # the aircraft page may have changed the aircraft
 		if visible:
@@ -99,31 +82,19 @@ func _ready() -> void:
 	for a in _airports:
 		if a.icao == s.airport:
 			_select(a, false)
+	_refresh()
 
 
-func _lbl(t: String) -> Label:
-	var l := Label.new()
-	l.text = t
-	l.add_theme_color_override("font_color", MenuTheme.DIM)
-	return l
-
-
-func _spin(label: String, lo: float, hi: float, step: float, key: String, tip: String) -> SpinBox:
-	var l := _lbl(label)
-	SliderRow.tip_on(l, tip)
-	_air_box.add_child(l)
-	var sb := SpinBox.new()
-	sb.tooltip_text = tip
-	sb.size_flags_horizontal = SIZE_EXPAND_FILL
-	sb.min_value = lo
-	sb.max_value = hi
-	sb.step = step
-	sb.value_changed.connect(func(v):
-		if not _syncing:
-			Session.setup.air_custom = true  # the pilot's own numbers: they stop following the aircraft
-		_put(key, v))
-	_air_box.add_child(sb)
-	return sb
+func _legend() -> Control:
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 14)
+	for it in [["●", AirportDiagram.GATE, "gate (jetbridge)"], ["●", AirportDiagram.BAY, "remote / GA stand"], ["▲", AirportDiagram.MARK, "your start"]]:
+		var l := Label.new()
+		l.text = "%s %s" % [it[0], it[2]]
+		l.add_theme_color_override("font_color", it[1])
+		l.add_theme_font_size_override("font_size", MenuTheme.SIZE_NOTE)
+		row.add_child(l)
+	return row
 
 
 ## The air-start controls for the chosen aircraft: its limits and, unless the pilot set them, its default
@@ -131,62 +102,50 @@ func _spin(label: String, lo: float, hi: float, step: float, key: String, tip: S
 func _sync_air() -> void:
 	Session.apply_air_defaults()
 	var def := AircraftDef.load_def(str(Session.setup.get("aircraft", AircraftDef.DEFAULT_ID)))
-	var a := def.air_start()
-	_syncing = true
-	_alt.min_value = a.limits.alt_ft[0]
-	_alt.max_value = a.limits.alt_ft[1]
-	_dist.min_value = a.limits.dist_nm[0]
-	_dist.max_value = a.limits.dist_nm[1]
-	_alt.set_value_no_signal(float(Session.setup.air_ft))
-	_dist.set_value_no_signal(float(Session.setup.air_nm))
-	_syncing = false
-	_air_note.text = "Default for this aircraft: %s ft, %s nm, %d kt." % [_thousands(int(a.alt_ft)), Session.nm_text(a.dist_nm), int(a.kias)]
+	_panel.sync_air(def.air_start(), Session.setup)
 
 
-static func _thousands(n: int) -> String:
-	var t := str(absi(n))
-	for i in range(t.length() - 3, 0, -3):
-		t = t.insert(i, ",")
-	return ("-" if n < 0 else "") + t
+# ---- the choices: one path whether they come from the map, the search box or a list ----
 
-
-func _load() -> void:
-	var apts = Paths.load_json("airports.json")
-	var rw = Paths.load_json("runways.json")
-	var ops = Paths.load_json("airport_ops.json")
-	if apts == null or rw == null:
-		return
-	ops = ops if ops else {}
-	for a in apts:
-		var code: String = a.icao if str(a.icao) != "" else a.ident
-		var rws: Array = rw.runways.filter(func(r): return r.airport == code)
-		if rws.is_empty() or a.type == "heliport":
-			continue
-		rws.sort_custom(func(x, y): return x.length > y.length)
-		var box := Rect2(Vector2(rws[0].ends[0].x, rws[0].ends[0].y), Vector2.ZERO)
-		for r in rws:
-			for e in r.ends:
-				box = box.expand(Vector2(e.x, e.y))
-		box = box.grow(2500.0)
-		var tws := []
-		for t in rw.taxiways:
-			if box.has_point(Vector2(t.pts[0][0], t.pts[0][1])):
-				tws.append(t.pts.map(func(p): return Vector2(p[0], p[1])))
-		_airports.append({"icao": code, "name": a.name, "elev_m": float(a.elev_m), "runways": rws,
-			"stands": ops.get(code, {}).get("stands", []), "taxiways": tws, "type": a.type})
-	_airports.sort_custom(func(x, y): return x.type < y.type if x.type != y.type else x.icao < y.icao)
-
-
-func _fill_list() -> void:
-	_list.clear()
-	var q := _search.text.strip_edges().to_lower()
+func pick_airport(icao: String) -> void:
 	for a in _airports:
-		if q != "" and not (q in a.icao.to_lower() or q in str(a.name).to_lower()):
-			continue
-		var i := _list.add_item("%s   %s" % [a.icao, a.name])
-		_list.set_item_metadata(i, a)
-		if not _cur.is_empty() and a.icao == _cur.icao:
-			_list.select(i)
+		if a.icao == icao:
+			_select(a)
+
+
+## Choose a runway end (ident "27"). From the map while parked at a stand this means "start on that runway"; an air
+## start stays an air start (it lands on that runway).
+func pick_runway(ident: String) -> void:
+	Session.setup.runway = ident
+	if Session.setup.start == "stand":
+		Session.setup.start = "runway"
+	_refresh()
+
+
+## Choose a stand by name (real ref or made-up, see StandNames); that is a stand start.
+func pick_stand(stand_name: String) -> void:
+	Session.setup.stand = stand_name
+	Session.setup.start = "stand"
+	_refresh()
+
+
+func _put(key: String, v: Variant) -> void:
+	Session.setup[key] = v
+	_refresh()
+
+
+func current_airport() -> Dictionary:
+	return _cur
+
+
+## The stands on offer, in list order: [{name, stand, sub}].
+func stand_rows() -> Array:
+	return _stand_rows
+
+
+## How many runway ends the list marks "short" for the aircraft.
+func short_runway_count() -> int:
+	return _diagram.short_ends.size()
 
 
 func _select(a: Dictionary, user := true) -> void:
@@ -196,77 +155,98 @@ func _select(a: Dictionary, user := true) -> void:
 		s.airport = a.icao
 		s.runway = ""
 		s.stand = ""
-	_fill_list()
-	var rl := []
-	for r in a.runways:
-		rl.append("%s/%s  %d m" % [r.ends[0].ident, r.ends[1].ident, int(r.length)])
-	_info.text = "%s  %s\nElevation %d ft · %d stands\n%s" % [a.icao, a.name, int(Units.m_to_ft(a.elev_m)), a.stands.size(), "  ·  ".join(rl)]
-	_rwy.clear()
 	var def := AircraftDef.load_def(str(s.get("aircraft", AircraftDef.DEFAULT_ID)))
 	var gp := GroundParams.ground(def)
 	var min_len := float(gp.min_runway_m)
-	var first_ok := -1  # default pick: the first runway long enough for the aircraft
+	_search.set_items(AirportData.search_items(_airports, min_len))
+	_search.set_current(a.icao)
+	_name.text = str(a.name)
+	var rows := []
+	var first_ok := ""  # default pick: the first runway long enough for the aircraft
+	var short := {}
+	var xmax := float(def.section("limits").get("max_crosswind_kt", SetupChecks.DEFAULT_MAX_CROSSWIND_KT))
 	for r in a.runways:
 		for e in r.ends:
-			var short := " — too short for this aircraft" if float(r.length) < min_len else ""
-			_rwy.add_item("Runway %s  (%d m)%s" % [e.ident, int(r.length), short])
-			_rwy.set_item_metadata(_rwy.item_count - 1, e.ident)
-			if first_ok < 0 and short == "":
-				first_ok = _rwy.item_count - 1
-			if e.ident == s.runway:
-				_rwy.select(_rwy.item_count - 1)
-	if s.runway == "" and _rwy.item_count > 0:
-		var pick := maxi(first_ok, 0)
-		_rwy.select(pick)
-		s.runway = _rwy.get_item_metadata(pick)
-	_stand.clear()
-	# an airliner is offered gates and remote bays (not GA tie-downs), a light aircraft the other way round;
-	# "any" (the C172) keeps every stand in the data order
-	var cls := str(gp.stand_class)
-	for st in GroundChoice.offered(a.stands, cls):
-		_stand.add_item("%s  (%s)" % [st.ref, "jetbridge gate" if st.jetbridge else str(st.kind)])
-		_stand.set_item_metadata(_stand.item_count - 1, st.ref)
-		if st.ref == s.stand:
-			_stand.select(_stand.item_count - 1)
-	if _stand.item_count > 0 and (s.stand == "" or _stand.get_selected_metadata() != s.stand):
-		_stand.select(0)  # none yet, or the remembered one is not on offer for this aircraft
-		s.stand = _stand.get_item_metadata(0)
-	_diagram.show_airport(a.runways, a.taxiways, a.stands)
+			var id := str(e.ident)
+			var is_short := float(r.length) < min_len
+			var w := AirportData.wind_parts(float(s.wind_dir_deg), float(s.wind_kt), float(e.heading_true))
+			rows.append({"ident": id, "text": "%s   %s m%s" % [id, AirportData.thousands(int(r.length)), "  ·  short" if is_short else ""],
+				"wind": AirportData.wind_text(w), "short": is_short, "bad": AirportData.wind_bad(w, xmax),
+				"tip": ("Too short for this aircraft: it needs about %s m. " % AirportData.thousands(roundi(min_len)) if is_short else "")
+					+ "Heading %03d°, wind %s." % [roundi(float(e.heading_true)), AirportData.wind_text(w)]})
+			if is_short:
+				short[id] = true
+			if first_ok == "" and not is_short:
+				first_ok = id
+	if s.runway == "" or not rows.any(func(r): return r.ident == s.runway):
+		s.runway = first_ok if first_ok != "" else (rows[0].ident if not rows.is_empty() else "")
+	var note := ""
+	if not short.is_empty():
+		note = "Runways marked short are shorter than the %s m the %s needs." % [AirportData.thousands(roundi(min_len)), str(def.data.get("short_name", def.id))]
+	_panel.set_runways(rows, s.runway, note)
+	_diagram.short_ends = short
+	_select_stands(a, def, gp)
+	_diagram.show_airport(a.runways, a.taxiways, _stand_rows.map(func(r): return r.stand))
 	_refresh()
 
 
-func _put(key: String, v: Variant) -> void:
-	Session.setup[key] = v
-	_refresh()
+## The stands to offer this aircraft (suitable class first, natural order of the names) and the remembered one.
+func _select_stands(a: Dictionary, def: AircraftDef, gp: Dictionary) -> void:
+	var s: Dictionary = Session.setup
+	var stands: Array = a.stands
+	var descs := StandNames.describe(stands, StandNames.terminals_of(str(a.icao)))
+	var names := descs.map(func(d): return d.name)
+	_stand_rows = []
+	var panel_rows := []
+	for i in StandNames.offered_indices(stands, names, str(gp.stand_class)):
+		var d: Dictionary = descs[i]
+		var sub := "jetbridge gate" if stands[i].get("jetbridge", false) else "remote stand"
+		sub += "  ·  " + d.hint if d.hint != "" else ""
+		_stand_rows.append({"name": d.name, "stand": stands[i].merged({"name": d.name}), "sub": sub})
+		panel_rows.append({"name": d.name, "jetbridge": stands[i].get("jetbridge", false), "sub": sub})
+	if not _stand_rows.is_empty():
+		var at := StandNames.find_index(stands, str(s.stand))  # a real ref saved earlier, or a made-up name
+		var known := _stand_rows.filter(func(r): return at >= 0 and r.name == names[at])
+		s.stand = known[0].name if not known.is_empty() else _stand_rows[0].name  # none yet or not on offer: the first
+	_panel.set_stands(panel_rows, str(s.stand), "Stand  ·  %d on offer for the %s" % [panel_rows.size(), str(def.data.get("short_name", def.id))])
 
 
 func _refresh() -> void:
 	var s: Dictionary = Session.setup
-	if s.start == "stand" and _cur.get("stands", []).is_empty():
+	var stands: Array = _cur.get("stands", [])
+	if s.start == "stand" and stands.is_empty():
 		s.start = "runway"
-		_mode_btns.runway.button_pressed = true
-	_mode_btns.stand.disabled = _cur.get("stands", []).is_empty()
-	_stand.visible = s.start == "stand"
-	_air_box.visible = s.start == "air"
-	_air_note.visible = s.start == "air"
-	# Cold & dark is only a choice on a runway: stands are always cold & dark (a note says so)
-	# and air starts never are. The control is removed, not greyed, and an air start never
-	# keeps a stale value.
-	_cold.visible = s.start == "runway"
-	_stand_note.visible = s.start == "stand"
 	if s.start == "air":
-		s.cold = false
+		s.cold = false  # an air start is never cold & dark and never keeps a stale value
+	_panel.show_mode(str(s.start), not stands.is_empty())
 	_cold.set_pressed_no_signal(bool(s.cold))
+	_panel.mark_runway(str(s.runway))
+	_panel.mark_stand(str(s.stand))
+	_panel.refresh_profile()
 	_diagram.start = {}
+	var stand_name := ""
 	for r in _cur.get("runways", []):
 		for e in r.ends:
 			if e.ident == s.runway:
 				var h := deg_to_rad(float(e.heading_true))
+				var thr := Vector2(e.x, e.y)
 				var f := Vector2(sin(h), cos(h))
-				var p := Vector2(e.x, e.y) + f * (25.0 if s.start != "air" else -float(s.air_nm) * 1852.0)
-				_diagram.set_start(p, float(e.heading_true))
+				var nm := float(s.air_nm)
+				if s.start == "air":
+					_diagram.set_start(thr - f * nm * 1852.0, float(e.heading_true), thr, "%s nm out" % Session.nm_text(nm))
+				else:
+					_diagram.set_start(thr + f * 25.0, float(e.heading_true))
+				_facts.text = _facts_text(r, e)
 	if s.start == "stand":
-		for st in _cur.stands:
-			if st.ref == s.stand:
-				_diagram.set_start(Vector2(st.x, st.y), float(st.heading_deg))
+		for r in _stand_rows:
+			if r.name == s.stand:
+				stand_name = r.name
+				_diagram.set_start(Vector2(r.stand.x, r.stand.y), float(r.stand.get("heading_deg", 0.0)))
+	_diagram.set_selection(str(s.runway) if s.start != "stand" else "", stand_name)
 	changed.emit()
+
+
+func _facts_text(r: Dictionary, e: Dictionary) -> String:
+	var city := str(_cur.get("city", ""))
+	return "%s%d ft elevation  ·  runway %s: %s m, heading %03d°" % [city + "  ·  " if city != "" else "",
+		roundi(Units.m_to_ft(float(_cur.get("elev_m", 0.0)))), str(e.ident), AirportData.thousands(int(r.length)), roundi(float(e.heading_true))]

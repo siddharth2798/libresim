@@ -263,6 +263,6 @@ func test_atc_assist_option_is_on_by_default_and_on_the_options_page() -> String
 		return "radio assist defaults to on"
 	var box := AtcOptionsBox.new()
 	add_child(box)
-	var checks := box.find_children("*", "CheckBox", true, false).map(func(c): return c.text)
+	var checks := box.find_children("*", "Label", true, false).map(func(c): return c.text)
 	box.free()
 	return "" if checks.any(func(t): return str(t).begins_with("Radio assist")) else "the Options page has no assist checkbox: %s" % [checks]

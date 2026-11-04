@@ -76,7 +76,7 @@
   "orbit_m": 48.0
  },
  "registration": {
-  "source": "fixed",
+  "source": "callsign",
   "texture": "models/exterior_fuselage.png",
   "targets": [
    {

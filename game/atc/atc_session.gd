@@ -22,10 +22,7 @@ var _pub_rev := -1
 
 
 static func callsign() -> String:
-	var n := AtcSpeech.normalize_callsign(str(Session.setup.get("callsign", "")))
-	if n == "":
-		n = AtcSpeech.normalize_callsign(str(UserOptions.get_v("callsign")))
-	return n if n != "" else "VT-FSM"
+	return Callsign.effective(AircraftDef.current())  # typed one, else the aircraft's own registration, else VT-FSM
 
 
 ## The call sign on the radio: the airline form ("Skyline 123") for an aircraft whose aircraft.json atc

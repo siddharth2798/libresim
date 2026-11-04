@@ -79,20 +79,17 @@ func test_registration_absent_or_unknown_section_is_noop() -> String:
 	return ""
 
 
-func test_registration_source_callsign_follows_session_and_options() -> String:
+func test_registration_source_callsign_follows_session_then_section_default() -> String:
 	var old_s = Session.setup.get("callsign", "")
-	var old_o = UserOptions.get_v("callsign")
 	var sec := {"source": "callsign"}
 	Session.setup.callsign = "vt-abc"
 	var a := RegistrationPaint.text_for(sec)
 	Session.setup.callsign = ""
-	UserOptions.set_v("callsign", "N172SP")
-	var b := RegistrationPaint.text_for(sec)
-	UserOptions.set_v("callsign", "not a callsign !!")
-	var c := RegistrationPaint.text_for(sec)
+	var b := RegistrationPaint.text_for({"source": "callsign", "text": "vt-lbr"})  # untouched: the section's own registration
+	Session.setup.callsign = "not a callsign !!"
+	var c := RegistrationPaint.text_for(sec)  # invalid and no default in the section: the last resort
 	Session.setup.callsign = old_s
-	UserOptions.set_v("callsign", old_o)
-	return "" if a == "VT-ABC" and b == "N172SP" and c == "VT-FSM" else "%s %s %s" % [a, b, c]
+	return "" if a == "VT-ABC" and b == "VT-LBR" and c == "VT-FSM" else "%s %s %s" % [a, b, c]
 
 
 func test_registration_cache_is_per_aircraft_and_text() -> String:

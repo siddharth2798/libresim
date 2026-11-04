@@ -1,8 +1,10 @@
 class_name RegistrationPaint
 extends RefCounted
 ## Paints the tail number on the exterior model at flight start (aircraft.json "registration"):
-##   source   "callsign" (the pilot's call sign, AtcSession.callsign()) | "fixed" (use "text")
-##   text     the registration for source "fixed" (an airliner's tail number is not its radio call sign)
+##   source   "callsign" (the pilot's call sign, Callsign.effective: what was typed on the Aircraft step / in Options, else "text")
+##            | "fixed" (always "text": a tail number the pilot cannot change)
+##   text     source "callsign": the aircraft's own registration, shown until the pilot types one (C172 VT-LBR, A320 VT-ZZA);
+##            source "fixed": the registration
 ##   texture  the atlas the old number is painted on, relative to the aircraft folder
 ##   targets  [{"erase": [x,y,w,h]   pixels of the old number (plus a margin) to wipe,
 ##              "text": [x,y,w,h]     box the new number is fitted into (aspect kept),
@@ -31,7 +33,9 @@ static var _cache := {}  # "<aircraft id>|<TEXT>[|<atlas>]" -> ImageTexture (reg
 ## The registration this aircraft shows now ("" = none).
 static func text_for(section: Dictionary) -> String:
 	match str(section.get("source", "")):
-		"callsign": return AtcSession.callsign().to_upper()
+		"callsign":
+			var t := Callsign.typed()
+			return (t if t != "" else Callsign.section_default(section)).to_upper()
 		"fixed": return str(section.get("text", "")).strip_edges().to_upper()
 	return ""
 

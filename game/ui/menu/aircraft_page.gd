@@ -1,25 +1,28 @@
 extends HBoxContainer
 ## Start screen page 1: aircraft chips (every res://aircraft/<id>/aircraft.json is listed), the chosen
-## one as a big picture with its key figures (the full specification, description and credit are under
-## "Details"), and fuel / payload with the resulting weight against MTOW and the W&B chart.
+## one as a big picture with its key figures, the registration (call sign, CallsignField) and a "Full
+## specification" overlay (AircraftDetails: description, every spec row, credit); on the right fuel / payload,
+## the weight against MTOW with a badge and, when SetupChecks finds a problem with the loading, its message,
+## and the W&B chart.
 
 signal changed
 
 const LOADING_NOTE := "Over-weight or out-of-CG loading is allowed but you will feel it: longer takeoff roll, slower climb, higher stall speed; an aft CG makes pitch light and unstable."
-const KEY_SPECS := 3  # specification rows always shown, as tiles (the rest sit under Details)
-
-static var _details_open := false  # "Details" stays open or closed for the session
+const KEY_SPECS := 3  # specification rows always shown, as tiles (all of them are in the overlay)
+const NO_RUNWAY := {"ident": "-", "length_m": 100000.0, "heading_deg": 0.0}  # SetupChecks needs a runway to look at; only the aircraft step's items are used here
 
 var _chips := {}  # aircraft id -> AircraftChip
 var _group := ButtonGroup.new()
 var _hero: AircraftHero
 var _specs: HBoxContainer  # the key figures, one tile each
-var _more_specs: GridContainer  # the remaining ones, under Details
-var _desc: Label
-var _details: Control
+var _details: AircraftDetails  # the "Full specification" overlay
 var _details_btn: Button
+var callsign: CallsignField  # the registration / call sign (core/callsign.gd)
 var _credit: Label
 var _weight: Label
+var _badge: Label  # Within limits | Over MTOW | CG out of limits
+var _bar: ProgressBar
+var _issue: Label  # SetupChecks texts for this step, empty when the loading is fine
 var _chart: Control
 var _cfg := {}
 var _ac := {}
@@ -33,7 +36,8 @@ func _ready() -> void:
 	left.size_flags_horizontal = SIZE_EXPAND_FILL
 	left.add_theme_constant_override("separation", 10)
 	add_child(left)
-	var picker := HFlowContainer.new()
+	var picker := GridContainer.new()  # two chips per row, each as wide as the column allows
+	picker.columns = 2
 	picker.add_theme_constant_override("h_separation", 10)
 	picker.add_theme_constant_override("v_separation", 10)
 	left.add_child(picker)
@@ -42,33 +46,43 @@ func _ready() -> void:
 	_specs = HBoxContainer.new()
 	_specs.add_theme_constant_override("separation", 10)
 	left.add_child(_specs)
+	var reg := HBoxContainer.new()  # the full specification, and the registration (call sign) beside it
+	reg.add_theme_constant_override("separation", 18)
+	left.add_child(reg)
 	_details_btn = Button.new()
-	_details_btn.size_flags_horizontal = SIZE_SHRINK_BEGIN
-	_details_btn.pressed.connect(func(): _show_details(not _details_open))
-	left.add_child(_details_btn)
-	_details = VBoxContainer.new()
-	_details.add_theme_constant_override("separation", 8)
-	left.add_child(_details)
-	_desc = Label.new()
-	_desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_desc.add_theme_font_size_override("font_size", 15)
-	_details.add_child(_desc)
-	_more_specs = GridContainer.new()
-	_more_specs.columns = 2
-	_more_specs.add_theme_constant_override("h_separation", 16)
-	_more_specs.add_theme_constant_override("v_separation", 2)
-	_details.add_child(_more_specs)
+	_details_btn.text = "▶  Full specification"
+	_details_btn.size_flags_vertical = SIZE_SHRINK_BEGIN
+	_details_btn.tooltip_text = "The description and every specification row of this aircraft"
+	_details_btn.pressed.connect(_show_details.bind(true))
+	reg.add_child(_details_btn)
+	callsign = CallsignField.new().setup("Registration")
+	callsign.size_flags_horizontal = SIZE_EXPAND_FILL  # the hint line gets the rest of the row
+	reg.add_child(callsign)
+	callsign.callsign_changed.connect(func(_v): changed.emit())
+	_details = AircraftDetails.new()
+	_details.closed.connect(func(): _details_btn.grab_focus())
+	add_child(_details)  # top level: covers the window, takes no room in this row
 	var gap := Control.new()  # pushes the credit to the bottom of the column
 	gap.size_flags_vertical = SIZE_EXPAND_FILL
 	left.add_child(gap)
 	_credit = MenuTheme.note("")
 	_credit.add_theme_font_size_override("font_size", 12)
+	_credit.max_lines_visible = 2  # the whole credit is in the tooltip, in the specification overlay and on the Credits screen
+	_credit.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	_credit.mouse_filter = Control.MOUSE_FILTER_PASS
 	left.add_child(_credit)
 	var right := VBoxContainer.new()
 	right.custom_minimum_size = Vector2(420, 0)
 	right.add_theme_constant_override("separation", 8)
 	add_child(right)
-	right.add_child(MenuTheme.heading("Fuel & payload"))
+	var head := HBoxContainer.new()
+	right.add_child(head)
+	var h := MenuTheme.heading("Fuel & payload")
+	h.size_flags_horizontal = SIZE_EXPAND_FILL
+	head.add_child(h)
+	_badge = Label.new()
+	_badge.add_theme_font_size_override("font_size", 12)
+	head.add_child(_badge)
 	_fuel_box = VBoxContainer.new()
 	_fuel_box.add_theme_constant_override("separation", 6)
 	right.add_child(_fuel_box)
@@ -76,11 +90,20 @@ func _ready() -> void:
 	_weight.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_weight.add_theme_font_size_override("font_size", 14)
 	right.add_child(_weight)
+	_bar = ProgressBar.new()  # takeoff weight against MTOW: the fill goes amber near it and red over it
+	_bar.show_percentage = false
+	_bar.custom_minimum_size = Vector2(0, 8)
+	_bar.add_theme_stylebox_override("background", MenuTheme.box(Color(1, 1, 1, 0.10), 4, Color(0, 0, 0, 0), 0.0))
+	right.add_child(_bar)
+	_issue = Label.new()  # what SetupChecks says is wrong with the loading (the same texts as the rail dot and the Fly dialog)
+	_issue.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_issue.add_theme_font_size_override("font_size", 14)
+	_issue.add_theme_color_override("font_color", MenuTheme.BAD)
+	right.add_child(_issue)
 	_chart = Control.new()
 	_chart.set_script(load("res://ui/menu/wb_chart.gd"))
 	_chart.size_flags_vertical = SIZE_EXPAND_FILL
 	right.add_child(_chart)
-	_show_details(_details_open)
 	for id in AircraftDef.list_ids():
 		var j: Dictionary = AircraftDef.load_def(id).data
 		var chip := AircraftChip.new().setup(j, _group)
@@ -114,6 +137,7 @@ func _choose(j: Dictionary) -> void:
 	Session.apply_payload_defaults(AircraftDef.load_def(Session.setup.aircraft))  # fuel and loads suit the new aircraft
 	Session.apply_air_defaults()  # and the airborne start (height, distance, speed) unless the pilot set it
 	_show(j)
+	callsign.refresh()  # an untouched call sign follows the aircraft (placeholder, hint)
 
 
 ## One key figure: a small dim label over the value.
@@ -132,16 +156,21 @@ func _tile(label: String, value: String) -> Control:
 	var b := Label.new()
 	b.text = value
 	b.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	b.custom_minimum_size = Vector2(120, 0)
+	b.max_lines_visible = 2  # a long figure is cut here; the whole text is in the tooltip and in the specification overlay
+	b.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	b.custom_minimum_size = Vector2(110, 0)
 	b.add_theme_font_size_override("font_size", 15)
+	t.tooltip_text = "%s: %s" % [label, value]
 	v.add_child(b)
 	return t
 
 
+## Open or close the "Full specification" overlay.
 func _show_details(open: bool) -> void:
-	_details_open = open
-	_details.visible = open
-	_details_btn.text = "▼  Hide details" if open else "▶  Details: description and full specification"
+	if open:
+		_details.open()
+	else:
+		_details.close()
 
 
 func _slider(parent: Control, label: String, key: String, lo: float, hi: float, step: float, unit: String) -> void:
@@ -175,31 +204,17 @@ func _show(j: Dictionary) -> void:
 	_build_sliders(j.get("payload", {}))
 	_cfg = WeightBalance.load_config(j)
 	_hero.show_aircraft(j)
-	_desc.text = j.get("description", "")
+	_details.show_aircraft(j)
 	_credit.text = j.get("model_credit", "")
+	_credit.tooltip_text = _credit.text
 	var pilot := float(j.get("pilot_kg", 82.0))
 	_weight.tooltip_text = ("Pilot %d kg is included. " % int(pilot) if pilot > 0.0 else "The crew is included in the empty weight. ") + LOADING_NOTE
 	_weight.mouse_filter = Control.MOUSE_FILTER_PASS
-	for g in [_specs, _more_specs]:
-		for c in g.get_children():
-			g.remove_child(c)
-			c.queue_free()
-	var n := 0
-	for sp in j.get("specs", []):
-		n += 1
-		if n <= KEY_SPECS:
-			_specs.add_child(_tile(sp[0], sp[1]))
-			continue
-		var a := Label.new()
-		a.text = sp[0]
-		a.add_theme_color_override("font_color", MenuTheme.DIM)
-		_more_specs.add_child(a)
-		var b := Label.new()
-		b.text = sp[1]
-		b.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		b.size_flags_horizontal = SIZE_EXPAND_FILL
-		b.custom_minimum_size = Vector2(120, 0)
-		_more_specs.add_child(b)
+	for c in _specs.get_children():
+		_specs.remove_child(c)
+		c.queue_free()
+	for sp in (j.get("specs", []) as Array).slice(0, KEY_SPECS):
+		_specs.add_child(_tile(sp[0], sp[1]))
 	_update_weight()
 
 
@@ -211,28 +226,39 @@ func _update_weight() -> void:
 	var in_kg := WeightBalance.fuel_in_kg(_ac)
 	var gal := WeightBalance.fuel_total(_ac, s, _cfg)  # total fuel, all tanks (kg for the A320)
 	var w := WeightBalance.takeoff_kg(_ac, s, _cfg)
-	var over := w > float(_ac.mtow_kg)
 	var txt := "Weight %d kg (%d lb), max %d\n" % [int(w), int(w / 0.4536), int(_ac.mtow_kg)]
 	if in_kg:
 		txt += "Fuel %d kg ≈ %.1f h at cruise" % [int(gal), maxf(gal - float(pl.get("reserve_kg", 1800.0)), 0.0) / float(pl.get("cruise_kgh", 2500.0))]
 	else:
 		txt += "Fuel %d gal ≈ %.1f h at 75 %% power" % [int(gal), maxf(gal - float(pl.get("reserve_gal", 3.0)), 0.0) / float(pl.get("cruise_gph", 9.0))]
 	var wb := WeightBalance.compute(_ac, s, _cfg)
-	var bad := over
 	if not wb.is_empty():
-		bad = bad or not wb.ok
 		var cgu := str(_ac.cg_envelope.get("cg_unit", "in"))
 		txt += "\nCG %.1f %s T/O, %.1f %s LDG" % [wb.takeoff.cg_in, cgu, wb.landing.cg_in, cgu]
-	var issues := []
-	if over:
-		issues.append("OVER MTOW")
-	if not wb.is_empty() and not wb.ok:
-		issues.append("CG OUT OF LIMITS")
-	if not issues.is_empty():
-		txt += "\n" + ", ".join(issues)
-	if not wb.is_empty():
 		_chart.set_data(_ac.cg_envelope, wb)
 	_chart.visible = not wb.is_empty()
 	_weight.text = txt
-	_weight.add_theme_color_override("font_color", Color(1, 0.4, 0.3) if bad else MenuTheme.TEXT)
+	_show_status(w)
 	changed.emit()
+
+
+## Badge, bar and the message: what SetupChecks reports for this step (the rail dot and the Fly dialog say the same).
+func _show_status(w: float) -> void:
+	var items := SetupChecks.checks(Session.setup, NO_RUNWAY).filter(func(c): return c.step == "aircraft")
+	var mtow := float(_ac.mtow_kg)
+	var tone := MenuTheme.OK
+	var label := "Within limits"
+	if not items.is_empty():
+		tone = MenuTheme.BAD
+		label = "Over MTOW" if items.any(func(c): return c.id == "over_weight") else "CG out of limits"
+	elif w > mtow * 0.92:
+		tone = MenuTheme.WARN
+	_badge.text = ("▲ " if not items.is_empty() else "● ") + label.to_upper()
+	_badge.add_theme_color_override("font_color", tone)
+	_bar.max_value = mtow
+	_bar.value = minf(w, mtow)
+	_bar.add_theme_stylebox_override("fill", MenuTheme.box(tone, 4, Color(0, 0, 0, 0), 0.0))
+	_issue.visible = not items.is_empty()
+	_issue.text = ""
+	if not items.is_empty():
+		_issue.text = "▲ " + ". ".join(items.map(func(c): return c.text)) + ". Allowed, but you will feel it: longer takeoff roll, slower climb, higher stall speed."

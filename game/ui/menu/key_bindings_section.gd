@@ -1,5 +1,5 @@
 extends VBoxContainer
-## Controls page, keyboard part: one row per flight-control action with up to three
+## Controls page, keyboard tab: one row per flight-control action (two columns when wide) with up to three
 ## key slots. Click a slot, then press a key (with Shift / Ctrl / Alt if wanted);
 ## Esc cancels, Delete / Backspace empties the slot. ✕ clears the row. Conflicts
 ## (same key on two actions, or on another hotkey) are listed in orange.
@@ -9,7 +9,9 @@ extends VBoxContainer
 
 signal changed
 
-const SLOT_W := 112.0
+const SLOT_W := 92.0
+const NAME_W := 110.0  # minimum; the name takes the spare width and ends in an ellipsis (full text in the tooltip)
+const TWO_COLUMNS_W := 940.0  # two columns of rows from this page width
 const WARN := Color(1.0, 0.7, 0.3)
 const MODS := [KEY_SHIFT, KEY_CTRL, KEY_ALT, KEY_META]
 
@@ -19,6 +21,7 @@ var table := {}
 var _slots := {}  # action -> Array[Button]
 var _warn: Label
 var _hint: Label
+var _grid: GridContainer
 var _cap_action := ""
 var _cap_slot := -1
 
@@ -30,38 +33,50 @@ func _ready() -> void:
 	table = KeyBindings.load_from(path)
 	var head := HBoxContainer.new()
 	add_child(head)
-	var h := MenuTheme.heading("Keyboard")
-	h.size_flags_horizontal = SIZE_EXPAND_FILL
-	head.add_child(h)
+	_hint = MenuTheme.note("Click a key slot, then press the new key (modifiers allowed). Esc cancels, Delete empties the slot.")
+	_hint.size_flags_horizontal = SIZE_EXPAND_FILL
+	head.add_child(_hint)
 	var reset := Button.new()
 	reset.text = "Reset keys to defaults"
+	reset.size_flags_vertical = SIZE_SHRINK_CENTER
 	reset.pressed.connect(_reset)
 	head.add_child(reset)
-	_hint = MenuTheme.note("Click a key slot, then press the new key (modifiers allowed). Esc cancels, Delete empties the slot.")
-	add_child(_hint)
 	_warn = Label.new()
 	_warn.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_warn.add_theme_color_override("font_color", WARN)
 	_warn.add_theme_font_size_override("font_size", 14)
 	add_child(_warn)
+	_grid = GridContainer.new()
+	_grid.columns = 2
+	_grid.add_theme_constant_override("h_separation", 28)
+	_grid.add_theme_constant_override("v_separation", 6)
+	add_child(_grid)
 	for a in controls.key_actions():
 		_add_row(a)
 	_refresh()
+	resized.connect(func(): _grid.columns = 2 if size.x >= TWO_COLUMNS_W else 1)
 
 
 func _add_row(a: String) -> void:
 	var r := HBoxContainer.new()
-	r.add_theme_constant_override("separation", 8)
-	add_child(r)
+	r.add_theme_constant_override("separation", 6)
+	r.size_flags_horizontal = SIZE_EXPAND_FILL
+	_grid.add_child(r)
 	var n := Label.new()
 	n.text = KeyBindings.LABELS[a]
-	n.custom_minimum_size = Vector2(220, 0)
+	n.tooltip_text = n.text
+	n.mouse_filter = Control.MOUSE_FILTER_PASS
+	n.custom_minimum_size = Vector2(NAME_W, 0)
+	n.size_flags_horizontal = SIZE_EXPAND_FILL
+	n.clip_text = true
+	n.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	r.add_child(n)
 	var l := []
 	for i in KeyBindings.SLOTS:
 		var b := Button.new()
-		b.custom_minimum_size = Vector2(SLOT_W, 0)
+		b.custom_minimum_size = Vector2(SLOT_W, 36)
 		b.clip_text = true
+		b.add_theme_font_size_override("font_size", 15)
 		b.pressed.connect(_start.bind(a, i))
 		r.add_child(b)
 		l.append(b)
@@ -69,7 +84,7 @@ func _add_row(a: String) -> void:
 	var x := Button.new()
 	x.text = "✕"
 	x.tooltip_text = "Clear all keys for this action"
-	x.custom_minimum_size = Vector2(34, 0)
+	x.custom_minimum_size = Vector2(36, 36)
 	x.pressed.connect(func():
 		table[a] = []
 		_save())

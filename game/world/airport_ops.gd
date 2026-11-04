@@ -42,7 +42,7 @@ func setup(t: TerrainQuadtree) -> void:
 			_built[k].position += d2)
 
 
-## Stand lookup: by ref ("Bay 40", "GA3"), or "" -> the aircraft's default stand (GroundChoice.default_stand:
+## Stand lookup: by ref ("Bay 40", "GA3") or made-up name (stand_names.gd), or "" -> the aircraft's default stand (GroundChoice.default_stand:
 ## for stand_class "any" the first gate with a jetbridge, else the first stand; airliners: a gate; GA: a tie-down).
 func find_stand(icao: String, ref: String, stand_class := "") -> Dictionary:
 	var a: Dictionary = data.get(icao, {})
@@ -53,6 +53,9 @@ func find_stand(icao: String, ref: String, stand_class := "") -> Dictionary:
 		for s in stands:
 			if str(s.ref).to_lower().replace(" ", "") == ref.to_lower().replace(" ", ""):
 				return s
+		var i := StandNames.find_index(stands, ref)  # a made-up name ("Gate 3", "Bay 7") or a repeated ref ("Bay 12 (2)")
+		if i >= 0:
+			return stands[i]
 	return GroundChoice.default_stand(stands, stand_class if stand_class != "" else str(GroundParams.ground().stand_class))
 
 

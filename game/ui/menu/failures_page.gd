@@ -1,174 +1,141 @@
 extends HBoxContainer
-## Start screen page 4 (optional): schedule failures for any system (at start, after N minutes,
-## climbing through N ft AGL, or above N kt) and/or random failures (how many, in which
-## time window, from which systems). In flight, F9 shows state and fails / repairs live.
+## Start screen step 4 (optional): failures. Three columns: AREAS (the aircraft's failure categories, each with how many
+## are armed), SCHEDULE A FAILURE (one switch per failure of the chosen area; an armed one shows its trigger: at
+## start, after N minutes, above N ft AGL, above N kt) and the right column (failures_armed.gd: what is armed, random
+## failures, "tell me"). Failures an aircraft cannot have stay hidden (FailureCatalog, its aircraft.json failures.disabled).
+## In flight, F9 shows state and fails / repairs live. Setup keys: Session.setup.failures / random / notify (unchanged).
+## The page is rebuilt when it is shown after the aircraft (and so the catalog) changed.
 
 signal changed
 
-var _rows := {}  # id -> [OptionButton, SpinBox]
-var _en: CheckBox  # random failures on / off
+var _areas: VBoxContainer
+var _title: Label
+var _lists := {}  # category -> VBoxContainer of FailureRow
+var _tabs := {}  # category -> [Button, badge Label]
+var _rows := {}  # failure id -> FailureRow
+var _holder: Control  # the middle column's scroll area: shows the current category's list
+var _armed: FailuresArmed
+var _group := ButtonGroup.new()
+var _key := ""
+var _cur := ""
 
 
 func _ready() -> void:
-	var root := VBoxContainer.new()  # the start screen scrolls the page
-	root.size_flags_horizontal = SIZE_EXPAND_FILL
-	root.add_theme_constant_override("separation", 10)
-	add_child(root)
-	var s: Dictionary = Session.setup
-	var bar := _toolbar(root, s)
-	var cols := HBoxContainer.new()  # the scheduled failures, categories split over two columns
-	cols.add_theme_constant_override("separation", 40)
-	root.add_child(cols)
+	add_theme_constant_override("separation", 18)
+	var left := VBoxContainer.new()
+	left.custom_minimum_size = Vector2(150, 0)
+	left.add_theme_constant_override("separation", 8)
+	left.add_child(MenuTheme.heading("Areas"))
+	var ls := PageStyles.scroll()
+	left.add_child(ls)
+	_areas = VBoxContainer.new()
+	_areas.size_flags_horizontal = SIZE_EXPAND_FILL
+	_areas.add_theme_constant_override("separation", 2)
+	ls.add_child(_areas)
+	add_child(left)
+	var mid := VBoxContainer.new()
+	mid.size_flags_horizontal = SIZE_EXPAND_FILL
+	mid.custom_minimum_size = Vector2(300, 0)
+	mid.add_theme_constant_override("separation", 8)
+	_title = MenuTheme.heading("Schedule a failure")
+	mid.add_child(_title)
+	var ms := PageStyles.scroll()
+	mid.add_child(ms)
+	_holder = VBoxContainer.new()
+	_holder.size_flags_horizontal = SIZE_EXPAND_FILL
+	ms.add_child(_holder)
+	add_child(mid)
+	var rs := PageStyles.scroll()
+	rs.size_flags_horizontal = SIZE_FILL
+	rs.custom_minimum_size = Vector2(250, 260)
+	_armed = FailuresArmed.new()
+	_armed.size_flags_horizontal = SIZE_EXPAND_FILL
+	_armed.changed.connect(_on_changed)
+	_armed.removed.connect(_on_removed)
+	var pad := MarginContainer.new()  # room for the scroll bar
+	pad.add_theme_constant_override("margin_right", 12)
+	pad.size_flags_horizontal = SIZE_EXPAND_FILL
+	pad.add_child(_armed)
+	rs.add_child(pad)
+	add_child(rs)
+	visibility_changed.connect(func(): if is_visible_in_tree(): refresh())
+	refresh()
+
+
+## Repaint from Session.setup; rebuild the areas and rows first when the aircraft's catalog is not the one shown.
+func refresh() -> void:
 	var cats: Array = FailureCatalog.categories()
-	var total := 0
+	if str(cats.hash()) + AircraftDef.current().id != _key:
+		_rebuild(cats)
+	for id in _rows:
+		(_rows[id] as FailureRow).refresh()
+	_armed.refresh()
+	_update_badges()
+
+
+func _rebuild(cats: Array) -> void:
+	_key = str(cats.hash()) + AircraftDef.current().id
+	for c in _areas.get_children():
+		_areas.remove_child(c)
+		c.queue_free()
+	for c in _holder.get_children():
+		_holder.remove_child(c)
+		c.queue_free()
+	_lists.clear()
+	_tabs.clear()
+	_rows.clear()
+	_group = ButtonGroup.new()
 	for c in cats:
-		total += c[1].size() + 1
-	var left := _column(cols)
-	var right := _column(cols)
-	var used := 0
-	for c in cats:
-		var col: VBoxContainer = left if used * 2 < total else right
-		used += c[1].size() + 1
-		col.add_child(MenuTheme.heading(c[0]))
-		var g := GridContainer.new()
-		g.columns = 3
-		g.add_theme_constant_override("v_separation", 4)
-		col.add_child(g)
+		var b := Button.new()
+		b.text = c[0]
+		b.button_group = _group
+		b.clip_text = true
+		b.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+		PageStyles.list_item(b)
+		var badge := PageStyles.badge_on(b)
+		b.pressed.connect(_show_category.bind(c[0]))
+		_areas.add_child(b)
+		_tabs[c[0]] = [b, badge]
+		var v := VBoxContainer.new()
+		v.add_theme_constant_override("separation", 4)
+		v.size_flags_horizontal = SIZE_EXPAND_FILL
+		v.visible = false
 		for f in c[1]:
-			_row(g, f, s)
-	_clear_button(bar, s)
+			var row := FailureRow.new().setup(f[0], f[1])
+			row.changed.connect(_on_changed)
+			v.add_child(row)
+			_rows[f[0]] = row
+		_holder.add_child(v)
+		_lists[c[0]] = v
+	if not _lists.has(_cur):
+		_cur = cats[0][0] if not cats.is_empty() else ""
+	_show_category(_cur)
 
 
-func _column(parent: Control) -> VBoxContainer:
-	var v := VBoxContainer.new()
-	v.size_flags_horizontal = SIZE_EXPAND_FILL
-	v.add_theme_constant_override("separation", 6)
-	parent.add_child(v)
-	return v
+func _show_category(name: String) -> void:
+	_cur = name
+	for k in _lists:
+		(_lists[k] as Control).visible = k == name
+	if _tabs.has(name):
+		(_tabs[name][0] as Button).set_pressed_no_signal(true)
+	_title.text = "SCHEDULE A FAILURE  ·  %s" % name.to_upper() if name != "" else "SCHEDULE A FAILURE"
 
 
-func _row(g: GridContainer, f: Array, s: Dictionary) -> void:
-	var l := Label.new()
-	l.text = f[1]
-	l.size_flags_horizontal = SIZE_EXPAND_FILL
-	l.custom_minimum_size = Vector2(150, 0)  # (was 230: the flow's left rail takes 250 px of the width)
-	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	g.add_child(l)
-	var ob := OptionButton.new()
-	for m in FailureCatalog.MODES:
-		ob.add_item(m)
-	ob.custom_minimum_size = Vector2(140, 0)
-	g.add_child(ob)
-	var sb := SpinBox.new()
-	sb.max_value = 20000
-	sb.custom_minimum_size = Vector2(110, 0)
-	g.add_child(sb)
-	_rows[f[0]] = [ob, sb]
-	var cur: Array = s.failures.get(f[0], [0, 0.0])
-	ob.select(int(cur[0]))
-	sb.set_value_no_signal(float(cur[1]))
-	ob.item_selected.connect(func(_i): _store(f[0], true))
-	sb.value_changed.connect(func(_v): _store(f[0], false))
-	_style(f[0])
+func _update_badges() -> void:
+	for c in FailureCatalog.categories():
+		if _tabs.has(c[0]):
+			var n := FailuresLogic.armed_in(Session.setup.failures, c)
+			(_tabs[c[0]][1] as Label).text = str(n) if n > 0 else ""
 
 
-## Top row: random failures (its settings appear when it is on), the notify option, Clear all.
-func _toolbar(root: Control, s: Dictionary) -> HBoxContainer:
-	var bar := HBoxContainer.new()
-	bar.add_theme_constant_override("separation", 20)
-	root.add_child(bar)
-	var r: Dictionary = s.random
-	var more := VBoxContainer.new()  # the random failures' settings, shown while they are enabled
-	more.add_theme_constant_override("separation", 8)
-	_en = CheckBox.new()
-	_en.text = "Random failures"
-	_en.tooltip_text = "Failures that happen by themselves during the flight."
-	_en.button_pressed = bool(r.enabled)
-	_en.toggled.connect(func(on):
-		r.enabled = on
-		more.visible = on
-		changed.emit())
-	bar.add_child(_en)
-	var nt := CheckBox.new()
-	nt.text = "Tell me when something fails"
-	nt.tooltip_text = "Off = realistic: you only find out from the instruments, the engine note and the aircraft's behaviour."
-	nt.button_pressed = bool(s.notify)
-	nt.toggled.connect(func(on): s.notify = on)
-	bar.add_child(nt)
-	var spacer := Control.new()
-	spacer.size_flags_horizontal = SIZE_EXPAND_FILL
-	bar.add_child(spacer)
-	root.add_child(more)
-	var nums := HBoxContainer.new()
-	nums.add_theme_constant_override("separation", 24)
-	more.add_child(nums)
-	_num(nums, "How many", 1, 5, 1, r, "count")
-	_num(nums, "Not before (min)", 0, 240, 1, r, "from_min")
-	_num(nums, "Not after (min)", 1, 240, 1, r, "to_min")
-	var cg := HFlowContainer.new()
-	cg.add_theme_constant_override("h_separation", 8)
-	more.add_child(cg)
-	for name in FailureCatalog.category_names():
-		var cb := CheckBox.new()
-		cb.text = name
-		cb.button_pressed = name in r.categories
-		cb.toggled.connect(func(on):
-			if on and not name in r.categories:
-				r.categories.append(name)
-			elif not on:
-				r.categories.erase(name))
-		cg.add_child(cb)
-	more.visible = _en.button_pressed
-	return bar
-
-
-func _clear_button(bar: Control, s: Dictionary) -> void:
-	var clr := Button.new()
-	clr.text = "Clear all scheduled failures"
-	clr.pressed.connect(func():
-		s.failures = {}
-		_en.button_pressed = false
-		for id in _rows:
-			_rows[id][0].select(0)
-			_style(id)
-		changed.emit())
-	bar.add_child(clr)
-
-
-func _num(parent: Control, label: String, lo: float, hi: float, step: float, d: Dictionary, key: String) -> void:
-	var hb := HBoxContainer.new()
-	hb.add_theme_constant_override("separation", 8)
-	parent.add_child(hb)
-	var l := Label.new()
-	l.text = label
-	hb.add_child(l)
-	var sb := SpinBox.new()
-	sb.min_value = lo
-	sb.max_value = hi
-	sb.step = step
-	sb.value = float(d[key])
-	sb.value_changed.connect(func(v): d[key] = v)
-	hb.add_child(sb)
-
-
-## Sensible default value when a trigger mode is picked.
-func _store(id: String, mode_changed: bool) -> void:
-	var ob: OptionButton = _rows[id][0]
-	var sb: SpinBox = _rows[id][1]
-	var mode := ob.selected
-	if mode_changed:
-		sb.set_value_no_signal([0.0, 0.0, 10.0, 1000.0, 100.0][mode])
-	if mode == 0:
-		Session.setup.failures.erase(id)
-	else:
-		Session.setup.failures[id] = [mode, sb.value]
-	_style(id)
+## A row, the armed list or a random setting changed something.
+func _on_changed() -> void:
+	_armed.refresh()
+	_update_badges()
 	changed.emit()
 
 
-func _style(id: String) -> void:
-	var mode: int = _rows[id][0].selected
-	var sb: SpinBox = _rows[id][1]
-	sb.modulate.a = 1.0 if mode >= 2 else 0.0  # (hiding would shift the grid columns)
-	sb.editable = mode >= 2
-	sb.suffix = FailureCatalog.MODE_UNITS[mode]
+## An armed row's remove button or Clear all: the rows show the new state.
+func _on_removed(_id: String) -> void:
+	for id in _rows:
+		(_rows[id] as FailureRow).refresh()

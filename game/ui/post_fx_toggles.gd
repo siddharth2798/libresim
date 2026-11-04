@@ -20,15 +20,16 @@ const ROWS := [
 	["volumetric_fog", "Volumetric fog (light shafts, rain curtains, mist)"],
 ]
 
+var cols := 1  # grid columns (the Options page uses two)
 var _boxes := {}
 
 
 func _ready() -> void:
-	columns = 1
+	columns = cols
+	add_theme_constant_override("h_separation", 24)
 	for r in ROWS:
-		var cb := CheckBox.new()
-		cb.text = r[1]
-		cb.button_pressed = bool(UserOptions.get_v(r[0]))
+		var cb := SwitchRow.new().setup(r[1], "", bool(UserOptions.get_v(r[0])))
+		cb.size_flags_horizontal = SIZE_EXPAND_FILL
 		cb.toggled.connect(func(on: bool):
 			UserOptions.set_v(r[0], on)
 			var scene := get_tree().current_scene
@@ -45,7 +46,7 @@ func _ready() -> void:
 func refresh() -> void:
 	var rend := Graphics.renderer()
 	for key in _boxes:
-		var cb: CheckBox = _boxes[key]
+		var cb: SwitchRow = _boxes[key]
 		var why := _why_not(key, Graphics.preset, rend)
 		cb.modulate.a = 1.0 if why == "" else 0.55
 		cb.tooltip_text = why

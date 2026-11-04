@@ -21,7 +21,7 @@ extends RefCounted
 ##            flight_no, callsign_style: "airline"}: how ATC talks to the aircraft (atc/atc_profile.gd)
 ##   short_name  the aircraft on the start-screen chips (name is the full title, preview.jpg the picture)
 ##   cameras  chase / wing / tail / orbit view positions (ui/camera_rig.gd), see camera()
-##   registration  tail number painted at flight start: {source: callsign | fixed, text, baked (the number the atlas already carries: never repainted), texture, targets: [{erase, text, align, color, italic, rotate, erase_axis, texture}]} (common/registration_paint.gd; the C172 also repaints its wing undersides)
+##   registration  tail number painted at flight start: {source: callsign | fixed, text (source callsign: the aircraft's default registration, shown until the pilot types a call sign, core/callsign.gd; fixed: the registration), baked (the number the atlas already carries: never repainted; only the C172 has one, the A320 atlas carries none), texture, targets: [{erase, text, align, color, italic, rotate, erase_axis, texture}]} (common/registration_paint.gd; the C172 also repaints its wing undersides)
 ##   livery   paint colours the pilot may change (tools/25_livery_masks.py makes it for the C172; the pilot's choice is Session.setup.livery,
 ##            applied with the registration in one pass by common/paint_pipeline.gd at flight start; the C172 has body, accent, stripe, struts):
 ##            {atlases: [{id, texture}], regions: [{key, label, default [r,g,b], masks: [{atlas, mask, luma}]}]}: one region may be on several
