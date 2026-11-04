@@ -1,7 +1,7 @@
 extends Node3D
 ## Debug: the ground vehicles side by side on a plain ground, with a few close-ups, saved as PNGs.
 ##   FREESIM_SHOTS=<dir> godot --audio-driver Dummy --path game --windowed res://tests/debug_vehicle_lineup.tscn -- [--night] [--only=fuel_truck]
-const KINDS := ["fuel_truck", "gpu", "baggage_tug", "baggage_cart", "apron_bus", "fire_truck", "pushback_tug", "follow_me"]
+const KINDS := ["fuel_truck", "hydrant_dispenser", "gpu", "baggage_tug", "baggage_cart", "apron_bus", "fire_truck", "pushback_tug", "follow_me"]
 
 
 func _ready() -> void:
@@ -14,11 +14,21 @@ func _ready() -> void:
 			only = a.substr(7)
 	var env := WorldEnvironment.new()
 	env.environment = Environment.new()
-	env.environment.background_mode = Environment.BG_COLOR
-	env.environment.background_color = Color(0.55, 0.7, 0.9) if not night else Color(0.02, 0.03, 0.06)
-	env.environment.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-	env.environment.ambient_light_color = Color(0.6, 0.66, 0.75)
-	env.environment.ambient_light_energy = 0.7 if not night else 0.15
+	var sky := Sky.new()
+	var psm := ProceduralSkyMaterial.new()
+	if night:
+		psm.sky_top_color = Color(0.01, 0.012, 0.03)
+		psm.sky_horizon_color = Color(0.03, 0.035, 0.05)
+		psm.ground_horizon_color = Color(0.02, 0.02, 0.025)
+		psm.ground_bottom_color = Color(0.01, 0.01, 0.01)
+	sky.sky_material = psm
+	env.environment.background_mode = Environment.BG_SKY
+	env.environment.sky = sky
+	env.environment.ambient_light_source = Environment.AMBIENT_SOURCE_SKY
+	env.environment.ambient_light_energy = 1.0 if not night else 0.3
+	env.environment.tonemap_mode = Environment.TONE_MAPPER_FILMIC
+	env.environment.glow_enabled = true
+	env.environment.ssao_enabled = true
 	add_child(env)
 	var sun := DirectionalLight3D.new()
 	sun.rotation_degrees = Vector3(-40, -35, 0)
@@ -27,12 +37,13 @@ func _ready() -> void:
 	add_child(sun)
 	if night:
 		Props.set_v("environment/sun_elev_deg", -20.0)
+		RenderingServer.global_shader_parameter_set("night_level", 1.0)
 	var floor_ := MeshInstance3D.new()
 	var pm := PlaneMesh.new()
 	pm.size = Vector2(200, 200)
 	floor_.mesh = pm
 	var fm := StandardMaterial3D.new()
-	fm.albedo_color = Color(0.5, 0.5, 0.5)
+	fm.albedo_color = Color(0.36, 0.36, 0.35)
 	fm.roughness = 0.9
 	floor_.material_override = fm
 	add_child(floor_)
@@ -51,7 +62,10 @@ func _ready() -> void:
 				h.add_child(n)
 				n = h
 		else:
-			n = GroundVehicles.make(k)
+			n = GroundVehicles.make(k, 1.0, 0.123 + i * 0.1, true)
+			var lp := VehicleLamps.new()
+			lp.add(k, Transform3D.IDENTITY, 0.123 + i * 0.1)
+			lp.attach(n)
 			print("TRIS %s %d" % [k, GroundVehicles.triangles(k)])
 		n.position = Vector3((i % 4) * 22.0, 0, -(i / 4) * 24.0)
 		i += 1
@@ -70,8 +84,11 @@ func _ready() -> void:
 		if only != "" and k != only:
 			continue
 		var p: Vector3 = nodes[k].position
-		shots[k] = [p + Vector3(9.0, 3.6, -9.0), p + Vector3(0, 1.3, 0)]
-		shots[k + "_rear"] = [p + Vector3(-7.0, 3.2, 9.5), p + Vector3(0, 1.3, 0)]
+		var size := 5.2 if k == "follow_me" else GroundVehicles.mesh(k).get_aabb().get_longest_axis_size()
+		var d := size * 0.95 + 2.5
+		var h := size * 0.12
+		shots[k] = [p + Vector3(0.72, 0.3, -0.72) * d, p + Vector3(0, 1.0 + h, 0)]
+		shots[k + "_rear"] = [p + Vector3(-0.6, 0.28, 0.85) * d, p + Vector3(0, 1.0 + h, 0)]
 	if only == "":
 		shots["all"] = [Vector3(33, 18, 30), Vector3(33, 0.5, -14)]
 	for name in shots:
@@ -84,3 +101,7 @@ func _ready() -> void:
 			print("RENDER draw calls %d, primitives %d, frame time %.2f ms (8 vehicles)" % [Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME), Performance.get_monitor(Performance.RENDER_TOTAL_PRIMITIVES_IN_FRAME), Performance.get_monitor(Performance.TIME_PROCESS) * 1000.0])
 		get_viewport().get_texture().get_image().save_png("%s/lineup_%s_%s.png" % [out, tag, name])
 	get_tree().quit()
+
+
+func _process(dt: float) -> void:
+	GroundVehicles.tick(dt)

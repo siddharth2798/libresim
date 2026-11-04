@@ -12,6 +12,7 @@ var far_m := 70.0
 var width_m := 18.0
 var strength := 0.3
 var lateral := 0.0
+var yaw := 0.0  # rad, + = the pool swings to the right of the nose (runway turn-off lights)
 var _mat := ShaderMaterial.new()
 
 
@@ -51,8 +52,12 @@ func place(xf: Transform3D, agl: float, lv: float) -> void:
 	fwd = fwd.normalized()
 	var right := Vector3.UP.cross(-fwd).normalized()
 	var ground := xf.origin - Vector3(0.0, agl - 0.4, 0.0)  # above the runway strip (LIFT + distance lift)
+	ground += right * lateral
+	if yaw != 0.0:
+		fwd = (fwd * cos(yaw) + right * sin(yaw)).normalized()
+		right = Vector3.UP.cross(-fwd).normalized()
 	var mid := (near_m + far_m) * 0.5
 	var b := Basis(right * width_m, Vector3.UP, fwd * (far_m - near_m))
 	# PlaneMesh UV.y runs from -Z (v=0) to +Z (v=1): put v=0 at the near end
-	global_transform = Transform3D(b, ground + fwd * mid + right * lateral)
+	global_transform = Transform3D(b, ground + fwd * mid)
 	_mat.set_shader_parameter("level", lv * strength)

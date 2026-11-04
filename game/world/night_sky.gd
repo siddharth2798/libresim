@@ -9,7 +9,10 @@ const YEAR_JD := 2461041.5  # 2026-01-01 00:00 UTC (the sim's calendar year)
 const NEW_MOON_JD := 2451550.26  # 2000-01-06 18:14 UTC
 const SYNODIC := 29.530589
 const MOON_COLOR := Color(0.62, 0.72, 1.0)
-const NIGHT_AMBIENT := Color(0.22, 0.27, 0.4)  # starlight + airglow + city spill, sRGB
+const TWILIGHT_AMBIENT := Color(0.22, 0.27, 0.4)  # blue hour floor (sun just below the horizon), sRGB
+const NIGHT_AMBIENT := Color(0.165, 0.18, 0.215)  # starlight + airglow + city spill, sRGB (low saturation:
+# a saturated blue floor reads as fog on the ground and turns purple through the AgX tonemapper)
+const NIGHT_EXPOSURE := 1.45  # exposure lift at full night (eye adaptation; AutoExposure adds a little)
 const CITY_GLOW := Color(0.05, 0.042, 0.036)  # warm light pollution over Mumbai / Pune
 
 var moon: DirectionalLight3D
@@ -69,9 +72,19 @@ func update_night(hours: float, day_of_year: float, night: float, occl: float, s
 	sky.set_shader_parameter("sun_dir_u", sun_dir)
 	sky.set_shader_parameter("stars", night * night * (1.0 - smoothstep(0.3, 0.8, occl)) * (1.0 - 0.5 * moon_light))
 	# ambient: blend toward a fixed cool night floor as the sky radiance fades
-	env.ambient_light_color = NIGHT_AMBIENT.lerp(MOON_COLOR * 0.5, moon_light * 0.5)
+	# night_level (shaders: lit windows, street / city lights, dark ground): from the sun itself, so lights
+	# come on from just before sunset and are fully on at -8 deg, whatever the sky model's twilight does
+	var nl := night_level(rad_to_deg(asin(clampf(sun_dir.y, -1.0, 1.0))))
+	RenderingServer.global_shader_parameter_set("night_level", nl)
+	var floor_col := TWILIGHT_AMBIENT.lerp(NIGHT_AMBIENT, nl)  # blue hour -> neutral dark night
+	env.ambient_light_color = floor_col.lerp(MOON_COLOR * 0.5, moon_light * 0.5)
 	env.ambient_light_sky_contribution = lerpf(1.0, 0.35, night)
-	env.tonemap_exposure = lerpf(1.0, 1.45, night)
+	env.tonemap_exposure = lerpf(1.0, NIGHT_EXPOSURE, night)
+
+
+## 0 day .. 1 night for artificial lights: on from +2 deg sun elevation, full at -8 deg.
+static func night_level(sun_elev_deg: float) -> float:
+	return smoothstep(2.0, -8.0, sun_elev_deg)
 
 
 ## Night additions to the sky colours (moonlit zenith, city glow on the horizon).

@@ -37,6 +37,7 @@ const FLIGHT := [
 	["fuel_selector", ["fuel_selector"], "", "fuel selector"],
 	["fuel_shutoff", ["fuel_shutoff"], "", "fuel shutoff"],
 	["", ["beacon", "nav_lights", "strobes", "landing_light", "taxi_light"], " ", "beacon nav strobe land taxi"],
+	["ext_lights", ["takeoff_light", "turnoff_lights", "wing_lights", "logo_lights"], " ", "take-off rwy turn-off wing logo lights"],
 	["", ["pitot_heat"], "", "pitot heat"],
 ]
 const FIXED := [

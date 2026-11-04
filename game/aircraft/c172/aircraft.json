@@ -30,6 +30,16 @@
 			"align": "center", "color": [0.0, 0.15, 0.43], "italic": false},
 		{"texture": "models/exterior_wing.png", "rotate": 90, "erase_axis": "x", "erase": [169, 1542, 100, 356], "text": [175, 1548, 88, 343],
 			"align": "center", "color": [0.0, 0.15, 0.43], "italic": false}]},
+	"livery": {
+		"atlases": [
+			{"id": "fuselage", "texture": "models/exterior_fuselage.png"},
+			{"id": "wing", "texture": "models/exterior_wing.png"},
+			{"id": "tail", "texture": "models/exterior_tail.png"}],
+		"regions": [
+			{"key": "body", "label": "Body paint", "default": [0.925, 0.925, 0.925], "masks": [{"atlas": "fuselage", "mask": "livery/fuselage_body.png", "luma": 0.933}, {"atlas": "wing", "mask": "livery/wing_body.png", "luma": 0.936}, {"atlas": "tail", "mask": "livery/tail_body.png", "luma": 0.839}]},
+			{"key": "accent", "label": "Main accent", "default": [0.0, 0.122, 0.353], "masks": [{"atlas": "fuselage", "mask": "livery/fuselage_accent.png", "luma": 0.114}, {"atlas": "wing", "mask": "livery/wing_accent.png", "luma": 0.121}, {"atlas": "tail", "mask": "livery/tail_accent.png", "luma": 0.101}]},
+			{"key": "stripe", "label": "Pin stripe", "default": [0.541, 0.545, 0.525], "masks": [{"atlas": "fuselage", "mask": "livery/fuselage_stripe.png", "luma": 0.513}, {"atlas": "tail", "mask": "livery/tail_stripe.png", "luma": 0.545}]}]
+	},
 	"start": {"pitch_trim": -0.05,
 		"air": {"alt_ft": 1500, "dist_nm": 5.0, "kias": 90, "gear": "down", "flaps": 0,
 			"limits": {"alt_ft": [300, 12000], "dist_nm": [1, 25]}}},
@@ -67,21 +77,22 @@
 		}
 	},
 	"lights": {
+		"_doc": "Structural metres (x aft, y right, z up), measured on the exterior glb with tools/glb_probe.py: nav + strobe in the wingtip fairings (tips at y +-5.636), white nav on the rudder's lower trailing edge, beacon on BeaconMount atop the fin, landing (outboard) and taxi (inboard) lamps behind landinglightcover in the left wing leading edge (C172S).",
 		"nav": [
-			{"pos": [1.1, -5.5, 1.5], "side": "left", "color": "red", "size": 1.0, "range": 2.6, "omni_off": [0.25, 0.1, 0]},
-			{"pos": [1.1, 5.5, 1.5], "side": "right", "color": "green", "size": 1.0, "range": 2.6, "omni_off": [-0.25, 0.1, 0]},
-			{"pos": [6.6, 0.0, 0.7], "side": "tail", "color": "white", "size": 0.9, "range": 1.8, "omni_off": [0, 0.15, 0.1]}
+			{"pos": [1.1, -5.645, 1.55], "side": "left", "color": "red", "size": 1.0, "range": 2.6, "bulb": 0.035, "omni_off": [0.25, 0.1, 0]},
+			{"pos": [1.1, 5.645, 1.55], "side": "right", "color": "green", "size": 1.0, "range": 2.6, "bulb": 0.035, "omni_off": [-0.25, 0.1, 0]},
+			{"pos": [6.68, 0.0, 0.45], "side": "tail", "color": "white", "size": 0.9, "range": 1.8, "bulb": 0.03, "omni_off": [0, 0.15, 0.1]}
 		],
 		"beacon": [
-			{"pos": [6.55, 0.0, 2.05], "color": "red", "size": 1.2, "range": 2.5, "omni_off": [0, 0.15, 0]}
+			{"pos": [6.58, 0.0, 2.06], "color": "red", "size": 1.2, "range": 2.5, "bulb": 0.04, "omni_off": [0, 0.15, 0]}
 		],
 		"strobe": [
-			{"pos": [1.15, -5.52, 1.5], "color": "strobe", "size": 1.2, "range": 7.0, "omni_off": [0.6, 0.4, 0]},
-			{"pos": [1.15, 5.52, 1.5], "color": "strobe", "size": 1.2, "range": 7.0, "omni_off": [-0.6, 0.4, 0]}
+			{"pos": [1.2, -5.645, 1.555], "color": "strobe", "size": 1.2, "range": 7.0, "bulb": 0.03, "omni_off": [0.6, 0.4, 0]},
+			{"pos": [1.2, 5.645, 1.555], "color": "strobe", "size": 1.2, "range": 7.0, "bulb": 0.03, "omni_off": [-0.6, 0.4, 0]}
 		],
 		"lamps": [
-			{"switch": "landing", "pos": [0.91, -2.93, 1.48], "energy": 20, "range": 900, "angle": 11, "beam": 26, "tilt": 9},
-			{"switch": "taxi", "pos": [0.91, -2.77, 1.48], "energy": 8, "range": 300, "angle": 28, "beam": 14, "tilt": 14}
+			{"switch": "landing", "pos": [0.98, -2.94, 1.48], "energy": 20, "range": 900, "angle": 11, "beam": 26, "tilt": 9, "bulb": 0.04},
+			{"switch": "taxi", "pos": [0.98, -2.78, 1.48], "energy": 8, "range": 300, "angle": 28, "beam": 14, "tilt": 14, "bulb": 0.04}
 		]
 	},
 	"audio": {
@@ -126,9 +137,28 @@
 	},
 	"ground": {"tow_ahead_m": 3.2, "ahead_m": 3.3, "behind_m": 7.4, "across_m": 6.7, "height_m": 2.5},
 	"pushback": {"straight_m": 30.0, "radius_m": 18.0, "speed_mps": 1.4},
+	"ramp": {
+		"_doc": "Ramp crew service points and airframe keep-out (world/ramp_points.gd): [forward, right] m about the CG on the stand, heights above the ground. External power receptacle on the left forward fuselage, filler caps on top of each wing; no cargo holds or airliner doors; no tug waits at the nose (GroundOps brings one for a pushback).",
+		"fuselage_half_m": 0.55,
+		"wing": {"outline": [[0.15, 0.5], [0.0, 5.64], [-1.25, 5.64], [-1.55, 0.5]], "low_m": [1.0, 1.85]},
+		"tailplane": {"outline": [[-4.25, 0.05], [-4.65, 1.77], [-5.55, 1.77], [-5.55, 0.05]], "low_m": [1.0, 1.0]},
+		"engines": [{"at": [1.8, 0.0], "length_m": 0.6, "radius_m": 0.95, "intake_m": 1.5, "exhaust_m": 0.0}],
+		"gpu": [0.9, -0.55],
+		"refuel": [-0.38, -2.85],
+		"cargo": [],
+		"doors": [],
+		"tug": false
+	},
 	"icing": {
 		"protection": "pitot_only", "drag_k": 0.011, "clmax_k": 0.22, "power_loss_k": 0.25, "egt_k": 0.0,
 		"pitot_heat_prop": "controls/electrical/pitot_heat", "engine_anti_ice_prop": "controls/alt_air"
+	},
+	"exhausts": {
+		"_doc": "Heat shimmer at the exhaust stub under the cowling, lower right (world/postfx/heat_shimmer.gd). Model frame: x aft, y right, z up from the VRP (structural vrp_m [1.08, 0, 0.98]).",
+		"strength": 1.0,
+		"list": [
+			{"pos": [-1.15, 0.22, -0.55], "dir": [0.6, 0.0, -0.8], "radius": 0.04, "kind": "piston", "engine": 1}
+		]
 	},
 	"payload": {
 		"fuel_kg_per_gal": 2.72, "cruise_gph": 9.0, "reserve_gal": 3.0,

@@ -6,14 +6,14 @@ extends Node
 ## Props are the airliner-correct version for whoever wants the bus-aware state.
 ## The aircraft's aircraft.json "systems.lights" over DEFAULTS: "bus" ({light: bus name, one of the
 ## systems/electrical/<bus>_on buses}) and landing_extend_s.
-## Reads: controls/lights/{nav, beacon, strobe, taxi, landing, wing, logo, rwy_turnoff}, systems/electrical/<bus>_on.
+## Reads: controls/lights/{nav, beacon, strobe, taxi, takeoff, landing, wing, logo, rwy_turnoff}, systems/electrical/<bus>_on.
 ## Publishes systems/lights/<name>_on for each, systems/lights/landing_<l|r>_pos (0 stowed .. 1 extended: what
 ## fdm_airliner_props could read for the landing-light drag) and landing_<l|r>_on.
 
-const NAMES := ["nav", "beacon", "strobe", "taxi", "landing", "wing", "logo", "rwy_turnoff"]
+const NAMES := ["nav", "beacon", "strobe", "taxi", "takeoff", "landing", "wing", "logo", "rwy_turnoff"]
 const DEFAULTS := {
 	"landing_extend_s": 2.5,
-	"bus": {"nav": "ac_ess", "beacon": "ac_ess", "strobe": "ac_ess", "taxi": "ac_ess", "landing": "ac_ess",
+	"bus": {"nav": "ac_ess", "beacon": "ac_ess", "strobe": "ac_ess", "taxi": "ac_ess", "takeoff": "ac_ess", "landing": "ac_ess",
 		"wing": "ac_ess", "logo": "ac_ess", "rwy_turnoff": "ac_ess", "landing_r": "ac_ess"},
 }
 

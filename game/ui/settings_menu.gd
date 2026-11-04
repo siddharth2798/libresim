@@ -49,6 +49,9 @@ func _ready() -> void:
 	vb.add_child(gl)
 	var gh := HBoxContainer.new()
 	vb.add_child(gh)
+	var rend := Button.new()
+	var restart := Label.new()  # "restart to apply" when the next start uses the other renderer
+	restart.add_theme_color_override("font_color", Color(1.0, 0.8, 0.4))
 	for p in Graphics.ORDER:
 		var b := Button.new()
 		b.text = p.capitalize()
@@ -56,18 +59,22 @@ func _ready() -> void:
 		b.button_pressed = p == Graphics.preset
 		b.pressed.connect(func():
 			Graphics.set_preset(p)
+			_refresh_renderer(rend, restart)
 			for c in gh.get_children():
 				if c is Button and c.has_meta("preset"):
 					c.button_pressed = c.get_meta("preset") == p)
 		b.set_meta("preset", p)
 		gh.add_child(b)
-	var rend := Button.new()
-	var fp := Graphics.renderer() == "forward_plus"
-	rend.text = ("Renderer: Forward+ (switch to Mobile)" if fp else "Renderer: Mobile (switch to Forward+ for SSAO/TAA)") + " — restart"
 	rend.pressed.connect(func():
-		Graphics.set_renderer("mobile" if fp else "forward_plus")
-		rend.text = "Saved — restart free-sim to apply")
+		Graphics.set_renderer("mobile" if Graphics.next_renderer() == "forward_plus" else "forward_plus")
+		_refresh_renderer(rend, restart))
 	gh.add_child(rend)
+	vb.add_child(restart)
+	_refresh_renderer(rend, restart)
+	var pl := Label.new()
+	pl.text = "Post effects"
+	vb.add_child(pl)
+	vb.add_child(PostFxToggles.new())
 	vb.add_child(HSeparator.new())
 	var grid := GridContainer.new()
 	grid.columns = 3
@@ -94,6 +101,15 @@ func _ready() -> void:
 	fl.text = "Failures: F9.  Back to the start screen (airport, aircraft, weather, failures): Esc."
 	fl.add_theme_color_override("font_color", Color(0.7, 0.7, 0.7))
 	vb.add_child(fl)
+
+
+## The toggle names the renderer the next start will use; the note says when that needs a restart
+## (a preset on the other renderer, or the toggle itself; core/graphics_settings.gd).
+func _refresh_renderer(rend: Button, note: Label) -> void:
+	var fp := Graphics.next_renderer() == "forward_plus"
+	rend.text = "Renderer: Forward+ (switch to Mobile)" if fp else "Renderer: Mobile (switch to Forward+)"
+	note.text = "Restart libresim to apply the %s renderer." % ("Forward+" if fp else "Mobile") if Graphics.restart_needed() else ""
+	note.visible = Graphics.restart_needed()
 
 
 func _unhandled_key_input(e: InputEvent) -> void:

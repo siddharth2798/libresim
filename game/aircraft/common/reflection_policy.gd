@@ -23,6 +23,7 @@ const PRESETS := {
 	"medium": {"on": true, "gap_s": 30.0, "far_m": 2500.0, "intensity": 0.85},
 	"high": {"on": true, "gap_s": 12.0, "far_m": 4000.0, "intensity": 0.85},
 	"ultra": {"on": true, "gap_s": 5.0, "far_m": 6000.0, "intensity": 0.85},
+	"max": {"on": true, "gap_s": 3.0, "far_m": 8000.0, "intensity": 0.85},
 }
 
 

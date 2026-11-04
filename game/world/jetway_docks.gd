@@ -12,8 +12,16 @@ const LEAVE_M := 4.5  # ... and it stays docked until it is this far off
 const SLOW_MPS := 1.0
 
 
-## One jetway of an airport: {terminal, cab} (ENU Vector2, rest layout, cab = the end nearer a stand).
-static func ends(pts: Array, stands: Array) -> Dictionary:
+## One movable jetway of an airport's "jetbridges" entry: {terminal (its rotunda), cab, back, own_rot} (ENU Vector2s).
+## tools/jetway_net.py gives the rotunda, cab end and the stub's direction toward the building; {} for a way that is
+## only a fixed link or has no building near it. Older data (pts only): the end nearer a stand is the cab.
+static func ends(jb: Dictionary, stands: Array) -> Dictionary:
+	if jb.has("tip"):
+		return {"terminal": Vector2(jb.rot[0], jb.rot[1]), "cab": Vector2(jb.tip[0], jb.tip[1]),
+			"back": Vector2(jb.back[0], jb.back[1]), "own_rot": bool(jb.get("own_rot", true))}
+	if jb.get("fixed", false) or jb.get("orphan", false):
+		return {}
+	var pts: Array = jb.pts
 	var a := Vector2(pts[0][0], pts[0][1])
 	var b := Vector2(pts[-1][0], pts[-1][1])
 	var near_a := INF
@@ -21,11 +29,13 @@ static func ends(pts: Array, stands: Array) -> Dictionary:
 	for st in stands:
 		near_a = minf(near_a, a.distance_to(Vector2(st.x, st.y)))
 		near_b = minf(near_b, b.distance_to(Vector2(st.x, st.y)))
-	return {"terminal": a if near_a > near_b else b, "cab": b if near_a > near_b else a}
+	return {"terminal": a if near_a > near_b else b, "cab": b if near_a > near_b else a, "back": Vector2.ZERO, "own_rot": true}
 
 
-## Dock candidates of jetway `k` among `ways` (their ends()): [{stand, cg, pose}] for every jetbridge stand whose
-## nearest jetway it is. dy_of = Callable(terminal, tip) -> how much higher the door sill is than the cab floor.
+## Dock candidates of jetway `k` among `ways` (their ends()): [{stand, cg, pose}] for every jetbridge stand it serves:
+## of the jetways whose cab end is within REACH_M of the door, the nearest one that can reach it (a pose
+## JetwayPose.docked accepts: at a two-bridge rotunda the one drawn nearer the door may come from the wrong side).
+## dy_of = Callable(rotunda, tip) -> how much higher the door sill is than the cab floor.
 static func candidates(k: int, ways: Array, stands: Array, dy_of: Callable, def: AircraftDef = null) -> Array:
 	var out := []
 	if not GroundParams.dockable(def):
@@ -34,19 +44,22 @@ static func candidates(k: int, ways: Array, stands: Array, dy_of: Callable, def:
 		if not st.get("jetbridge", false):
 			continue
 		var tip := GroundParams.door_tip(st, def)
-		var best := -1
-		var bd := REACH_M
+		var hd := deg_to_rad(float(st.heading_deg))
+		var cab_dir := Vector2(cos(hd), -sin(hd))
+		var order := []
 		for i in ways.size():
 			var d: float = (ways[i].cab as Vector2).distance_to(tip)
-			if d < bd:
-				bd = d
-				best = i
-		if best != k:
-			continue
-		var hd := deg_to_rad(float(st.heading_deg))
-		var pose := JetwayPose.docked(ways[k].terminal, tip, Vector2(cos(hd), -sin(hd)), dy_of.call(ways[k].terminal, tip))
-		if not pose.is_empty():
-			out.append({"stand": st.ref, "cg": GroundParams.cg_at_stand(st, def), "pose": pose})
+			if d < REACH_M:
+				order.append([d, i])
+		order.sort()
+		for o in order:
+			var i: int = o[1]
+			var pose := JetwayPose.docked(ways[i].terminal, tip, cab_dir, dy_of.call(ways[i].terminal, tip))
+			if pose.is_empty():
+				continue
+			if i == k:
+				out.append({"stand": st.ref, "cg": GroundParams.cg_at_stand(st, def), "pose": pose})
+			break
 	return out
 
 

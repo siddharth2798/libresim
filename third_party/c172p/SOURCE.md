@@ -23,3 +23,6 @@ The modifications are scripted, so they can be reproduced:
 To regenerate the `.glb` files:
 1. Point `data/raw/fg/c172p` at the upstream checkout.
 2. Run `blender -b --factory-startup --python tools/blender/convert_c172p.py` (and the `_interior` script).
+
+## Change log (derived data)
+- 2026-11-04 (livery masks): `tools/25_livery_masks.py` derives 8-bit grey region masks (`game/aircraft/c172/livery/*.png`: body paint, blue accent, grey pin stripe per atlas) from the unchanged `exterior_fuselage.png`, `exterior_wing.png` and `exterior_tail.png` by colour thresholds. The masks are derived from GPL-2.0-or-later art and are distributed under the same licence. At run time the game recolours a copy of an atlas in memory (`aircraft/common/livery_paint.gd`); no repository texture is changed.

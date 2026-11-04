@@ -32,7 +32,7 @@ func _process(dt: float) -> void:
 	_mutex.unlock()
 	for item in batch:
 		_add(item[0], item[1])
-	_mat.set_shader_parameter("night", clampf((2.0 - Props.get_f("environment/sun_elev_deg", 30.0)) / 8.0, 0.0, 1.0))
+	_mat.set_shader_parameter("night", NightSky.night_level(Props.get_f("environment/sun_elev_deg", 30.0)))
 	visible = Props.get_f("fdm/agl_m", 0.0) < HIDE_AGL or not Props.has("fdm/agl_m")
 	_timer -= dt
 	if _timer > 0.0:

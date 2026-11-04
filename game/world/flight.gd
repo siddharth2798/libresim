@@ -64,6 +64,7 @@ func _ready() -> void:
 	Session.apply_to_props()
 	$UI.visible = not Session.clean
 	airports.build(terrain)
+	terrain.focus = model  # finest, un-morphed ground under the tyres at any camera distance
 	$Weather.terrain = terrain
 	$Trees.terrain = terrain
 	$UI/Crash.airports = airports
@@ -194,7 +195,7 @@ func _cold_and_dark() -> void:
 		u.engine.oil_press_pa = 0.0
 	for k in ["master_bat", "master_alt", "avionics", "pitot_heat"]:
 		Props.set_v("controls/electrical/" + k, false)
-	for k in ["beacon", "nav", "strobe", "taxi", "landing"]:
+	for k in ["beacon", "nav", "strobe", "taxi", "landing", "takeoff", "rwy_turnoff", "wing", "logo"]:
 		Props.set_v("controls/lights/" + k, false)
 	Props.set_v("controls/magnetos", 0)
 	Props.set_v("controls/mixture", 0.0)

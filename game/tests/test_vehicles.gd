@@ -75,24 +75,100 @@ func test_vehicles_heading_and_body_lean() -> String:
 	return ""
 
 
+## Real-world sizes (with mirrors, beacons, drawbars): refueller 20 kL on a three-axle chassis, Cobus-type
+## apron bus 13.9 x 3.0 m, Panther-type 6x6 crash tender 11.9 x 3.0 m, towbarless tug (size 1), baggage
+## tractor / cart, towable GPU, hydrant dispenser. LOD 0 budget per vehicle; generated LODs must exist.
 func test_vehicles_meshes_sizes_and_budgets() -> String:
-	var wants := {"fuel_truck": Vector3(3.1, 3.4, 8.8), "gpu": Vector3(1.5, 2.0, 4.0), "baggage_tug": Vector3(1.6, 2.5, 3.3),
-		"baggage_cart": Vector3(1.8, 2.2, 4.4), "apron_bus": Vector3(3.2, 3.4, 12.8), "fire_truck": Vector3(3.2, 3.8, 10.4),
-		"pushback_tug": Vector3(2.7, 2.8, 5.6)}
+	var wants := {"fuel_truck": [Vector3(2.4, 3.1, 8.6), Vector3(3.1, 3.5, 9.6)], "hydrant_dispenser": [Vector3(2.2, 2.6, 6.6), Vector3(2.9, 3.1, 7.6)],
+		"gpu": [Vector3(1.2, 1.4, 3.2), Vector3(1.6, 1.9, 4.0)], "baggage_tug": [Vector3(1.3, 1.9, 2.7), Vector3(1.6, 2.4, 3.3)],
+		"baggage_cart": [Vector3(1.4, 1.8, 3.6), Vector3(1.8, 2.2, 4.4)], "apron_bus": [Vector3(2.9, 2.9, 13.6), Vector3(3.7, 3.3, 14.4)],
+		"fire_truck": [Vector3(2.9, 3.4, 11.6), Vector3(3.8, 3.8, 13.0)], "pushback_tug": [Vector3(1.6, 1.3, 4.0), Vector3(2.4, 1.8, 4.8)]}
 	for k in GroundVehicles.KINDS:
 		var m := GroundVehicles.mesh(k)
 		var n := GroundVehicles.triangles(k)
-		if n < 300 or n > 9000:
-			return "%s: %d triangles (budget 300..9000)" % [k, n]
+		if n < 1500 or n > 14000:
+			return "%s: %d triangles (budget 1500..14000 at LOD 0)" % [k, n]
+		var lods: Array = RenderingServer.mesh_get_surface(m.get_rid(), 0).get("lods", [])
+		if lods.size() < 2:
+			return "%s: %d LODs generated (want 2+)" % [k, lods.size()]
 		var a := m.get_aabb()
-		var w: Vector3 = wants[k]
-		if a.size.x > w.x or a.size.y > w.y or a.size.z > w.z or a.size.z < w.z * 0.6 or a.position.y < -0.05 or a.position.y > 0.05:
-			return "%s: bounds %s (want up to %s, standing on y=0)" % [k, a.size, w]
-		var node := GroundVehicles.make(k)
+		var lo: Vector3 = wants[k][0]
+		var hi: Vector3 = wants[k][1]
+		if a.size.x < lo.x or a.size.y < lo.y or a.size.z < lo.z or a.size.x > hi.x or a.size.y > hi.y or a.size.z > hi.z \
+				or a.position.y < -0.05 or a.position.y > 0.05:
+			return "%s: bounds %s (want %s..%s, standing on y=0)" % [k, a.size, lo, hi]
+		var node := GroundVehicles.make(k, 1.0, 0.5, true)
+		var body := node.get_node_or_null("Body") as MeshInstance3D
+		var ground := node.get_node_or_null("Ground") as MeshInstance3D
 		var kids := node.get_child_count()
+		var ok := body != null and ground != null and ground.has_meta("no_solid") and body.mesh == m
+		var lamps := float(body.get_instance_shader_parameter("lamps")) if body else 0.0
 		node.free()
-		if kids != 1:
-			return "%s: one mesh instance per vehicle" % k
+		if kids != 2 or not ok:
+			return "%s: a Body mesh instance (shared mesh) and a Ground decal (not solid) per vehicle" % k
+		if lamps != 1.0:
+			return "%s: working flag reaches the shader" % k
+	return ""
+
+
+## Every kind has wheels with their hub in CUSTOM0 (the shader rolls them), a steering front axle, and the
+## lamps the night light points need; carts and the GPU have no beacon, the rest do.
+func test_vehicles_wheels_and_lamps_recorded() -> String:
+	for k in GroundVehicles.KINDS:
+		var ws := GroundVehicles.wheels(k)
+		var steer := 0
+		for w in ws:
+			steer += 1 if w[3] else 0
+		if ws.size() < 4 or steer != 2:
+			return "%s: %d wheels, %d steering (want 4+ and one steering pair)" % [k, ws.size(), steer]
+		var arr := GroundVehicles.mesh(k).surface_get_arrays(0)
+		var c: PackedFloat32Array = arr[Mesh.ARRAY_CUSTOM0]
+		var hubs := 0
+		var beacon := 0
+		for i in range(3, c.size(), 4):
+			hubs += 1 if c[i] > 0.0 and c[i] < 50.0 else 0
+			beacon += 1 if c[i] >= VehicleGeo.BEACON else 0
+		if hubs < 200:
+			return "%s: only %d wheel vertices carry a hub" % [k, hubs]
+		var kinds := {}
+		for l in GroundVehicles.lamps(k):
+			kinds[l[0]] = true
+		var want_beacon: bool = not k in ["baggage_cart", "gpu"]
+		if want_beacon != kinds.has("beacon") or want_beacon != (beacon > 0):
+			return "%s: beacon %s (lamps %s, lens pivots %d)" % [k, want_beacon, kinds.keys(), beacon]
+		if k != "baggage_cart" and not kinds.has("tail"):
+			return "%s: tail lamps" % k
+	var lp := VehicleLamps.new()
+	lp.add("fire_truck", Transform3D(Basis(Vector3.UP, 0.5), Vector3(10, 0, 5)), 0.2)
+	if lp.beacons.count != 5 or lp.lamps.count != 4:  # two light bars (two lenses each), the rear beacon; head + tail
+		return "fire truck light points: %d beacons, %d lamps" % [lp.beacons.count, lp.lamps.count]
+	var s1 := GroundVehicles.seed_at(Vector2(1200.5, -340.25))
+	if s1 != GroundVehicles.seed_at(Vector2(1200.5, -340.25)) or s1 < 0.0 or s1 >= 1.0 or s1 == GroundVehicles.seed_at(Vector2(1210.5, -340.25)):
+		return "seed: stable per place, 0..1, different between places"
+	return ""
+
+
+## A driving vehicle (the pushback tug) rolls its wheels by the distance along its axis and steers into turns.
+func test_vehicles_motion_rolls_and_steers() -> String:
+	var v := GroundVehicles.make("pushback_tug", 1.5, 0.3, true, true) as VehicleMotion
+	if v == null:
+		return "moving vehicle root is a VehicleMotion"
+	add_child(v)
+	for i in 60:  # 1 s forward (-z) at 3 m/s
+		v.advance(Vector3(0, 0, -0.05), 0.0, 1.0 / 60.0)
+	var fwd := v.turn
+	for i in 120:  # reverse while turning left (yaw +)
+		v.advance(Vector3(0, 0, 0.05), 0.004, 1.0 / 60.0)
+	var steer_rev := v.steer
+	v.advance(Vector3(0, 0, -5000.0), 0.0, 1.0 / 60.0)  # a floating-origin shift: no roll
+	var after := v.turn
+	v.free()
+	if absf(fwd - 3.0 / 1.5) > 1e-3:
+		return "rolled %.3f model metres, want 2.0" % fwd
+	if absf(after - (fwd - 6.0 / 1.5)) > 1e-3:
+		return "reversing unrolls, a jump is ignored: %.3f" % after
+	if steer_rev <= 0.02:  # reversing into a left yaw = wheels to the right
+		return "steer while reversing left: %.3f" % steer_rev
 	return ""
 
 
@@ -119,13 +195,13 @@ func test_vehicles_follow_me_car_shape_and_motion() -> String:
 		car.place(pe, pn, hdg, 1.0 / 60.0, hf)
 		worst = maxf(worst, absf(car.steer))
 		if is_nan(car.position.x) or is_nan(car.speed) or is_nan(car.heading):
-			car.queue_free()
+			car.free()
 			return "NaN at step %d" % i
 	var braking := car.brake
 	var steered := worst > 0.05
 	var final_h := car.heading
 	var up := absf(car.world_enu.z - 3.0)
-	car.queue_free()
+	car.free()
 	if not steered:
 		return "front wheels steered in the turn: max %.3f" % worst
 	if absf(FollowMeLogic.angle_diff(final_h, PI / 2)) > 0.1:

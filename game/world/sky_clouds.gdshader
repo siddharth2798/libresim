@@ -23,6 +23,7 @@ uniform float moon_vis = 0.0;     // night x clear sky x above the horizon
 uniform float stars = 0.0;        // star visibility
 uniform float cirrus = 0.0;       // 0..1 high wispy layer (thinner / absent under a thick deck)
 uniform vec2 cirrus_wind = vec2(0.0);
+uniform float horizon_dip = 0.0;  // sine of the horizon's dip at the camera's altitude (HazeLut.horizon_dip_sin, G4)
 
 // ---- single scattering atmosphere (constants and sample layout as in atmosphere.gd) ----
 const float A_RE = 6371000.0;
@@ -124,7 +125,10 @@ float cirrus_density(vec3 d) {
 void sky() {
 	vec3 d = EYEDIR;
 	vec3 sun = LIGHT0_DIRECTION;  // towards the sun, render frame (x east, y up, z south)
-	float up = max(d.y, 0.0);
+	// the horizon dips with altitude like the bent ground (curvature.gdshaderinc): the gradient, the analytic
+	// sky and the haze table (haze_sky.gdshaderinc) are all measured from the dipped horizon
+	vec3 dh = normalize(vec3(d.x, d.y + horizon_dip, d.z));
+	float up = max(dh.y, 0.0);
 	// analytic sky as a deviation from its own gradient: the weather / night colours in the
 	// uniforms pass through unchanged, a clear day is exactly atmo_sky(). The radiance (ambient)
 	// cubemap pass keeps the plain gradient.
@@ -132,15 +136,15 @@ void sky() {
 	float g = pow(up, 0.5);
 	vec3 col = mix(horizon_color, zenith_color, g);
 	if (clear > 0.001 && !AT_CUBEMAP_PASS) {
-		col += clear * (atmo_sky(d, sun_u) - mix(model_hor, model_top, g));
+		col += clear * (atmo_sky(dh, sun_u) - mix(model_hor, model_top, g));
 	}
-	if (d.y < 0.0) col = mix(col, ground_color, smoothstep(0.0, 0.2, -d.y));
+	if (dh.y < 0.0) col = mix(col, ground_color, smoothstep(0.0, 0.2, -dh.y));
 	float mu = max(dot(d, sun), 0.0);
 	col += LIGHT0_COLOR * (pow(mu, 2000.0) * 40.0 + pow(mu, 12.0) * 0.18 + pow(mu, 3.0) * 0.06) * LIGHT0_ENERGY * day * sun_vis;
 	if (AT_CUBEMAP_PASS) {  // radiance / ambient: no point sources
 		COLOR = col;
 	} else {
-		float above = smoothstep(-0.01, 0.06, d.y);  // extinction near the horizon
+		float above = smoothstep(-0.01, 0.06, dh.y);  // extinction near the horizon
 		if (cirrus > 0.0 && d.y > 0.0) {
 			float dens = cirrus_density(d);
 			vec3 lit = mix(vec3(0.88, 0.91, 0.97), vec3(1.0, 0.7, 0.5), dusk * 0.8) * (0.04 + 0.96 * day) + vec3(0.6, 0.68, 0.85) * 0.05 * moon_illum * moon_vis;

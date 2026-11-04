@@ -25,6 +25,17 @@ const DEFAULTS := {
 	"checklist_opacity": 0.9,  # background opacity (text stays opaque)
 	"checklist_collapsed": false,
 	"atc_voice": false,  # say ATC transmissions with the OS text-to-speech voice (atc/atc_voice.gd)
+	# post effects (core/post_fx.gd; each also needs a high enough preset / the right renderer: core/post_fx_rules.gd)
+	"bloom": true,  # Environment glow (never on Low)
+	"motion_blur": true,  # High+, Forward+ only
+	"sun_shafts": true,  # Medium+
+	"sharpen": true,  # High+, only with TAA or a render scale != 1
+	"color_grading": true,  # time-of-day / weather grade, all presets
+	"heat_shimmer": true,  # High+
+	"lens_rain": true,  # Medium+, outside views only
+	"lens_effects": false,  # vignette + chromatic aberration + film grain
+	"depth_of_field": false,  # replay and free camera only
+	"volumetric_fog": true,  # High+, Forward+ only: shafts, rain curtains, mist (world/volumetric_fog.gd)
 }
 const CHOICES := {
 	"alt_unit": ["ft", "m"],

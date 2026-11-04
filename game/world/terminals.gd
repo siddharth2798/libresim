@@ -39,7 +39,7 @@ func _exit_tree() -> void:
 
 func _process(dt: float) -> void:
 	_solids.poll()
-	var night := clampf((2.0 - Props.get_f("environment/sun_elev_deg", 30.0)) / 8.0, 0.0, 1.0)
+	var night := NightSky.night_level(Props.get_f("environment/sun_elev_deg", 30.0))
 	for m in _mats:
 		m.set_shader_parameter("night", night)
 	_timer -= dt

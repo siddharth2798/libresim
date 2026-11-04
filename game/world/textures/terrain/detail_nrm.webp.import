@@ -1,0 +1,30 @@
+[remap]
+
+importer="2d_array_texture"
+type="CompressedTexture2DArray"
+uid="uid://dc1yedlbsrxkj"
+path.bptc="res://.godot/imported/detail_nrm.webp-1f1a3b8f8e0fe46f1f52ff88c3ab2624.bptc.ctexarray"
+path.astc="res://.godot/imported/detail_nrm.webp-1f1a3b8f8e0fe46f1f52ff88c3ab2624.astc.ctexarray"
+metadata={
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
+}
+
+[deps]
+
+source_file="res://world/textures/terrain/detail_nrm.webp"
+dest_files=["res://.godot/imported/detail_nrm.webp-1f1a3b8f8e0fe46f1f52ff88c3ab2624.bptc.ctexarray", "res://.godot/imported/detail_nrm.webp-1f1a3b8f8e0fe46f1f52ff88c3ab2624.astc.ctexarray"]
+
+[params]
+
+compress/mode=2
+compress/high_quality=true
+compress/lossy_quality=0.7
+compress/uastc_level=0
+compress/rdo_quality_loss=0.0
+compress/hdr_compression=1
+compress/channel_pack=1
+mipmaps/generate=true
+mipmaps/limit=-1
+slices/horizontal=1
+slices/vertical=11

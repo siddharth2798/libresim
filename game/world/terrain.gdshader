@@ -21,9 +21,10 @@ uniform float skirt_depth = 30.0;
 // geomorph: vertices blend toward the parent node's (2x coarser) surface between
 // these camera distances, so LOD splits/merges don't pop (TerrainQuadtree)
 uniform vec2 morph_range = vec2(1e12, 2e12);
-global uniform vec3 terrain_eye;    // camera, render space (same in shadow passes)
+#include "res://world/curvature.gdshaderinc"  // terrain_eye (camera, also in shadow passes), curve_drop()
 global uniform vec3 fog_color;      // set by SkyTime (visibility / time of day)
 global uniform float haze_density;
+#include "res://world/haze_sky.gdshaderinc"  // haze_color(): view-dependent far haze (G4)
 global uniform vec2 pattern_origin; // FloatingOrigin.pattern_origin(): origin mod ~50 km (float32-safe)
 global uniform vec3 sky_top_color;
 global uniform float wetness;       // WeatherFx: wet ground after rain
@@ -32,6 +33,8 @@ uniform sampler2D lc_tex : filter_linear, repeat_disable;  // land class: 255 = 
 // ESA WorldCover class per texel (tools/19_worldcover.py), same source tile / lc_off / lc_scale as lc_tex;
 // 1x1 when absent. Read with texelFetch and blended per class parameter, never filtered as classes.
 uniform sampler2D wc_tex : filter_nearest, repeat_disable;
+global uniform sampler2D apron_mask : filter_linear, repeat_disable;  // ApronMask: airside of the nearest airport
+global uniform vec4 apron_mask_box;  // its SW corner (pattern frame, like v_en) and size (m); z = 0: none
 #include "res://world/terrain_landcover.gdshaderinc"
 global uniform sampler2D cloud_noise : filter_linear_mipmap, repeat_enable;  // CloudLayer coverage noise
 global uniform vec4 cloud_shadow;   // x cloud base (m), y coverage, z shadow strength
@@ -70,6 +73,7 @@ void vertex() {
 	vec3 wr = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
 	v_en = vec2(wr.x + pattern_origin.x, -wr.z + pattern_origin.y);
 	v_alt = wr.y;
+	VERTEX += curve_local(MODEL_MATRIX, curve_drop(wr));  // Earth curvature, visual only (curvature.gdshaderinc)
 }
 
 float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
@@ -144,6 +148,9 @@ vec3 ground_detail(vec3 col, vec3 wn, vec4 amp, float streak, float k) {
 
 #include "res://world/terrain_roads.gdshaderinc"
 #include "res://world/terrain_water.gdshaderinc"
+#include "res://world/terrain_night.gdshaderinc"
+#include "res://world/terrain_detail.gdshaderinc"
+#include "res://world/terrain_pavement.gdshaderinc"
 
 void fragment() {
 	vec2 uv = img_off + vec2(UV.x, -UV.y) * img_scale;
@@ -170,35 +177,28 @@ void fragment() {
 		water = max(water, river);
 	}
 	float land = 1.0 - water;
+	Pave pv = pv_fetch(ro_rect.xy + vec2(UV.x, -UV.y) * ro_rect.z, v_dist, max(ro_aa, 0.2)); pv.k *= land;  // aprons
 	// forest floor: dense tree cover (land class 1..200) darkens and greens the imagery under the canopy;
 	// with WorldCover the tree class tint does most of this, so the density term is only a hint
 	float forest = smoothstep(0.1, 0.6, texture(lc_tex, lc_uv).r * 1.275) * land;
 	col = mix(col, col * vec3(0.8, 0.95, 0.72) * 0.85, forest * (textureSize(wc_tex, 0).x > 1 ? 0.3 : 0.6));
 	// land cover: class parameters from the 4 texels around the fragment, weights smoothed and the
 	// sampling point warped by noise so 10 m class borders are neither blocky nor straight
-	float cls_k = (1.0 - smoothstep(5000.0, 12000.0, v_dist)) * land;
+	float cls_k = (1.0 - smoothstep(5000.0, 12000.0, v_dist)) * land * (1.0 - pv.k);
 	vec3 c_tint = vec3(1.0);
-	float c_desat = 0.0, c_streak = 0.15;
+	float c_desat = 0.0, c_streak = 0.15, c_built = 0.0;
 	vec4 c_amp = vec4(1.0, 0.0, 0.0, 0.0);  // class 0 = the plain ground look
-	ivec2 wsz = textureSize(wc_tex, 0);
-	if (cls_k > 0.0 && wsz.x > 1) {
-		vec2 tc = lc_uv * vec2(wsz) - 0.5 + (vec2(vnoise(v_en * 0.045), vnoise(v_en * 0.045 + 31.7)) - 0.5) * 1.4;
-		ivec2 i0 = ivec2(floor(tc));
-		vec2 f = fract(tc);
-		f = f * f * (3.0 - 2.0 * f);
-		ivec2 hi = wsz - 1;
-		ivec4 cc = ivec4(int(texelFetch(wc_tex, clamp(i0, ivec2(0), hi), 0).r * 255.0 + 0.5),
-			int(texelFetch(wc_tex, clamp(i0 + ivec2(1, 0), ivec2(0), hi), 0).r * 255.0 + 0.5),
-			int(texelFetch(wc_tex, clamp(i0 + ivec2(0, 1), ivec2(0), hi), 0).r * 255.0 + 0.5),
-			int(texelFetch(wc_tex, clamp(i0 + ivec2(1, 1), ivec2(0), hi), 0).r * 255.0 + 0.5));
-		vec4 w = vec4((1.0 - f.x) * (1.0 - f.y), f.x * (1.0 - f.y), (1.0 - f.x) * f.y, f.x * f.y);
-		cls_blend(min(cc, ivec4(11)), w, c_tint, c_desat, c_amp, c_streak);
+	ivec4 cc = ivec4(0);  // WorldCover classes of the 4 texels around the fragment, and their weights
+	vec4 cw = vec4(1.0, 0.0, 0.0, 0.0);
+	if (cls_k > 0.0 && cls_corners(lc_uv, v_en, cc, cw)) {
+		cls_blend(min(cc, ivec4(11)), cw, c_tint, c_desat, c_amp, c_streak);
+		c_built = cls_weight(cc, cw, 5) * cls_k;
 	}
 	col = mix(col, vec3(dot(col, vec3(0.299, 0.587, 0.114))), c_desat * cls_k);
 	col *= mix(vec3(1.0), c_tint, cls_k);
 	// macro: slow tonal drift (m-scale to km-scale) so far ground is not a flat smear
 	float macro = fbm(v_en * 0.0011) - 0.5 + 0.6 * (fbm(v_en * 0.011) - 0.5);
-	col *= 1.0 + macro * 0.5 * land * smoothstep(300.0, 2500.0, v_dist);
+	col *= 1.0 + macro * 0.5 * land * smoothstep(300.0, 2500.0, v_dist) * (1.0 - 0.8 * night_level);  // night: no blotches
 	// micro: soft grain and relief within a kilometre
 	float near_k = 1.0 - smoothstep(250.0, 1400.0, v_dist);
 	vec3 wn = (INV_VIEW_MATRIX * vec4(NORMAL, 0.0)).xyz;  // ground normal, render frame (x east, y up)
@@ -208,16 +208,26 @@ void fragment() {
 		col *= 1.0 + grain * 0.22 * land * (1.0 - road) * near_k * c_amp.x;
 		vec2 e = vec2(0.6, 0.0);
 		vec2 mg = vec2(fbm(q + e.xy) - fbm(q - e.xy), fbm(q + e.yx) - fbm(q - e.yx));
-		NORMAL = normalize(NORMAL + (VIEW_MATRIX * vec4(-mg.x, 0.0, mg.y, 0.0)).xyz * 0.25 * land * (1.0 - 0.8 * road) * near_k * (0.5 + 0.5 * c_amp.x));
+		NORMAL = normalize(NORMAL + (VIEW_MATRIX * vec4(-mg.x, 0.0, mg.y, 0.0)).xyz * 0.25 * land * (1.0 - 0.8 * road) * (1.0 - pv.k) * near_k * (0.5 + 0.5 * c_amp.x));
 	}
 	col = ground_detail(col, wn, c_amp, c_streak, cls_k);
+	vec3 det_n; float det_r;  // G6 tiling PBR detail per class, under the imagery (terrain_detail.gdshaderinc)
+	col = terrain_detail(col, wn, vec3(v_en.x, v_alt, -v_en.y), cc, cw, lc_uv, v_en, v_dist, cls_k, det_n, det_r);
 	col *= 1.0 - 0.3 * bank;  // wet river bank
 	float rough = 0.95;
 	float spec = 0.1;
+	rough = clamp(rough + det_r, 0.3, 1.0);
+	NORMAL = normalize(NORMAL + (VIEW_MATRIX * vec4(det_n, 0.0)).xyz);
 	if (road > 0.0) {
 		col = mix(col, road_surface(ro_cls, ro_e + RO_HW[ro_cls], ro_aa, v_dist, v_en), road);
 		rough = mix(rough, 0.72, road);
 		spec = mix(spec, 0.2, road);
+	}
+	if (pv.k > 0.0) {  // airport pavement (terrain_pavement.gdshaderinc)
+		float pr, ps; vec3 pn;
+		col = mix(col, pave_surface(pv, uv, v_en, v_dist, ro_aa, pr, ps, pn), pv.k);
+		rough = mix(rough, pr, pv.k); spec = mix(spec, ps, pv.k);
+		NORMAL = normalize(NORMAL + (VIEW_MATRIX * vec4(pn * pv.k, 0.0)).xyz);
 	}
 	// cloud shadows: where the sun's ray to this ground point crosses the cloud layer's coverage noise
 	if (cloud_shadow.z > 0.0 && cloud_sun.y > 0.08) {
@@ -235,17 +245,19 @@ void fragment() {
 		float sd_m = sd4.r * 255.0 - 128.0;
 		float chop = mix(0.28, 1.0, smoothstep(0.08, 0.4, sd4.g));  // sheltered water is calmer
 		vec2 g = wave_grad(v_en, TIME) * 1.4 * chop * (1.0 - smoothstep(150.0, 2500.0, v_dist));
+		g += water_fine_grad(v_en, TIME, v_dist, ro_aa) * mix(0.5, 1.0, chop);  // ripples (terrain_water)
 		vec3 nw = normalize(vec3(-g.x, 1.0, g.y));  // render frame: x east, y up, z south
 		vec3 nv = normalize((VIEW_MATRIX * vec4(nw, 0.0)).xyz);
 		float fres = pow(1.0 - clamp(dot(nv, VIEW), 0.0, 1.0), 4.0);
-		vec3 deep = vec3(0.05, 0.13, 0.15);  // Arabian Sea: grey-green-blue
+		vec4 deep = water_deep(sd_m, sd4.g, sea, v_en);  // rgb colour, a satellite tint weight
 		vec3 sat = col * 0.75;  // keep the satellite tint near coasts and creeks
-		vec3 base = mix(mix(deep, sat, 0.4), vec3(0.045, 0.085, 0.065), 1.0 - sea);  // green-brown ribbons
+		vec3 base = mix(mix(deep.rgb, sat, deep.a), vec3(0.045, 0.085, 0.065), 1.0 - sea);  // green-brown ribbons
 		// shoals: turquoise near the shore (blended with what the imagery shows), deep offshore
 		float shoal = exp(-max(sd_m, 0.0) / 55.0) * sea;
 		base = mix(base, mix(vec3(0.05, 0.26, 0.25), col * 0.9, 0.45), shoal * 0.8);
 		vec3 sky = mix(sky_top_color, fog_color, 0.35);
-		vec3 wcol = mix(base, sky, clamp(fres * 0.75 + 0.04, 0.0, 0.85));
+		vec3 wcol = mix(base, sky, water_sky_blend(fres));
+		wcol += water_glint(nw, (INV_VIEW_MATRIX * vec4(VIEW, 0.0)).xyz, v_en, v_alt, v_dist, ro_aa, chop, TIME);
 		col = mix(col, wcol, water);
 		float foam = shore_foam(sd_m, sd4.g, v_en, v_dist, TIME) * sea * water;
 		col = mix(col, vec3(0.92, 0.95, 0.96), foam);
@@ -267,9 +279,17 @@ void fragment() {
 		spec = mix(spec, 0.35, wet);
 	}
 	// aerial perspective: surface light extinguished, horizon-coloured in-scatter added
+	// night: dark, colourless ground with street and city lights (terrain_night.gdshaderinc)
+	vec3 glow = vec3(0.0);
+	if (night_level > 0.0) {
+		col = mix(col, night_albedo(col), land);
+		float aa = max(max(fwidth(v_en.x), fwidth(v_en.y)), 0.05);
+		float airside = apron_mask_box.z > 0.0 ? texture(apron_mask, (v_en - apron_mask_box.xy) / apron_mask_box.zw * vec2(1.0, -1.0) + vec2(0.0, 1.0)).r : 0.0;
+		glow = (street_light(v_en, road, ro_cls, ro_e, aa) + city_lights(v_en, aa, c_built * (1.0 - road) * (1.0 - airside))) * night_level * land;
+	}
 	float haze = 1.0 - exp(-v_dist * haze_density);
 	ALBEDO = col * (1.0 - haze);
-	EMISSION = fog_color * haze;
+	EMISSION = haze_color(-(INV_VIEW_MATRIX * vec4(VIEW, 0.0)).xyz) * haze + glow * (1.0 - haze);
 	ROUGHNESS = rough;
 	SPECULAR = spec * (1.0 - haze);
 }

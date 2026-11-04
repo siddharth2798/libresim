@@ -215,7 +215,9 @@ static func _cap(d: Dictionary) -> void:
 		d.erase(d.keys()[0])  # oldest inserted
 
 
-## Terrain height (m) at world ENU (east, north), bilinear on level-0 samples.
+## Terrain height (m) at world ENU (east, north) on level-0 samples, interpolated exactly as the finest terrain
+## mesh draws it: two triangles per cell split along the (i+1, j)-(i, j+1) diagonal (TerrainMesh), so the FDM's
+## ground, the pavement ribbons (GroundDrape) and the drawn terrain are one surface (docs/TYRE-CONTACT-PLAN.md).
 func height_at(east: float, north: float) -> float:
 	var size: float = tmeta.tile_size_m
 	var tx := floori(east / size)
@@ -242,7 +244,11 @@ func height_at(east: float, north: float) -> float:
 	var h10 := b.decode_u16((j * w + i + 1) * 2)
 	var h01 := b.decode_u16(((j + 1) * w + i) * 2)
 	var h11 := b.decode_u16(((j + 1) * w + i + 1) * 2)
-	var hv := lerpf(lerpf(h00, h10, u), lerpf(h01, h11, u), v)
+	var hv: float
+	if u + v <= 1.0:
+		hv = h00 + (h10 - h00) * u + (h01 - h00) * v
+	else:
+		hv = h11 + (h01 - h11) * (1.0 - u) + (h10 - h11) * (1.0 - v)
 	return hv * h_scale + h_offset
 
 

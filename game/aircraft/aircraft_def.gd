@@ -20,6 +20,10 @@ extends RefCounted
 ##   short_name  the aircraft on the start-screen chips (name is the full title, preview.jpg the picture)
 ##   cameras  chase / wing / tail / orbit view positions (ui/camera_rig.gd), see camera()
 ##   registration  tail number painted at flight start: {source: callsign | fixed, text, texture, targets: [{erase, text, align, color, italic, rotate, erase_axis, texture}]} (common/registration_paint.gd; the C172 also repaints its wing undersides)
+##   livery   paint colours the pilot may change (L0: data + compositor, not yet used by the game; tools/25_livery_masks.py makes it for the C172):
+##            {atlases: [{id, texture}], regions: [{key, label, default [r,g,b], masks: [{atlas, mask, luma}]}]}: one region may be on several
+##            atlases, each with its own 8-bit grey mask PNG (livery/<atlas>_<region>.png) and the shading reference `luma` of the atlas under it
+##            (common/livery.gd parses and merges colours, common/livery_paint.gd + livery.gdshader recolour an atlas on the GPU)
 ##   start    pitch_trim of a parked start; air {alt_ft, dist_nm, kias, gear "up"|"down", flaps (detent), limits {alt_ft, dist_nm: [min, max]}}
 ##            the default "In the air" start (height, distance on final, speed, config; aircraft/air_start.gd derives what is
 ##            missing, air_start() returns it); air_kt is the older spelling of air.kias
@@ -27,6 +31,7 @@ extends RefCounted
 ##   callouts optional {alive_kt, rotate_kt, v1_kt, low_kt, heights}: the training callouts (ui/callouts.gd)
 ##   ground   footprint, height, tow point, optional min_runway_m (the start screen flags shorter runways) for stands, taxi corridors and jetways (world/ops_*.gd); all keys in world/ground_params.gd
 ##   pushback  straight_m, radius_m, speed_mps of the pushback path (world/pushback_path.gd)
+##   ramp     optional ramp-crew service points (GPU, refuel, cargo, doors) and airframe keep-out (world/ramp_points.gd)
 ##   payload  start-screen fuel slider and stations (ui/menu/aircraft_page.gd, weight_balance.gd):
 ##            fuel_kg_per_gal, cruise_gph, reserve_gal, fuel_slider {min, max, step, unit},
 ##            stations [{key (Session.setup), label, max, step, masses [config point-mass names]}]
@@ -34,6 +39,9 @@ extends RefCounted
 ##   icing    optional {protection: none | pitot_only | wing_and_engine, drag_k, clmax_k, power_loss_k, egt_k, pitot_heat_prop,
 ##            wing_anti_ice_prop, engine_anti_ice_prop, bleed_wing, bleed_engine, rain_cl_k, rain_cd_k, rain_n1_k}: ice and rain
 ##            (systems/icing.gd DEFAULTS, fdm/environment_effects.gd); absent = the C172's numbers
+##   exhausts optional {strength, list: [{pos [x, y, z], dir [x, y, z], radius, kind: jet | piston, engine (1-based),
+##            length_m, spread}]}: heat shimmer behind running exhausts, model frame of models/*_pivots.json
+##            (world/postfx/heat_shimmer.gd); absent = no exhaust shimmer
 ## The flight-model numbers (aero, mass, gear, tanks, engines) are in config.json and aero.json.
 
 const ROOT := "res://aircraft/"

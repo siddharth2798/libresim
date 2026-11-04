@@ -18,6 +18,7 @@ extends RefCounted
 ##   controls/anti_ice/{wing, eng_<n>} bool (probe heat, controls/anti_ice/probe, stays on: systems/icing.gd)
 ##   controls/fcu/ap1, ap2, athr, loc, appr (bool toggles)
 ##   controls/fcu/spd_kt, hdg_deg, alt_ft, vs_fpm (set-points in pilot units, like adf/freq_khz)
+##   controls/lights/{takeoff, rwy_turnoff, wing, logo} bool (an airliner's extra exterior lights, aircraft_lights.gd)
 
 const DEFAULT_GROUPS := ["throttle", "mixture", "trim", "flaps", "brakes", "parking_brake",
 	"magnetos", "starter", "fuel_selector", "fuel_shutoff"]
@@ -47,6 +48,7 @@ const GROUPS := {
 	"anti_ice": ["anti_ice_wing", "anti_ice_eng_1", "anti_ice_eng_2"],
 	"fcu": ["fcu_ap1", "fcu_ap2", "fcu_athr", "fcu_loc", "fcu_appr", "fcu_spd_up", "fcu_spd_down",
 		"fcu_hdg_right", "fcu_hdg_left", "fcu_alt_up", "fcu_alt_down", "fcu_vs_up", "fcu_vs_down"],
+	"ext_lights": ["takeoff_light", "turnoff_lights", "wing_lights", "logo_lights"],
 }
 
 ## Press actions that flip a bool prop.
@@ -57,6 +59,8 @@ const TOGGLES := {
 	"anti_ice_wing": "controls/anti_ice/wing", "anti_ice_eng_1": "controls/anti_ice/eng_1", "anti_ice_eng_2": "controls/anti_ice/eng_2",
 	"fcu_ap1": "controls/fcu/ap1", "fcu_ap2": "controls/fcu/ap2", "fcu_athr": "controls/fcu/athr",
 	"fcu_loc": "controls/fcu/loc", "fcu_appr": "controls/fcu/appr",
+	"takeoff_light": "controls/lights/takeoff", "turnoff_lights": "controls/lights/rwy_turnoff",
+	"wing_lights": "controls/lights/wing", "logo_lights": "controls/lights/logo",
 }
 ## Press actions that cycle an int prop: action -> [prop, states, value when the prop was never set].
 const CYCLES := {
@@ -96,6 +100,8 @@ const SEEDS := {
 	"fcu": {"controls/fcu/ap1": false, "controls/fcu/ap2": false, "controls/fcu/athr": false, "controls/fcu/loc": false,
 		"controls/fcu/appr": false, "controls/fcu/spd_kt": 250.0, "controls/fcu/hdg_deg": 0.0,
 		"controls/fcu/alt_ft": 10000.0, "controls/fcu/vs_fpm": 0.0},
+	"ext_lights": {"controls/lights/takeoff": false, "controls/lights/rwy_turnoff": false, "controls/lights/wing": false,
+		"controls/lights/logo": false},
 }
 ## Held buttons (a joystick button is down or not; no press edge).
 const HELD_BUTTONS := ["reverse", "apu_start"]

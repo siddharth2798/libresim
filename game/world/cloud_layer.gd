@@ -5,6 +5,8 @@ extends MeshInstance3D
 ## The CPU copy of the density (for in-cloud fog) lives in SkyTime.cloud_density.
 
 var steps := 24  # set by graphics presets
+var light_steps := 1  # samples along the sun ray per march step (graphics presets: 1..4)
+var max_dist := 25000.0  # m: end of the march (graphics presets "cloud_dist"); the cloud fades out before it
 var _mat := ShaderMaterial.new()
 var _lo: NoiseTexture2D
 var _hi: NoiseTexture2D
@@ -13,6 +15,9 @@ var _img_hi: Image
 var base := 1400.0
 var cover := 0.0
 var drift := Vector2.ZERO
+var air_haze := 1.8e-5  # clear-air haze extinction (1/m) for the clouds' aerial perspective (SkyTime)
+var mean_d := Vector3.ZERO  # mean density at 20 / 50 / 80 % of the layer height (the far veil, _update_mean)
+var _mean_key := -1
 var shadow := Vector4.ZERO  # last cloud_shadow global: (base m, coverage, strength, 0)
 
 
@@ -63,8 +68,31 @@ func update_layer(cam_world: Vector3, base_m: float, cov: float, dr: Vector2, su
 	_mat.set_shader_parameter("sun_color", sun_col)
 	_mat.set_shader_parameter("ambient", amb)
 	_mat.set_shader_parameter("steps", steps)
+	_mat.set_shader_parameter("max_dist", max_dist)
+	_mat.set_shader_parameter("air_haze", air_haze)
+	_update_mean()
+	_mat.set_shader_parameter("light_steps", clampi(light_steps, 1, 4))
 	_mat.set_shader_parameter("base_dark", base_dark)
 	_publish_shadow(sun_dir, sun_col, base_dark)
+
+
+## Mean density of the layer at three heights (CPU twin of the shader's density over one 9 km noise tile), for
+## the far veil beyond max_dist (volumetric_clouds.gdshader): recomputed when the coverage changes by 1 %.
+func _update_mean() -> void:
+	var key := roundi(cover * 100.0) if _img_lo != null and _img_hi != null else -1
+	if key == _mean_key:
+		return
+	_mean_key = key
+	var m := Vector3.ZERO
+	const N := 12
+	for k in 3:
+		var sum := 0.0
+		for j in N:
+			for i in N:
+				sum += density_at(Vector3((i + 0.5) * 9000.0 / N - drift.x, (j + 0.5) * 9000.0 / N - drift.y, base + 900.0 * (0.2 + 0.3 * k)))
+		m[k] = sum / (N * N)
+	mean_d = m
+	_mat.set_shader_parameter("mean_density", mean_d)
 
 
 ## In-cloud presentation (CloudInside): k the in-cloud factor, pocket_m a radius around the camera kept free of

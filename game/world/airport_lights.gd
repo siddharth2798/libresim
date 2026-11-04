@@ -1,7 +1,7 @@
 class_name AirportLights
 extends RefCounted
 ## Builds the complete aerodrome lighting of one airport as a Node3D: runway lights,
-## approach lights, PAPIs, taxiway lights, stop bars and apron floodlights. One
+## approach lights, PAPIs, taxiway lights, stop bars, apron floodlights and stand boards. One
 ## MultiMesh per material group; positions relative to the airport anchor (ENU).
 ## mats: group name -> material (see RunwayLights.GROUPS) plus "pool".
 
@@ -10,7 +10,8 @@ const MIN_LIT_LEN := 600.0
 
 var root: Node3D
 var papis: Array = []  # [[ident, units]] for read-outs
-var masts: Array = []  # Vector2 ENU of floodlight masts
+var masts: Array = []  # apron floodlights (ApronLightLayout records: masts, poles, facade floods)
+var banks: Array = []  # their banks for ApronLamps (ApronFloodlights.bank_records)
 var counts := {}  # group -> light count
 var _icao := ""
 
@@ -83,11 +84,12 @@ func build(icao: String, runways: Array, taxiways: Array, ils: Array, ops: Dicti
 		tl.taxiway(taxiways, ti, centre, hf, sets.taxi)
 	for hp in ops.get("holds", []):
 		tl.hold(Vector2(hp.x, hp.y), hf, sets.stop)
-	masts = ApronFloodlights.masts(ops.get("stands", []), runways)
-	ApronFloodlights.add_heads(masts, hf, sets.flood)
 	_icao = icao
-	for m in masts:  # solid, too (ObstacleRegistry), unless it stands where a C172 is meant to be
-		OpsSolids.add_pole("masts:" + icao, m, 0.6, ApronFloodlights.MAST_H, hf.call(m.x, m.y), "a floodlight mast")
+	for m in ApronLightLayout.build(ops.get("stands", []), runways, ops, icao):  # masts / poles are solid too
+		if m.kind == "facade" or OpsSolids.add_pole("masts:" + icao, m.p, 0.6, m.h, hf.call(m.p.x, m.p.y), "a floodlight mast"):
+			masts.append(m)
+	ApronFloodlights.add_heads(masts, hf, sets.flood)
+	banks = ApronFloodlights.bank_records(masts, hf, icao)
 	for g in sets:
 		counts[g] = sets[g].count
 		var mi: MultiMeshInstance3D = sets[g].make_instance(mats[g], g)
@@ -98,4 +100,7 @@ func build(icao: String, runways: Array, taxiways: Array, ils: Array, ops: Dicti
 		root.add_child(hs)
 	for m in ApronFloodlights.meshes(masts, hf, anchor, mats.get("pool")):
 		root.add_child(m)
+	var boards := StandBoards.boards(ops.get("stands", []), ops).filter(func(b): return OpsSolids.add_pole(
+		"masts:" + icao, b.p, 0.3, StandBoards.H + StandBoards.BOARD.y, hf.call(b.p.x, b.p.y), "a stand number board"))
+	root.add_child(StandBoards.build(boards, hf, anchor))
 	return root

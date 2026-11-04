@@ -14,8 +14,11 @@ extends Node3D
 ##               rudder (rad) or flap_deg (degrees, converted); the airliner drives (slat, stabilizer, spoiler
 ##               panels, gear_pos / reverser with a piecewise "map", nose steering, wheel spin) are listed in
 ##               aircraft/model_drives.gd. A leg pivot with "compress": <gear contact name> (and "lift_m": the metres
-##               its wheels hang below the contact point when extended) is raised by the contact's compression, so
-##               tyres rest on the ground instead of sinking by the static spring deflection (0.3 m on the A320)
+##               its wheels hang below the contact point when extended, else measured from the meshes) is raised by
+##               the contact's compression, so tyres rest on the ground instead of sinking by the static spring
+##               deflection (0.3 m on the A320); fixed gear moves its wheel parts the same way (TyreContact)
+##   wheels      optional {<gear contact>: [glb node names]}: the parts that move with that fixed-gear wheel
+##               (default: meshes named like wheel / tyre / fairing / brake / strut nearest the contact)
 ##   propellers  [{"pivot": name, "engine": unit index (0 = engine 1), "sign": +-1, "visual_rate": f}]
 ##               spins pivot_<name> about its +X by sign * rpm/60 * TAU * dt * visual_rate (a turbofan's rpm is
 ##               its N1 in percent, so a fan needs a visual_rate near 0.75, a propeller 0.13)
@@ -40,7 +43,8 @@ var _pivots := {}  # glb mode: surface name -> [Node3D, base Basis]
 var _props: Array = []  # glb mode: [Node3D, engine index, sign, visual rate]
 var _wheels := {}  # wheel pivot drive -> rolling angle (ModelDrives.roll_wheels)
 var _wheel_drives := false
-var _legs: Array = []  # glb mode: [pivot, base position, contact name, lift m] (a pivot with "compress")
+var _tyres: TyreContact  # raises legs / wheel parts by the gear compression (aircraft/common/tyre_contact.gd)
+var _glb: Node3D  # glb mode: the exterior model root (light parents, AircraftLights)
 
 
 func build(node: FdmNode) -> void:
@@ -55,6 +59,7 @@ func build(node: FdmNode) -> void:
 		_airframe = PlaceholderAirframe.new()
 		add_child(_airframe)
 		_airframe.build(node.fdm, _s)
+		_tyres = TyreContact.build(_airframe, self, node.fdm, _model)
 	AircraftLights.tag_exterior(self)  # exterior on its own render layer for its lights
 	var e: Array = node.fdm.cfg.metrics.eyepoint_m
 	cockpit = Cockpit.new()
@@ -62,7 +67,7 @@ func build(node: FdmNode) -> void:
 	cockpit.build(self, _s(Vector3(e[0], e[1], e[2])))
 	var lights := AircraftLights.new()
 	add_child(lights)
-	lights.build(_s, def.section("lights"))
+	lights.build(_s, def.section("lights"), _glb)
 	ReflectionRig.attach(self)  # reflection probe: surroundings on the glass and paint (reflection_rig.gd)
 
 
@@ -70,19 +75,19 @@ func _build_glb(path: String) -> void:
 	var inst: Node3D = (load(path) as PackedScene).instantiate()
 	inst.transform = fg_transform()
 	add_child(inst)
+	_glb = inst
 	for n in _model.surfaces:
 		var pv := inst.find_child("pivot_" + n, true, false) as Node3D
 		if pv:
 			_pivots[n] = [pv, pv.transform.basis]
 			_wheel_drives = _wheel_drives or str(_model.surfaces[n].drive).begins_with("wheel_")
-			if _model.surfaces[n].has("compress"):
-				_legs.append([pv, pv.position, str(_model.surfaces[n].compress), float(_model.surfaces[n].get("lift_m", 0.0))])
 	for p in _model.propellers:
 		var pv := inst.find_child("pivot_" + str(p.pivot), true, false) as Node3D
 		if pv:
 			_props.append([pv, int(p.get("engine", 0)), float(p.get("sign", -1.0)), float(p.get("visual_rate", 0.13))])
 	fix_glass(inst, true)
 	lift_tyres(inst)
+	_tyres = TyreContact.build(inst, self, fdm_node.fdm, _model)
 	RegistrationPaint.apply(self, inst, def)  # tail number from the call sign (async the first time, then cached)
 
 
@@ -151,6 +156,8 @@ func _process(dt: float) -> void:
 		_airframe.animate(fdm_node.fdm, dt)
 	else:
 		_animate_glb(fdm_node.fdm, dt)
+	if _tyres:
+		_tyres.update(fdm_node.fdm, self)  # tyres on the ground: legs / wheel parts raised by the gear compression
 
 
 ## Signs come from each hinge axis direction (see convert_c172p.py HINGES): +angle about the
@@ -163,10 +170,6 @@ func _animate_glb(f: FDM, dt: float) -> void:
 		var s: Dictionary = _model.surfaces[k]
 		var v := ModelDrives.angle(k, s, f, _wheels)  # drives and "map": aircraft/model_drives.gd
 		_pivots[k][0].transform.basis = _pivots[k][1] * Basis(Vector3.RIGHT, v * float(s.get("sign", 1.0)))
-	for l in _legs:  # compression is vertical: raise the leg in the pivot's parent space
-		var pv: Node3D = l[0]
-		var up := (float(f.gear.compression.get(l[2], 0.0)) + float(l[3])) * (float(f.fcs.get("gear_pos")) if "gear_pos" in f.fcs else 1.0)
-		pv.position = l[1] + pv.get_parent().global_transform.basis.inverse() * (global_transform.basis * Vector3(0.0, up, 0.0))
 	for p in _props:
 		if p[1] < f.units.size():
 			(p[0] as Node3D).rotate_object_local(Vector3.RIGHT, p[2] * f.units[p[1]].thruster.rpm / 60.0 * TAU * dt * p[3])

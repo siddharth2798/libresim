@@ -29,14 +29,23 @@ window/stretch/aspect="expand"
 common/physics_ticks_per_second=120
 
 [rendering]
-renderer/rendering_method="mobile"
+renderer/rendering_method="forward_plus"
 textures/vram_compression/import_etc2_astc=true
 textures/vram_compression/compress_with_gpu=false
 anti_aliasing/quality/screen_space_aa=1
 anti_aliasing/quality/use_debanding=true
+textures/default_filters/anisotropic_filtering_level=4
 
 [shader_globals]
 
+apron_mask={
+"type": "sampler2D",
+"value": ""
+}
+apron_mask_box={
+"type": "vec4",
+"value": Vector4(0, 0, 0, 0)
+}
 cloud_noise={
 "type": "sampler2D",
 "value": ""
@@ -65,6 +74,22 @@ terrain_eye={
 "type": "vec3",
 "value": Vector3(0, 0, 0)
 }
+haze_lut={
+"type": "sampler2D",
+"value": ""
+}
+haze_sun={
+"type": "vec4",
+"value": Vector4(0, -1, 0, 0)
+}
+haze_ref={
+"type": "vec3",
+"value": Vector3(0, 0, 0)
+}
+ground_focus={
+"type": "vec3",
+"value": Vector3(1e+09, 0, 1e+09)
+}
 pattern_origin={
 "type": "vec2",
 "value": Vector2(0, 0)
@@ -82,6 +107,14 @@ wetness={
 "value": 0.0
 }
 rain_airspeed={
+"type": "float",
+"value": 0.0
+}
+night_level={
+"type": "float",
+"value": 0.0
+}
+water_ssr={
 "type": "float",
 "value": 0.0
 }

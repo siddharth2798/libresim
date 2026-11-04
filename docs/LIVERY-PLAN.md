@@ -4,7 +4,7 @@ Goal: the pilot picks colours for the main areas of the aircraft and adds a few 
 fin, a badge on the fuselage), sees the result on a live 3D preview on the start screen, saves it as a named
 preset, and flies with it. Everything is local; nothing the pilot adds ever enters the repository.
 
-Status: researched, decisions made (section 9), livery phases not started. Written 2026-10-31 from three code surveys
+Status: researched, decisions made (section 9), L0 done 2026-11-04 (section 6), L1 to L5 not started. Written 2026-10-31 from three code surveys
 (start-screen UI and saving, textures and UV layouts of both aircraft, the existing registration painter).
 The wing-underside registration the owner asked for (section 10) is done and shipped on its own.
 
@@ -102,7 +102,7 @@ by its hash. Anything else is refused with a one-line message.
 
 | Phase | Content | Done when |
 |---|---|---|
-| L0 | `livery.gd` logic, masks tool for the C172, compositor, colours only | a coloured C172 atlas renders in a probe scene; identity livery equals the original (+/- 1) |
+| L0 | `livery.gd` logic, masks tool for the C172, compositor, colours only | a coloured C172 atlas renders in a probe scene; identity livery equals the original (+/- 1) **DONE 2026-11-04** |
 | L1 | flight integration (one pass with registration), cache key, `Session.setup.livery`, `--livery` for probes | the C172 flies in a chosen colour with the right tail number, parked and in flight |
 | L2 | Livery step: preview, colours, presets, Reset | menu tests plus a screenshot; preset round trip |
 | L3 | stickers and picture import | a picture lands in its slot box, mirrored on the right side |
@@ -110,6 +110,10 @@ by its hash. Anything else is refused with a one-line message.
 | L5 | docs (`USAGE.md`, `SOURCE.md` change log for derived masks), README images, backup scripts include `liveries/`, e2e | full suite and e2e green |
 
 L0 to L2 give the colour builder; L3 and L4 can be reordered.
+
+**L0 done (2026-11-04).** Built: `tools/25_livery_masks.py` (C172 masks by colour thresholds inside island rectangles, 8 PNGs in `game/aircraft/c172/livery/`, the `livery` section of `aircraft.json`), `aircraft/common/livery.gd` (parse, colours, identity, cache key, the recolour rule) and `livery.gdshader` + `livery_paint.gd` (one GPU pass per atlas, up to 4 regions), `tests/test_livery.gd` (13 headless tests) and the windowed probe `tests/debug_livery.tscn` (GPU result equals the CPU rule within 0.5 level; identity returns `null`). Details in `docs/USAGE.md` "Aircraft data: livery".
+Differences from the plan: (1) a region has `masks: [{atlas, mask, luma}]` instead of one `atlas`/`mask`/`luma`, so one colour key spans fuselage, wing and tail, and `luma` is per atlas (the tail atlas is shaded darker than the fuselage); (2) regions are `body`, `accent`, `stripe` (the plan's "wings and tail" are body and accent on those atlases; no separate cowl or wing-tip region: the cowl and the side sweeps are one blue paint); wheel fairings are body paint, struts, propeller, spinner and tyres are not recoloured; (3) where regions meet the weights are added up and each region keeps the luminance left after the others' share (`recolor_multi`), this avoids the dark fringe a per-region lerp gives where the shading of a half-blue edge pixel is taken as the white's; (4) the identity livery returns `null` (use the original) instead of an equal copy; (5) the registration boxes and the fin logo glyphs are out of the masks, the registration is painted after the livery (box background is recoloured by the wipe), so L1 must run livery, registration, mipmaps in that order; (6) `compose` returns no mipmaps (the caller generates them after the registration stamp).
+Open for L1: the wing struts and gear legs stay white (they share the fuselage atlas with tyres and propeller, an optional `struts` region could take them); the baked grey tip of the pin stripe near the door has a soft green/tint glow with dark colours; a region at its factory colour still passes the shader (about 1 % darker), so L1 should skip the pass when only one region changed only if that is acceptable at the edges; the probe window must be in front on macOS.
 
 ## 7. Tests
 

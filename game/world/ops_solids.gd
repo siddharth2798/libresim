@@ -9,6 +9,7 @@ extends RefCounted
 
 const LABELS := {"fuel_truck": "a parked vehicle (fuel truck)", "gpu": "a parked vehicle (ground power unit)",
 	"baggage_tug": "a parked vehicle (baggage tug)", "baggage_cart": "a parked vehicle (baggage cart)",
+	"hydrant_dispenser": "a parked vehicle (hydrant dispenser)", "pushback_tug": "a parked vehicle (pushback tug)",
 	"apron_bus": "a parked vehicle (apron bus)", "fire_truck": "a parked vehicle (fire truck)", "jetway": "a jetway"}
 static var _aabbs := {}  # model name -> AABB in the model's own frame
 
@@ -29,7 +30,7 @@ static func model_aabb(kind: String, n: Node3D) -> AABB:
 	var first := true
 	for mi in n.find_children("*", "MeshInstance3D", true, false):
 		var m := mi as MeshInstance3D
-		if m.mesh == null:
+		if m.mesh == null or m.has_meta("no_solid"):  # a ground decal, light points: not part of the body
 			continue
 		var a: AABB = inv * m.global_transform * m.get_aabb()
 		out = a if first else out.merge(a)

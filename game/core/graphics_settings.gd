@@ -1,26 +1,56 @@
 extends Node
-## Autoload "Graphics": quality presets (low / medium / high / ultra), saved in
+## Autoload "Graphics": quality presets (low / medium / high / ultra / max), saved in
 ## user://graphics.cfg, overridable with --quality=<preset> on the command line.
-## Applies to the viewport, environment, sun and the scenery streamers of the
+## Applies to the viewport, environment, sun, shadow atlas and the scenery streamers of the
 ## current scene (call apply_to_scene after the scene is ready).
-## The renderer itself (Mobile vs Forward+) needs a restart: set_renderer() writes
-## override.cfg next to the project / executable.
+## Each preset names a renderer: Low / Medium run on Mobile (fastest on integrated GPUs), High and
+## up on Forward+ (SSAO, SSIL, SSR, TAA, FSR2 and no lights-per-mesh limit). The renderer itself
+## needs a restart: set_renderer() writes override.cfg next to the project / executable and
+## restart_needed() tells the menus to say so.
 
+## scale: 3D render scale (> 1 = supersampling, bilinear down; < 1 = upscaled, FSR1 on Mobile,
+## FSR2 on Forward+). msaa: index into [off, 2x, 4x]. shadow: sun shadow distance (m), pssm:
+## directional_shadow_mode. atlas / soft / pos_soft: directional shadow atlas size and the soft
+## shadow filter quality (RenderingServer.ShadowQuality) of the sun and of omni / spot lights.
+## ssao / ssil / taa: Forward+ only; ssr: SSR ray steps (0 = off, Forward+ only).
+## cloud_light: light samples per cloud raymarch step. real_lights: real SpotLights on the apron
+## floodlight banks nearest the camera (world/apron_lamps.gd); Mobile only lights a mesh with 8 spot
+## lights, so the Mobile presets stay at 4 or less and any preset is held to 4 when run on Mobile.
+## apron_shadows: how many of them (nearest the player's aircraft) cast shadows, Forward+ only.
+## vfog: volumetric fog level (world/vfog_rules.gd QUALITY: 0 off, 1..3 froxel grid / range), Forward+ only.
 const PRESETS := {
-	"low": {"scale": 0.7, "fsr": true, "msaa": 0, "fxaa": true, "shadow": 0.0, "pssm": 0, "glow": false,
-		"lod_k": 1.2, "bld": 4000.0, "trees": 1200.0, "tree_density": 0.5, "tree_lod": 0.0, "clouds": 10, "wisps": 0, "rain": 1500, "ssao": false, "taa": false, "ae": false},
-	"medium": {"scale": 0.85, "fsr": true, "msaa": 1, "fxaa": true, "shadow": 700.0, "pssm": 1, "glow": true,
-		"lod_k": 1.4, "bld": 6000.0, "trees": 1800.0, "tree_density": 0.8, "tree_lod": 90.0, "clouds": 16, "wisps": 40, "rain": 3000, "ssao": false, "taa": false, "ae": true},
-	"high": {"scale": 1.0, "fsr": false, "msaa": 1, "fxaa": false, "shadow": 1800.0, "pssm": 2, "glow": true,
-		"lod_k": 1.6, "bld": 9000.0, "trees": 2200.0, "tree_density": 1.0, "tree_lod": 120.0, "clouds": 24, "wisps": 80, "rain": 5000, "ssao": false, "taa": false, "ae": true},
-	"ultra": {"scale": 1.0, "fsr": false, "msaa": 2, "fxaa": false, "shadow": 4000.0, "pssm": 2, "glow": true,
-		"lod_k": 2.0, "bld": 12000.0, "trees": 3000.0, "tree_density": 1.2, "tree_lod": 150.0, "clouds": 40, "wisps": 120, "rain": 8000, "ssao": true, "taa": true, "ae": true},
+	"low": {"renderer": "mobile", "scale": 0.7, "fsr": true, "msaa": 0, "fxaa": true, "shadow": 0.0, "pssm": 0,
+		"atlas": 2048, "soft": 1, "pos_soft": 1, "glow": false, "lod_k": 1.2, "bld": 4000.0, "trees": 1200.0,
+		"tree_density": 0.5, "tree_lod": 0.0, "clouds": 10, "cloud_light": 1, "wisps": 0, "rain": 1500,
+		"ssao": false, "ssil": false, "ssr": 0, "taa": false, "ae": false, "real_lights": 2, "apron_shadows": 0, "vfog": 0},
+	"medium": {"renderer": "mobile", "scale": 0.85, "fsr": true, "msaa": 1, "fxaa": true, "shadow": 700.0, "pssm": 1,
+		"atlas": 4096, "soft": 2, "pos_soft": 2, "glow": true, "lod_k": 1.4, "bld": 6000.0, "trees": 1800.0,
+		"tree_density": 0.8, "tree_lod": 90.0, "clouds": 16, "cloud_light": 1, "wisps": 40, "rain": 3000,
+		"ssao": false, "ssil": false, "ssr": 0, "taa": false, "ae": true, "real_lights": 4, "apron_shadows": 0, "vfog": 0},
+	"high": {"renderer": "forward_plus", "scale": 1.0, "fsr": false, "msaa": 1, "fxaa": false, "shadow": 1800.0, "pssm": 2,
+		"atlas": 4096, "soft": 3, "pos_soft": 2, "glow": true, "lod_k": 1.6, "bld": 9000.0, "trees": 2200.0,
+		"tree_density": 1.0, "tree_lod": 120.0, "clouds": 24, "cloud_light": 2, "wisps": 80, "rain": 5000,
+		"ssao": true, "ssil": false, "ssr": 0, "taa": false, "ae": true, "real_lights": 10, "apron_shadows": 0, "vfog": 1},
+	"ultra": {"renderer": "forward_plus", "scale": 1.0, "fsr": false, "msaa": 2, "fxaa": false, "shadow": 4000.0, "pssm": 2,
+		"atlas": 8192, "soft": 4, "pos_soft": 3, "glow": true, "lod_k": 2.0, "bld": 12000.0, "trees": 3000.0,
+		"tree_density": 1.2, "tree_lod": 150.0, "clouds": 40, "cloud_light": 3, "wisps": 120, "rain": 8000,
+		"ssao": true, "ssil": false, "ssr": 48, "taa": true, "ae": true, "real_lights": 16, "apron_shadows": 1, "vfog": 2},
+	"max": {"renderer": "forward_plus", "scale": 1.25, "fsr": false, "msaa": 2, "fxaa": false, "shadow": 6000.0, "pssm": 2,
+		"atlas": 8192, "soft": 5, "pos_soft": 4, "glow": true, "lod_k": 2.4, "bld": 16000.0, "trees": 4000.0,
+		"tree_density": 1.4, "tree_lod": 250.0, "clouds": 64, "cloud_light": 4, "wisps": 160, "rain": 10000,
+		"ssao": true, "ssil": true, "ssr": 64, "taa": true, "ae": true, "real_lights": 24, "apron_shadows": 2, "cloud_dist": 60000.0, "vfog": 3},
 }
-const ORDER := ["low", "medium", "high", "ultra"]
+const ORDER := ["low", "medium", "high", "ultra", "max"]
 const CFG := "user://graphics.cfg"
+const OVERRIDE := "override.cfg"
 
 var preset := "high"
+## Renderer saved to override.cfg for the next start ("" = none saved in this run).
+var _pending_renderer := ""
+var _atlas := [-1, -1, -1]  # last atlas size / soft qualities sent to the RenderingServer
 signal changed(preset: String)
+## The renderer saved for the next start differs from the running one (or matches it again).
+signal restart_needed_changed(needed: bool)
 
 
 func _ready() -> void:
@@ -32,10 +62,28 @@ func _ready() -> void:
 			preset = a.substr(10).to_lower()
 	if not PRESETS.has(preset):
 		preset = "high"
+	_match_renderer_once.call_deferred()  # deferred: Session (autoloaded after us) decides interactive()
 
 
+## The renderer actually running ("forward_plus", "mobile" or "gl_compatibility"); also right when it
+## was picked with --rendering-method or override.cfg rather than project.godot.
 func renderer() -> String:
-	return str(ProjectSettings.get_setting("rendering/renderer/rendering_method", "mobile"))
+	return RenderingServer.get_current_rendering_method()
+
+
+## The renderer a preset is meant to run on.
+func preset_renderer(p: String) -> String:
+	return PRESETS.get(p, PRESETS.high).renderer
+
+
+## True when a different renderer has been saved and only takes effect after a restart.
+func restart_needed() -> bool:
+	return _pending_renderer != "" and _pending_renderer != renderer()
+
+
+## The renderer the next start will use: the saved choice while a restart is pending, else the running one.
+func next_renderer() -> String:
+	return _pending_renderer if restart_needed() else renderer()
 
 
 func set_preset(p: String) -> void:
@@ -46,30 +94,49 @@ func set_preset(p: String) -> void:
 		var cf := ConfigFile.new()
 		cf.set_value("graphics", "preset", p)
 		cf.save(CFG)
+		var want := preset_renderer(p)
+		# Also rewrite when going back to the running renderer, so a pending switch is cancelled.
+		if want != renderer() or _pending_renderer != "":
+			set_renderer(want)
 	apply_to_scene(get_tree().current_scene)
 	changed.emit(p)
 
 
-## Persist a renderer choice ("mobile" or "forward_plus"); takes effect on restart.
+## Persist a renderer choice ("mobile" or "forward_plus"); takes effect on restart. Also the manual
+## F10 toggle: the choice stands until the next preset change on the other renderer.
 func set_renderer(method: String) -> void:
-	var dir := ProjectSettings.globalize_path("res://") if OS.has_feature("editor") else OS.get_executable_path().get_base_dir()
-	var f := FileAccess.open(dir.path_join("override.cfg"), FileAccess.WRITE)
+	var f := FileAccess.open(_override_path(), FileAccess.WRITE)
 	if f:
 		f.store_string("[rendering]\nrenderer/rendering_method=\"%s\"\n" % method)
+	var was := restart_needed()
+	_pending_renderer = method
+	if restart_needed() != was:
+		restart_needed_changed.emit(restart_needed())
+
+
+func _override_path() -> String:
+	var dir := ProjectSettings.globalize_path("res://") if OS.has_feature("editor") else OS.get_executable_path().get_base_dir()
+	return dir.path_join(OVERRIDE)
+
+
+## First start after the project default became Forward+: a player on Low / Medium (integrated
+## GPU) would now run Forward+. If no renderer was ever chosen (no override.cfg), save the preset's
+## one so the next start is right; the menus then say "restart to apply".
+func _match_renderer_once() -> void:
+	if not Session.interactive() or FileAccess.file_exists(_override_path()):
+		return
+	if preset_renderer(preset) != renderer() and renderer() in ["mobile", "forward_plus"]:
+		set_renderer(preset_renderer(preset))
 
 
 func apply_to_scene(root: Node) -> void:
 	if root == null:
 		return
 	var s: Dictionary = PRESETS[preset]
-	var vp := root.get_viewport()
-	vp.scaling_3d_mode = Viewport.SCALING_3D_MODE_FSR if s.fsr else Viewport.SCALING_3D_MODE_BILINEAR
-	vp.scaling_3d_scale = s.scale
-	vp.msaa_3d = [Viewport.MSAA_DISABLED, Viewport.MSAA_2X, Viewport.MSAA_4X][s.msaa]
-	vp.screen_space_aa = Viewport.SCREEN_SPACE_AA_FXAA if s.fxaa else Viewport.SCREEN_SPACE_AA_DISABLED
-	vp.use_debanding = true  # dither before the 8-bit output: smooth dark sky gradients and fog do not band
 	var forward_plus := renderer() == "forward_plus"
-	vp.use_taa = s.taa and forward_plus
+	_apply_shadow_atlas(s)
+	var vp := root.get_viewport()
+	_apply_viewport(vp, s, forward_plus)
 	var sun := root.get_node_or_null("Sun") as DirectionalLight3D
 	if sun:
 		sun.shadow_enabled = s.shadow > 0.0
@@ -77,8 +144,7 @@ func apply_to_scene(root: Node) -> void:
 		sun.directional_shadow_mode = s.pssm  # 0 one orthogonal split, 1 two splits, 2 four (cascades)
 	var we := root.get_node_or_null("WorldEnvironment") as WorldEnvironment
 	if we:
-		we.environment.glow_enabled = s.glow
-		we.environment.ssao_enabled = s.ssao and forward_plus
+		_apply_environment(we.environment, s, forward_plus)
 	var t := root.get_node_or_null("Terrain")
 	if t:
 		t.lod_k = s.lod_k
@@ -90,6 +156,9 @@ func apply_to_scene(root: Node) -> void:
 		tr.radius = s.trees
 		tr.density_scale = s.tree_density
 		tr.lod_radius = s.tree_lod  # real tree meshes within this radius (0 = none)
+	var rl := root.get_node_or_null("RunwayLights")
+	if rl and rl.has_method("set_real_lights"):
+		rl.set_real_lights(s.real_lights if forward_plus else mini(s.real_lights, 4), s.apron_shadows if forward_plus else 0)
 	var fx := root.get_node_or_null("SkyTime/WeatherFx")
 	if fx:
 		fx.set_rain_max(s.rain)  # rain streaks at full rain
@@ -97,9 +166,60 @@ func apply_to_scene(root: Node) -> void:
 	if sky_time:
 		sky_time.auto_exposure = s.ae  # eye-like auto exposure (world/auto_exposure.gd), off on Low
 	var cam := vp.get_camera_3d()
-	if cam and cam.get_node_or_null("CloudLayer"):
-		cam.get_node("CloudLayer").steps = s.clouds
+	var cl := cam.get_node_or_null("CloudLayer") if cam else null
+	if cl:
+		cl.steps = s.clouds
+		if "light_steps" in cl:  # light samples per raymarch step (world/cloud_layer.gd)
+			cl.light_steps = s.cloud_light
+		if "max_dist" in cl: cl.max_dist = s.get("cloud_dist", 25000.0)  # cloud march range (m), longer on Max; fades out before it (G4)
 	if cam and cam.get_node_or_null("CloudWisps"):
 		cam.get_node("CloudWisps").set_count(s.wisps)  # in-cloud wisps (motion cue), none on Low
 	if cam and cam.get_node_or_null("SunGlare"):
 		cam.get_node("SunGlare").enabled = preset != "low"
+	VolumetricFog.apply(root, s.vfog)  # near-field froxel fog (world/volumetric_fog.gd), Forward+ / High+ only
+	PostFx.apply(root, preset)  # bloom, motion blur and the other post effects (user options x this preset)
+
+
+## Supersampling above 1 is a plain bilinear downscale (FSR only upscales). Below 1, Forward+ gets
+## FSR2, which is temporal and antialiases on its own, so TAA is left off with it.
+func _apply_viewport(vp: Viewport, s: Dictionary, forward_plus: bool) -> void:
+	var up: bool = s.fsr and s.scale < 1.0
+	if up and forward_plus:
+		vp.scaling_3d_mode = Viewport.SCALING_3D_MODE_FSR2
+	elif up:
+		vp.scaling_3d_mode = Viewport.SCALING_3D_MODE_FSR
+	else:
+		vp.scaling_3d_mode = Viewport.SCALING_3D_MODE_BILINEAR
+	vp.scaling_3d_scale = s.scale
+	vp.msaa_3d = [Viewport.MSAA_DISABLED, Viewport.MSAA_2X, Viewport.MSAA_4X][s.msaa]
+	vp.screen_space_aa = Viewport.SCREEN_SPACE_AA_FXAA if s.fxaa else Viewport.SCREEN_SPACE_AA_DISABLED
+	vp.use_debanding = true  # dither before the 8-bit output: smooth dark sky gradients and fog do not band
+	vp.use_taa = s.taa and forward_plus and not (up and forward_plus)
+
+
+## SSAO / SSIL / SSR exist only on Forward+ (Mobile ignores them, but they are switched off there
+## anyway so a scene saved from either renderer behaves the same).
+func _apply_environment(env: Environment, s: Dictionary, forward_plus: bool) -> void:
+	env.glow_enabled = s.glow
+	env.ssao_enabled = s.ssao and forward_plus
+	env.ssil_enabled = s.ssil and forward_plus
+	env.ssr_enabled = s.ssr > 0 and forward_plus
+	# water (terrain_water.gdshaderinc) tones down its fake sky reflection when SSR draws the real one
+	RenderingServer.global_shader_parameter_set("water_ssr", 1.0 if env.ssr_enabled else 0.0)
+	if env.ssr_enabled:
+		env.ssr_max_steps = s.ssr
+		env.ssr_fade_in = 0.15   # Godot's defaults: soft edge where the ray starts and where it ends
+		env.ssr_fade_out = 2.0
+		env.ssr_depth_tolerance = 0.5
+
+
+## The shadow atlas and soft-shadow filters are global (RenderingServer), not per viewport; only
+## sent when they change, since a new atlas size reallocates it.
+func _apply_shadow_atlas(s: Dictionary) -> void:
+	var want := [int(s.atlas), int(s.soft), int(s.pos_soft)]
+	if want == _atlas:
+		return
+	_atlas = want
+	RenderingServer.directional_shadow_atlas_set_size(want[0], true)
+	RenderingServer.directional_soft_shadow_filter_set_quality(want[1] as RenderingServer.ShadowQuality)
+	RenderingServer.positional_soft_shadow_filter_set_quality(want[2] as RenderingServer.ShadowQuality)

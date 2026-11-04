@@ -192,6 +192,7 @@ func test_a320_tyres_rest_on_the_ground_when_parked() -> String:
 	m.build(n)
 	m.transform = Transform3D(FdmNode.ned_to_render_basis(n.fdm.q), Vector3(0.0, -n.fdm.pos_d, 0.0))
 	m._animate_glb(n.fdm, 0.01)
+	m._tyres.update(n.fdm, m)  # legs raised by the compression (TyreContact)
 	var err := ""
 	var comp: float = n.fdm.gear.compression.LEFT_MLG
 	var worst := 0.0

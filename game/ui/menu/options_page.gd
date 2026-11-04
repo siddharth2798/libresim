@@ -5,15 +5,19 @@ extends HBoxContainer
 
 signal changed
 
+## Low / Medium run on the Mobile renderer, High and up on Forward+ (core/graphics_settings.gd).
 const PRESET_NOTES := {
-	"low": "70 % render scale with FSR, no shadows, short scenery range. For integrated graphics.",
-	"medium": "85 % render scale with FSR, near shadows, medium scenery range.",
-	"high": "Full resolution, MSAA 2x, shadows to 300 m, long scenery range.",
-	"ultra": "MSAA 4x, long shadows, densest trees and buildings, more cloud steps.",
+	"low": "Mobile renderer. 70 % render scale with FSR, no shadows, short scenery range. For integrated graphics.",
+	"medium": "Mobile renderer. 85 % render scale with FSR, shadows to 700 m, medium scenery range.",
+	"high": "Forward+ renderer: ambient occlusion, more apron lights. Full resolution, MSAA 2x, shadows to 1.8 km, long scenery range.",
+	"ultra": "Forward+: ambient occlusion, screen-space reflections on water and wet runways, TAA. MSAA 4x, shadows to 4 km, denser trees and buildings, more cloud steps.",
+	"max": "Everything in Ultra plus indirect light (SSIL), 125 % supersampling, shadows to 6 km, 16 km buildings, the finest clouds. For a strong dedicated GPU.",
 }
+const RESTART_NOTE := "Restart libresim to apply: the next start uses the %s renderer."
 const UNIT_ROWS := [["Altitude", "alt_unit"], ["Speed", "speed_unit"], ["Pressure", "pressure_unit"]]
 
 var _preset_note: Label
+var _restart_note: Label
 
 
 func _ready() -> void:
@@ -45,10 +49,18 @@ func _ready() -> void:
 		bt.pressed.connect(func():
 			Graphics.set_preset(p)
 			_preset_note.text = PRESET_NOTES.get(p, "")
+			_refresh_restart()
 			changed.emit())
 		row.add_child(bt)
 	_preset_note = MenuTheme.note(PRESET_NOTES.get(Graphics.preset, ""))
 	right.add_child(_preset_note)
+	_restart_note = MenuTheme.note("")
+	_restart_note.add_theme_color_override("font_color", Color(1.0, 0.8, 0.4))
+	right.add_child(_restart_note)
+	_refresh_restart()
+	right.add_child(MenuTheme.heading("Post effects"))
+	right.add_child(PostFxToggles.new())
+	right.add_child(MenuTheme.note("Turn effects off on a weaker machine. Dimmed ones do not run on this preset (hover for why)."))
 	right.add_child(MenuTheme.heading("Units"))
 	var grid := GridContainer.new()
 	grid.columns = 2
@@ -108,6 +120,13 @@ func _ready() -> void:
 		changed.emit())
 	left.add_child(ac)
 	left.add_child(MenuTheme.note("Spring: arrow keys re-centre when released. Sticky: they stay where you leave them, like FlightGear (tap the opposite key to return to centre)."))
+
+
+## "Restart to apply" while the renderer saved for the next start is not the running one.
+func _refresh_restart() -> void:
+	var fp := Graphics.next_renderer() == "forward_plus"
+	_restart_note.text = RESTART_NOTE % ("Forward+" if fp else "Mobile") if Graphics.restart_needed() else ""
+	_restart_note.visible = Graphics.restart_needed()
 
 
 func _bus_row(parent: Control, bus: String) -> void:

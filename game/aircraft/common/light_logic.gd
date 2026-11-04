@@ -14,9 +14,11 @@ const PANEL_NIGHT_DEFAULT := 0.7
 
 
 ## Light switch positions at a start. kind: "air", "runway" or "stand"; cold = cold & dark.
-## Daylight keeps the old default (beacon only).
+## Daylight keeps the old default (beacon only). The airliner-only switches (takeoff, rwy_turnoff, logo) are
+## set too; an aircraft without those lights ignores them.
 static func start_state(kind: String, sun_elev_deg: float, agl_ft: float, cold: bool) -> Dictionary:
-	var s := {"beacon": true, "nav": false, "strobe": false, "landing": false, "taxi": false, "panel": PANEL_NIGHT_DEFAULT}
+	var s := {"beacon": true, "nav": false, "strobe": false, "landing": false, "taxi": false, "takeoff": false,
+		"rwy_turnoff": false, "logo": false, "panel": PANEL_NIGHT_DEFAULT}
 	if cold:
 		for k in s:
 			s[k] = false if k != "panel" else 0.0
@@ -26,6 +28,9 @@ static func start_state(kind: String, sun_elev_deg: float, agl_ft: float, cold: 
 		s.strobe = kind in ["air", "runway"]
 		s.landing = kind == "runway" or (kind == "air" and agl_ft < 3000.0)
 		s.taxi = kind == "runway"
+		s.takeoff = kind == "runway"  # lined up at night: NOSE T.O, RWY TURN OFF, NAV & LOGO on
+		s.rwy_turnoff = kind == "runway"
+		s.logo = kind == "runway"
 	return s
 
 

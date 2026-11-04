@@ -1,21 +1,26 @@
 class_name AirportBuilder
 extends Node3D
 ## Builds runway and taxiway surfaces from data/processed/runways.json
-## (tools/09_runways.py). Each surface is a strip mesh anchored at its first
-## point and re-positioned when the floating origin shifts.
+## (tools/09_runways.py). Each surface is a strip mesh draped on the terrain triangles (GroundDrape: at the
+## FDM's ground height, no lift; the shaders win the depth test), anchored at a lattice point near its first
+## point and re-positioned when the floating origin shifts. The meshes are cut on a worker thread (~1 s for
+## every airport, with its own height cache) and appear as they finish; data is there at once.
 
-const STEP := 20.0  # metres between cross-sections (follows the 30 m terrain lattice closely)
-const LIFT := 0.12
 
 var terrain: TerrainQuadtree
 var data: Dictionary
 var _items: Array = []  # [MeshInstance3D, anchor ENU Vector3]
+var _jobs: Array = []  # [pts Array[Vector2], width, kind (0 runway, 1 taxiway, 2 lead-on), length]
+var _done: Array = []  # [job, arrays, anchor] from the worker
+var _mutex := Mutex.new()
+var _task := -1
 var _shader := preload("res://world/runway.gdshader")
 var _taxi_shader := preload("res://world/taxiway.gdshader")  # fades out when a few px wide
 var _lead_shader := preload("res://world/lead_on.gdshader")  # yellow line only, drawn over a runway
 
 
-func build(t: TerrainQuadtree) -> void:
+## wait: cut the meshes now, on this thread (tests); else on a worker, added by _process.
+func build(t: TerrainQuadtree, wait := false) -> void:
 	terrain = t
 	data = Paths.load_json("runways.json")
 	if data == null:
@@ -23,15 +28,79 @@ func build(t: TerrainQuadtree) -> void:
 	for r in data.runways:
 		var a: Dictionary = r.ends[0]
 		var b: Dictionary = r.ends[1]
-		_strip([Vector2(a.x, a.y), Vector2(b.x, b.y)], r.width, true, r.length)
+		_jobs.append([[Vector2(a.x, a.y), Vector2(b.x, b.y)], float(r.width), 0, float(r.length)])
 	for tw in data.taxiways:
 		var pts: Array[Vector2] = []
 		for p in tw.pts:
 			pts.append(Vector2(p[0], p[1]))
-		_strip(pts, minf(tw.width, 23.0), false, 0.0)
+		_jobs.append([pts, minf(tw.width, 23.0), 1, 0.0])
 	_lead_ons()
 	FloatingOrigin.shifted.connect(func(_d): _reposition())
-	_reposition()
+	if wait:
+		_work(t.cache)
+		_flush()
+	else:
+		_task = WorkerThreadPool.add_task(_work.bind(TerrainTileCache.new()))
+
+
+func _process(_dt: float) -> void:
+	if _task >= 0:
+		_flush()
+		if WorkerThreadPool.is_task_completed(_task):
+			WorkerThreadPool.wait_for_task_completion(_task)
+			_task = -1
+			_flush()
+
+
+func _exit_tree() -> void:
+	if _task >= 0:
+		WorkerThreadPool.wait_for_task_completion(_task)
+		_task = -1
+
+
+## Worker: drapes every job on the terrain of cache (used by this thread only).
+func _work(cache: TerrainTileCache) -> void:
+	var res := cache.tmeta.tile_size_m / cache.tile_n
+	for j in _jobs:
+		var pts: Array = j[0]
+		if pts.size() < 2:
+			continue
+		var o := GroundDrape.snap(pts[0].x, pts[0].y, res)
+		var anchor := Vector3(o.x, o.y, cache.height_at(pts[0].x, pts[0].y))
+		var local: Array = []
+		for p in pts:
+			local.append(Vector2(p.x - o.x, p.y - o.y))
+		var tris := PackedVector2Array()
+		var uvs := PackedVector2Array()
+		var along := GroundDrape.strip(local, j[1], tris, uvs)
+		var arr := GroundDrape.arrays(tris, uvs, anchor.x, anchor.y, anchor.z, cache.height_at, res)
+		if not arr.is_empty():
+			_mutex.lock()
+			_done.append([j, arr, anchor, along])
+			_mutex.unlock()
+
+
+## Main thread: meshes for the finished jobs.
+func _flush() -> void:
+	_mutex.lock()
+	var batch := _done
+	_done = []
+	_mutex.unlock()
+	for d in batch:
+		var j: Array = d[0]
+		var kind: int = j[2]
+		var mat := ShaderMaterial.new()
+		mat.shader = [_shader, _taxi_shader, _lead_shader][kind]
+		mat.set_shader_parameter("is_runway", kind == 0)
+		mat.set_shader_parameter("length_m", d[3] if kind != 0 else j[3])
+		mat.set_shader_parameter("width_m", j[1])
+		var mi := MeshInstance3D.new()
+		mi.mesh = GroundDrape.to_mesh(d[1])
+		mi.material_override = mat
+		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		add_child(mi)
+		mi.position = FloatingOrigin.to_render(d[2])
+		_items.append([mi, d[2]])
 
 
 ## OSM taxiways end on the runway centre line, but the runway surface hides that last stretch: draw
@@ -58,67 +127,12 @@ func _lead_ons() -> void:
 					break
 				prev = v
 			if run.size() >= 2:
-				_strip(run, 1.0, false, 0.0, true)
+				_jobs.append([run, 1.0, 2, 0.0])
 
 
 func _reposition() -> void:
 	for it in _items:
 		(it[0] as MeshInstance3D).position = FloatingOrigin.to_render(it[1])
-
-
-## Densify a polyline and extrude it to a strip; UV = (across 0..1, metres along).
-func _strip(pts: Array, width: float, is_runway: bool, length: float, lead_on := false) -> void:
-	var dense: Array[Vector2] = []
-	for i in range(pts.size() - 1):
-		var a: Vector2 = pts[i]
-		var b: Vector2 = pts[i + 1]
-		var n := maxi(int(a.distance_to(b) / STEP), 1)
-		for k in n:
-			dense.append(a.lerp(b, float(k) / n))
-	dense.append(pts[-1])
-	if dense.size() < 2:
-		return
-	var anchor := Vector3(dense[0].x, dense[0].y, terrain.height_at(dense[0].x, dense[0].y))
-	var verts := PackedVector3Array()
-	var uvs := PackedVector2Array()
-	var idx := PackedInt32Array()
-	var along := 0.0
-	for i in dense.size():
-		var p := dense[i]
-		var dir := (dense[mini(i + 1, dense.size() - 1)] - dense[maxi(i - 1, 0)]).normalized()
-		var side := Vector2(dir.y, -dir.x) * width * 0.5  # to the right of travel
-		if i > 0:
-			along += p.distance_to(dense[i - 1])
-		for s in [-1.0, 1.0]:
-			var q: Vector2 = p + side * s
-			var h := terrain.height_at(q.x, q.y) + LIFT
-			verts.append(Vector3(q.x - anchor.x, h - anchor.z, -(q.y - anchor.y)))
-			uvs.append(Vector2((s + 1.0) * 0.5, along))
-		if i > 0:
-			var k := i * 2
-			idx.append_array([k - 2, k, k - 1, k - 1, k, k + 1])  # clockwise seen from above
-	var arr := []
-	arr.resize(Mesh.ARRAY_MAX)
-	arr[Mesh.ARRAY_VERTEX] = verts
-	arr[Mesh.ARRAY_TEX_UV] = uvs
-	arr[Mesh.ARRAY_INDEX] = idx
-	var normals := PackedVector3Array()
-	normals.resize(verts.size())
-	normals.fill(Vector3.UP)
-	arr[Mesh.ARRAY_NORMAL] = normals
-	var mesh := ArrayMesh.new()
-	mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arr)
-	var mat := ShaderMaterial.new()
-	mat.shader = _shader if is_runway else (_lead_shader if lead_on else _taxi_shader)
-	mat.set_shader_parameter("is_runway", is_runway)
-	mat.set_shader_parameter("length_m", along if length <= 0.0 else length)
-	mat.set_shader_parameter("width_m", width)
-	var mi := MeshInstance3D.new()
-	mi.mesh = mesh
-	mi.material_override = mat
-	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	add_child(mi)
-	_items.append([mi, anchor])
 
 
 ## Start position on a runway: returns {pos: Vector2 ENU, heading_deg} or {}.
