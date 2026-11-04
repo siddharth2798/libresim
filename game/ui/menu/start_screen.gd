@@ -28,6 +28,9 @@ var cur := ""
 var _body: VBoxContainer
 var _brand: Control
 var _loading: Label
+var dry_run := false  # tests: count the flight but do not load the flight scene
+var flights_started := 0
+var _confirm: FlyConfirm  # the open "Fly anyway?" question, or null
 
 
 func _ready() -> void:
@@ -179,9 +182,35 @@ func _start_lesson() -> void:
 	await _load_flight("Loading lesson…")
 
 
+## Free flight (Fly now, the FLY button, Ctrl+Enter): a ready setup flies at once; one with a "bad" check
+## (SetupChecks: weight, CG, short runway, tailwind, crosswind) first asks "Fly anyway?". Never blocks.
 func _fly() -> void:
+	if _confirm != null:
+		return  # the question is already open
+	var bad := SetupChecks.reasons(SetupChecks.checks(Session.setup))
+	if bad.is_empty():
+		await _fly_now()
+		return
+	_confirm = FlyConfirm.make(bad)
+	_confirm.cancelled.connect(_close_confirm)
+	_confirm.confirmed.connect(func():
+		_close_confirm()
+		_fly_now())
+	add_child(_confirm)
+
+
+func _close_confirm() -> void:
+	if _confirm != null:
+		_confirm.queue_free()
+		_confirm = null
+
+
+func _fly_now() -> void:
 	Session.training = ""  # a free flight, not a lesson
 	Session.save()
+	flights_started += 1
+	if dry_run:
+		return
 	await _load_flight("Loading scenery…")
 
 

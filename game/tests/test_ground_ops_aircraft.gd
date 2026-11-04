@@ -42,7 +42,8 @@ func test_ground_ops_c172_defaults_are_the_old_constants() -> String:
 		return "c172 pushback %s" % [pb]
 	if GroundParams.max_taxi_kt(def) != 0.0 or GroundParams.jetway_clear_m(def) != 2.5 or GroundParams.follow_gap_m(def) != 35.0:
 		return "c172 taxi limit / jetway clearance / follow gap"
-	if OpsCorridors.TAXI_HALF != 8.0 or def.section("ground").has("min_runway_m"):
+	# the C172 minimum runway is data since phase U1: 575 ft = 175.3 m, the POH ground roll in ideal conditions (owner, 2026-11-04)
+	if OpsCorridors.TAXI_HALF != 8.0 or float(def.section("ground").get("min_runway_m", -1.0)) != 175.3 or g.min_runway_m != 175.3:
 		return "TAXI_HALF / min_runway_m changed"
 	for st in _stands():
 		if GroundParams.cg_at_stand(st, def) != Vector2(st.x, st.y):

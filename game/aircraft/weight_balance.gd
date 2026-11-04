@@ -80,6 +80,26 @@ static func fuel_per_tank(ac: Dictionary, cfg: Dictionary, amount: float) -> Arr
 	return out
 
 
+## Total fuel of the start-screen setup, all tanks: kg for a payload.fuel_unit "kg" aircraft, else US gal.
+static func fuel_total(ac: Dictionary, setup: Dictionary, cfg: Dictionary = {}) -> float:
+	var per_tank := float(setup.get("fuel_gal", 0.0))
+	if fuel_in_kg(ac):
+		return per_tank
+	if cfg.is_empty():
+		cfg = load_config(ac)
+	return float(maxi((cfg.get("tanks", []) as Array).size(), 1)) * per_tank
+
+
+## Takeoff weight (kg) of the start-screen loading: empty + pilot + fuel + stations. The aircraft page shows it
+## against mtow_kg and SetupChecks flags "over weight" with it, so both read the same number.
+static func takeoff_kg(ac: Dictionary, setup: Dictionary, cfg: Dictionary = {}) -> float:
+	var fuel := fuel_total(ac, setup, cfg)
+	var w := float(ac.empty_kg) + float(ac.pilot_kg) + (fuel if fuel_in_kg(ac) else fuel * kg_per_gal(ac))
+	for st in ac.get("payload", {}).get("stations", []):
+		w += float(setup.get(st.key, 0.0))
+	return w
+
+
 ## CG in the envelope's unit: % MAC when it has a "mac", else inches aft of the datum.
 static func cg_value(env: Dictionary, x_m: float) -> float:
 	if env.has("mac"):

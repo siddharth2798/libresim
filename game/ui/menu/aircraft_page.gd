@@ -208,12 +208,9 @@ func _update_weight() -> void:
 		return
 	var s: Dictionary = Session.setup
 	var pl: Dictionary = _ac.get("payload", {})
-	var tanks := maxi((_cfg.get("tanks", []) as Array).size(), 1)
 	var in_kg := WeightBalance.fuel_in_kg(_ac)
-	var gal := float(s.fuel_gal) if in_kg else float(tanks) * float(s.fuel_gal)  # total fuel, all tanks (kg for the A320)
-	var w: float = float(_ac.empty_kg) + float(_ac.pilot_kg) + (gal if in_kg else gal * WeightBalance.kg_per_gal(_ac))
-	for st in pl.get("stations", []):
-		w += float(s.get(st.key, 0.0))
+	var gal := WeightBalance.fuel_total(_ac, s, _cfg)  # total fuel, all tanks (kg for the A320)
+	var w := WeightBalance.takeoff_kg(_ac, s, _cfg)
 	var over := w > float(_ac.mtow_kg)
 	var txt := "Weight %d kg (%d lb), max %d\n" % [int(w), int(w / 0.4536), int(_ac.mtow_kg)]
 	if in_kg:
