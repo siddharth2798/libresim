@@ -33,6 +33,7 @@ var flights_started := 0
 var lessons_started := 0  # tests: lessons started from the home screen's Continue (dry_run does not load the flight scene)
 var _top_buttons: Array[Control] = []  # Handbook, Credits, Quit
 var _confirm: FlyConfirm  # the open "Fly anyway?" question, or null
+var captain_watch: CaptainWatch  # offers the Thrustmaster Captain Pack profile once per launch (captain_watch.gd)
 
 
 func _ready() -> void:
@@ -85,6 +86,9 @@ func _ready() -> void:
 	add_child(credits)
 	Session.end_lesson()  # coming back from a lesson: restore the free-flight setup
 	go("home")
+	captain_watch = CaptainWatch.new()
+	captain_watch.host = self
+	add_child(captain_watch)
 
 
 ## Top bar: the small logo and name on every screen but the home screen (which shows them
@@ -150,6 +154,11 @@ func go(id: String) -> void:
 	_brand.visible = id != "home"
 	if _screens[id].has_method("enter"):
 		_screens[id].enter()
+
+
+## Another modal is up (the "Fly anyway?" question) or a flight is loading: nothing else may open over it.
+func modal_open() -> bool:
+	return _confirm != null or _loading.visible
 
 
 func screen(id: String) -> Control:

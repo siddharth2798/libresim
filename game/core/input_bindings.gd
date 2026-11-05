@@ -258,6 +258,13 @@ static func save_to(table: Dictionary, path := PATH) -> bool:
 	return true
 
 
+## save_to, then bump `input/bindings_rev` so a running JoystickControls reloads the table.
+static func save_bump(table: Dictionary, path := PATH) -> bool:
+	var ok := save_to(table, path)
+	Props.set_v("input/bindings_rev", int(Props.get_v("input/bindings_rev", 0)) + 1)
+	return ok
+
+
 ## Load a table; missing actions / keys are filled from the defaults, so old files keep working.
 static func load_from(path := PATH, profile := "gamepad") -> Dictionary:
 	var t := defaults(profile)

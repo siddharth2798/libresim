@@ -35,6 +35,7 @@ const DEFAULTS := {
 	"lens_rain": true,  # Medium+, outside views only
 	"lens_effects": false,  # vignette + chromatic aberration + film grain
 	"depth_of_field": false,  # replay and free camera only
+	"captain_pack": "",  # offer of the Thrustmaster Captain Pack profile (core/captain_detect.gd): "" ask | "applied" | "declined"
 	"volumetric_fog": true,  # High+, Forward+ only: shafts, rain curtains, mist (world/volumetric_fog.gd)
 }
 const CHOICES := {

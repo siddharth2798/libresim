@@ -136,6 +136,7 @@ func _joystick_tab() -> Control:
 	_devices = Label.new()
 	_devices.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	dev.add_child(_devices)
+	dev.add_child(CaptainAskAgain.new())  # only with a Captain Pack and the offer declined
 	for p in [["Reset: gamepad defaults", "gamepad"], ["Reset: joystick defaults", "joystick"],
 			["Reset: Airbus Captain Pack", InputProfiles.CAPTAIN_PACK]]:
 		var b := Button.new()
@@ -200,20 +201,18 @@ func _list_devices() -> void:
 
 func _reset(profile: String) -> void:
 	_cancel_capture()
-	var d := InputBindings.defaults(profile)
-	for a in d:
-		table[a].clear()
-		table[a].merge(d[a])  # keep the row's dictionary reference
+	for a in InputProfiles.apply_to(table, profile):  # in place: the rows keep their dictionaries
 		if _rows.has(a):
 			_rows[a].refresh()
+	if profile == InputProfiles.CAPTAIN_PACK:
+		CaptainDetect.set_state(CaptainDetect.APPLIED)  # the start-screen offer has nothing left to ask
 	_status.text = "Reset to %s defaults." % profile + (" Move each quadrant lever once. Linux numbering is unchecked: press Bind to fix a row."
 		if profile == InputProfiles.CAPTAIN_PACK else "")
 	_save()
 
 
 func _save() -> void:
-	InputBindings.save_to(table, bindings_path)
-	Props.set_v("input/bindings_rev", int(Props.get_v("input/bindings_rev", 0)) + 1)
+	InputBindings.save_bump(table, bindings_path)
 	changed.emit()
 
 

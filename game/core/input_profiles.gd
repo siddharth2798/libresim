@@ -98,3 +98,16 @@ static func captain_pack(os_name: String, overrides := OS_OVERRIDES) -> Dictiona
 			b.name = spec.name
 			out[a] = b
 	return out
+
+
+## Loads `profile` (InputBindings.defaults) into `table` in place: every action's dictionary keeps its
+## reference (the Controls page rows hold them). Returns the actions that were rewritten. Shared by the
+## Controls page reset buttons and the Captain Pack offer (ui/menu/captain_offer.gd); save with InputBindings.save_bump.
+static func apply_to(table: Dictionary, profile: String, os_name := "") -> Array:
+	var d := InputBindings.defaults(profile, os_name)
+	for a in d:
+		if not table.has(a):
+			table[a] = {}
+		table[a].clear()
+		table[a].merge(d[a])
+	return d.keys()

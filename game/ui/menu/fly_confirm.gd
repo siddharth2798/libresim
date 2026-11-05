@@ -69,13 +69,13 @@ func _ready() -> void:
 	fly_btn = _button("Fly anyway  ▶", true)
 	fly_btn.pressed.connect(func(): confirmed.emit())
 	row.add_child(fly_btn)
-	_trap_focus([go_back_btn, fly_btn])
+	trap_focus([go_back_btn, fly_btn])
 	go_back_btn.grab_focus.call_deferred()
 
 
 ## Tab, Shift+Tab and the arrow keys cycle through these controls only: the screen behind is dimmed and unclickable, so
 ## the keyboard must not be able to reach it either (the engine's default order is the whole scene tree).
-func _trap_focus(ring: Array[Button]) -> void:
+static func trap_focus(ring: Array[Button]) -> void:
 	for i in ring.size():
 		var b := ring[i]
 		var nxt := ring[(i + 1) % ring.size()]
