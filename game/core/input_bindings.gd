@@ -70,6 +70,12 @@ const RANGES := ["full", "half", "trigger"]
 const HALF := ["throttle", "mixture", "brake_left", "brake_right", "throttle_2", "speedbrake"]
 
 
+## Is a button binding "on", given whether the hardware button is pressed? `invert` swaps it. The game and the live bar
+## on the Controls page both use this, so they always agree.
+static func logical(pressed: bool, b: Dictionary) -> bool:
+	return pressed != bool(b.get("invert", false))
+
+
 static func is_axis(action: String) -> bool:
 	return AXES.has(action)
 

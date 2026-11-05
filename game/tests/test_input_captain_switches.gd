@@ -176,3 +176,15 @@ func _find_button(n: Node, text: String) -> Button:
 		if f != null:
 			return f
 	return null
+
+
+## The state a switch row's bar shows (and the game acts on) is the one after invert.
+func test_logical_state_follows_invert() -> String:
+	var plain := {"button": 20}
+	var inv := {"button": 20, "invert": true}
+	if InputBindings.logical(true, plain) != true or InputBindings.logical(false, plain) != false:
+		return "a plain switch must read as pressed"
+	if InputBindings.logical(true, inv) != false or InputBindings.logical(false, inv) != true:
+		return "an inverted switch must read the other way round"
+	var t := FX.table()  # the pack's gear lever: lever up = pressed, which is gear NOT down
+	return "" if not InputBindings.logical(true, t["gear_switch"]) and InputBindings.logical(false, t["gear_switch"]) else "gear lever polarity in the profile"

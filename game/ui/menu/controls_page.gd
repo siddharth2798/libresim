@@ -295,4 +295,4 @@ func _live(a: String) -> float:
 		return 0.0
 	if InputBindings.is_axis(a):
 		return InputBindings.shape(Input.get_joy_axis(dev, int(b.axis)), b) if int(b.axis) >= 0 else 0.0
-	return 1.0 if int(b.button) >= 0 and Input.is_joy_button_pressed(dev, int(b.button)) else 0.0
+	return 1.0 if int(b.button) >= 0 and InputBindings.logical(Input.is_joy_button_pressed(dev, int(b.button)), b) else 0.0
