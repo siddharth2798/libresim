@@ -104,7 +104,7 @@ func set_preset(p: String) -> void:
 ## Persist a renderer choice ("mobile" or "forward_plus"); takes effect on restart. Also the manual
 ## F10 toggle: the choice stands until the next preset change on the other renderer.
 func set_renderer(method: String) -> void:
-	if Session.interactive():  # tests and probes never leave an override.cfg behind
+	if _may_write():  # tests, probes and headless runs never leave an override.cfg behind
 		var f := FileAccess.open(_override_path(), FileAccess.WRITE)
 		if f:
 			f.store_string("[rendering]\nrenderer/rendering_method=\"%s\"\n" % method)
@@ -112,6 +112,13 @@ func set_renderer(method: String) -> void:
 	_pending_renderer = method
 	if restart_needed() != was:
 		restart_needed_changed.emit(restart_needed())
+
+
+## May this run save a renderer? Only a real player run: interactive (core/save_guard.gd) and not headless (a headless
+## run has no restart prompt; a test that flips Session.interactive_override must not reach the real file). A test
+## that sets `override_dir` to a scratch folder is exempt from the headless rule.
+func _may_write() -> bool:
+	return Session.interactive() and (override_dir != "" or DisplayServer.get_name() != "headless")
 
 
 func _override_path() -> String:
@@ -125,7 +132,7 @@ func _override_path() -> String:
 ## preset's own so a Low / Medium player on integrated GPU is not moved to Forward+; the menus then say "restart to apply".
 ## Not for a --quality= run (a one-off must not change the next start).
 func _match_renderer_once() -> void:
-	if _quality_cli or not Session.interactive() or FileAccess.file_exists(_override_path()):
+	if _quality_cli or not _may_write() or FileAccess.file_exists(_override_path()):
 		return
 	if preset_renderer(preset) != renderer() and renderer() in ["mobile", "forward_plus"]:
 		set_renderer(preset_renderer(preset))

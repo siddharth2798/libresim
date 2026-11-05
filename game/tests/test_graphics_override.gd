@@ -84,3 +84,12 @@ func test_an_existing_override_is_left_alone() -> String:
 	var text := _saved()
 	_done(g)
 	return "" if text.contains("forward_plus") else "an existing choice was overwritten: " + text
+
+
+func test_headless_never_writes_the_real_file() -> String:
+	var g: Node = load("res://core/graphics_settings.gd").new()  # no scratch folder: the real override.cfg path
+	Session.interactive_override = 1  # even a test that makes the run interactive
+	var may: bool = g._may_write()
+	g.free()
+	Session.interactive_override = -1
+	return "" if not may else "a headless run with no scratch folder may write the real override.cfg"
