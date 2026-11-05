@@ -1,14 +1,14 @@
 """Per-tile road / river signed-distance raster (used by 20_roads_rivers.py).
 
-A level-0 tile (7680 m) becomes RN x RN texels of RES metres, row 0 = north (same orientation as the
-imagery / land-class tiles). Each texel holds e = distance to the nearest road or waterway centreline minus
-that class's drawn half-width (so e < 0 inside the ribbon) and the class of the nearest edge. Texels are
-filtered bilinearly at runtime, so edges stay crisp at any zoom: the level set e = 0 of a linearly
-interpolated distance field is exact once the half-width is at least half a texel (HW_MIN), whatever the
-phase of the lattice; narrower real roads are drawn slightly wider than life.
-Encoding (PNG, 2 channels: L = e byte, A = class): e = L * E_STEP + E_MIN (L = 0..63), class 0 = none,
-class = kind + 1 (ways_extract.WAY_KINDS), >= 10 are waterways. Keep KIND_HW in step with RO_HW in
-game/world/terrain_roads.gdshaderinc.
+A level-0 tile (7680 m) becomes RN x RN texels of RES metres, row 0 = north (as the imagery /
+land-class tiles). Each texel holds e = distance to the nearest road or waterway centreline minus
+that class's drawn half-width (e < 0 inside the ribbon), and the class of the nearest edge. Texels
+are filtered bilinearly at runtime, so edges stay crisp at any zoom: the e = 0 level set of a
+linearly interpolated distance field is exact once the half-width is at least half a texel
+(HW_MIN); narrower real roads are drawn slightly wider than life.
+Encoding (PNG, 2 channels: L = e byte, A = class): e = L * E_STEP + E_MIN (L = 0..63), class 0 =
+none, class = kind + 1 (ways_extract.WAY_KINDS), >= 10 are waterways. Keep KIND_HW in step with
+RO_HW in game/world/terrain_roads.gdshaderinc.
 """
 import numpy as np
 from scipy.ndimage import distance_transform_edt
@@ -35,8 +35,8 @@ def _xy_centres(tx, ty):
 
 
 def field(segs, kinds, tx, ty):
-    """Distance field over the kinds present in segs [(x0, y0, x1, y1) rows]. -> (E float32 (RN, RN) rows
-    from the south, C uint8 class). E = E_MAX / C = 0 where nothing is within range."""
+    """Distance field over the kinds present in segs [(x0, y0, x1, y1) rows]. -> (E float32
+    (RN, RN) rows from the south, C uint8 class). E = E_MAX, C = 0 where nothing is in range."""
     x0, y0, xs, ys = _xy_centres(tx, ty)
     E = np.full((RN, RN), E_MAX, np.float32)
     C = np.zeros((RN, RN), np.uint8)
@@ -69,8 +69,8 @@ def signed_dist(mask):
         return np.full(mask.shape, 1e4, np.float32)
     if mask.all():
         return np.full(mask.shape, -1e4, np.float32)
-    # distances to the nearest texel of the other side, minus half a texel: the border lies between texels,
-    # so the field is 1-Lipschitz (a plain difference of the two transforms jumps by 2 texels across it)
+    # distance to the nearest texel of the other side, minus half a texel: the border lies between
+    # texels, so the field is 1-Lipschitz (a plain difference of the two transforms jumps by 2 texels)
     out = distance_transform_edt(~mask) - 0.5
     inside = -(distance_transform_edt(mask) - 0.5)
     return (np.where(mask, inside, out) * RES).astype(np.float32)

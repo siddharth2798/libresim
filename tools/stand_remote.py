@@ -1,12 +1,11 @@
 """Remote airliner bays and the clash test for GA tie-downs (see airport_stands.py).
 
-Remote bays: nose-in rows beside the apron's taxi lanes. For a point q on a lane, the stand stands
-REMOTE_ROW_M to the side with the nose pointing away from the lane, so the lead-in is the
-perpendicular back to q (tail 33 m plus wingtip clearance 18 m from a taxiing aircraft). Only edges
-along the apron's long axis count (not the connectors across it). Candidates are walked along each
-edge nearest the terminal first and accepted when the bay rectangle is inside the apron, clear of
-buildings and bridges, 18 m from every taxi centre line (80 m from a runway) and clear of the bays
-and lead-in strips already taken.
+Remote bays are nose-in rows beside the apron's taxi lanes. For a point q on a lane, the stand sits
+REMOTE_ROW_M to the side, nose pointing away from the lane, so the lead-in is the perpendicular back
+to q (tail 33 m plus wingtip clearance 18 m from a taxiing aircraft). Only edges along the apron's
+long axis count. Candidates are walked along each edge, nearest the terminal first, and accepted
+when the bay rectangle is inside the apron, clear of buildings and bridges, 18 m from every taxi
+centre line (80 m from a runway) and clear of bays and lead-in strips already taken.
 """
 import math
 

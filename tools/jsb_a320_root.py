@@ -1,11 +1,12 @@
 """Build a JSBSim root for the FlightGear A320-family FDE so JSBSim 1.3.3 can run it headless (reference oracle).
 
-The upstream systems read many FlightGear-side properties (Nasal, cockpit switches, /sim, /instrumentation ...) that
-do not exist outside FlightGear. We create a root under data/raw/fg/a320_root (gitignored) with symlinks to the
-untrusted clone (never executed, only read by JSBSim) and a patched copy of the FDE that loads one extra system
-("nasal-stubs") declaring every undefined property. Initial values come from the property defaults in A320-main.xml
-and A320-200-CFM-set.xml (otherwise 0). Found by a retry loop (one stub per load error, ~700 loads); cached in
-stubs.json inside the root so later runs are fast.
+The upstream systems read many FlightGear-side properties (Nasal, cockpit switches, /sim,
+/instrumentation ...) that do not exist outside FlightGear. This creates a root under
+data/raw/fg/a320_root (gitignored) with symlinks to the untrusted clone (only read by JSBSim, never
+executed) and a patched copy of the FDE that loads one extra system ("nasal-stubs") declaring every
+undefined property. Initial values come from the defaults in A320-main.xml and A320-200-CFM-set.xml
+(otherwise 0). The stubs are found by a retry loop (one stub per load error, ~700 loads) and cached
+in stubs.json inside the root, so later runs are fast.
 """
 import json
 import re

@@ -1,23 +1,23 @@
-"""JSBSim <turbine_engine> (+ <thruster file="direct"> placement + FADEC limit tables) -> config.json "engines" entry.
+"""JSBSim <turbine_engine> (+ <thruster file="direct"> and FADEC limit tables) -> config.json "engines" entry.
 
-Engine entry written to config.json (SI units; all tables are jsb_expr TABLE dicts, see jsb_expr.py):
+Entry (SI units; tables are jsb_expr TABLE dicts, see jsb_expr.py):
   {"type": "turbine", "model": "CFM56-5B4",
    "thrust_n": sea-level static thrust (JSBSim <milthrust>),
-   "max_rpm": 100.0 (N1 shown as percent), "idle_n1", "max_n1", "idle_n2", "max_n2": fractions of 100 % N1 / N2,
-   "spool_up_s", "spool_down_s": first-order time constants that reproduce JSBSim's N1 spool time (fit, see spool_tau),
+   "max_rpm": 100.0 (N1 shown as percent), "idle_n1", "max_n1", "idle_n2", "max_n2": fractions,
+   "spool_up_s", "spool_down_s": first-order time constants fitted to JSBSim's N1 spool time (spool_tau),
    "tsfc_kg_per_n_s": JSBSim <tsfc> (lb/lbf/h) in SI,
-   "pos_m": thruster location, "orient_deg": {"roll","pitch","yaw"} nozzle toe/pitch, "feed_tanks": [tank indices],
-   "thrust_table":       {mach x density-altitude(ft)} -> MilThrust factor (x thrust_n x FADEC rated factor),
-   "idle_thrust_table":  {mach x density-altitude(ft)} -> idle thrust as a fraction of thrust_n,
+   "pos_m": thruster location, "orient_deg": {"roll","pitch","yaw"}, "feed_tanks": [tank indices],
+   "thrust_table":        {mach x density-altitude(ft)} -> MilThrust factor,
+   "idle_thrust_table":   {mach x density-altitude(ft)} -> idle thrust as a fraction of thrust_n,
    "reverser_loss_table": {reverser position 0..1} -> thrust factor (0.65 fully deployed),
-   "rated_thrust_factor": name of the JSBSim property the FADEC system computes (1.0 when not de-rated),
-   "n1_spool_up_rate_table" / "n1_spool_down_rate_table": {n1 percent} -> percent N1 per second (JSBSim N1SpoolUp/Down,
-                         column = autoconfig-running 0 / 1: we keep the normal column 0),
+   "rated_thrust_factor": JSBSim property the FADEC system computes (1.0 when not de-rated),
+   "n1_spool_up_rate_table" / "n1_spool_down_rate_table": {n1 percent} -> percent N1 per second
+       (JSBSim N1SpoolUp/Down; we use the normal column 0, autoconfig-running 0),
    "jsbsim": {raw JSBSim values: ignitionn1, ignitionn2, n1/n2 startrate, spinup/spindown, bleed, bypassratio...}}
-Thrust, as JSBSim computes it (FGTurbine; checked against the real JSBSim run, tools/a320_reference.json "thrust_formula_check"):
+Thrust as JSBSim computes it (FGTurbine; checked against a real JSBSim run, tools/a320_reference.json "thrust_formula_check"):
   idle = thrust_n * idle_thrust_table(mach, alt);  mil = (thrust_n - idle) * thrust_table(...) * rated_thrust_factor * reverser_loss
-  thrust = (idle + mil * N2norm^2) * (1 - bleed),  N2norm = (N2 - idle_n2) / (max_n2 - idle_n2)  (0 at idle, 1 at max).
-  bleed ~ 0.03 with engine bleed + packs on (set by the pneumatic system), 0 otherwise: measured / formula = 0.970 (6 conditions, bleed on) vs 0.998 (2 conditions, bleed off).
+  thrust = (idle + mil * N2norm^2) * (1 - bleed),  N2norm = (N2 - idle_n2) / (max_n2 - idle_n2)
+  bleed ~ 0.03 with engine bleed + packs on (pneumatic system), else 0.
 Fuel flow = thrust * tsfc (corrected by sqrt(T / 518.67 R)).
 """
 import jsb_expr as x

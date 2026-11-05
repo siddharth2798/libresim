@@ -1,15 +1,16 @@
-"""Terrain detail textures (docs/GRAPHICS-PLAN.md G6): CC0 PBR sets from ambientCG, packed for the terrain shader.
+"""Terrain detail textures: CC0 PBR sets from ambientCG, packed for the terrain shader.
 
-Downloads each set's 1K-JPG zip once into data/raw/textures/<asset>/ (colour, OpenGL normal, roughness, AO;
-ambientCG assets are all CC0 1.0, https://docs.ambientcg.com/license/) and writes two vertical strips of
-SIZE x SIZE layers, imported by Godot as Texture2DArray (one layer per row, see the .import files written here):
-  game/world/textures/terrain/detail_mod.webp  RGB: albedo *modulation* x 0.5 (0.5 = unchanged), linear.
-      The satellite imagery sets the ground's tone; this only adds structure. Each layer is high-passed
-      (divided by a wrap-around blur, so no tile-sized blotch repeats from altitude) and its contrast
-      normalised (CONTRAST), hue kept partly (HUE).
+Downloads each set's 1K-JPG zip once into data/raw/textures/<asset>/ (colour, OpenGL normal,
+roughness, AO; ambientCG assets are all CC0 1.0, https://docs.ambientcg.com/license/) and writes
+two vertical strips of SIZE x SIZE layers, imported by Godot as Texture2DArray (one layer per row;
+the .import files are written here):
+  game/world/textures/terrain/detail_mod.webp  RGB: albedo modulation x 0.5 (0.5 = unchanged), linear.
+      The imagery sets the ground tone; this adds structure. Each layer is high-passed (divided by
+      a wrap-around blur, so no tile-sized blotch repeats from altitude), contrast-normalised
+      (CONTRAST), hue partly kept (HUE).
   game/world/textures/terrain/detail_nrm.webp  RGBA: normal x, y (OpenGL, +y = north), roughness - mean + 0.5, AO.
   game/world/textures/terrain/SOURCES.md       layer -> asset, URL, licence (CREDITS.md lists the same).
-Layer order is the L_* constants in game/world/terrain_detail.gdshaderinc; keep them in step.
+Layer order = the L_* constants in game/world/terrain_detail.gdshaderinc; keep them in step.
 Usage: tools/.venv/bin/python tools/26_terrain_textures.py [--force-download]
 """
 import argparse
@@ -132,8 +133,8 @@ slices/vertical={n}
 
 
 def write_import(name, n, hq):
-    """Godot import settings: VRAM compressed (BC on desktop, ASTC / ETC2 on mobile), mipmapped, n rows.
-    Godot fills in uid / dest_files on the first import; an existing .import (with its uid) is kept."""
+    """Godot import settings: VRAM compressed (BC on desktop, ASTC / ETC2 on mobile), mipmapped,
+    n rows. Godot fills in uid / dest_files on first import; an existing .import (uid) is kept."""
     p = DST / (name + ".import")
     if p.exists() and f"slices/vertical={n}" in p.read_text():
         return

@@ -1,9 +1,8 @@
-"""Phase R helpers shared by the vector/airport scripts (04, 05, 09, 10, 13, 14).
+"""Helpers shared by the vector/airport scripts (04, 05, 09, 10, 13, 14).
 
-The vector data covers the union of the two regions: the original Mumbai-Pune BBOX and the
-Konkan-Kerala corridor polygon (common.corridor_lonlat). OSM comes from two Geofabrik
-extracts that overlap along the Goa/Karnataka and Maharashtra/Karnataka borders, so objects
-are de-duplicated by OSM id across files.
+The vector data covers the union of the Mumbai-Pune BBOX and the Konkan-Kerala corridor polygon
+(common.corridor_lonlat). OSM comes from two Geofabrik extracts that overlap along the Goa/Karnataka
+and Maharashtra/Karnataka borders, so objects are de-duplicated by OSM id across files.
 """
 import math
 

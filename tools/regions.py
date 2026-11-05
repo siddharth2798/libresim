@@ -1,11 +1,11 @@
-"""Phase R helpers shared by the terrain scripts (02, 03, 11, 12, 07).
+"""Region helpers shared by the terrain scripts (02, 03, 11, 12, 07).
 
 Per-region terrain metadata:
   mumbai_pune    terrain/meta.json (base file: levels 0-2 + outer ring 3-6 from 12_outer.py)
   konkan_kerala  terrain/meta_konkan_kerala.json, levels 0-2 only
-Tile entries are "tx_ty": [min_h, max_h, flags]; flags bit 0 = img tile written, bit 1 = lc
-tile written. A missing third element means 3 (both). The runtime borrows imagery / land class
-from the nearest ancestor tile whose bit is set.
+Tile entries are "tx_ty": [min_h, max_h, flags]; flags bit 0 = img tile written, bit 1 = lc tile
+written. A missing third element means 3 (both). The runtime borrows imagery / land class from the
+nearest ancestor tile whose bit is set.
 """
 import argparse
 import json

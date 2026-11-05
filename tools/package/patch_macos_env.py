@@ -1,16 +1,16 @@
 #!/usr/bin/env python3
 """Put the joystick environment variables into a macOS .app's Info.plist (LSEnvironment).
 
-On macOS 27 the SDL3 inside Godot 4.7 lists no joystick unless SDL_JOYSTICK_MFI=0 is set before the program starts
-(its GameController-framework driver hides HID joysticks such as the Thrustmaster TCA), and joystick events reach a
-window only while it is the active app unless SDL_JOYSTICK_ALLOW_BACKGROUND_EVENTS=1. A double-clicked app gets no
-shell exports, but Launch Services applies Info.plist's LSEnvironment to the process it starts. run.sh / launch.sh
-export the same two variables for a source checkout.
+On macOS 27 the SDL3 in Godot 4.7 lists no joystick unless SDL_JOYSTICK_MFI=0 is set before start
+(its GameController driver hides HID joysticks such as the Thrustmaster TCA). Joystick events reach
+a window only while it is the active app unless SDL_JOYSTICK_ALLOW_BACKGROUND_EVENTS=1. A
+double-clicked app gets no shell exports, but Launch Services applies LSEnvironment. run.sh /
+launch.sh export the same two variables for a source checkout.
 
   python3 tools/package/patch_macos_env.py path/to/libresim.app
 
-Run it BEFORE the app is signed (make_release.sh does): editing Info.plist invalidates an existing signature.
-Existing LSEnvironment entries are kept; the two variables are set (an existing value of ours is overwritten).
+Run it BEFORE signing (make_release.sh does): editing Info.plist breaks an existing signature.
+Existing LSEnvironment entries are kept; the two variables are set (an old value of ours is overwritten).
 """
 import plistlib
 import sys

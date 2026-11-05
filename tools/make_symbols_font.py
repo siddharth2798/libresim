@@ -1,13 +1,12 @@
 #!/usr/bin/env python3
-"""Builds game/ui/fonts/LibresimSymbols.ttf: the few symbols the menus use that Fira Sans does not have
-(triangles, circles, stars, check marks, a cog), cut out of DejaVu Sans and renamed "libresim Symbols"
-(the Bitstream Vera licence asks for a new name when the font is modified). It is the explicit fallback of
-the Fira Sans fonts (ui/menu/menu_theme.gd), so the symbols look the same on every system instead of
-depending on whichever font the operating system happens to offer.
+"""Builds game/ui/fonts/LibresimSymbols.ttf: the few menu symbols Fira Sans lacks (triangles,
+circles, stars, check marks, a cog), cut out of DejaVu Sans and renamed "libresim Symbols" (the
+Bitstream Vera licence requires a new name for a modified font). It is the explicit fallback of the
+Fira Sans fonts (ui/menu/menu_theme.gd), so symbols look the same on every system.
 
     tools/.venv/bin/python tools/make_symbols_font.py [path/to/DejaVuSans.ttf]
 
-DejaVuSans.ttf defaults to the copy that ships with matplotlib in tools/.venv. The licence text goes to
+DejaVuSans.ttf defaults to the copy shipped with matplotlib in tools/.venv. The licence text goes to
 third_party/dejavu-symbols/LICENSE (copied from the same folder when it is there).
 """
 import shutil

@@ -1,13 +1,13 @@
 """Outer ring: coarse real data for terrain levels >= OUTER_MIN_LEVEL over OUTER_TOTAL
 (~980 x 1475 km: level-6 tiles tx -1..0, ty -2..0, reaching Kochi).
 
-Heights: Copernicus GLO-90 (+ GLO-30) warped at 240 m; cells with no data are filled
-by GDAL FillNodata (sea extends seaward, plateau inland) plus fractal detail, so the
-world never ends abruptly. Imagery: s2_outer.tif + s2_outer_south.tif (80 m, over OUTER and
-OUTER_SOUTH) where available, else a synthetic texture (sea / land colours from the real imagery + noise).
+Heights: Copernicus GLO-90 (+ GLO-30) warped at 240 m; cells with no data are filled by GDAL
+FillNodata (sea extends seaward, plateau inland) plus fractal detail, so the world never ends
+abruptly. Imagery: s2_outer.tif + s2_outer_south.tif (80 m, over OUTER and OUTER_SOUTH) where
+available, else a synthetic texture (sea / land colours from the real imagery + noise).
 Land class: water where the height is ~0 m.
-Writes h/, img/, lc/ tiles for levels 3..6 (overwriting the clamped ones from 02/03/11)
-and extends terrain/meta.json. Run after 02, 03, 11.
+Writes h/, img/, lc/ tiles for levels 3..6 (overwriting the clamped ones from 02/03/11) and
+extends terrain/meta.json. Run after 02, 03, 11.
 """
 import gzip
 import json

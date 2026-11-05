@@ -1,12 +1,9 @@
 """Minimal AC3D (.ac, AC3Db) reader, pure Python (no bpy), so it works in any Blender version.
 
-Why: the FlightGear AC3D importer add-on (Blender-AC3D) is not installed here and is written for
-Blender <= 4.x; Blender 5.x has no AC3D importer, so libresim parses the (simple, text) format itself
-and builds the Blender scene from the result (tools/blender/a320_scene.py). Decision recorded 2026-10-28.
-
+Why: Blender 5.x has no AC3D importer (the Blender-AC3D add-on targets Blender <= 4.x), so we parse
+the simple text format ourselves and build the scene from it (tools/blender/a320_scene.py).
 Frame: AC3D is Y-up. `to_fg()` converts to the FlightGear model frame (x aft, y right, z up):
 x_fg = x_ac, y_fg = -z_ac, z_fg = y_ac (a proper rotation; matches the Blender-AC3D importer).
-
 Data model: parse(path) -> (materials, root). Obj has name, kind (world|group|poly), loc, rot (3x3 row
 tuples), texture, texrep, texoff, verts [(x,y,z) local], surfs [(flags, mat, [(vertex, u, v)])], kids.
 The file is untrusted data: it is only parsed, never executed.
@@ -116,7 +113,7 @@ def mat_mul(r, v):
 def walk(root):
     """Yield (obj, world_vertices) for every poly with geometry, vertices in AC3D world space."""
     def rec(o, pr, pt):
-        # world = parent_rot applied after local: p_world = (p . rot + loc) . pr + pt (row-vector convention)
+        # world = parent_rot applied after local: p_world = (p . rot + loc) . pr + pt (row vectors)
         out = []
         if o.verts:
             out.append((o, [tuple(a + b for a, b in zip(_apply(pr, _add(mat_mul(o.rot, v), o.loc)), pt)) for v in o.verts]))

@@ -1,17 +1,16 @@
 """Probe an aircraft exterior .glb in JSBSim structural metres (x aft, y right, z up).
 
-Used to place exterior lights (game/aircraft/<id>/aircraft.json "lights") on the model:
-the glb is FlightGear's model frame exported Y-up (glTF X = FG x, Y = FG z, Z = -FG y) with its
-origin at the aircraft's model.origin_m (else config.json metrics.vrp_m), so
-structural = (X, -Z, Y) + origin.
+Used to place exterior lights (game/aircraft/<id>/aircraft.json "lights") on the model. The glb is
+FlightGear's model frame exported Y-up (glTF X = FG x, Y = FG z, Z = -FG y) with its origin at
+model.origin_m (else config.json metrics.vrp_m): structural = (X, -Z, Y) + origin.
 
-  tools/.venv/bin/python tools/glb_probe.py c172 nodes            # per-node bounds
-  tools/.venv/bin/python tools/glb_probe.py a320 materials        # per-material bounds
+  tools/.venv/bin/python tools/glb_probe.py c172 nodes             # per-node bounds
+  tools/.venv/bin/python tools/glb_probe.py a320 materials         # per-material bounds
   tools/.venv/bin/python tools/glb_probe.py a320 box x0 x1 y0 y1 z0 z1 [node|material substring]
-                                                                  # vertices inside a box: bounds + extremes
-  tools/.venv/bin/python tools/glb_probe.py a320 extremes         # wingtips, fin top, nose, tail cone, belly
-  tools/.venv/bin/python tools/glb_probe.py a320 ray ox oy oz dx dy dz  # first skin hit along a ray
-  tools/.venv/bin/python tools/glb_probe.py a320 section x=<v>|y=<v> [tol]  # skin profile at a station
+                                                                   # vertices in a box: bounds + extremes
+  tools/.venv/bin/python tools/glb_probe.py a320 extremes          # wingtips, fin top, nose, tail cone, belly
+  tools/.venv/bin/python tools/glb_probe.py a320 ray ox oy oz dx dy dz   # first skin hit along a ray
+  tools/.venv/bin/python tools/glb_probe.py a320 section x=<v>|y=<v> [tol]   # skin profile at a station
 """
 import json
 import os

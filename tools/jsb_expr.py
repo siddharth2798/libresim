@@ -1,28 +1,24 @@
-"""JSBSim XML helpers shared by 06_jsbsim_to_json.py: numbers, units, <table>, <function> expression trees.
+"""JSBSim XML helpers shared by 06_jsbsim_to_json.py: numbers, units, <table>, <function> trees.
 
-Expression tree (aero.json "functions" / "axes", engine and fcs functions in config.json), evaluated by game/fdm/aero.gd:
-  number
-  {"p": "property/name"}
-  {"op": NAME, "args": [expr, ...]}
-  {"table": TABLE}
-TABLE (1-D, 2-D or 3-D; JSBSim lookup row / column / table):
-  {"row": prop|null, "col": prop|null, "rows": [...], "cols": [...]|null, "data": [[...]]}              1-D / 2-D
-  {"row": prop, "col": prop, "layer": prop, "rows": [...], "cols": [...], "layers": [...],
-   "data": [[[...]]]}                                                          3-D: data[layer][row][col]
-  3-D with different row breakpoints per layer (FADEC limit tables): "rows": null and "layer_rows": [[...] per layer];
-  evaluate each layer with its own rows (clamped), then interpolate between layers.
-For 1-D data is [[v], [v], ...] (one value per row); 2-D data[row][col]; JSBSim lookup (clamped linear interpolation
-in every dimension) is what aero.gd already does for 1-D / 2-D; the 3-D case interpolates the layer too.
+Expression tree (aero.json "functions"/"axes", config.json engine and fcs functions),
+evaluated by game/fdm/aero.gd:
+  number | {"p": "property/name"} | {"op": NAME, "args": [expr, ...]} | {"table": TABLE}
+TABLE (JSBSim lookup, clamped linear interpolation in every dimension):
+  1-D / 2-D: {"row": prop|null, "col": prop|null, "rows": [...], "cols": [...]|null, "data": [[...]]}
+             1-D data is [[v], [v], ...]; 2-D data[row][col]
+  3-D:       {"row", "col", "layer": prop, "rows", "cols", "layers", "data": [[[...]]]}, data[layer][row][col]
+  3-D with different row breakpoints per layer (FADEC limit tables): "rows": null and
+  "layer_rows": [[...] per layer]; each layer uses its own rows, then layers are interpolated.
 
-Operator set (JSBSim <function> elements) and what aero.gd must implement:
-  n-ary:    sum, product, min, max, avg
-  binary:   difference, quotient, pow, atan2, mod, lt, le, gt, ge, eq, ne ("nq" in JSBSim), and, or (n-ary)
-  unary:    abs, sqrt, exp, ln, log2, log10, sin, cos, tan, asin, acos, atan, floor, ceil, fraction, neg, not,
-            toradians, todegrees
-  ternary:  ifthen (cond, then, else)  cond is non-zero = true
-  other:    interpolate1d (args: x, then x0, y0, x1, y1 ... pairs, clamped), integral / derivative / lag are stateful and
-            NOT converted (recorded in "unconverted"; the A320 aerodynamics do not use them)
-  property names are JSBSim ones; a leading "-" in <property> is emitted as {"op": "neg", "args": [{"p": ...}]}.
+Operators (JSBSim <function> elements; aero.gd must implement them):
+  n-ary:   sum, product, min, max, avg
+  binary:  difference, quotient, pow, atan2, mod, lt, le, gt, ge, eq, ne ("nq" in JSBSim), and, or (n-ary)
+  unary:   abs, sqrt, exp, ln, log2, log10, sin, cos, tan, asin, acos, atan, floor, ceil, fraction,
+           neg, not, toradians, todegrees
+  ternary: ifthen (cond, then, else), cond non-zero = true
+  other:   interpolate1d (x, then x0, y0, x1, y1 ... pairs, clamped). integral / derivative / lag
+           are stateful and NOT converted (recorded in "unconverted"; the A320 does not use them).
+Property names are JSBSim ones; a leading "-" in <property> becomes {"op": "neg", ...}.
 """
 import xml.etree.ElementTree as ET
 

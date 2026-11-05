@@ -1,12 +1,12 @@
 """Building density policy for the Konkan-Kerala corridor (04_osm_extract.py).
 
-Kerala's OSM building coverage is very dense (millions of small houses), so corridor tiles
-keep every building inside a "zone" -- within ZONE_AIRPORT_M of an airport, ZONE_CITY_M of a
-place=city node or ZONE_TOWN_M of a place=town node -- and every building of at least
-SMALL_M2 elsewhere; small buildings outside the zones are thinned deterministically by OSM id
-(keep 1 in THIN_EVERY). Mumbai-Pune grid tiles are never thinned. Thinning is opt-in
-(04_osm_extract.py --thin): measured Oct 2026, the corridor has 1.80 M buildings (0.84 M in
-zones, 0.79 M >= 60 m2, 0.17 M small elsewhere), ~0.3 GB of meshes, under the ~600 MB budget.
+Kerala's OSM building coverage is very dense (millions of small houses). Corridor tiles keep every
+building inside a "zone" (within ZONE_AIRPORT_M of an airport, ZONE_CITY_M of a place=city node or
+ZONE_TOWN_M of a place=town node) and every building of at least SMALL_M2 elsewhere; small
+buildings outside the zones are thinned deterministically by OSM id (keep 1 in THIN_EVERY).
+Mumbai-Pune grid tiles are never thinned. Thinning is opt-in (04_osm_extract.py --thin): the
+corridor has 1.80 M buildings (0.84 M in zones, 0.79 M >= 60 m2, 0.17 M small elsewhere), ~0.3 GB
+of meshes, under the ~600 MB budget.
 """
 import json
 

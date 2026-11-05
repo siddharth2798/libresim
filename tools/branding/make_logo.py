@@ -1,14 +1,14 @@
-"""libresim branding: mark, lockup and boot splash (SVG) plus all the PNG renders, written to game/branding/.
+"""libresim branding: mark, lockup and boot splash (SVG) plus all PNG renders, written to game/branding/.
 
 The mark is the start of a runway ("09/27") on an asphalt tile, see brand_mark.py. The wordmark
-"libresim" and the designator are set in Fira Sans (SIL OFL 1.1), converted to outlines so the SVGs need
-no fonts. PNGs are rendered by Godot's own SVG loader (game/branding/rasterize.gd), no extra tools needed.
+"libresim" and the designator are set in Fira Sans (SIL OFL 1.1), converted to outlines so the SVGs
+need no fonts. PNGs are rendered by Godot's SVG loader (game/branding/rasterize.gd).
 
     tools/.venv/bin/python tools/branding/make_logo.py
 
-Files written (game/branding/): mark.svg, logo.svg, splash.svg, logo_mark.png (512), icon.png (256, window
-and app icon), logo.png (128, on-screen logo for dark UI), logo_wide.png / logo_wide_dark.png (README),
-splash.png (1280 x 720 boot splash); plus packaging/linux/libresim.png (512, Linux package icon).
+Writes (game/branding/): mark.svg, logo.svg, splash.svg, logo_mark.png (512), icon.png (256, window
+and app icon), logo.png (128, on-screen logo for dark UI), logo_wide.png / logo_wide_dark.png
+(README), splash.png (1280 x 720 boot splash); also packaging/linux/libresim.png (512, Linux icon).
 """
 import shutil
 import subprocess

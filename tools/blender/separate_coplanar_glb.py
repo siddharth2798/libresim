@@ -2,12 +2,11 @@
 
   tools/.venv/bin/python tools/blender/separate_coplanar_glb.py <file.glb> [--eps 0.01] [--check]
 
-The generic FlightGear jetway has a cab back wall and its door drawn on the same plane (back to
-back, both materials double sided), so the depth test flips between them frame to frame. Every
-pair of triangles that lie in one plane and overlap is moved apart along its own normal: facing
-away from each other for opposite normals, one sheet laid over the other for equal normals.
-A moved triangle gets its own copy of its vertices (appended to the file), so its neighbours stay
-put. Idempotent: a second run finds nothing to move. --check only reports.
+The generic FlightGear jetway has a cab back wall and its door on one plane (back to back, both
+double sided), so the depth test flips between them. Every pair of overlapping coplanar triangles
+is moved apart along its own normal: facing away from each other for opposite normals, one sheet
+over the other for equal normals. A moved triangle gets its own copy of its vertices (appended),
+so neighbours stay put. Idempotent. --check only reports.
 """
 import json
 import struct

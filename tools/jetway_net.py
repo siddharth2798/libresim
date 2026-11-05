@@ -1,21 +1,17 @@
 """Jet-bridge networks: which part of each OSM aeroway=jet_bridge way moves and which is a fixed link.
 
 OSM maps a jet bridge as one way from the terminal wall to the cab, often through a long fixed
-walkway (VABB T2: 40-70 m) to a rotunda where one or two apron-drive bridges start (the second one a
-separate way from the shared rotunda node), or as a chain of short ways (VOGA). The game draws one
-movable bridge (FlightGear generic jetway, game/world/jetway_rig.gd) per cab tip, hinged at its
-rotunda, and a plain fixed corridor (game/world/jetway_links.gd) for everything between the rotunda
-and the building. Before this, the whole way was one bridge hinged at its terminal end and scaled at
-most 1.8 x, so the hood stopped 30-60 m short of the drawn cab, and the second bridges of a shared
-rotunda hung in the air 30-65 m from any building.
+walkway (VABB T2: 40-70 m) to a rotunda where one or two apron-drive bridges start, or as a chain
+of short ways (VOGA). The game draws one movable bridge (game/world/jetway_rig.gd) per cab tip,
+hinged at its rotunda, and a fixed corridor (game/world/jetway_links.gd) between rotunda and building.
 
-Per airport (13_airport_ops.py, or `python jetway_net.py` to patch airport_ops.json in place):
+Per airport (called by 13_airport_ops.py, or `python jetway_net.py` to patch airport_ops.json in place):
   jetbridges[i] gets  rot [x, y]   the rotunda column (hinge) of its movable bridge
                       tip [x, y]   the cab end
                       back [x, y]  unit vector from the rotunda toward the building (the fixed stub)
                       own_rot      false when another bridge already draws this rotunda
-                or     fixed: true  (the way is only a fixed link / joins, no cab end)
-                or     orphan: true (no building within ORPHAN_M of the network: not drawn)
+                or    fixed: true  (only a fixed link / joins, no cab end)
+                or    orphan: true (no building within ORPHAN_M of the network: not drawn)
   jetlinks: [{a: [x, y], b: [x, y]}]  fixed corridors; an end at a building runs INSET_M into it.
 "pts" stays the full OSM way (apron_flatten.py levels the ground under it).
 """
@@ -90,8 +86,8 @@ class Net:
         return seen
 
     def walk_back(self, tip):
-        """Path tip -> rotunda: through plain (degree 2) nodes until a junction, the building, a sharp
-        bend or MAX_TAIL, but at least MIN_TAIL when it can."""
+        """Path tip -> rotunda: through plain (degree 2) nodes until a junction, the building, a
+        sharp bend or MAX_TAIL, but at least MIN_TAIL when it can."""
         path = [tip, next(iter(self.adj[tip]))]
         acc = math.dist(path[0], path[1])
         while True:
@@ -108,8 +104,8 @@ class Net:
             acc += seg
 
     def into_building(self, p, d):
-        """A link end at the building (p, the link arriving along unit d): continued to INSET_M inside the first wall
-        ahead (within ANCHOR_M + INSET_M), or pulled back to INSET_M inside when p is deeper than that."""
+        """A link end at the building (p, link arriving along unit d): continued to INSET_M inside
+        the first wall ahead (within ANCHOR_M + INSET_M), or pulled back when p is deeper."""
         if self.bld is None:
             return None
         if Point(p).within(self.bld):

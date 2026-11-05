@@ -1,22 +1,21 @@
 """ESA WorldCover 2021 v200 land-cover class masks aligned with the imagery / land-class tiles.
 
 Source: ESA WorldCover 2021 v200, 10 m, 11 classes, CC BY 4.0 (https://esa-worldcover.org),
-public bucket, 3x3 degree cloud-optimised GeoTIFFs named by their SW corner (e.g. N18E072).
+public bucket, 3x3 degree cloud-optimised GeoTIFFs named by SW corner (e.g. N18E072).
 Nothing is downloaded whole: GDAL /vsicurl/ windowed reads into data/raw/worldcover/
-  coarse/<tile>.tif   the 3x3 deg tile's 80 m overview (whole tile; underlay for coarse levels)
+  coarse/<tile>.tif      80 m overview of the 3x3 deg tile (underlay for coarse levels)
   cells/<lat>_<lon>.tif  0.5 deg windows at the full 10 m, only where level 0/1 terrain tiles are
-Both steps are resumable (existing files are kept; atomic writes). Then for every terrain tile that
-has an lc tile (same L/tx/ty, IMG_N px, row 0 = north) it writes
+Both steps are resumable (existing files kept, atomic writes). For every terrain tile that has an
+lc tile (same L/tx/ty, IMG_N px, row 0 = north) it writes
   data/processed/terrain/wc/<L>/<tx>_<ty>.r8.gz  (gzip of raw uint8, IMG_N x IMG_N)
-holding a compact class code (0 = unknown / no data):
+with a compact class code (0 = unknown / no data):
   1 tree cover(10)  2 shrubland(20)  3 grassland(30)  4 cropland(40)  5 built-up(50)
   6 bare/sparse(60)  7 snow/ice(70)  8 permanent water(80)  9 herbaceous wetland(90)
   10 mangroves(95)  11 moss/lichen(100)
-Where a tile has lc a wc tile exists (all zero without data), so the runtime borrows both from the
-same ancestor. Categorical resampling: nearest where a tile pixel is ~10 m, else mode (majority).
-Levels <= 2 read the 10 m cells over the 80 m underlay, coarser levels the 80 m mosaic only.
-Run after 11 (needs the lc tiles; covers every region's lc tiles). --workers N, --force (rebuild
-tiles), --download-only.
+Where a tile has lc a wc tile exists (all zero without data), so the runtime borrows both from
+the same ancestor. Resampling: nearest where a tile pixel is ~10 m, else mode. Levels <= 2 read
+the 10 m cells over the 80 m underlay, coarser levels the 80 m mosaic only.
+Run after 11 (needs the lc tiles). Flags: --workers N, --force (rebuild tiles), --download-only.
 """
 import argparse
 import gzip

@@ -1,16 +1,17 @@
 """Building mesh pieces for 10_buildings.py (BLD2 vertex layout).
 
-Per vertex: position, CUSTOM0 = (roof rgb from imagery, style) and CUSTOM1 = (height cm lo, hi, band, wall).
-  style = (pid << 2) | roof type (0 flat, 1 hip roof); pid 0..63 is a per-building hash the shader
-          turns into wall colour, window style and so on.
-  height cm = the wall height incl. parapet (16 bit), the shader lays floors out from the ground.
-  band  = 0..200 across a roof's parapet strip (0 outer edge, 200 inside), 250 rooftop box, 253 water tank.
-  wall  = 0 on the ground ring, 255 on every other ring (the shader interpolates the height above ground).
-Terminal buildings (term = Term(...), from the terminal reference via terminal_ref.py): roof type 2, the walls get
-their own top ring, so on wall vertices CUSTOM0.rgb = cladding colour (sRGB) and band = glazing share x 200
-(1..200), pid = glass luminance x 63; the roof keeps the roof colour (sRGB). No hip roof, no rooftop boxes / tanks.
-Flat roofs of footprints >= PARAPET_MIN_AREA get a sloped parapet strip (outer edge raised by PARAPET_H);
-small 4-corner footprints often get a hipped roof; big flat roofs get a stairwell box and/or a (hexagonal) water tank.
+Per vertex: position, CUSTOM0 = (roof rgb from imagery, style), CUSTOM1 = (height cm lo, hi, band, wall).
+  style  = (pid << 2) | roof type (0 flat, 1 hip roof, 2 terminal); pid 0..63 is a per-building hash
+           the shader turns into wall colour, window style and so on.
+  height = wall height incl. parapet in cm (16 bit); the shader lays floors out from the ground.
+  band   = 0..200 across a roof's parapet strip (0 outer edge, 200 inside), 250 rooftop box, 253 water tank.
+  wall   = 0 on the ground ring, 255 on every other ring (the shader interpolates height above ground).
+Terminals (term = Term(...) from terminal_ref.py): roof type 2; walls get their own top ring, so on
+wall vertices CUSTOM0.rgb = cladding colour (sRGB), band = glazing share x 200 (1..200), pid = glass
+luminance x 63; the roof keeps the roof colour (sRGB). No hip roof, rooftop boxes or tanks.
+Flat roofs of footprints >= PARAPET_MIN_AREA get a sloped parapet strip (outer edge raised by
+PARAPET_H); small 4-corner footprints often get a hipped roof; big flat roofs get a stairwell box
+and/or a (hexagonal) water tank.
 """
 import math
 

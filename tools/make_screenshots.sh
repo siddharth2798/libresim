@@ -1,14 +1,13 @@
 #!/usr/bin/env bash
-# README screenshots: real in-game captures at 1920x1080 on the Ultra graphics preset, saved as
-# docs/screenshots/NN-name.jpg (1600x900, quality 85). Each scene is a separate game run
-# (game/tests/debug_showcase.gd, scene list in game/tests/showcase_scenes.gd) that waits for the
-# terrain, trees and buildings to finish streaming before it saves a PNG. Needs a display and the
-# generated data (docs/USAGE.md); windows open briefly, one after the other.
+# README screenshots: in-game captures at 1920x1080 on the Ultra preset, saved as docs/screenshots/NN-name.jpg
+# (1600x900, quality 85). Each scene is a separate game run (game/tests/debug_showcase.gd, scenes in
+# game/tests/showcase_scenes.gd) that waits for terrain, trees and buildings to finish streaming, then
+# saves a PNG. Needs a display and the generated data (docs/USAGE.md); windows open briefly in turn.
 #   tools/make_screenshots.sh              all scenes
 #   tools/make_screenshots.sh monsoon ...  only these scenes (names as in SHOTS below)
 # Env: FREESIM_SHOTS=/tmp/libresim-shots  raw PNG folder; GODOT=~/.local/bin/godot.
-# Your settings are backed up first and restored at the end (the capture reads no saved options:
-# graphics come from --quality=ultra, the flight from the scene definition).
+# Your settings are backed up first and restored at the end (graphics come from --quality=ultra, the
+# flight from the scene definition).
 set -u
 command -v timeout > /dev/null || timeout() { shift; "$@"; }  # macOS has no timeout(1): run without a time limit
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"

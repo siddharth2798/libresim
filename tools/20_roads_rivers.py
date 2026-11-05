@@ -1,14 +1,15 @@
 """Road and river masks for the terrain shader: crisp ribbons the 10-20 m imagery cannot show.
 
-Reads OSM highway (motorway ... residential, service, track) and waterway (river, canal, stream, drain) lines
-for both regions (ways_extract.py: one pass over the Geofabrik extracts the first time, ~5 min, cached in
-data/processed/osm/ways.npz) and writes, for every level-0 terrain tile that has any,
-  data/processed/terrain/ro/0/<tx>_<ty>.png   1920 x 1920 (4 m texels), 2 channels (see road_raster.py)
-a signed-distance field (0.16 m steps within 4 m of an edge) to the nearest ribbon edge plus the ribbon class, filtered bilinearly by the game so
-3-8 m ribbons stay crisp. Roads never cross water (OSM water polygons + the land-class water mask) except on
-bridges, never cross airport aprons / runways / taxiways, and minor roads and all waterways stop at aerodrome
-fences. Run after 11 / 12 / 17 (needs the final land-class water mask), 04 (aeroways, water). Tiles are only
-re-written with --force. --workers N (default 10), --refresh-osm re-reads the OSM extracts, --only tx_ty,...
+Reads OSM highway (motorway ... residential, service, track) and waterway (river, canal, stream,
+drain) lines for both regions (ways_extract.py: one pass over the Geofabrik extracts the first
+time, ~5 min, cached in data/processed/osm/ways.npz). For every level-0 terrain tile that has any
+it writes data/processed/terrain/ro/0/<tx>_<ty>.png, 1920 x 1920 (4 m texels), 2 channels (see
+road_raster.py): a signed-distance field (0.16 m steps within 4 m of an edge) to the nearest ribbon
+edge plus the ribbon class, filtered bilinearly by the game so 3-8 m ribbons stay crisp.
+Roads never cross water (OSM water polygons + the land-class water mask) except on bridges, never
+cross airport aprons / runways / taxiways; minor roads and all waterways stop at aerodrome fences.
+Run after 11 / 12 / 17 (final land-class water mask) and 04 (aeroways, water).
+Tiles are only re-written with --force. Flags: --workers N (default 10), --refresh-osm, --only tx_ty,...
 """
 import argparse
 import gzip

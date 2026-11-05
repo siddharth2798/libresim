@@ -32,10 +32,11 @@ def trim_point(label, weight_kg, flaps, alt_ft, kcas=None, mach=None, gear_down=
 
 
 def stall_run(weight_kg, flaps, gear_down, alt_ft, v_start_kt, rate_kt_s=1.0):
-    """Normal-law angle-of-attack limit. Phase 1: 1 g deceleration (speed target ramps down, pitch loop holds level) until
-    alpha-prot. Phase 2: full aft stick, idle, wings level, 40 s: alpha settles at alpha-max. CL at alpha-max from the last 5 s
-    (CL = nz W / (q S)); VaMAX(1 g) = sqrt(2 W / (rho0 S CL)); an extrapolated 1-g stall speed from a linear CL(alpha) fit
-    (alpha-prot-2.5 .. alpha-max) extended to alpha-stall (estimate: normal law never lets the aircraft stall)."""
+    """Normal-law angle-of-attack limit. Phase 1: 1 g deceleration (speed target ramps down, pitch loop
+    holds level) until alpha-prot. Phase 2: full aft stick, idle, wings level, 40 s: alpha settles at
+    alpha-max. CL at alpha-max from the last 5 s (CL = nz W / (q S)); VaMAX(1 g) = sqrt(2 W / (rho0 S CL)).
+    The 1-g stall speed is an estimate: linear CL(alpha) fit (alpha-prot-2.5 .. alpha-max) extended to
+    alpha-stall (normal law never lets the aircraft stall)."""
     sim = new_sim(alt_ft=alt_ft, weight_kg=weight_kg, flaps=flaps, gear_down=gear_down, kcas=v_start_kt)
     f = sim.f
     p = rp.Pilot(sim, 0.5)

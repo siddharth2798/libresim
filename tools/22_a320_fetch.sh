@@ -1,16 +1,17 @@
 #!/usr/bin/env bash
-# Fetch the FlightGear A320-family data (GPL-2.0-only) that libresim's A320 converter needs.
-# Sparse checkout, depth 1, pinned commit: FDE/ Engines/ Systems/ + the top-level files
-# (A320-200-CFM-set.xml, LICENSE, README.copyright.md) + Docs/THANKS.md  ->  data/raw/fg/a320
-# NOT fetched on purpose (licence audit, docs/LICENSING.md): Sounds/, Fonts/, Nasal/, WebPanel/, Models/
-# (models come in phase P8), liveries, navdata. Idempotent: does nothing when the pinned commit is already checked out.
+# Fetch the FlightGear A320-family data (GPL-2.0-only) that the A320 converter needs.
+# Sparse checkout, depth 1, pinned commit: FDE/ Engines/ Systems/, the top-level files
+# (A320-200-CFM-set.xml, LICENSE, README.copyright.md) and Docs/THANKS.md -> data/raw/fg/a320
+# NOT fetched on purpose (licence audit, docs/LICENSING.md): Sounds/, Fonts/, Nasal/, WebPanel/,
+# liveries, navdata. Models/ comes from tools/24_a320_models_fetch.sh.
+# Idempotent: does nothing when the pinned commit is already checked out.
 # The checkout is untrusted data: nothing in it is ever executed.
 # Usage: tools/22_a320_fetch.sh [--force]
 set -Eeuo pipefail
 cd "$(dirname "$0")/.."
 URL=https://github.com/legoboyvdlp/A320-family.git
 BRANCH=dev
-PIN=fec1ecba767c8fffd145337b27012e89c01e3ade   # tip of `dev` on 2026-10-28; also recorded in third_party/a320-family/SOURCE.md
+PIN=fec1ecba767c8fffd145337b27012e89c01e3ade   # tip of `dev` on 2026-10-28; also in third_party/a320-family/SOURCE.md
 DST=data/raw/fg/a320
 FORCE=0; [[ ${1:-} == --force ]] && FORCE=1
 

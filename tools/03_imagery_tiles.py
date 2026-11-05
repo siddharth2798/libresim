@@ -1,11 +1,10 @@
 """data/raw/imagery/s2.tif (world frame, 10 m) -> data/processed/terrain/img/<L>/<tx>_<ty>.dds
 
-One IMG_N x IMG_N BC1/DXT1 DDS (full mip chain, sRGB data) per terrain tile (same L/tx/ty as the heightmaps, see
-02_dem_tiles.py). Image row 0 is the NORTH edge (normal image order); the tile
-covers world x in [tx*S, (tx+1)*S], y in [ty*S, (ty+1)*S], S = TILE_SIZE * 2^L.
+One IMG_N x IMG_N BC1/DXT1 DDS (full mip chain, sRGB data) per terrain tile (same L/tx/ty as the
+heightmaps, see 02_dem_tiles.py). Image row 0 is the NORTH edge; the tile covers world x in
+[tx*S, (tx+1)*S], y in [ty*S, (ty+1)*S], S = TILE_SIZE * 2^L.
 Run 02_dem_tiles.py first (reads terrain/meta.json for the tile list).
-
---region mumbai_pune | konkan_kerala | all (default all), --workers N (default 8).
+Flags: --region mumbai_pune | konkan_kerala | all (default all), --workers N (default 8).
 konkan_kerala: tiles at levels >= CORRIDOR_IMG_LEVEL of meta_konkan_kerala.json, from the 20 m
 corridor mosaic over the 80 m outer mosaics; pixels with no imagery get a flat sea/land colour
 chosen from the tile heights. Sets flag bit 0 in meta_konkan_kerala.json for tiles that exist.

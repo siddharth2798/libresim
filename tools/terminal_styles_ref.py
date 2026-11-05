@@ -1,13 +1,14 @@
-"""Landmark recipes driven by the terminal reference data set (terminal_ref.py, tools/ref/terminals_reference.json):
+"""Landmark recipes driven by the terminal reference data (terminal_ref.py, tools/ref/terminals_reference.json):
 heights, glazing and colours come from the researched entry (or its "model" estimates), the plan from OSM.
 
-  VOKN  Kannur 2018: near-square block with a raised, curved central hall; the city-side canopy is 8 parallel
-        gabled bays (OSM roof parts, roof:shape=gabled) with glazed gable ends over the departures kerb, on
-        white columns, with a laterite-red beam and piers along the frontage; blue-grey glass and cladding,
-        white metal roofs. OSM tags the whole footprint height=30 (= the ATC tower), which drew a 30 m box.
-  generic  any airport whose reference terminal has model.recipe = "generic" (today VOGO): each linked OSM
-        footprint as a glazed block (glass to glass_share x eaves, cladding above) under a roof of the
-        reference form (model.roof: flat | curved | pitched), in the reference colours.
+  VOKN     Kannur 2018: near-square block with a raised, curved central hall. The city-side canopy is 8
+           parallel gabled bays (OSM roof parts, roof:shape=gabled) with glazed gable ends over the
+           departures kerb, on white columns, with a laterite-red beam and piers along the frontage;
+           blue-grey glass and cladding, white metal roofs. OSM tags the whole footprint height=30
+           (the ATC tower), which drew a 30 m box.
+  generic  any airport whose reference terminal has model.recipe = "generic" (today VOGO): each linked
+           OSM footprint as a glazed block (glass to glass_share x eaves, cladding above) under a roof
+           of the reference form (model.roof: flat | curved | pitched), in the reference colours.
 """
 import numpy as np
 from shapely.ops import unary_union
@@ -93,8 +94,8 @@ def vokn(g, ctx):
 
 
 def roof_pieces(p, piece=50.0):
-    """Oriented rectangles (centre, axis, length, width) that cover footprint p: its minimum rectangle when p
-    fills 85 % of it, else ~piece-long slices along the long axis, each as wide as the footprint there."""
+    """Oriented rectangles (centre, axis, length, width) covering footprint p: its minimum rectangle
+    when p fills 85 % of it, else ~piece-long slices along the long axis, as wide as the footprint there."""
     c, ax, L, W = tg.mrr(p)
     if p.area >= 0.85 * L * W:
         return [(c, ax, L, W)]

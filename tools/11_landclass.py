@@ -1,16 +1,15 @@
 """Land-class masks aligned with the imagery tiles (same L/tx/ty, IMG_N px, row 0 = north).
 
 Output data/processed/terrain/lc/<L>/<tx>_<ty>.r8.gz (gzip of raw uint8, IMG_N x IMG_N):
-  255      water (sea from the DEM ~0 m + blue imagery, OSM water polygons)
-  1..200   tree density (vegetation index of the imagery, minus buildings/roads/aeroways)
-  0        other
+  255     water (sea from the DEM ~0 m + blue imagery, OSM water polygons)
+  1..200  tree density (vegetation index of the imagery, minus buildings/roads/aeroways)
+  0       other
 Level 0 is classified; higher levels are 2x2-downsampled (majority water, mean density).
-Run after 02, 03 (needs s2.tif), 04.
-
---region mumbai_pune | konkan_kerala | all (default all), --workers N (default 10).
-konkan_kerala: levels >= CORRIDOR_IMG_LEVEL classified directly from the 20 m corridor imagery
-(over the 80 m outer mosaics), sea from the tile heights, OSM water polygons and aeroways if
-osm/water.json / aeroways.json exist (optional). Level 0 gets no lc (borrows the level-1 parent).
+Run after 02, 03 (needs s2.tif), 04. Flags: --region mumbai_pune | konkan_kerala | all (default
+all), --workers N (default 10).
+konkan_kerala: levels >= CORRIDOR_IMG_LEVEL are classified from the 20 m corridor imagery (over
+the 80 m outer mosaics): sea from tile heights, OSM water polygons and aeroways if
+osm/water.json / aeroways.json exist. Level 0 gets no lc (borrows the level-1 parent).
 Sets flag bit 1 in meta_konkan_kerala.json.
 """
 import gzip
@@ -120,8 +119,8 @@ def downsample(level, key, meta):
     (OUT / str(level) / f"{tx}_{ty}.r8.gz").write_bytes(gzip.compress(out.tobytes(), 6))
 
 
-# The corridor mosaic (Sentinel-2 cloudless) is much greener than s2.tif: land excess-green
-# median ~0.19 vs ~0.07, so the tree ramp is shifted (calibrated on Konkan / Kerala tiles).
+# The corridor mosaic (Sentinel-2 cloudless) is much greener than s2.tif (land excess-green
+# median ~0.19 vs ~0.07), so the tree ramp is shifted (calibrated on Konkan / Kerala tiles).
 CORR_EXG0, CORR_EXG_RAMP = 0.17, 0.14
 
 

@@ -1,18 +1,18 @@
-"""Headless JSBSim runner for the A320-200 CFM (FlightGear A320-family FDE incl. the real FBW / FADEC systems).
+"""Headless JSBSim runner for the A320-200 CFM (FlightGear A320-family FDE with the real FBW / FADEC systems).
 
-Reference oracle for tuning libresim's hand-written control laws and FDM tests (tools/23_a320_reference.py). Not used at
-game run time. Root, patched FDE and property stubs: jsb_a320_root.py. Usage:
+Reference oracle for tuning libresim's control laws and FDM tests (tools/23_a320_reference.py).
+Not used at game run time. Root, patched FDE and property stubs: jsb_a320_root.py.
 
     sim = A320Sim(); sim.load()
     sim.init(alt_ft=10000, kcas=250, weight_kg=64000, flaps=0, gear_down=False)
-    sim.set_controls(throttle=0.6, pitch=0.0)      # pitch/roll stick -1..1 (FG sign: pitch -1 = pull)
-    sim.step(1200)                                  # 10 s
+    sim.set_controls(throttle=0.6, pitch=0.0)   # pitch/roll stick -1..1 (FG sign: pitch -1 = pull)
+    sim.step(1200)                              # 10 s
     sim.get("aero/alpha-deg")
 
-Bridge (what FlightGear's Nasal would feed each step; done in _bridge): /position/altitude-ft, -agl-ft,
-/velocities/airspeed-kt, groundspeed-kt, /instrumentation/airspeed-indicator/indicated-speed-kt, /orientation/{roll-rate-
-degps,pitch-rate-degps,roll-deg,heading-deg}, /gear/gear[i]/{wow,position-norm}, /engines/engine[i]/{n1,n2,state},
-/accelerations/pilot-g; plus the one-time switches in _SWITCHES and a refill of the tiny engine pipe tanks 5/6/7.
+_bridge feeds each step what FlightGear's Nasal would: /position/altitude-ft, -agl-ft,
+/velocities/airspeed-kt, groundspeed-kt, the airspeed indicator, /orientation/*, /gear/gear[i]/*,
+/engines/engine[i]/{n1,n2,state}, /accelerations/pilot-g; plus the one-time switches in _SWITCHES
+and a refill of the small engine pipe tanks 5/6/7.
 """
 import math
 
@@ -78,10 +78,11 @@ class A320Sim:
     # --- setup -----------------------------------------------------------------------------------------------------
     def init(self, alt_ft=0.0, kcas=0.0, weight_kg=None, flaps=0, gear_down=True, gamma_deg=0.0, on_ground=False,
              mach=None, payload_kg=None, running=True, temp_dev_c=0.0, settle_s=15.0, ground_cg_ft=8.0):
-        """Reset to an initial condition. weight_kg: total (fuel tuned; payload scaled down if fuel would be < 800 kg).
-        settle_s: seconds to let electrics / hydraulics / FADEC / engines come up before returning: airborne the aircraft is
-        pinned with forces/hold-down and run_ic() re-applies the IC afterwards (system state is kept); on the ground the
-        parking brake is set. Do not call init twice on one sim: use a new A320Sim (system state carries over)."""
+        """Reset to an initial condition. weight_kg: total (fuel tuned; payload scaled down if fuel
+        would be < 800 kg). settle_s: seconds to let electrics / hydraulics / FADEC / engines come
+        up: airborne the aircraft is pinned with forces/hold-down and run_ic() re-applies the IC
+        afterwards; on the ground the parking brake is set. Call once per sim (system state
+        carries over): use a new A320Sim for another init."""
         f = self.f
         for k, v in {**_SWITCHES, **_POWER}.items():
             f[k] = v
@@ -181,11 +182,11 @@ class A320Sim:
         self._load_factor_pi()
 
     def _load_factor_pi(self):
-        """FlightGear runs Systems/a320-fbw-rules.xml next to JSBSim: a pi-simple-controller from
-        /systems/fbw/pitch/load-factor-error (reference 0) to /systems/fbw/pitch/load-factor-pi. Re-implemented here in
-        velocity form  u += Ki*dt*e + Kp*(e - e_prev), e = reference - input, with the file's gains (Kp -1.0 @140 kt .. -0.5 @350 kt,
-        Ki -1.2 .. -0.7 only airborne in law 0/1, else 0) and output limits (between 0 and /systems/fbw/pitch/e-i-sum).
-        FG's exact update order / rate is not reproduced (we run it at 120 Hz)."""
+        """Re-implements FlightGear's Systems/a320-fbw-rules.xml pi-simple-controller from
+        /systems/fbw/pitch/load-factor-error (reference 0) to /systems/fbw/pitch/load-factor-pi, in
+        velocity form u += Ki*dt*e + Kp*(e - e_prev), e = reference - input, with the file's gains
+        (Kp -1.0 @140 kt .. -0.5 @350 kt, Ki -1.2 .. -0.7 only airborne in law 0/1, else 0) and
+        output limits (0 .. /systems/fbw/pitch/e-i-sum). Runs at 120 Hz, not FG's exact rate."""
         f = self.f
         if self.holding:   # pinned by forces/hold-down during the settle: no load factor flows, keep the controller at rest
             self._nz_u = self._nz_e = 0.0

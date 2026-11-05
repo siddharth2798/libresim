@@ -1,10 +1,10 @@
 """Blender helpers for the A320 conversion (run inside Blender: `blender -b --python ...`).
 
-Builds Blender objects from the pure-Python AC3D parser (tools/blender/ac3d_parse.py), because Blender 5.x
-has no AC3D importer. Frame of everything built here: FlightGear model frame (x aft, y right, z up) which is
-also JSBSim's structural frame for this model (so the glb origin = structural origin, model.origin_m = 0);
-glTF export turns it Y-up (aircraft_model.fg_transform places it).
-Upstream: FlightGear A320-family (GPL-2.0-only), see third_party/a320-family/SOURCE.md for credits and changes.
+Builds Blender objects from the pure-Python AC3D parser (ac3d_parse.py), since Blender 5.x has no
+AC3D importer. Frame: FlightGear model frame (x aft, y right, z up), also JSBSim's structural frame
+for this model (glb origin = structural origin, model.origin_m = 0); glTF export turns it Y-up
+(aircraft_model.fg_transform places it).
+Upstream: FlightGear A320-family (GPL-2.0-only), credits and changes in third_party/a320-family/SOURCE.md.
 """
 import math
 import sys

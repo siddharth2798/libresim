@@ -1,12 +1,12 @@
 """Per-tile pavement raster (used by 27_pavement.py): same 4 m lattice and orientation as road_raster.py.
 
 RGBA8, row 0 = north, RN x RN texels of RES metres over a level-0 tile:
-  R  pavement edge distance e (m, negative inside), byte = (e - E_MIN) / E_SPAN * 255, filtered by the game
-  G  signed lateral offset from the nearest stand lead-in line d (m, + = right of the aircraft's heading),
-     byte = (d + D_MAX) / (2 D_MAX) * 255; 255 = no lead-in nearby; filtered
-  B  concrete slab-joint direction, byte = angle mod 90 deg / 90 * 256 (per polygon, read unfiltered)
-  A  bits 0-1 surface (0 none, 1 concrete, 2 asphalt), bits 2-7 stand wear 0..63 (63 = where aircraft
-     stand: oil stains; lower along the lead-in: tyre marks), read unfiltered
+  R  pavement edge distance e (m, negative inside), byte = (e - E_MIN) / E_SPAN * 255, filtered
+  G  signed lateral offset d from the nearest stand lead-in line (m, + = right of the aircraft's
+     heading), byte = (d + D_MAX) / (2 D_MAX) * 255; 255 = no lead-in nearby; filtered
+  B  concrete slab-joint direction, byte = angle mod 90 deg / 90 * 256 (per polygon), unfiltered
+  A  bits 0-1 surface (0 none, 1 concrete, 2 asphalt), bits 2-7 stand wear 0..63 (63 where aircraft
+     stand: oil stains; lower along the lead-in: tyre marks), unfiltered
 Keep the constants in step with game/world/terrain_pavement.gdshaderinc.
 """
 import math

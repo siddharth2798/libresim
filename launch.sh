@@ -1,10 +1,9 @@
 #!/usr/bin/env bash
 # libresim double-click launcher (used by "Start libresim.desktop" / "Start libresim.command").
-#   - Everything is already set up  -> starts the game right away, no terminal.
-#   - First time (or data missing)  -> opens a terminal window that runs ./run.sh, which asks
-#     before installing anything, downloads and builds the data, then starts the game.
-# It also puts libresim into your applications menu, so you can start it from there too.
-# Not needed from a terminal: ./run.sh does the same and takes game options.
+#   - Everything set up  -> starts the game, no terminal.
+#   - First time (or data missing) -> opens a terminal that runs ./run.sh: it asks before
+#     installing anything, downloads and builds the data, then starts the game.
+# It also adds libresim to your applications menu. From a terminal use ./run.sh (takes game options).
 #   ./launch.sh --register-only   only add the applications-menu entry
 set -u
 cd "$(dirname "$(readlink -f "$0")")"
@@ -91,7 +90,7 @@ if [[ ${1:-} == --register-only ]]; then register; exit 0; fi
 if ready; then
   register
   GODOT=$(godot_bin)
-  # macOS: SDL3 inside Godot lists no Thrustmaster (HID) pad unless its GameController-framework driver is off, and
+  # macOS: SDL3 in Godot lists no Thrustmaster (HID) pad unless its GameController driver is off, and
   # joystick events only reach the active app unless background events are on. Keep SDL's HIDAPI driver ON. (docs/USAGE.md)
   if [[ $(uname) == Darwin ]]; then export SDL_JOYSTICK_MFI=0 SDL_JOYSTICK_ALLOW_BACKGROUND_EVENTS=1; fi
   if [[ $(uname) == Darwin ]]; then

@@ -1,25 +1,25 @@
-"""OSM airport ground infrastructure -> data/processed/airport_ops.json (phase A).
+"""OSM airport ground infrastructure -> data/processed/airport_ops.json.
 
-Per airport (nearest OurAirports airport within 6 km):
-  stands:      [{ref, x, y, heading_deg, kind: "gate"|"remote", jetbridge: bool, src}]
-               src "osm": aeroway=parking_position (ways give the stand line & heading, the stop
-               point is the end that does not touch a taxiway; nodes are headed toward the nearest
-               terminal), jetbridge = a jet_bridge way within 45 m.
-               src "bridge" | "gate" | "remote": airliner stands derived at terminals whose jet bridges
-               no OSM stand serves (airport_stands.py): gate = cab tip of each bridge, walk-out gate,
-               remote bays along the apron lanes; each is linked into the taxi graph.
-               src "synth": GA tie-downs on aprons where OSM maps no stands (clear of taxiways)
-  gates:       [{ref, x, y}] aeroway=gate nodes (terminal-side gate numbers)
-  jetbridges:  [{pts: [[x, y], ...], rot, tip, back, own_rot | fixed | orphan}] aeroway=jet_bridge ways; the
-               movable bridge of each (rotunda, cab end, stub direction) from jetway_net.py
-  jetlinks:    [{a, b}] fixed corridors from the terminal wall to the rotundas (jetway_net.py)
-  holds:       [{x, y}] aeroway=holding_position nodes
+Per airport (nearest OurAirports airport within 6 km), in world metres (x east, y north):
+  stands:     [{ref, x, y, heading_deg, kind: "gate"|"remote", jetbridge: bool, src}]
+              src "osm": aeroway=parking_position (a way gives line and heading; the stop point is
+              the end not touching a taxiway; a node is headed toward the nearest terminal);
+              jetbridge = a jet_bridge way within 45 m.
+              src "bridge" | "gate" | "remote": airliner stands derived for terminals whose jet
+              bridges no OSM stand serves (airport_stands.py): cab tip of each bridge, walk-out
+              gate, remote bays along apron lanes; each is linked into the taxi graph.
+              src "synth": GA tie-downs on aprons where OSM maps no stands.
+  gates:      [{ref, x, y}] aeroway=gate nodes
+  jetbridges: [{pts: [[x, y], ...], rot, tip, back, own_rot | fixed | orphan}] aeroway=jet_bridge
+              ways, with the movable bridge of each from jetway_net.py
+  jetlinks:   [{a, b}] fixed corridors from the terminal wall to the rotundas (jetway_net.py)
+  holds:      [{x, y}] aeroway=holding_position nodes
   windsocks, towers: [{x, y}]
-  taxi:        {nodes: {id: [x, y]}, edges: [[id_a, id_b, ref, width_m, kind]]}
-               graph from aeroway=taxiway/taxilane/runway ways (shared OSM nodes = junctions); kind
-               "parking_position" edges are stand lines and the lead-ins added for derived stands
-World metres (x east, y north). Both regions (Mumbai-Pune BBOX + Konkan-Kerala corridor),
-both Geofabrik extracts, de-duplicated by OSM id. Run after 04 and 05 (aprons come from osm/aeroways.json).
+  taxi:       {nodes: {id: [x, y]}, edges: [[id_a, id_b, ref, width_m, kind]]} from
+              aeroway=taxiway/taxilane/runway ways (shared OSM nodes = junctions); kind
+              "parking_position" = stand lines and lead-ins of derived stands.
+Both regions (Mumbai-Pune BBOX + Konkan-Kerala corridor), both Geofabrik extracts,
+de-duplicated by OSM id. Run after 04 and 05 (aprons come from osm/aeroways.json).
 """
 import json
 import math
@@ -44,9 +44,8 @@ def heading(dx, dy):
 
 
 def synth_ga_stands(out, sites, aprons, nearest_airport, had_osm):
-    """Airports where OSM maps no stands (e.g. Juhu): GA tie-down spots on the aprons, spaced 18 m,
-    nose toward the nearest taxiway node, only where they clear taxiways, runways, buildings and
-    the airliner stands (Site.ga_ok)."""
+    """Airports where OSM maps no stands (e.g. Juhu): GA tie-downs on aprons, 18 m apart, nose
+    toward the nearest taxiway node, clear of taxiways, runways, buildings and airliner stands."""
     from matplotlib.path import Path
     for ap in aprons:
         pts = ap["pts"]
@@ -124,9 +123,9 @@ def build_ops(airports, nodes_pt, ways, terminals):
         if w["kind"] == "jet_bridge":
             A["jetbridges"].append({"pts": [[round(p[1], 1), round(p[2], 1)] for p in w["pts"]]})
         elif w["kind"] == "parking_position":
-            # stand line: the aircraft stops at one end, nose pointing along the last segment. OSM says
-            # the last node, but some airports (Pune, Goa, Mangaluru) draw it from the stop point out to
-            # the taxiway: then the end that touches a taxiway is the lead-in, so reverse a long line.
+            # stand line: the aircraft stops at one end, nose along the last segment. Some airports
+            # (Pune, Goa, Mangaluru) draw it from the stop point out to the taxiway, so the end
+            # that touches a taxiway is the lead-in: reverse a long line.
             pts = w["pts"]
             length = sum(math.hypot(a[1] - b[1], a[2] - b[2]) for a, b in zip(pts, pts[1:]))
             if pts[-1][0] in on_taxiway and pts[0][0] not in on_taxiway and length >= 60.0:

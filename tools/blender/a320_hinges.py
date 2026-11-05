@@ -1,20 +1,17 @@
 """Hinge / pivot table for the A320 exterior (pure data, FlightGear model frame = structural frame, metres).
 
-Source: the <animation> elements of upstream Models/Fuselage/fuselage.xml and a320.cfm.xml (A320-family,
-GPL-2.0-only; read with tools/blender/fg_anim_summary.py), re-expressed as `pivot_<name>` empties.
-
-Conventions (same as tools/blender/convert_c172p.py and aircraft_model.gd):
-  * the pivot's local +X runs from p1 to p2 (the hinge line); the game rotates `pivot_<name>` about that +X
-    by  sign * value  (value in rad, or deg for *_deg drives); rotation is right-handed in the x-aft, y-right,
-    z-up frame.
-  * axes are oriented so that: +angle about +y (axis pointing right) lowers a trailing edge (ailerons, flaps,
-    THS: +y axes); elevators (axis -y) and rudder (axis up) use the c172's signs (-1) with the c172's fcs
-    meaning (positive elevator = trailing edge down, positive rudder = right pedal); slats +y axis with sign -1
-    (leading edge down when deployed); spoilers axis -y (outboard on the left wing, inboard direction on the
-    right wing as upstream), +angle = panel raised.
-  * `map` (optional, proposed extension of model.surfaces): piecewise-linear [[drive value, degrees], ...] of
-    the upstream interpolation tables; angle is then the map output (degrees, sign still applies).
-Each entry: objs (AC object names carried by the pivot), p1, p2, parent (nested pivot) and the game drive.
+Source: the <animation> elements of upstream Models/Fuselage/fuselage.xml and a320.cfm.xml
+(A320-family, GPL-2.0-only; read with tools/blender/fg_anim_summary.py), as `pivot_<name>` empties.
+Each entry: objs (AC object names carried by the pivot), p1, p2, parent (nested pivot), game drive.
+Conventions (as in convert_c172p.py and aircraft_model.gd):
+  * Pivot local +X runs from p1 to p2 (the hinge line). The game rotates `pivot_<name>` about +X by
+    sign * value (rad, or deg for *_deg drives), right-handed in the x-aft, y-right, z-up frame.
+  * +angle about +y lowers a trailing edge (ailerons, flaps, THS). Elevators (axis -y) and rudder
+    (axis up) use the c172's signs (-1) and fcs meaning (positive elevator = trailing edge down,
+    positive rudder = right pedal). Slats: +y axis, sign -1 (leading edge down when deployed).
+    Spoilers: axis -y (outboard on the left wing, inboard on the right as upstream), +angle = raised.
+  * `map` (optional, extension of model.surfaces): piecewise-linear [[drive value, degrees], ...]
+    from the upstream tables; the angle is the map output (degrees, sign still applies).
 """
 
 def _s(drive, sign=1.0, **kw):

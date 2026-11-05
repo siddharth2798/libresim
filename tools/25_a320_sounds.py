@@ -1,17 +1,16 @@
 #!/usr/bin/env python3
-"""A320 pack sounds: fetch the verified CC0 / CC-BY recordings, cut them into loops / one-shots, audit.
+"""A320 pack sounds: fetch the CC0 / CC-BY recordings, cut them into loops / one-shots, audit.
 
-  25_a320_sounds.py            audit (default): every shipped file is in manifest.json and SOURCES.md, sha256
-                               matches, loops are seamless, size budget holds. Needs numpy only.
-  25_a320_sounds.py --fetch    download the source recordings into data/raw/a320_sounds/<id>/ (own folder
-                               each, never executed, sha256 pinned below; needs certifi from the venv).
-  25_a320_sounds.py --build    cut the sources into game/aircraft/a320/sounds/*.wav + manifest.json
-                               (needs numpy, scipy, soundfile: tools/.venv/bin/pip install soundfile).
-
-Licence rules (user decision): only recordings whose own file page says CC0 or CC-BY, listed file by file
-in game/aircraft/a320/sounds/SOURCES.md, CREDITS.md and docs/LICENSING.md. Nothing from the A320-family
+  25_a320_sounds.py          audit (default): every shipped file is in manifest.json and SOURCES.md,
+                             sha256 matches, loops are seamless, size budget holds. Needs numpy.
+  25_a320_sounds.py --fetch  download the sources into data/raw/a320_sounds/<id>/ (own folder each,
+                             never executed, sha256 pinned below; needs certifi from the venv).
+  25_a320_sounds.py --build  cut the sources into game/aircraft/a320/sounds/*.wav + manifest.json
+                             (needs numpy, scipy, soundfile: tools/.venv/bin/pip install soundfile).
+Licences: only recordings whose own file page says CC0 or CC-BY, listed file by file in
+game/aircraft/a320/sounds/SOURCES.md, CREDITS.md and docs/LICENSING.md. Nothing from the A320-family
 upstream Sounds/ folder. Nothing is synthesised: every output is a trimmed / filtered / resampled /
-normalised cut of a real recording (the edits are in EDITS below and in SOURCES.md).
+normalised cut of a real recording (EDITS below and SOURCES.md).
 Run with tools/.venv/bin/python (system python lacks certificates).
 """
 import hashlib
@@ -132,8 +131,8 @@ def filt(x, kind, hz):
 
 
 def make_loop(x, xf_s):
-    """Cross-fade the tail onto the head (equal power): the cut becomes N - xf samples and its last
-    sample continues straight into its first."""
+    """Cross-fade the tail onto the head (equal power): the cut becomes N - xf samples and its
+    last sample continues into its first."""
     xf = int(xf_s * RATE)
     n = len(x) - xf
     t = np.linspace(0.0, 1.0, xf, endpoint=False)

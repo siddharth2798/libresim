@@ -1,18 +1,18 @@
 """Derive the A320 model textures from the FlightGear A320-family textures (GPL-2.0-only; credits in
-third_party/a320-family/SOURCE.md). Pillow + numpy only; the inputs are untrusted data, only decoded.
+third_party/a320-family/SOURCE.md). Needs Pillow + numpy; inputs are only decoded (untrusted).
 
-Changes made (change-log class "textures"):
-  fuselage.png  Fuse-Main.png (4096) recoloured: the template's olive/khaki paint areas become plain white
-                (luminance kept, so shading, panel lines and windows stay), the template's fixed registration
-                "N680AW" (both sides) is erased, a plain slate cheat line is added, the template's black nose
-                radome becomes light grey with a darker grey tip cap (RADOME_RECTS, 2026-10-29), the fin / rudder
-                area (black field and tan stripes) is a plain deep blue (FIN_BLUE, 2026-10-29). Registration
-                area: REG_RECTS.
-  gear.png      LandingGears.png (2048) with the tyre sidewall lettering (tyre maker mark, "FlightGear") removed
-                (each tyre annulus replaced by its per-radius median colour).
-  engine.png    Liveries/CFM/2k/CFM56-white.png unchanged (clean white engine; generic placards only).
-  fd_*.png ...  flight-deck textures reduced to <= 2048 px; the "Airbus A320 Family" legend on fd_main.png is
-                painted over with the surrounding panel colour.
+Outputs:
+  fuselage.png  Fuse-Main.png (4096) recoloured: the olive/khaki paint becomes plain white (luminance
+                kept, so shading, panel lines and windows stay); the fixed registration "N680AW"
+                (both sides) is erased (REG_RECTS); a plain slate cheat line is added; the black nose
+                radome becomes light grey with a darker tip cap (RADOME_RECTS); the fin / rudder area
+                (black field, tan stripes) becomes plain deep blue (FIN_BLUE).
+  gear.png      LandingGears.png (2048) with the tyre sidewall lettering (maker mark, "FlightGear")
+                removed (each tyre annulus replaced by its per-radius median colour).
+  engine.png    Liveries/CFM/2k/CFM56-white.png unchanged (clean white engine, generic placards).
+  fd_*.png      flight-deck textures reduced to <= 2048 px; the "Airbus A320 Family" legend on
+                fd_main.png is painted over with the panel colour.
+Change-log class: "textures".
 Usage: tools/.venv/bin/python -I tools/24_a320_textures.py
 """
 from pathlib import Path
@@ -23,10 +23,10 @@ from PIL import Image
 ROOT = Path(__file__).resolve().parents[1]
 RAW = ROOT / "data/raw/fg/a320/Models"
 OUT = ROOT / "data/processed/a320/tex"  # derived (gitignored); the glb embeds them
-# registration areas in fuselage.png pixels (x, y, w, h): where the template's N680AW was; the two fuselage sides
+# registration areas in fuselage.png pixels (x, y, w, h): where the template's N680AW was (both sides)
 REG_RECTS = {"left": (2640, 440, 220, 80), "right": (2640, 1250, 220, 80)}
-# (x0, x1, y0, y1, fin) in fuselage.png: black template areas; the belly fairing one becomes white, the fin / rudder one
-# (fin = True) a plain deep blue together with the template's tan stripes inside that area (a solid blue fin and rudder, no logo)
+# (x0, x1, y0, y1, fin) in fuselage.png: black template areas. The belly fairing one becomes white,
+# the fin / rudder one (fin = True) plain deep blue together with its tan stripes (no logo).
 BLACK_AREAS = [(1100, 2420, 480, 1130, False), (3100, 4096, 1740, 2640, True)]
 FIN_BLUE = (24, 46, 96)
 # the template's black radome in fuselage.png pixels (x0, y0, x1, y1): two side panels and the tip cap disc
@@ -78,9 +78,9 @@ def fuselage():
 
 
 def radome(arr):
-    """Black template radome -> light grey panels and a mid-grey tip cap. The black-to-background edge gradient
-    is kept by blending the new grey with the template background by luminance; tan paint and the red-ringed
-    placard discs (not near-neutral dark pixels) are left alone."""
+    """Black template radome -> light grey panels and a mid-grey tip cap. The black-to-background
+    edge gradient is kept by blending by luminance; tan paint and the red-ringed placard discs
+    (not near-neutral dark pixels) are left alone."""
     for name, rects in RADOME_RECTS.items():
         grey = TIP_GREY if name == "tip" else RADOME_GREY
         for x0, y0, x1, y1 in rects:

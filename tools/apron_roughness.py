@@ -1,16 +1,16 @@
 """Apron ground roughness report: how bumpy is the level-0 terrain (30 m samples) where aircraft
-park and taxi? Used before/after tools/apron_flatten.py (step 17) and as a QA tool. Reads the
-tiles on disk (any region); needs 04 (apron polygons, buildings), 13 (stands) and 15 (terminals).
+park and taxi? QA for tools/apron_flatten.py (step 17); run before and after.
 
+Reads the tiles on disk (any region); needs 04 (apron polygons, buildings), 13 (stands), 15 (terminals).
 Per airport:
-  stand     every stand / gate disc of STAND_R metres (>= 3 samples): peak-to-peak height. Reported as
-            median / p90 / max over the stands and the share of stands that are not flat (> 1.5 m).
-  apron     each OSM aeroway=apron polygon: std of the heights after removing the best-fit plane
+  stand     each stand / gate disc of STAND_R m (>= 3 samples): peak-to-peak height; median / p90 /
+            max over stands, and the share of stands that are not flat (> 1.5 m).
+  apron     each OSM aeroway=apron polygon: std of heights after removing the best-fit plane
             (area-weighted mean) and the largest peak-to-peak.
-  ring      10..60 m ring around terminal / hangar-sized buildings in the aerodrome: where DSM walls
-            and roofs leak into the ground next to a building. r = height minus its 5x5 median;
-            reported as p98 |r| and max |r|, and the share of samples 0.8 m above a neighbour.
-  terminal  where a landmark terminal model exists: the terrain around / inside each big terminal
+  ring      10..60 m ring around terminal / hangar-sized buildings in the aerodrome (DSM walls and
+            roofs leaking into the ground). r = height minus its 5x5 median: p98 |r|, max |r|, and
+            the share of samples 0.8 m above a neighbour.
+  terminal  where a landmark terminal model exists: terrain around / inside each big terminal
             against the model origin height (16 raises every vertex by terrain - origin).
 Usage: apron_roughness.py [ICAO ...] [--json out.json]
 """

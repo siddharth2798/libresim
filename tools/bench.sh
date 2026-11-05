@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
-# Graphics benchmark (docs/GRAPHICS-PLAN.md G0): frame times for fixed showcase scenes on each graphics
-# preset and renderer. Each run is a separate windowed game (tests/debug_showcase.gd --bench=<s>) that
-# waits for streaming to settle, measures with vsync off, then saves a screenshot tagged with the preset
-# and renderer. Needs a display and the generated data. Close other GPU-heavy apps (and other Godot runs) first.
+# Graphics benchmark: frame times for fixed showcase scenes on each graphics preset and renderer.
+# Each run is a separate windowed game (tests/debug_showcase.gd --bench=<s>) that waits for streaming
+# to settle, measures with vsync off, then saves a screenshot tagged with preset and renderer.
+# Needs a display and the generated data. Close other GPU-heavy apps and Godot runs first.
 #   tools/bench.sh                         default matrix (below)
 #   PRESETS="high max" RENDERERS=forward_plus SCENES=ghats_chase tools/bench.sh
 #   DRIVER=vulkan tools/bench.sh           macOS: through MoltenVK, which has GPU timestamps (Metal shows n/a)
 # Env: FREESIM_BENCH=/tmp/libresim-bench (logs, PNGs, bench.md), BENCH_S=10, SIZE=1920x1080, GODOT, DRIVER.
-# Vsync: --disable-vsync, and bench_probe.gd switches it off at run time too (the flag alone did not always stick on
-# macOS 4.7.2); see game/tests/bench_probe.gd for the columns.
+# Vsync: --disable-vsync, and bench_probe.gd switches it off at run time too (the flag alone does not
+# always stick on macOS 4.7.2); columns: game/tests/bench_probe.gd.
 set -u
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 GODOT="${GODOT:-$HOME/.local/bin/godot}"

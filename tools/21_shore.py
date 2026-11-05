@@ -1,14 +1,15 @@
 """Shore distance and openness of the water, for shore foam, depth colour and calm backwaters.
 
-For every land-class tile that has water (terrain/lc/<L>/<tx>_<ty>.r8.gz, 255 = water) writes
-  data/processed/terrain/sd/<L>/<tx>_<ty>.rg8.gz   gzip of raw interleaved uint8 pairs, IMG_N x IMG_N, row 0 = north
-    R  signed distance to the shore in metres: 128 + d (1 m steps, +127 m deep water side, -128 m inland),
-       from the mask smoothed by one texel so the 10-80 m raster staircase does not show in the foam lines
-    G  openness 0..255: how far open water reaches around the point, mean of the 6 longest of 8 compass runs
-       over water, capped at FETCH_M (open sea 255, offshore lake or backwater 100-130, narrow river ~20)
-The mask is mosaicked with the 8 neighbouring tiles of the same level first (edge-replicated where a
-neighbour does not exist), so there is no seam at tile borders. Tiles without any water get no file (the game
-falls back to "deep, open"). Run after 11 / 12 / 17 (final lc masks). --workers N, --force.
+For every land-class tile with water (terrain/lc/<L>/<tx>_<ty>.r8.gz, 255 = water) writes
+  data/processed/terrain/sd/<L>/<tx>_<ty>.rg8.gz  gzip of raw interleaved uint8 pairs, IMG_N x IMG_N, row 0 = north
+    R  signed distance to the shore in metres: 128 + d (1 m steps, +127 m deep side, -128 m inland),
+       from the mask smoothed by one texel so the 10-80 m raster staircase does not show in the foam
+    G  openness 0..255: how far open water reaches around the point, mean of the 6 longest of 8
+       compass runs over water, capped at FETCH_M (open sea 255, offshore lake or backwater
+       100-130, narrow river ~20)
+The mask is first mosaicked with the 8 neighbouring tiles of the same level (edge-replicated where
+missing), so there is no seam at tile borders. Tiles without water get no file (the game falls back
+to "deep, open"). Run after 11 / 12 / 17 (final lc masks). Flags: --workers N, --force.
 """
 import argparse
 import gzip

@@ -1,13 +1,13 @@
 """Airport pavement masks for the terrain shader: aprons, stands and runway / taxiway shoulders.
 
-There is no apron mesh: aprons are terrain coloured by the satellite imagery. This writes, for every level-0
-tile with pavement, data/processed/terrain/pv/0/<tx>_<ty>.png (1920 x 1920 RGBA, 4 m texels, same lattice as
-the road tiles; layout in pavement_raster.py) so the shader can draw a clean paved surface there (concrete slabs
-or asphalt, tyre marks along the stand lead-in lines, oil stains where aircraft stand) instead of the ground
-detail meant for fields and towns.
-Inputs: OSM aeroway=apron / runway / taxiway areas (osm/aeroways.json, from 04) and their surface tag (one
-osmium pass over the extracts, cached in osm/aeroway_areas.json; --refresh-osm re-reads), runways.json (09:
-runway and taxiway centrelines; the ribbons get asphalt shoulders), airport_ops.json (13 / 17: stands, each also gets a paved pad).
+There is no apron mesh: aprons are terrain coloured by the imagery. For every level-0 tile with
+pavement this writes data/processed/terrain/pv/0/<tx>_<ty>.png (1920 x 1920 RGBA, 4 m texels, same
+lattice as the road tiles; layout in pavement_raster.py) so the shader draws a clean paved surface
+(concrete slabs or asphalt, tyre marks along stand lead-in lines, oil stains under aircraft).
+Inputs: OSM aeroway=apron / runway / taxiway areas (osm/aeroways.json from 04, plus their surface
+tag from one osmium pass over the extracts, cached in osm/aeroway_areas.json; --refresh-osm
+re-reads), runways.json (09: centrelines; ribbons get asphalt shoulders), airport_ops.json (13 / 17:
+stands, each also gets a paved pad).
 Tiles are only re-written with --force. --only tx_ty,...
 """
 import argparse
@@ -33,8 +33,8 @@ CLOSE_M, FILL_ZONE_M = 38.0, 170.0  # apron fill: closing radius, reach from a s
 
 
 def osm_areas(refresh=False):
-    """[{"pts", "surface"}] every OSM aeroway apron / taxiway / runway area (multipolygons too; osm/aeroways.json
-    misses some), from one osmium pass over the extracts, cached."""
+    """[{"pts", "surface"}] every OSM aeroway apron / taxiway / runway area (multipolygons too;
+    osm/aeroways.json misses some), from one osmium pass over the extracts, cached."""
     if SURF_CACHE.exists() and not refresh:
         return json.loads(SURF_CACHE.read_text())
     import osmium
@@ -85,8 +85,8 @@ def features():
     for t in rw["taxiways"]:
         if len(t["pts"]) >= 2:
             lines.append(shapely.LineString(t["pts"]).buffer(min(float(t["width"]), 23.0) / 2 + TWY_SHOULDER))
-    # slab grid of the stand pads and the filled apron: along the airport's longest runway (one grid per airport,
-    # so pads and fill never meet at an angle), else the mean stand heading
+    # slab grid of the stand pads and the filled apron: along the airport's longest runway (one
+    # grid per airport, so pads and fill never meet at an angle), else the mean stand heading
     rwy_ang = {}
     for r in sorted(rw["runways"], key=lambda r: float(r["length"])):
         a, b = r["ends"]
@@ -106,8 +106,8 @@ def features():
 
 
 def apron_fill(box, polys, lines, stands):
-    """Apron between the stands and the taxilanes (OSM often has no apron polygon there): a morphological
-    closing of the paved shapes near stands, computed over a padded box so neighbouring tiles agree."""
+    """Apron between the stands and the taxilanes (OSM often has no apron polygon there): a
+    morphological closing of the paved shapes near stands, over a padded box so tiles agree."""
     big = box.buffer(CLOSE_M * 4, join_style="mitre")
     pts = [shapely.Point(x, y) for x, y, *_ in stands if big.contains(shapely.Point(x, y))]
     if not pts:

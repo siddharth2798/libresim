@@ -1,15 +1,15 @@
-"""Tile I/O for 17_airport_fixups.py: read/write level 0-2 height and land-class tiles in
-place, keep the originals of every file it changes (terrain/fixups_orig/) so a re-run starts
-again from the originals (tool changes take effect; a second run gives the same bytes).
-Covers the base grid (meta.json) and region packs (meta_<region>.json); a tile's min/max
-is updated in whichever meta lists it.
-Every write goes through a temp file and an atomic rename, and tiles patched last time are
-read from their originals instead of being reverted on disk first, so a game running during
-the re-run never sees a half-written or temporarily unpatched tile.
+"""Tile I/O for 17_airport_fixups.py: read/write level 0-2 height and land-class tiles in place.
+
+Originals of every changed file are kept in terrain/fixups_orig/, so a re-run starts again from
+them (a second run gives the same bytes). Covers the base grid (meta.json) and region packs
+(meta_<region>.json); a tile's min/max is updated in whichever meta lists it.
+Writes go through a temp file and an atomic rename, and tiles patched last time are read from their
+originals instead of being reverted on disk first, so a running game never sees a half-written or
+unpatched tile.
 State: terrain/fixups.json = {"files": {relpath: sha1 written},
                               "meta": {"<meta file>|<level>/<key>": original [min, max]}}.
-A file regenerated since (02/11 re-run) no longer matches its sha1: its stale original is
-dropped and the fresh file is patched instead.
+A file regenerated since (02/11 re-run) no longer matches its sha1: its stale original is dropped
+and the fresh file is patched.
 """
 import gzip
 import hashlib
@@ -49,7 +49,7 @@ class Tiles:
 
     # ------------------------------------------------------------ state / revert
     def prepare(self):
-        """Find the files we patched last time (if still ours); their originals are read from ORIG
+        """Find the files patched last time (if still ours); their originals are read from ORIG
         and put back at save() unless this run patches them again."""
         if not STATE.exists():
             shutil.rmtree(ORIG, ignore_errors=True)

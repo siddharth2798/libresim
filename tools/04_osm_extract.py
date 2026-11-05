@@ -1,13 +1,13 @@
 """OSM pbf -> data/processed/osm/
-  aeroways.json   runways/taxiways (lines + width) and aprons/runway areas (polygons)
-  roads.json      major roads as polylines with class
-  water.json      water/riverbank polygons (outer rings)
-  buildings/<tx>_<ty>.bin   footprints grouped by level-0 terrain tile:
-      repeated [u16 n][f32 height_m][n * (f32 x, f32 y)]  little-endian, world metres
-Covers the Mumbai-Pune BBOX plus the Konkan-Kerala corridor, reading both Geofabrik extracts
-(western + southern zone, de-duplicated by OSM id). Corridor buildings follow the density
-policy in building_density.py (run 05 first: airport zones); thinning is off by default
-(the full corridor is ~1.8 M buildings, ~0.3 GB of meshes). Usage: 04_osm_extract.py [--thin]
+  aeroways.json  runways/taxiways (lines + width) and aprons/runway areas (polygons)
+  roads.json     major roads as polylines with class
+  water.json     water/riverbank polygons (outer rings)
+  buildings/<tx>_<ty>.bin  footprints per level-0 terrain tile: repeated
+      [u16 n][f32 height_m][n * (f32 x, f32 y)], little-endian, world metres
+Covers the Mumbai-Pune BBOX and the Konkan-Kerala corridor, reading both Geofabrik extracts
+(western + southern zone, de-duplicated by OSM id). Corridor buildings follow the density policy in
+building_density.py (run 05 first: airport zones). Thinning is off by default (the full corridor is
+~1.8 M buildings, ~0.3 GB of meshes). Usage: 04_osm_extract.py [--thin]
 """
 import json
 import math

@@ -1,11 +1,11 @@
 """OSM roads, tracks and waterway lines for the terrain road / river masks (used by 20_roads_rivers.py).
 
-04_osm_extract.py keeps only major roads for the buildings / land-class steps; the terrain masks also
-need residential streets, service roads, tracks, and river / stream / canal centrelines. One pass over
-both Geofabrik extracts (osm_regions.iter_osm de-duplicates them) writes the compact cache
-  data/processed/osm/ways.npz   pts float32 (N, 2) world metres, off int64 (W+1), kind uint8 (W), bridge uint8 (W)
-kind codes are WAY_KINDS indices. Tunnels, culverts and underground ways are dropped; bridges are kept
-(flag) so roads can cross water. Cached: reused unless --refresh-osm.
+04_osm_extract.py keeps only major roads; the terrain masks also need residential streets, service
+roads, tracks and river / stream / canal centrelines. One pass over both Geofabrik extracts
+(osm_regions.iter_osm de-duplicates them) writes the cache
+  data/processed/osm/ways.npz  pts float32 (N, 2) world metres, off int64 (W+1), kind uint8 (W), bridge uint8 (W)
+kind codes are WAY_KINDS indices. Tunnels, culverts and underground ways are dropped; bridges are
+kept (flag) so roads can cross water. The cache is reused unless --refresh-osm.
 """
 import time
 

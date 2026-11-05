@@ -1,12 +1,13 @@
 """FlightGear A320-family JSBSim files (data/raw/fg/a320, GPL-2.0-only) -> aero.json + config.json dicts.
 
-The upstream FDE is split into component files referenced by file="..."; this resolves them, converts what the
-libresim flight model needs and lists the rest in "unconverted" (written into config.json) so nothing is silently lost.
-config.json layout (SI, JSBSim structural frame x aft, y right, z up, metres; same keys as the c172 config where they
-exist): name, derived_from, license, metrics, mass, gear[], tanks[], unusable_fuel_kg, engines[] (see jsb_turbine.py),
-apu, controls {surfaces, flaps, gear_transit, spoilers}, fadec_limits, unconverted[].
+The upstream FDE is split into component files (file="..."); this resolves them, converts what the
+libresim flight model needs and lists the rest in "unconverted" (written into config.json).
+config.json layout (SI, JSBSim structural frame x aft, y right, z up, metres; same keys as the c172
+config where they exist): name, derived_from, license, metrics, mass, gear[], tanks[],
+unusable_fuel_kg, engines[] (see jsb_turbine.py), apu, controls {surfaces, flaps, gear_transit,
+spoilers}, fadec_limits, unconverted[].
 Extra gear keys: "retractable" (bool), "cornering_coeff" (1-D table slip angle deg -> coefficient or null).
-Extra tank keys: "name", "density_kg_per_l", "unusable_l", "priority", "feed_for" is on the engine ("feed_tanks").
+Extra tank keys: "name", "density_kg_per_l", "unusable_l", "priority" ("feed_for" is on the engine: "feed_tanks").
 """
 import re
 from pathlib import Path

@@ -1,18 +1,16 @@
-"""Pure data (no bpy): the A320 flight-deck controls that get a `pivot_<name>` in interior.glb and the
-`cockpit.levers` entry that drives each one in the game (aircraft/common/cockpit_levers.gd).
+"""Pure data (no bpy): the A320 flight-deck controls that get a `pivot_<name>` in interior.glb, and the
+`cockpit.levers` entry that drives each one (aircraft/common/cockpit_levers.gd).
 
-Frame: FlightGear model frame (x aft, y right, z up, metres), the flight deck already offset like the
-glb. A pivot rotates about +X of its own frame (`kind` "rotate") or slides along it ("translate"); +X of
-the pivot is `axis`, so the SIGN of a positive angle is the right-hand rule about `axis`. Origins and
-axis points are read from the upstream hinge helper objects of fd_complete.ac (`*.axis`, see
-tools/blender/fg_anim_summary.py on Models/FlightDeck/a320.flightdeck.xml); where upstream's helper is
-skewed by a few degrees the axis is snapped to the nearest model axis.
-
-Each row: name, objs (AC3D object names moved by it), at (pivot origin), axis, kind, children (pivots
-nested inside, built earlier in the list), drive (Props expression: keys joined by " + " / " - "),
-map ([[drive value, degrees or metres]] piecewise linear, clamped), lag (s, first-order low pass),
-rate (max degrees/s or m/s), note. Ranges follow upstream's animation factors, except the sidestick
-(real A320 +-16 deg pitch, +-20 deg roll) and the lever detents (real TLA scale).
+Frame: FlightGear model frame (x aft, y right, z up, metres), flight deck offset like the glb. A pivot
+rotates about its +X (`kind` "rotate") or slides along it ("translate"); +X is `axis`, so a positive
+angle follows the right-hand rule about `axis`. Origins and axis points come from the upstream hinge
+helper objects of fd_complete.ac (`*.axis`, see fg_anim_summary.py on Models/FlightDeck/a320.flightdeck.xml);
+an axis skewed by a few degrees upstream is snapped to the nearest model axis.
+Each row: name, objs (AC3D objects moved), at (pivot origin), axis, kind, children (nested pivots, built
+earlier in the list), drive (Props expression: keys joined by " + " / " - "), map ([[drive value,
+degrees or metres]] piecewise linear, clamped), lag (s, first-order low pass), rate (max deg/s or m/s),
+note. Ranges follow upstream's animation factors, except the sidestick (real A320 +-16 deg pitch,
++-20 deg roll) and the lever detents (real TLA scale).
 """
 
 UP, DOWN, LEFT, RIGHT, FWD, AFT = (0, 0, 1), (0, 0, -1), (0, -1, 0), (0, 1, 0), (-1, 0, 0), (1, 0, 0)

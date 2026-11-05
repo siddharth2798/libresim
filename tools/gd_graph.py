@@ -1,25 +1,24 @@
 #!/usr/bin/env python3
 """GDScript extractor for graphify: puts game/ (*.gd, *.gdshader, *.tscn) into graphify-out/graph.json.
 
-graphify has no GDScript parser, so a plain `/graphify .` covers tools/ and the docs but none of the game.
-This reads the game with regexes (no model calls) and merges the result into the existing graph, then
-reclusters, relabels, and rewrites GRAPH_REPORT.md and graph.html. Run it again after code changes: the
-nodes it made earlier are replaced, everything else in the graph is kept.
+graphify has no GDScript parser. This reads the game with regexes (no model calls), merges the
+result into the existing graph, reclusters, relabels and rewrites GRAPH_REPORT.md and graph.html.
+Re-running replaces the nodes it made earlier and keeps the rest.
 
-  $(cat graphify-out/.graphify_python) tools/gd_graph.py            # from the repo root, after /graphify .
-  $(cat graphify-out/.graphify_python) tools/gd_graph.py --dry      # only print what it found
+  $(cat graphify-out/.graphify_python) tools/gd_graph.py        # repo root, after /graphify .
+  $(cat graphify-out/.graphify_python) tools/gd_graph.py --dry  # only print what it found
 
-Nodes: one per script / shader / scene (label = file name, id from the path), one per func and inner class
-("name()"), signals, resource json/tres files, and one per property-tree path used with a literal
-(Props.get_f("fdm/ias_mps")). Edges (confidence EXTRACTED, all written in the source):
+Nodes: one per script / shader / scene, per func and inner class ("name()"), per signal, per
+resource json/tres file, and per property-tree path used as a literal (Props.get_f("fdm/ias_mps")).
+Edges (confidence EXTRACTED):
   contains         file -> func / inner class / signal
   inherits         `extends Foo` / `extends "res://x.gd"`
   references       preload()/load() of a res:// file, scene ext_resource
   uses             a class_name, autoload (Props, Session, ...) or preload alias named in the code
   calls            Foo.func() (static/autoload), or a call to a func of the same file
   reads_property / writes_property   Props.get_*/has vs Props.set_v with a literal path
-Not resolved (so not in the graph): calls through instance variables (fdm.step()), dynamic load() paths,
-property paths built at run time, signal connections.
+Not resolved: calls through instance variables (fdm.step()), dynamic load() paths, property
+paths built at run time, signal connections.
 """
 import argparse
 import json

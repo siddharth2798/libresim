@@ -1,18 +1,16 @@
 """JSBSim aircraft (+ engine and propeller files) -> game/aircraft/<id>/{aero,config}.json
 
 Usage: 06_jsbsim_to_json.py [aircraft id]   (default c172; ids are the keys of SPECS below).
-To add an aircraft: add a SPECS entry (the JSBSim aircraft / engine / propeller names and the tuning that
-JSBSim does not carry), run this, then write aircraft.json in the same folder (docs/USAGE.md, "Adding an
-aircraft"). An aircraft with several <engine> elements gets the "engines": [...] form (one piston engine
-with its own propeller each, positions from JSBSim); a single engine gets the older {engine, propeller} form.
-
-Aero: every JSBSim <function> becomes an expression tree, evaluated by game/fdm/aero.gd (format and the full
-operator set: tools/jsb_expr.py). Aero expressions keep JSBSim units (psf, ft, rad); aero.gd converts the
-resulting lbf / lbf*ft to SI. The config is SI. Structural frame (JSBSim): x aft, y right, z up.
-
-"a320": the FlightGear A320-family FDE (data/raw/fg/a320, fetched by tools/22_a320_fetch.sh, GPL-2.0-only) goes
-through tools/jsb_a320.py (turbofans: tools/jsb_turbine.py); notes on what is and is not converted:
-tools/A320_DATA_NOTES.md.
+New aircraft: add a SPECS entry (JSBSim aircraft / engine / propeller names and the tuning JSBSim
+lacks), run this, then write aircraft.json in the same folder (docs/USAGE.md, "Adding an aircraft").
+Several <engine> elements give the "engines": [...] form (a piston engine with its own propeller
+each, positions from JSBSim); a single engine gives the older {engine, propeller} form.
+Aero: every JSBSim <function> becomes an expression tree evaluated by game/fdm/aero.gd (format and
+operators: tools/jsb_expr.py). Aero expressions keep JSBSim units (psf, ft, rad); aero.gd converts
+the resulting lbf / lbf*ft to SI. The config is SI. Structural frame (JSBSim): x aft, y right, z up.
+"a320": the FlightGear A320-family FDE (data/raw/fg/a320, fetched by tools/22_a320_fetch.sh,
+GPL-2.0-only) goes through tools/jsb_a320.py (turbofans: tools/jsb_turbine.py). What is and is not
+converted: tools/A320_DATA_NOTES.md.
 """
 import json
 import sys
@@ -31,14 +29,14 @@ SPECS = {
         "jsbsim_aircraft": "c172p", "engine": "engIO360C", "prop": "prop_75in2f", "dst": "c172",
         "name": "Cessna 172S (JSBSim c172p airframe, IO-360 180 hp)",
         # JSBSim's c172p wheels are ~2x critically damped: a 300 fpm touchdown spikes to ~4 g and
-        # trips the gear-overload check. Spring-steel legs + tyres are lightly damped: scale the
-        # wheels to ~0.4 of critical (gear_damping); gear_ground.gd also ramps damping in over 3 cm.
+        # trips the gear-overload check. The real legs are lightly damped: wheels are scaled to
+        # ~0.4 of critical (gear_damping); gear_ground.gd also ramps damping in over 3 cm.
         "gear_damping": 0.2,
         "unusable_fuel_kg": 1.5 * 2.72,
-        # rigging = fixed ground-adjustable trim tabs (normalised, + = right roll / right pedal), set so
-        # 100 KIAS level (middle of 90-110 KIAS cruise) is hands-off neutral with the default solo pilot
-        # (180 lb left seat + engine torque).
-        # Solved with zero roll/yaw acceleration at trim; see docs/FDM-VS-FLIGHTGEAR.md.
+        # rigging = fixed ground-adjustable trim tabs (normalised, + = right roll / right pedal) so
+        # 100 KIAS level (mid 90-110 KIAS cruise) is hands-off neutral with the default solo pilot
+        # (180 lb left seat + engine torque). Solved at zero roll/yaw acceleration at trim; see
+        # docs/FDM-VS-FLIGHTGEAR.md.
         "aileron_rigging": 0.033, "rudder_rigging": 0.004,
         # weak wings-level pull, aileron per rad of bank (flight_controls.gd; the real c172p holds bank by itself)
         "roll_stability": 1.0,
@@ -46,9 +44,9 @@ SPECS = {
         "full_travel_s": {"pitch": 0.3, "roll": 0.15, "yaw": 0.15},
         # rpm of a trimmed airborne start / of a running engine at a ground start
         "cruise_rpm": 2300.0, "start_rpm": 800.0,
-        # Tuning: JSBSim's 75in2f is only ~59 % efficient at Vy (J~0.5); JSBSim's
-        # over-powered c172p engine (218 hp) hides that. A real C172S prop is ~67 %,
-        # so thrust is boosted at low advance ratio, fading out before cruise.
+        # Tuning: JSBSim's 75in2f is only ~59 % efficient at Vy (J~0.5), hidden by its over-powered
+        # c172p engine (218 hp). A real C172S prop is ~67 %, so thrust is boosted at low advance
+        # ratio, fading out before cruise.
         "cp_factor": 1.0,
         "ct_factor_vs_j": {"rows": [0.0, 0.55, 0.85], "data": [[1.17], [1.17], [1.0]]},
         "vspeeds_kias": {"vs0": 40, "vs1": 48, "vr": 55, "vx": 62, "vy": 74, "vg": 68,
@@ -60,11 +58,11 @@ SPECS = {
         "name": "A320-family twin-jet airliner (FlightGear A320-family JSBSim FDE, CFM56-5B4)",
         # Upstream wheels are used as published; tune per aircraft in the FDM phase if touchdown loads are wrong.
         "gear_damping": 1.0,
-        # Deliberate deviation (docs/A320-STATUS.md): upstream puts the thrusters at y +-2.8775, z -1.048 m; the
+        # Deviation (docs/A320-STATUS.md): upstream puts the thrusters at y +-2.8775, z -1.048 m; the
         # model's fans (models/exterior_pivots.json fan_L / fan_R) are at y +-5.63, z -2.269. Thrust acts there.
         "thrust_pos_m": [[-5.34904, -5.62977, -2.26943], [-5.34904, 5.62977, -2.26943]],
-        # ... and with that arm JSBSim's rudder (Cndr 0.042 / rad) cannot hold an engine failure at V2: the three
-        # rudder terms (fin force: CYdr, Cldr, Cndr) are scaled x3, so V2 needs ~70 % pedal (V2 ~ 1.2 VMCA).
+        # ... with that arm JSBSim's rudder (Cndr 0.042 / rad) cannot hold an engine failure at V2, so the
+        # three rudder terms (fin force: CYdr, Cldr, Cndr) are scaled x3: V2 needs ~70 % pedal (V2 ~ 1.2 VMCA).
         "rudder_k": 3.0,
         "derived_from": {
             "upstream": "https://github.com/legoboyvdlp/A320-family", "commit": "fec1ecba767c8fffd145337b27012e89c01e3ade",

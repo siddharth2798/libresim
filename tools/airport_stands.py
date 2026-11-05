@@ -1,17 +1,17 @@
 """Airliner stands for airports whose OSM terminal has jet bridges that no aeroway=parking_position
 serves (Kochi, Kannur), derived from what is mapped. Used by 13_airport_ops.py.
 
-  1. gates: one stand per jet-bridge cluster (bridges sharing a node, or with rotundas and cabs close
-     together, are the two doors of one gate). The cab tip is the L1 door: nose-gear point = cab tip +
-     DOOR_STANDOFF toward the aircraft. Heading: the cab-to-cab line of a two-door gate, else the main
-     tunnel (square to the terminal), else square to the cab tunnel; the cab is on the aircraft's left.
-     An A320-class outline must clear terminals, hangars and the other gates' bridges, else the
-     heading turns in 5 degree steps (stand_geom.py has the outline, stand_remote.py the site).
+  1. gates: one stand per jet-bridge cluster (bridges sharing a node, or with rotundas and cabs
+     close together, are two doors of one gate). The cab tip is the L1 door: nose-gear point = cab
+     tip + DOOR_STANDOFF toward the aircraft. Heading: the cab-to-cab line of a two-door gate, else
+     the main tunnel (square to the terminal), else square to the cab tunnel; the cab is on the
+     aircraft's left. An A320-class outline must clear terminals, hangars and other gates' bridges,
+     else the heading turns in 5 degree steps (outline: stand_geom.py, site: stand_remote.py).
   2. walk-out gates: a gate node with no bridge and no stand beside it takes its neighbour's pose.
   3. remote bays (stand_remote.py): nose-in rows beside the apron's long taxi lanes.
   4. every stand gets a lead-in edge (kind parking_position, stand_links.py) into the taxi graph and
      must reach a runway end over the non-runway edges, else it is dropped.
-Stands carry "src": "osm" (all existing ones, untouched) | "bridge" | "gate" | "remote".
+Stands carry "src": "osm" (existing ones, untouched) | "bridge" | "gate" | "remote".
 """
 import math
 
@@ -99,10 +99,10 @@ def _normal(group):
 
 
 def _axis(group):
-    """Fuselage heading. The cab docks on the aircraft's left (port) side, so the aircraft lies on the
-    far side of the cab tunnel and the tunnel's direction d (rotunda -> cab) points to the right of
-    the heading. Two far-apart cabs (two doors) give the axis directly; otherwise the main tunnel's
-    direction (the aircraft stands square to the terminal); otherwise square to the cab tunnel."""
+    """Fuselage heading. The cab docks on the aircraft's left (port) side, so the aircraft lies on
+    the far side of the cab tunnel and the tunnel direction d (rotunda -> cab) points right of the
+    heading. Two far-apart cabs give the axis directly; else the main tunnel direction (aircraft
+    square to the terminal); else square to the cab tunnel."""
     cabs = [b.cab for b in group]
     far = max(((a, b) for a in cabs for b in cabs), key=lambda ab: math.dist(*ab))
     two = math.dist(*far) >= TWO_CAB_MIN_M

@@ -6,14 +6,14 @@ Per airport: terminal buildings and the landside/airside bits that define their 
   jet_bridges:    aeroway=jet_bridge ways within 150 m of a terminal
   car_parks:      multi-storey car parks (parking=multi-storey or building=parking) within 300 m
   elevated_roads: highways with bridge=* or layer>=1 within 300 m of a terminal
-Each feature: osm ("way/123" | "relation/45"), tags (relevant subset), outers/inners
-(areas) or line (roads/bridges) as [[east, north], ...] world metres, area_m2 / length_m,
-centroid [e, n], lonlat centroid, obb [length, width, heading_deg of the long axis].
+Each feature: osm ("way/123" | "relation/45"), tags (relevant subset), outers/inners (areas) or
+line (roads/bridges) as [[east, north], ...] world metres, area_m2 / length_m, centroid [e, n],
+lonlat centroid, obb [length, width, heading_deg of the long axis].
 Airports: AIRPORTS (VABB VAPO VOCI) or any ICAO in data/processed/airports.json (05), read from the
 Geofabrik extracts that can hold it (osm_regions.PBFS: western north of 14.8 N, southern south of 18.6 N).
-VOCI: fetched once from Overpass, cached in data/raw/osm/overpass_VOCI.json (delete to refetch).
-Usage: 15_terminals.py [ICAO ...]  (default: VABB VAPO VOCI + every airport with a passenger terminal in
-tools/ref/terminals_reference.json)
+VOCI is fetched once from Overpass into data/raw/osm/overpass_VOCI.json (delete to refetch).
+Usage: 15_terminals.py [ICAO ...]  (default: VABB VAPO VOCI + every airport with a passenger
+terminal in tools/ref/terminals_reference.json)
 """
 import json
 import sys

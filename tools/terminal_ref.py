@@ -1,16 +1,14 @@
 """The researched terminal reference data set (tools/ref/terminals_reference.json, docs/TERMINALS.md §6).
 
-One entry per ICAO: what the field really is, and per passenger terminal the published facts (heights,
+One entry per ICAO: what the field is, and per passenger terminal the published facts (heights,
 storeys, plan, roof form, colours, glazing, jet bridges, status), each with a confidence and sources.
-Research values stay null when unknown; "model" holds the values the pipeline builds with when the
-research leaves a gap (marked as estimates, with their basis).
-
-Used by
+Unknown research values stay null; "model" holds the values the pipeline uses to fill gaps
+(marked as estimates, with their basis).
+Used by:
   16_terminal_models.py / terminal_styles*.py  heights and colours of the landmark recipes (ref_heights, rgb)
-  10_buildings.py                              terminal_overrides(): height, roof colour and facade look
-                                               (cladding colour, glazing share, glass tone) of the generic
-                                               extruded footprint of every researched terminal that is not a
-                                               landmark (instead of an OSM height tag or the synthetic rule)
+  10_buildings.py  terminal_overrides(): height, roof colour and facade look (cladding colour, glazing
+                   share, glass tone) of every researched terminal that is not a landmark, in place
+                   of an OSM height tag or the synthetic rule
 """
 import json
 from functools import lru_cache
@@ -68,8 +66,8 @@ def ref_heights(t, eaves=None, top=None):
 
 
 def box_height(t):
-    """Height of a plain extruded box standing in for the terminal (10_buildings): the eaves when the roof
-    rises above them (curved / pitched / folded), else the roof top; None if nothing is known."""
+    """Height of a plain extruded box for the terminal (10_buildings): the eaves when the roof
+    rises above them (curved / pitched / folded), else the roof top; None if unknown."""
     e, r = ref_heights(t)
     if e is None and r is None:
         return None
@@ -91,8 +89,8 @@ def facade_look(t):
 
 
 def terminal_overrides():
-    """[(matplotlib Path of the OSM footprint, box height m, roof rgb 0..255 or None, facade_look)] for every
-    researched terminal with an OSM id found in terminals/<ICAO>.json (15_terminals.py)."""
+    """[(matplotlib Path of the OSM footprint, box height m, roof rgb 0..255 or None, facade_look)]
+    for every researched terminal whose OSM id is in terminals/<ICAO>.json (15_terminals.py)."""
     from matplotlib.path import Path as MPath
     out = []
     for icao, a in load().items():

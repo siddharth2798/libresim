@@ -1,11 +1,10 @@
 """Simulated ILS for the long runways -> data/processed/ils.json.
 
-OurAirports has no ILS records, so these localizer/glideslope installations are
-GENERATED for gameplay: geometry follows the real runways (localizer antenna 300 m
-beyond the far end, glideslope antenna 300 m past the threshold, 120 m to the side,
-3.0 deg path), but the FREQUENCIES and IDENTS ARE NOT REAL AIP DATA (marked
-"simulated": true). Replace them with real values if you have an official source.
-Run after 09_runways.py.
+OurAirports has no ILS records, so these localizer/glideslope installations are GENERATED for
+gameplay. Geometry follows the real runways (localizer antenna 300 m beyond the far end, glideslope
+antenna 300 m past the threshold, 120 m to the side, 3.0 deg path), but the FREQUENCIES and IDENTS
+ARE NOT REAL AIP DATA (marked "simulated": true). Replace them with real values if you have an
+official source. Run after 09_runways.py.
 """
 import json
 import math

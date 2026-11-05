@@ -60,7 +60,7 @@ APP=$(ls -d "$B/macos/"*.app | head -1)
 stage_data "$APP/Contents/Resources/data"
 stage_docs "$APP/Contents/Resources"
 # joysticks on macOS 27 need SDL_JOYSTICK_MFI=0 (+ background events) in the process environment: a double-clicked
-# app gets no shell exports, Launch Services applies Info.plist's LSEnvironment (verified 2026-11-05 with a copy of Godot.app)
+# app gets no shell exports, Launch Services applies Info.plist's LSEnvironment
 python3 "$ROOT/tools/package/patch_macos_env.py" "$APP"
 # adding files invalidates Godot's signature: re-sign ad-hoc with rcodesign (runs on Linux).
 # For distribution outside your own Macs, sign with a Developer ID and notarise instead.

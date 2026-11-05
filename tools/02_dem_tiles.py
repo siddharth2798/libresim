@@ -1,19 +1,18 @@
 """Copernicus DEM -> world-frame heightmap tiles with runway/apron flattening.
 
-Output data/processed/terrain/:
-  meta.json                 grid constants + per-tile min/max height
-  h/<L>/<tx>_<ty>.r16       (TILE_N+1)^2 uint16 LE, h = v*H_SCALE + H_OFFSET
-Sample (i, j) of tile (L, tx, ty) sits at world x = tx*S + i*S/TILE_N,
-y = ty*S + j*S/TILE_N with S = TILE_SIZE * 2^L (row j = 0 is the SOUTH edge).
-Run 04_osm_extract.py and 05_airports_navaids.py first (used for flattening).
-
+Needs 04_osm_extract.py and 05_airports_navaids.py run first (used for flattening).
+Output in data/processed/terrain/:
+  meta.json            grid constants + per-tile min/max height
+  h/<L>/<tx>_<ty>.r16  (TILE_N+1)^2 uint16 LE, h = v*H_SCALE + H_OFFSET
+Sample (i, j) of tile (L, tx, ty) is at world x = tx*S + i*S/TILE_N, y = ty*S + j*S/TILE_N,
+S = TILE_SIZE * 2^L (row j = 0 is the SOUTH edge).
 Regions (--region mumbai_pune | konkan_kerala | all, default all; --workers N):
-  mumbai_pune    one in-memory grid, levels 0..LEVELS-1, writes meta.json (12_outer.py then
+  mumbai_pune    one in-memory grid, levels 0..LEVELS-1, writes meta.json (12_outer.py later
                  replaces levels >= 3 with the outer ring).
-  konkan_kerala  corridor tiles from common.region_tiles() at levels 0-2, built per level-2
-                 block (+ margin) in parallel; runways from runways.json / airports.json;
-                 writes meta_konkan_kerala.json with [min, max, flags] (03/11 set the bits; a re-run
-                 keeps bits of img/lc tiles already on disk).
+  konkan_kerala  corridor tiles from common.region_tiles(), levels 0-2, built per level-2 block
+                 (+ margin) in parallel; runways from runways.json / airports.json; writes
+                 meta_konkan_kerala.json with [min, max, flags] (03/11 set the bits; a re-run
+                 keeps the bits of img/lc tiles already on disk).
 """
 import json
 import math

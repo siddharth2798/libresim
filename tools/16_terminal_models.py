@@ -1,12 +1,12 @@
-"""Landmark terminal models: OSM footprints (15_terminals.py) + per-airport recipes
-(terminal_styles.py) -> data/processed/terminals/<ICAO>.glb and <ICAO>_model.json
+"""Landmark terminal models: OSM footprints (15_terminals.py) + per-airport recipes (terminal_styles.py)
+-> data/processed/terminals/<ICAO>.glb and <ICAO>_model.json
 ({icao, origin [east, north, ground h], extent [w, h], signs [...]}) for world/terminals.gd.
-Also writes terminals/landmarks.json (footprints in world metres) so that
-10_buildings.py leaves those buildings out of the generic extruded city.
+Also writes terminals/landmarks.json (footprints in world metres) so 10_buildings.py leaves those
+buildings out of the generic extruded city.
 
-Base height: each vertex is raised by the terrain height under it minus the origin height
-(which is the ground under the landmark footprints, area-weighted), so every landmark sits on the
-levelled apron ground even when they are kilometres apart (VABB T1/T2, VAPO) or the airport slopes.
+Base height: each vertex is raised by the terrain height under it minus the origin height (the
+area-weighted ground under the landmark footprints), so every landmark sits on the levelled apron
+ground even when they are kilometres apart (VABB T1/T2, VAPO) or the airport slopes.
 Run after 15_terminals.py and 17_airport_fixups.py (the ground), then re-run 10_buildings.py.
     python 16_terminal_models.py [VABB VAPO VOCI VOKN]
 """

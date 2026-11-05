@@ -1,23 +1,24 @@
 """Derive the livery region masks of the C172 from its three exterior atlases (colour thresholds + island rectangles).
-Pillow + numpy only. The atlases are the FlightGear c172p textures (GPL-2.0-or-later, third_party/c172p/SOURCE.md):
-the masks are derived data, the atlases are never changed (the game recolours a copy in memory, aircraft/common/livery_paint.gd).
 
-Writes game/aircraft/c172/livery/<atlas>_<region>.png (8-bit grey, atlas size, 0 = untouched, 255 = fully recoloured,
-soft edges) and the "livery" section of game/aircraft/c172/aircraft.json (atlases, regions: key, label, default colour,
-masks [{atlas, mask, luma}]). `luma` = mean Rec.709 luminance (sRGB values, 0..1) of the atlas under the pixels with
-mask >= 242 (full strength: the soft fall-off at an island edge would drag it down): the shading reference of the recolour
-rule (Livery.recolor). `default` = median colour of the same pixels. Regions:
-  body    the white paint (fuselage, wing, fin, tailplane): everything light that is not blue or grey stripe
-  accent  the blue paint (nose and cowl, side sweeps, deck stripe, wing-tip caps, fin and tailplane stripes)
-  stripe  the grey pin stripe (fuselage sides, fin)
-  struts  the white wing struts and the main gear legs (fuselage atlas only; optional: the pilot may leave it at its factory
-          colour). Found with the UV islands of the glb (they are on the lower edge of the atlas): two diagonal strips (distance
-          to a line) and the gear-leg capsule (a flood fill of the island, cut from the fairing next to it). The nose gear leg is
-          bare steel (a metal texture tile shared with the tie-down rings and rudder-cable hinges): left as it is.
-Kept out of every mask: tyres, propeller, spinner, hub, lamps, glass, antennas (not in any island rectangle),
-the registration boxes of aircraft.json "registration" (livery.gd paints before RegistrationPaint, which wipes and
-re-stamps the number from the recoloured rows around it) and the baked "Cessna" logo and "SKYHAWK" on the fin.
-Usage: tools/.venv/bin/python -I tools/25_livery_masks.py [--preview <dir>]   (--preview writes overlay PNGs, not into the repo)
+Input: the FlightGear c172p atlases (GPL-2.0-or-later, third_party/c172p/SOURCE.md). They are
+never changed; the game recolours a copy in memory (aircraft/common/livery_paint.gd).
+Output: game/aircraft/c172/livery/<atlas>_<region>.png (8-bit grey, atlas size, 0 = untouched,
+255 = fully recoloured, soft edges), and the "livery" section of game/aircraft/c172/aircraft.json
+(atlases, regions: key, label, default colour, masks [{atlas, mask, luma}]).
+`luma` = mean Rec.709 luminance (sRGB, 0..1) of the atlas under pixels with mask >= 242 (the soft
+edge would drag it down): the shading reference of Livery.recolor. `default` = median colour of
+the same pixels. Regions:
+  body    white paint (fuselage, wing, fin, tailplane): light pixels that are not blue or grey stripe
+  accent  blue paint (nose and cowl, side sweeps, deck stripe, wing-tip caps, fin/tailplane stripes)
+  stripe  grey pin stripe (fuselage sides, fin)
+  struts  white wing struts and main gear legs (fuselage atlas only, optional). Found with the glb
+          UV islands: two diagonal strips (distance to a line) and the gear-leg capsule (flood fill,
+          cut from the neighbouring fairing). The nose gear leg is bare steel: left as it is.
+Kept out of every mask: tyres, propeller, spinner, hub, lamps, glass, antennas, the registration
+boxes of aircraft.json "registration" (livery.gd paints before RegistrationPaint re-stamps the
+number) and the baked "Cessna" logo and "SKYHAWK" on the fin.
+Needs Pillow + numpy. Usage: tools/.venv/bin/python -I tools/25_livery_masks.py [--preview <dir>]
+(--preview writes overlay PNGs outside the repo)
 """
 import json
 import sys
@@ -32,9 +33,9 @@ ATLASES = {"fuselage": "models/exterior_fuselage.png", "wing": "models/exterior_
 LABELS = {"body": "Body paint", "accent": "Main accent", "stripe": "Pin stripe", "struts": "Struts and gear legs"}
 FEATHER = 1.6  # px sigma of the soft edge on rectangle borders (colour edges are soft already)
 
-# (x0, y0, x1, y1) in atlas pixels (CUT, LOGO: x, y, w, h). KEEP = the atlas islands the paint is on (the white background inside them is
-# recoloured too, so bilinear taps at the silhouette never meet an untouched texel); CUT = parts inside those boxes
-# that are not paint. Found by looking at the atlases (see the overlay previews).
+# (x0, y0, x1, y1) in atlas pixels (CUT, LOGO: x, y, w, h). KEEP = atlas islands the paint is on
+# (their white background is recoloured too, so bilinear taps at the silhouette meet no untouched
+# texel); CUT = non-paint parts inside those boxes. Found by eye (see the overlay previews).
 KEEP = {
     "fuselage": [(0, 191, 482, 498), (482, 72, 2030, 470), (772, 700, 1880, 958), (0, 665, 468, 1010),
                  (0, 1338, 922, 1570), (922, 1160, 1900, 1570), (80, 1670, 1180, 2020)],  # last: the wheel fairings (white, AO shaded)
@@ -46,16 +47,16 @@ CUT = {
     "wing": [(1655, 30, 365, 880), (1780, 1775, 268, 273)],  # scratched metal tiles, landing-lamp disc
     "tail": [],
 }
-# the baked "Cessna" logo and "SKYHAWK" on both fin sides: the dark navy glyphs are kept (out of accent and stripe), the
-# white box around them is body paint like the rest of the fin
+# the baked "Cessna" logo and "SKYHAWK" on both fin sides: dark navy glyphs are kept (out of
+# accent and stripe), the white box around them is body paint
 LOGO = {"tail": [(1125, 86, 60, 56), (955, 280, 125, 30), (208, 918, 60, 58), (314, 1114, 125, 32)]}
 # where the grey pin stripe lives (the neutral grey window below is only applied inside these boxes)
 STRIPE_BOX = {"fuselage": [(620, 285, 1100, 395), (790, 1395, 1270, 1500)], "wing": [], "tail": [(768, 294, 1240, 400), (156, 1118, 650, 1232)]}
 
 
-# the struts, fuselage atlas (looked up in the UV layout of exterior.glb, see the overlay previews): the axis of each wing strut strip
-# (top, bottom) and its half width incl. margin, the capsule island of the main gear legs (seed inside it, region it lives in, the
-# fairing next to it starts at x = box end). The nose gear leg is a bare steel tile (metal texture, not paint): not in the region.
+# struts, fuselage atlas (from the UV layout of exterior.glb): axis of each wing strut strip
+# (top, bottom) and its half width incl. margin; the capsule island of the main gear legs (seed
+# inside it, its region, the fairing next to it starts at x = box end). Nose gear leg: not paint.
 STRUT_AXES = {"fuselage": [((1235, 1690), (1140, 2025)), ((1463, 1690), (1558, 2017))]}
 STRUT_HALF = 28
 CAPSULE = {"fuselage": {"seed": (330, 1850), "box": (40, 1660, 470, 2040), "grow": 10}}

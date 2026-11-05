@@ -60,15 +60,14 @@ OUTER_MIN_LEVEL = 3
 OUTER = (-4 * TILE_SIZE * 8, -4 * TILE_SIZE * 8, 4 * TILE_SIZE * 8, 4 * TILE_SIZE * 8)  # +/-245.76 km
 LEVELS_TOTAL = 7  # levels 0..6; level 6 tiles are 491.52 km
 
-# ---------------------------------------------------------------- Phase R: regions
-# The world frame stays the single TM above (Kochi is only ~3 deg of longitude from the
-# central meridian: scale error ~0.13 %). Regions only add data:
+# ---------------------------------------------------------------- regions
+# The world frame stays the single TM above (Kochi is only ~3 deg of longitude from the central
+# meridian: scale error ~0.13 %). Regions only add data:
 #   "mumbai_pune"   the original grid X/Y_MIN..MAX, 10 m imagery at level 0.
-#   "konkan_kerala" a coastal corridor 18.4 N -> 9.8 N (Mumbai -> Kochi), from ~0.3 deg out to
-#                   sea to ~1.05 deg inland (Western Ghats crest, Kolhapur, Belagavi). 30 m DEM at
+#   "konkan_kerala" a coastal corridor 18.4 N -> 9.8 N (Mumbai -> Kochi), from ~0.3 deg out to sea
+#                   to ~1.05 deg inland (Western Ghats crest, Kolhapur, Belagavi). 30 m DEM at
 #                   level 0, imagery at 20 m (level 1, 768 px per 15.36 km); level-0 tiles borrow
 #                   their parent's imagery at runtime (terrain_tile_cache imagery fallback).
-# Coastline anchor points (lon, lat), north -> south.
 COAST = [(72.82, 18.40), (72.95, 17.95), (73.10, 17.50), (73.28, 17.00), (73.33, 16.55),
          (73.47, 16.06), (73.66, 15.75), (73.80, 15.45), (73.95, 15.10), (74.12, 14.80),
          (74.35, 14.40), (74.55, 13.97), (74.70, 13.35), (74.82, 12.87), (74.98, 12.50),
@@ -78,8 +77,8 @@ CORRIDOR_SEA_DEG = 0.30
 CORRIDOR_LAND_DEG = 1.05
 CORRIDOR_IMG_RES = 20.0
 CORRIDOR_IMG_LEVEL = 1
-# Outer ring (levels >= OUTER_MIN_LEVEL) now spans level-6 tiles tx -1..0, ty -2..0 so Kochi
-# (~ +330 km E, -955 km N) is inside; real 90 m DEM / 80 m imagery over OUTER plus OUTER_SOUTH.
+# The outer ring spans level-6 tiles tx -1..0, ty -2..0 so Kochi (~ +330 km E, -955 km N) is
+# inside; real 90 m DEM / 80 m imagery over OUTER plus OUTER_SOUTH.
 OUTER_TOTAL = (-491520.0, -983040.0, 491520.0, 491520.0)
 OUTER_SOUTH = (-245760.0, -983040.0, 491520.0, -245760.0)
 

@@ -1,18 +1,17 @@
 """Blender (5.x) headless: A320 exterior (FlightGear A320-family AC3D, GPL-2.0-only) -> game/aircraft/a320/models/exterior.glb
 
-Usage (repo root):
+Run from the repo root:
   tools/24_a320_models_fetch.sh && tools/.venv/bin/python -I tools/24_a320_textures.py
   /Applications/Blender.app/Contents/MacOS/Blender -b --factory-startup --python tools/blender/convert_a320.py
-
-What it does (all listed in third_party/a320-family/SOURCE.md, change log): imports Models/Fuselage/res/A320-216.ac
-and CFM56.ac with our own AC3D reader (tools/blender/ac3d_parse.py; no Blender AC3D importer exists for 5.x),
-drops FlightGear-only / hidden meshes (door and cargo interiors, actuators, placards, nav-light glass, the
+Steps (change log in third_party/a320-family/SOURCE.md): imports Models/Fuselage/res/A320-216.ac and
+CFM56.ac with our own AC3D reader (ac3d_parse.py; Blender 5.x has no AC3D importer), drops
+FlightGear-only / hidden meshes (door and cargo interiors, actuators, placards, nav-light glass,
 WingtipFence variant, blur fans), rebuilds materials as Principled BSDF from the cleaned textures
-(tools/24_a320_textures.py: no airline livery, no registration, no logos), adds the `pivot_<name>` empties of
-tools/blender/a320_hinges.py, merges the static parts into one mesh and exports Y-up glTF.
-Frame: FlightGear model frame == JSBSim structural frame for this model, so the glb origin is the structural
-origin and aircraft.json model.origin_m is [0, 0, 0] (the config's vrp_m z = -0.83109 is FlightGear's model
-offset, already absorbed).
+(24_a320_textures.py: no livery, registration or logos), adds the `pivot_<name>` empties of
+a320_hinges.py, merges the static parts into one mesh and exports Y-up glTF.
+Frame: FlightGear model frame == JSBSim structural frame here, so the glb origin is the structural
+origin and aircraft.json model.origin_m is [0, 0, 0] (config vrp_m z = -0.83109 is FlightGear's
+model offset, already absorbed).
 """
 import json
 import sys

@@ -1,33 +1,21 @@
-"""Post-process airport fixes on the generated terrain tiles (levels 0-2), in place.
+"""Fix airport ground on the generated terrain tiles (levels 0-2), in place.
 
-1. Levelled airports (LEVELLED: VANM, VOKN, VOSR): Navi Mumbai (VANM, NMIA) was built on reclaimed, levelled
-   land (Ulwe hill cut, creeks and rivers diverted) after the Copernicus DEM epoch. The raw
-   data there is the old landscape: a 40 m hill at the west end, mudflats at -8..+2 m at the
-   east end, and creeks that 11_landclass.py marks as water (OSM water polygons, and "DEM
-   <= 0.3 m means sea"). The terrain shader drew water over most of the airport and the
-   runway was a 1.4 % ramp. Inside the OSM aeroway=aerodrome polygon: heights = one platform
-   elevation (feathered over FEATHER m outside), land class 0 (no water, no trees).
-2. Taxiways at every aerodrome: Copernicus is a surface model (aircraft, hangars, trees) and
-   only runways and aprons are flattened by 02, so taxiway strips (airport_builder.gd) were
-   buried in metre-high bumps ("runway / taxiway does not load completely"). Heights under
-   each taxiway (+ shoulder) follow a robustly smoothed centreline profile, feathered out.
-3. Apron ground (tools/apron_flatten.py): stands, jet-bridge gates, apron polygons, taxilanes and a
-   margin around terminals/hangars (OSM footprints) are levelled to a ground model that ignores
-   the DSM's buildings, aircraft and vehicles, so aprons are flat and the terminal base height
-   (16_terminal_models.py) is ground, not roof. Applied before the taxiway pass (it wins where
-   both reach a sample).
-4. Land class: water (255) -> 0 on all paved surfaces (runways.json strips, OSM aprons), and
-   no trees (1..200 -> 0) inside any aerodrome perimeter: airfields are kept clear, and the
-   6-15 m crossed-quad trees 11 placed on the grass hid taxiways at grazing angles.
-Both regions (meta.json grid and meta_<region>.json packs). Heights: level 0 is edited; the
-change is propagated to levels 1-2 with 02's [1 2 1] decimation filter. Land class: the same
-per-pixel rules on every existing level 0-2 mask. min/max in the owning meta are updated. Levels >= 3 (12_outer, >= 61 km tiles) are left alone.
-Originals are kept (airport_fixups_io), so re-running starts again from them; tiles are replaced
-atomically, a game running meanwhile never sees a half-written one.
+Both regions (meta.json grid and meta_<region>.json packs). Level 0 is edited and the change
+goes to levels 1-2 with 02's [1 2 1] decimation filter. Levels >= 3 (12_outer) are untouched.
+Fixes:
+1. Levelled airports (LEVELLED: VANM, VOKN, VOSR): the Copernicus DEM predates their cut-and-fill
+   (Navi Mumbai: 40 m hill, mudflats, creeks marked as water). Inside the OSM aerodrome polygon:
+   one platform height (feathered FEATHER m outside), land class 0.
+2. Taxiways: heights under each taxiway (+ shoulder) follow a smoothed centreline profile.
+   Copernicus is a surface model and 02 only flattens runways and aprons.
+3. Apron ground (apron_flatten.py): stands, gates, aprons, taxilanes and a margin around
+   terminals/hangars are levelled to a ground model without buildings and aircraft.
+   Applied before the taxiway pass.
+4. Land class: water (255) -> 0 on paved surfaces; no trees (1..200 -> 0) inside aerodrome outlines.
+Originals are kept (airport_fixups_io), so a re-run starts from them. Tiles are replaced
+atomically. min/max in the owning meta are updated.
 
-Run order: after 02, 09, 11, 12, 13 (stands, taxi graph); then re-run 09 (runway heights), 14 (ILS),
-16 (terminal base height) and 10 (buildings).
-./run.sh does this (step 17).
+Run after 02, 09, 11, 12, 13, then re-run 09, 14, 16 and 10. ./run.sh does this (step 17).
 Usage: 17_airport_fixups.py [--refresh-osm]
 """
 import json
@@ -48,9 +36,8 @@ TW_SHOULDER = 10.0   # flat margin beyond the taxiway half-width (m)
 TW_FEATHER = 60.0    # taxiway blend distance (m)
 PAVED_PAD = 15.0     # m beyond the paved half-width that must not be water
 # ICAO -> platform elevation (m AMSL) for airports built by cut-and-fill after the DEM epoch
-# (Copernicus = TanDEM-X 2011-2015). NMIA's platform was filled to roughly +8 m; Kannur
-# (2018) and Sindhudurg/Chipi (2021) sit on levelled plateaus, but the DEM still has the
-# old slopes (runway ends 90/131 m and 51/70 m). Elevations: OurAirports.
+# (Copernicus = TanDEM-X 2011-2015); the DEM still has the old slopes there. NMIA's platform
+# was filled to roughly +8 m. Elevations: OurAirports.
 LEVELLED = {"VANM": 8.0, "VOKN": 100.6, "VOSR": 61.9}
 
 
@@ -205,9 +192,8 @@ def paved_polys(rw, lo, hi):
 
 
 def fix_landclass(tiles, ad, rw):
-    """Every existing land-class tile at levels 0-2 (the corridor has none at level 0; its
-    finest is level 1) gets the same per-pixel rules; coarser levels are not re-derived from
-    finer ones, so tiles with partly missing children stay correct."""
+    """Every existing land-class tile at levels 0-2 gets the same per-pixel rules (the corridor
+    has none at level 0). Coarser levels are not re-derived from finer ones."""
     poly = np.asarray(ad["pts"], float)
     lo, hi = poly.min(0) - 500, poly.max(0) + 500
     paved = paved_polys(rw, lo, hi)

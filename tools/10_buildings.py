@@ -1,29 +1,26 @@
 """OSM building footprints -> per-tile 3D building meshes for Godot.
 
-Input:  data/processed/osm/buildings/<tx>_<ty>.bin (04_osm_extract.py), level-0 DEM tiles,
-        roof colours from data/raw/imagery/s2.tif (10 m, Mumbai-Pune grid tiles) or
-        data/raw/imagery/corridor/s2_corridor.vrt (20 m, Konkan-Kerala corridor tiles).
-        Tiles whose level-0 heights do not exist yet are skipped (re-run after 02).
-Output: data/processed/buildings/<tx>_<ty>.bin  (gzip) =
-        b"BLD2", u32 nverts, u32 nidx,
-        nverts * f32 xyz  (tile-local render axes: x = east - tile_x0, y = height AMSL, z = -(north - tile_y0)),
-        nverts * u8 rgba  (CUSTOM0: rgb = roof colour from imagery, a = style: pid << 2 | roof type),
-        nverts * u8 rgba  (CUSTOM1: wall height cm lo/hi, parapet band / rooftop kind, wall height fraction),
-        nidx * u32 indices (walls, parapet strip, flat or hipped roofs, rooftop boxes and tanks; flat
-        normals are made in the shader). The vertex layout is documented in building_geom.py.
-        (BLD1 = the old layout without CUSTOM1; the game still reads it.)
-Also data/processed/buildings/<tx>_<ty>.col (gzip): b"COL1", u32 count, then per building
-        u16 n, f32 base, f32 top, n * (f32 east, f32 north) world metres -- for collisions.
-Vertex rings per footprint (ground, wall top, parapet inner edge), shared between walls and roof.
-Footprints listed in terminals/landmarks.json (16_terminal_models.py) are skipped in the
-mesh (but kept in .col): those buildings are drawn as landmark terminal models.
-Heights: OSM height / building:levels when tagged, else a deterministic synthetic
-height from footprint area (Mumbai: small = 1-4 floors, large blocks up to ~40 m; inside an OSM
-aerodrome outline (osm/aerodromes.json) low airport buildings: 3.5-6.5 m, 6-10 m, 11-19 m for 1500 m2+).
-Researched passenger terminals (tools/ref/terminals_reference.json via terminal_ref.py, matched by their OSM
-footprint in terminals/<ICAO>.json) take the reference height and roof colour instead, over any OSM tag, and
-a terminal look (roof type 2 in the style byte: cladding colour on the walls, curtain-wall glazing share; see
-building_geom.py).
+Input:  data/processed/osm/buildings/<tx>_<ty>.bin (04_osm_extract.py), level-0 DEM tiles
+        (tiles without them are skipped; re-run after 02), roof colours from
+        data/raw/imagery/s2.tif (10 m, Mumbai-Pune) or data/raw/imagery/corridor/s2_corridor.vrt
+        (20 m, Konkan-Kerala).
+Output: data/processed/buildings/<tx>_<ty>.bin (gzip) = b"BLD2", u32 nverts, u32 nidx,
+        nverts * f32 xyz (tile-local render axes: x = east - tile_x0, y = height AMSL,
+          z = -(north - tile_y0)),
+        nverts * u8 rgba (CUSTOM0: rgb = roof colour, a = pid << 2 | roof type),
+        nverts * u8 rgba (CUSTOM1: wall height cm lo/hi, parapet band / rooftop kind,
+          wall height fraction),
+        nidx * u32 indices (walls, parapet, flat or hipped roofs, rooftop boxes and tanks).
+        Layout: see building_geom.py. The game still reads the old BLD1 (no CUSTOM1).
+        data/processed/buildings/<tx>_<ty>.col (gzip) for collisions: b"COL1", u32 count, then
+        per building u16 n, f32 base, f32 top, n * (f32 east, f32 north) world metres.
+Footprints in terminals/landmarks.json (16_terminal_models.py) are skipped in the mesh but kept
+in .col: they are drawn as landmark terminal models.
+Heights: OSM height / building:levels when tagged, else synthetic from footprint area
+(Mumbai: 1-4 floors, large blocks up to ~40 m; inside an OSM aerodrome outline, osm/aerodromes.json:
+3.5-6.5 m, 6-10 m, 11-19 m for 1500 m2+). Researched terminals (tools/ref/terminals_reference.json
+via terminal_ref.py, matched to terminals/<ICAO>.json) take the reference height and roof colour
+and a terminal look (roof type 2, see building_geom.py).
 """
 import gzip
 import json
@@ -151,9 +148,9 @@ LANDMARKS = landmark_paths()
 
 
 def is_landmark(ring, cx, cy):
-    """Is this (CCW) footprint drawn by a landmark terminal model? Its vertex mean is inside a landmark ring, or (a
-    concave footprint, e.g. VABB T1, whose mean falls outside it) 3/4 of the points 0.5 m inside its edge midpoints
-    are. game/world/building_collision.gd make_tile() applies the same rule."""
+    """Is this (CCW) footprint drawn by a landmark terminal model? Its vertex mean is inside a
+    landmark ring, or (concave footprints, e.g. VABB T1) 3/4 of the points 0.5 m inside its edge
+    midpoints are. Same rule as game/world/building_collision.gd make_tile()."""
     if not LANDMARKS:
         return False
     if any(lp.contains_point((cx, cy)) for lp in LANDMARKS):
@@ -202,8 +199,8 @@ def terminal_override(x, y):
 
 
 def imagery_to_srgb(rgb):
-    """An imagery roof colour as the sRGB colour the ordinary roof shading shows it as (pow 0.8 x 1.35, taken as
-    linear): terminal roofs are stored in sRGB and linearised by the shader."""
+    """An imagery roof colour as the sRGB colour the ordinary roof shading shows (pow 0.8 x 1.35,
+    taken as linear). Terminal roofs are stored in sRGB and linearised by the shader."""
     lin = np.clip((rgb / 255.0) ** 0.8 * 1.35, 0.0, 1.0)
     return np.round(np.where(lin <= 0.0031308, lin * 12.92, 1.055 * lin ** (1 / 2.4) - 0.055) * 255).astype(int)
 

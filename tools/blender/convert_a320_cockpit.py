@@ -1,18 +1,18 @@
 """Blender (5.x) headless: A320 flight deck (FlightGear A320-family fd_complete.ac, GPL-2.0-only)
--> game/aircraft/a320/models/interior.glb  (+ models/interior_info.json: eye point and display rectangles)
+-> game/aircraft/a320/models/interior.glb (+ models/interior_info.json: eye point, display rectangles)
 
-Usage (repo root, after tools/24_a320_models_fetch.sh and tools/24_a320_textures.py):
+Run from the repo root, after tools/24_a320_models_fetch.sh and tools/24_a320_textures.py:
   /Applications/Blender.app/Contents/MacOS/Blender -b --factory-startup --python tools/blender/convert_a320_cockpit.py
 
-Frame: same as exterior.glb (structural = FlightGear model frame): the flight deck is placed with upstream's offset
-(-16.47411, -0.00015, -0.09483). Changes (change log in third_party/a320-family/SOURCE.md): seats, headsets, EFB,
-HUD and IAE variants, the rear of the cabin (x > -15.75) are dropped; the rest is cleaned (planar dissolve) and
-decimated to the triangle budget; the Nasal-driven display sockets are replaced by plain black quads named
-screen_<display> (UV 0..1, normal toward the pilot) that cockpit code can texture with a live display;
-materials are Principled BSDF from the (<= 2048 px, "Airbus A320 Family" legend painted out) textures.
-Moving controls (levers, sidesticks, pedals, knobs, trim wheel): upstream's separate objects get `pivot_<name>` empties
-(tools/blender/a320_lever_table.py, a320_levers.py) and models/interior_pivots.json records axes, limits and the draft
-`cockpit.levers` section; the rest of the panel is static.
+Frame as exterior.glb (FlightGear model frame); the deck gets upstream's offset
+(-16.47411, -0.00015, -0.09483). Changes (log in third_party/a320-family/SOURCE.md): seats,
+headsets, EFB, HUD, IAE variants and the cabin rear (x > -15.75) are dropped; the rest is cleaned
+(planar dissolve) and decimated to the triangle budget; the Nasal display sockets become black
+quads named screen_<display> (UV 0..1, normal toward the pilot) for live displays; materials are
+Principled BSDF from the textures (<= 2048 px, legend painted out).
+Moving controls (levers, sidesticks, pedals, knobs, trim wheel) get `pivot_<name>` empties
+(a320_lever_table.py, a320_levers.py); models/interior_pivots.json records axes, limits and the
+draft `cockpit.levers` section. The rest of the panel is static.
 """
 import json
 import sys

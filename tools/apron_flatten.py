@@ -1,29 +1,21 @@
 """Level the ground where aircraft park and taxi (helper of 17_airport_fixups.py).
 
-Copernicus GLO-30 is a surface model: terminals, hangars, parked aircraft, vehicles and tree
-rows are in the heights. 02_dem_tiles.py only flattens runway strips and the OSM aeroway=apron
-polygons (to their median DSM height), but at most airports the polygons cover a fraction of
-the stand area (VABB: 30 of 114 stands lie inside one) and none of the ground next to the
-terminal, so the apron was a field of 5-25 m mounds (terminal walls and roofs, aircraft).
+Copernicus GLO-30 is a surface model: terminals, hangars, aircraft, vehicles and trees are in
+the heights. 02 only flattens runway strips and OSM apron polygons, which cover few stands
+(VABB: 30 of 114). Without this, aprons are fields of 5-25 m mounds.
 
-Zone Z (inside the aerodrome outline or within NEAR_AD of it):
-  - OSM apron polygons,
-  - STAND_R around every stand / gate (airport_ops.json from 13), LANE_PAD beyond the lead-in
-    lines, taxilanes and the taxiways close to the stands (its taxi graph),
-  - BRIDGE_PAD around jet bridges,
-  - BUILD_PAD around buildings of >= BUILD_MIN_M2 (04's footprint tiles, 15's terminal outlines):
-    terminals, hangars, towers, so the ground under and beside them is ground, not roof.
-Ground model: the DSM with its clutter replaced by a smooth membrane (harmonic inpainting) from
-the ground around it. Clutter = samples within CORE_* of a building footprint, samples standing
-too far above a 3- or 5-sample morphological opening (aircraft, vehicles, trees, sheds, annexes the
-footprints miss) where the surrounding ground is flat (on_flat_ground: a hilltop corner is terrain),
-and the wider ring around footprints only where it stands above the first fill (a wall leaking into
-its neighbour, not the apron beside it). Big opening windows are not used: they would take a graded
-apron terrace for a building. A last smoothing moves a sample by at most SMOOTH_MAX. Inside Z the
-terrain becomes that ground, smoothstep-blended to the DSM over FEATHER m; where nothing is clutter
-the DSM stays (02's flat apron polygons stay as they are). Runway strips are never touched (17
-keeps them). The result is carried to levels 1-2 by Mosaic.commit like every other fix.
-Measure it with tools/apron_roughness.py.
+Zone Z (inside the aerodrome outline or within NEAR_AD of it): OSM apron polygons, STAND_R
+around stands/gates (airport_ops.json from 13), LANE_PAD around lead-in lines, taxilanes and
+nearby taxiways, BRIDGE_PAD around jet bridges, BUILD_PAD around buildings >= BUILD_MIN_M2
+(04 footprints, 15 terminal outlines).
+Ground model: the DSM with clutter replaced by a smooth membrane (harmonic inpainting).
+Clutter = samples near a building footprint (CORE_*), samples standing too far above a 3- or
+5-sample morphological opening on flat ground (aircraft, vehicles, trees, sheds), and a wider
+ring only where it stands above the first fill. Big opening windows are not used: they would
+take a graded apron terrace for a building. A last smoothing moves a sample by at most
+SMOOTH_MAX. Inside Z the terrain becomes that ground, blended to the DSM over FEATHER m.
+Runway strips are never touched (17 keeps them). Levels 1-2 follow via Mosaic.commit.
+Measure with tools/apron_roughness.py.
 """
 import json
 import struct
@@ -77,8 +69,8 @@ def read_buildings(lo, hi):
 
 
 def read_terminals(lo, hi):
-    """Terminal / part / car-park footprints of 15_terminals.py (some terminals carry no OSM
-    building tag, so they are not in 04's tiles), same format as read_buildings."""
+    """Terminal / part / car-park footprints of 15_terminals.py (some carry no OSM building
+    tag, so they are not in 04's tiles), same format as read_buildings."""
     out = []
     for f in sorted((c.OUT / "terminals").glob("[A-Z][A-Z0-9][A-Z0-9][A-Z0-9].json")):
         d = json.loads(f.read_text())
@@ -132,12 +124,10 @@ class Ops:
 
 
 def clutter(m, bld, around):
-    """(core, wide) boolean masks of mosaic samples that are not ground. core: within CORE_* of a
-    building footprint, or standing more than a limit above a morphological opening of 3 or 5
-    samples (aircraft, vehicles, trees, sheds), dilated by one sample for the leaking edges. wide:
-    the samples up to MASK_* from a footprint, which are clutter only where they stand above the
-    ground inpainted under the core (a wall leaking into its neighbour, not an apron beside it).
-    Big opening windows are not used: they would take a graded apron terrace for a building."""
+    """(core, wide) boolean masks of mosaic samples that are not ground. core: near a footprint
+    or standing too high above a 3- or 5-sample opening, dilated by one sample. wide: samples
+    up to MASK_* from a footprint, clutter only where above the ground inpainted under the core.
+    Big opening windows would take a graded apron terrace for a building."""
     near = around.buffer(300.0)
     shapely.prepare(near)
     mine = [(a, p) for a, p in bld if near.intersects(p)]
@@ -159,10 +149,9 @@ def clutter(m, bld, around):
 
 
 def on_flat_ground(h, flags, skip):
-    """The flagged samples that sit on flat ground. A convex corner or a narrow terrace of steep
-    terrain (a hilltop apron) is also higher than its opening, but the unflagged ground around it
-    is not flat: where those samples within RING samples span more than RING_RANGE m the flag is
-    dropped (terrain, not an object)."""
+    """The flagged samples that sit on flat ground. Steep terrain (a hilltop apron) is also
+    higher than its opening: if the unflagged samples within RING samples span more than
+    RING_RANGE m, the flag is dropped."""
     ground = ~flags & ~skip
     hi = maximum_filter(np.where(ground, h, -np.inf), size=2 * RING + 1, mode="nearest")
     lo = minimum_filter(np.where(ground, h, np.inf), size=2 * RING + 1, mode="nearest")
@@ -170,8 +159,8 @@ def on_flat_ground(h, flags, skip):
 
 
 def inpaint(h, bad):
-    """Harmonic (membrane) fill of the masked samples from the unmasked ones around them: smooth,
-    bridges a terminal's width, and never leaves the range of the surrounding ground."""
+    """Harmonic (membrane) fill of the masked samples from the unmasked ones around them. It
+    bridges a terminal's width and stays within the range of the surrounding ground."""
     idx = np.full(h.shape, -1)
     idx[bad] = np.arange(int(bad.sum()))
     n = int(bad.sum())
@@ -193,9 +182,9 @@ def inpaint(h, bad):
 
 
 def ground_field(m, bld, around):
-    """Ground height on the mosaic grid: the DSM with the clutter inpainted (the wide ring only
-    where it stands WIDE_TOL above the first fill), then smoothed by at most SMOOTH_MAX m (sigma
-    SIGMA samples) so residual DSM noise flattens without eroding real relief."""
+    """Ground height on the mosaic grid: the DSM with clutter inpainted (the wide ring only
+    where it stands WIDE_TOL above the first fill), smoothed by at most SMOOTH_MAX m
+    (sigma SIGMA samples)."""
     core, wide = clutter(m, bld, around)
     if core.all() or not core.any():
         return m.h.copy()
@@ -207,8 +196,8 @@ def ground_field(m, bld, around):
 
 
 def level(m, ad_pts, ops):
-    """Pull the apron zone of one aerodrome (outline ad_pts) in Mosaic m towards the ground model.
-    Returns the number of mosaic samples fully levelled (weight 1), 0 when nothing to do."""
+    """Pull the apron zone of one aerodrome (outline ad_pts, Mosaic m) towards the ground model.
+    Returns the number of mosaic samples fully levelled (weight 1)."""
     ad = shapely.Polygon(ad_pts).buffer(0)
     bld = read_buildings(m.lo, m.hi) + read_terminals(m.lo, m.hi)
     zone, _lev = ops.zone(ad, bld)

@@ -1,14 +1,14 @@
-"""Phase R raw data: Konkan-Kerala corridor (Mumbai -> Kochi). Resumable; re-run to finish.
+"""Raw data for the Konkan-Kerala corridor (Mumbai -> Kochi). Resumable; re-run to finish.
 
   tools/.venv/bin/python tools/01d_fetch_corridor.py [all|dem|dem90|img|outer|osm]
 
 dem    Copernicus GLO-30 tiles for every 1x1 deg cell touching corridor_lonlat() -> data/raw/dem/
-       (all-sea cells have no tile in the bucket: 404 -> listed in data/raw/dem/missing_sea.txt)
+       (all-sea cells have no tile in the bucket: 404, listed in data/raw/dem/missing_sea.txt)
 dem90  Copernicus GLO-90 tiles covering OUTER_SOUTH -> data/raw/dem90/
 img    Sentinel-2 cloudless at CORRIDOR_IMG_RES (20 m) in world-y bands of 7 level-1 tiles
        (107.52 km); each band = bbox of the level-1 tiles (15.36 km) touching the corridor in it,
-       snapped to that grid, +1 tile margin north/south. -> data/raw/imagery/corridor/s2c_<k>.tif
-       + s2_corridor.vrt
+       snapped to that grid, +1 tile margin north/south
+       -> data/raw/imagery/corridor/s2c_<k>.tif + s2_corridor.vrt
 outer  Sentinel-2 cloudless at 80 m over OUTER_SOUTH -> data/raw/imagery/s2_outer_south.tif
 osm    Geofabrik southern-zone extract (md5 checked) -> data/raw/osm/
 """

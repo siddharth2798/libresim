@@ -1,18 +1,18 @@
-"""Per-airport recipes that turn OSM terminal footprints into landmark models that look
-like the real buildings (research notes in docs/TERMINALS.md):
+"""Per-airport recipes that turn OSM terminal footprints into landmark models that look like the
+real buildings (research notes in docs/TERMINALS.md):
 
-  VABB T2  SOM 2014: glazed headhouse under one long white-grey roof on ~30 m
-           mushroom columns, 40 m cantilever over the departures kerb, lit coffered
-           soffit; lower glazed piers with white jali bands.
+  VABB T2  glazed headhouse under one long white-grey roof on ~30 m mushroom columns, 40 m
+           cantilever over the departures kerb, lit coffered soffit; lower glazed piers with
+           white jali bands.
   VABB T1  low 1B/1C blocks: glass + metal cladding, flat roofs, kerb canopies.
-  VAPO     new integrated terminal + old terminal joined by the long "verandah"
-           canopy with dark basalt columns; cream cladding, flat metal roofs.
-  VOCI     Kerala temple style: terracotta hip roofs in sections with white gablets,
-           cream walls, grey glazing bands, red fascia + pylons, "COCHIN INTERNATIONAL
-           AIRPORT" lettering (T3); T1 / T2 in the same idiom, lower.
+  VAPO     new integrated terminal + old terminal joined by the long "verandah" canopy with dark
+           basalt columns; cream cladding, flat metal roofs.
+  VOCI     Kerala temple style: terracotta hip roofs in sections with white gablets, cream walls,
+           grey glazing bands, red fascia + pylons, "COCHIN INTERNATIONAL AIRPORT" lettering (T3);
+           T1 / T2 in the same idiom, lower.
 
-Heights are not tagged in OSM; they come from published level heights (Kochi T3:
-floors at 0 / 5.5 / 10.5 / 15.5 m; Mumbai T2: ~36-42 m roof, 30 m columns).
+Heights are not tagged in OSM; they come from published level heights (Kochi T3: floors at
+0 / 5.5 / 10.5 / 15.5 m; Mumbai T2: ~36-42 m roof, 30 m columns).
 """
 import math
 

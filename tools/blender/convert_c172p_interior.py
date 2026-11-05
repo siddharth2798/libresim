@@ -2,11 +2,11 @@
 -> game/aircraft/c172/models/interior.glb
 
 Usage (repo root): blender -b --factory-startup --python tools/blender/convert_c172p_interior.py
-Same frame as exterior.glb (FlightGear model frame, origin = JSBSim VRP). Includes the
-panel shell, seats, levers and switches (c172p-interior.ac), both yokes and pilot
-pedals. Instrument faces are NOT imported: free-sim draws live gauges at the real
-instrument positions instead. Pivots: pivot_yoke_L / pivot_yoke_R (roll axis = +X;
-the whole yoke also slides along X for pitch), pivot_throttle, pivot_mixture.
+Same frame as exterior.glb (FlightGear model frame, origin = JSBSim VRP). Includes the panel shell,
+seats, levers and switches (c172p-interior.ac), both yokes and pilot pedals. Instrument faces are
+NOT imported: the game draws live gauges at the real instrument positions. Pivots: pivot_yoke_L /
+pivot_yoke_R (roll axis = +X; the whole yoke also slides along X for pitch), pivot_throttle,
+pivot_mixture.
 """
 import importlib
 import re
@@ -43,8 +43,8 @@ PIVOTS = {  # name -> (objects, point, axis)
 def import_part(rel, off):
     before = set(bpy.data.objects)
     src = FG / rel
-    # the AC3D importer only looks for textures beside the .ac; FlightGear uses a
-    # texture-path, so import a copy placed in Models/ next to interior.png etc.
+    # the AC3D importer only looks for textures beside the .ac, but FlightGear uses a texture-path:
+    # import a copy placed in Models/ next to interior.png etc.
     if not all((src.parent / t).exists() for t in textures(src)):
         tmp = FG / ("_tmp_" + src.name)
         shutil.copy(src, tmp)

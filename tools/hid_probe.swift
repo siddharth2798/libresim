@@ -1,20 +1,20 @@
 // Raw HID capture for joysticks, throttles and gamepads on macOS (IOKit), independent of Godot.
 // Used to calibrate the Thrustmaster TCA Captain Pack (game/core/input_profiles.gd) when Godot cannot list the pads.
 //
-//   swiftc -O tools/hid_probe.swift -o /tmp/hid_probe          (once)
-//   /tmp/hid_probe /tmp/pads.log                                guided: it names each control to move and waits for Enter
-//   /tmp/hid_probe /tmp/pads.log 420 --free                     no guide: logs for 420 s, type a marker + Enter for each control
+//   swiftc -O tools/hid_probe.swift -o /tmp/hid_probe   (once)
+//   /tmp/hid_probe /tmp/pads.log                        guided: names each control to move and waits for Enter
+//   /tmp/hid_probe /tmp/pads.log 420 --free             no guide: logs for 420 s, type a marker + Enter per control
 //
-// In the guided mode every step prints what to do, waits for Enter, logs MARK START, and when you press Enter again
-// logs MARK END, so each log line belongs to exactly one control. Lines (tab separated):
+// Guided mode: every step prints what to do, waits for Enter, logs MARK START, and after the next Enter
+// logs MARK END, so each log line belongs to one control. Lines (tab separated):
 //   DEV   <index> <product> vendor=<id> product=<id>
-//   ELEM  <dev> <order> axis|button|hat page=<p> usage=<u> min=<a> max=<b>     elements in descriptor order
-//   VAL   <t> <dev> <order> <kind> usage=<u> raw=<v> norm=<-1..1>              every change
+//   ELEM  <dev> <order> axis|button|hat page=<p> usage=<u> min=<a> max=<b>   elements in descriptor order
+//   VAL   <t> <dev> <order> <kind> usage=<u> raw=<v> norm=<-1..1>            every change
 //   MARK  <t> <text>
-// "order" counts the elements of the same kind in the descriptor order of that device. Godot (SDL3) numbers buttons by
-// their usage number - 1 but axes by ascending HID usage, which differs from the descriptor order on the TCA quadrant:
-// its order 0,1,2,3 is Godot axis 0,1,2,5 (check with tests/probe_pads.gd). The START / END markers of the guided mode
-// can be shifted by one step against the real movements: read the log by content.
+// "order" counts the elements of the same kind in descriptor order of that device. Godot (SDL3) numbers
+// buttons by usage number - 1 but axes by ascending HID usage, which differs from descriptor order on the
+// TCA quadrant: its order 0,1,2,3 is Godot axis 0,1,2,5 (check with tests/probe_pads.gd). The START / END
+// markers of the guided mode can be off by one step against the real movements: read the log by content.
 import Foundation
 import IOKit.hid
 

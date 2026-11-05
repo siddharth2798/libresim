@@ -1,9 +1,8 @@
 """Cut smooth, flat pads into the DEM grid under runways and aprons.
 
-Runways: OSM runway centrelines (fallback: OurAirports runway ends). Height along
-the runway = least-squares line through DEM samples on the centreline; blended
-into the terrain over FEATHER metres beyond the shoulder.
-Aprons/taxiway areas: flattened to their median DEM height.
+Runways: OSM runway centrelines (fallback: OurAirports runway ends). Height along the runway = least-
+squares line through the DEM samples on the centreline, blended into the terrain over FEATHER m
+beyond the shoulder. Aprons/taxiway areas: flattened to their median DEM height.
 Grid convention: a[j, i] at x = X0 + i*DEM_RES, y = Y0 + j*DEM_RES (module globals).
 """
 import json

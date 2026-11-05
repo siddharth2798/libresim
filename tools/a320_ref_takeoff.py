@@ -16,7 +16,8 @@ def _steer(sim, psi0=0.0):
 
 
 def takeoff(weight_kg=70000.0, flaps=1, vr_kt=142.0, v2_kt=146.0, toga=1.0, rto_at_kt=None, temp_dev_c=0.0, rotate_rate=1.0, trim=-0.15):
-    """TOGA stabilised on the brakes (14 s), brakes released at t=0 (distances and times count from release), rotate at vr_kt to ~15 deg, gear up at 35 ft, hold V2+10 climb to 1500 ft AGL.
+    """TOGA stabilised on the brakes (14 s), brakes released at t=0 (distances and times count from
+    release), rotate at vr_kt to ~15 deg, gear up at 35 ft, hold V2+10 climb to 1500 ft AGL.
     rto_at_kt: instead reject at that speed (idle, max brakes, speedbrake) and return the stopping distance."""
     sim = js.A320Sim().load().init(alt_ft=0.0, kcas=0.0, weight_kg=weight_kg, flaps=flaps, gear_down=True, on_ground=True,
                                    ground_cg_ft=10.9, temp_dev_c=temp_dev_c)
@@ -100,8 +101,8 @@ def _interp2(tab, row, col):
 
 
 def thrust_check(engine_cfg, cases):  # case: (label, alt, mach, lever, on_ground[, bleed_off])
-    """cases: [(label, alt_ft, mach, lever, on_ground)]. Runs the real engine+FADEC, compares thrust-lbs with the JSBSim
-    turbine formula  T = (idle + (thrust_n*mil_tab*rated_factor*reverser - idle) ... )  built from the converted config tables:
+    """cases: [(label, alt_ft, mach, lever, on_ground)]. Runs the real engine+FADEC and compares
+    thrust-lbs with the JSBSim turbine formula built from the converted config tables:
     idle = thrust_n*IdleThrust(M, DA); mil = (thrust_n - idle) * MilThrust(M, DA) * rated_factor * reverser;
     T = (idle + mil * N2norm^2) * (1 - bleed), N2norm = (N2 - idle_n2) / (max_n2 - idle_n2)  (n2 in percent)."""
     out = []

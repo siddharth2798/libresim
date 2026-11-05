@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# End-to-end QA sweep: unit tests, start screen, every airport start, views, time of
-# day, weather, gameplay, failures, nav, panels, save/load, replay, recording,
-# performance and reference screenshots. Needs a display (windows open briefly).
+# End-to-end QA sweep: unit tests, start screen, every airport start, views, time of day, weather,
+# gameplay, failures, nav, panels, save/load, replay, recording, performance and reference
+# screenshots. Needs a display (windows open briefly).
 #   tools/e2e.sh [run-name] [filter]     e.g. tools/e2e.sh run1 ; tools/e2e.sh dbg rwy_VABB
 # Output: /tmp/e2e/<run>/ (logs, results, shots), report /tmp/e2e/report.md
 # (also /tmp/e2e/<run>/report.md). Reference screenshots: /tmp/e2e/ref (made on first run).

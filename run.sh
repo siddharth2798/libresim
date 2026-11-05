@@ -18,11 +18,11 @@ STAMPS=data/.stamps
 LOG=data/run.log
 
 # ---------------------------------------------------------------- pipeline table
-# Order as documented in docs/USAGE.md section 3. 17 patches the terrain tiles of 02/11/12 in
-# place, so it runs after 12, and it reads the stands (13) and terminal outlines (15), so after
-# those; 09 then runs again (runway heights) before 14 and 10; 16 (terminal base height) follows 17.
-# 19 (ESA WorldCover class tiles, needs network the first time) follows every lc tile writer (11, 12).
-# 20 (road / river distance tiles) and 21 (shore distance tiles) read the final land-class water mask, so they follow 17.
+# Order as in docs/USAGE.md section 3. 17 patches the terrain tiles of 02/11/12 in place, so it
+# runs after 12, and after 13 (stands) and 15 (terminal outlines). 09 runs again (runway heights)
+# before 14 and 10; 16 (terminal base height) follows 17.
+# 19 (WorldCover class tiles, needs network the first time) follows the lc writers (11, 12).
+# 20 (road / river tiles) and 21 (shore tiles) read the final land-class water mask, so follow 17.
 # 27 (airport pavement masks) reads the final runways.json (second 09) and the stands (13 / 17).
 PIPELINE=(05 04 02 03 06 09 11 12 19 13 15 17 20 21 09 27 14 16 10)
 # OUT: first entry is the sentinel used when no stamp exists yet (a dir means "a file in it").
@@ -38,7 +38,7 @@ IN[02]="tools/02_dem_tiles.py tools/flatten.py data/raw/dem/*.tif data/raw/dem90
 OUT[03]="data/processed/terrain/img/0"
 IN[03]="tools/03_imagery_tiles.py tools/bc1.py data/raw/imagery/s2.tif data/raw/imagery/s2_outer.tif";  DEP[03]="02"
 OUT[06]="game/aircraft/c172/aero.json game/aircraft/c172/config.json"   # committed; only if missing
-# 06a (only with --a320): A320 aero/config json from the FlightGear A320-family clone (tools/22_a320_fetch.sh); outputs are committed
+# 06a (only with --a320): A320 aero/config json from the A320-family clone (tools/22_a320_fetch.sh); outputs are committed
 OUT[06a]="game/aircraft/a320/aero.json game/aircraft/a320/config.json"
 IN[06a]="tools/06_jsbsim_to_json.py tools/jsb_expr.py tools/jsb_turbine.py tools/jsb_a320.py data/raw/fg/a320/FDE/*.xml data/raw/fg/a320/FDE/Config/*.xml data/raw/fg/a320/Engines/*.xml data/raw/fg/a320/Systems/*.xml"
 OUT[09]="data/processed/runways.json"
@@ -167,10 +167,9 @@ OS=$(uname -s); ARCH=$(uname -m)
 PM=""
 if [[ $OS == Darwin ]]; then
   PM=brew
-  # Keep Homebrew quiet and fast for the one install this script may offer: its automatic `brew update`
-  # (and the "You have N outdated formulae" report it prints) is skipped, and env hints are off.
-  # Only set when the caller has not chosen (Homebrew counts any non-empty value, even 0, as "set"):
-  # run `HOMEBREW_NO_AUTO_UPDATE= ./run.sh` (empty) to keep Homebrew's auto-update and its report.
+  # Keep Homebrew quiet and fast: skip its automatic `brew update` and outdated-formulae report,
+  # and env hints. Only set when the caller has not chosen (any non-empty value counts as "set",
+  # even 0): run `HOMEBREW_NO_AUTO_UPDATE= ./run.sh` (empty) to keep the auto-update.
   : "${HOMEBREW_NO_AUTO_UPDATE=1}" "${HOMEBREW_NO_ENV_HINTS=1}"
   export HOMEBREW_NO_AUTO_UPDATE HOMEBREW_NO_ENV_HINTS
 elif command -v apt-get >/dev/null; then PM=apt
@@ -408,7 +407,7 @@ note "disk used: data/ $(du -sh data 2>/dev/null | cut -f1)  (raw $(du -sh data/
 note "setup time: $((SECONDS - T_ALL)) s; log: $LOG"
 
 header 7 "Launch"
-# macOS: SDL3 inside Godot lists no Thrustmaster (HID) pad unless its GameController-framework driver is off, and
+# macOS: SDL3 in Godot lists no Thrustmaster (HID) pad unless its GameController driver is off, and
 # joystick events only reach the active app unless background events are on. Keep SDL's HIDAPI driver ON. (docs/USAGE.md)
 if [[ $(uname) == Darwin ]]; then export SDL_JOYSTICK_MFI=0 SDL_JOYSTICK_ALLOW_BACKGROUND_EVENTS=1; fi
 if dry; then note "WOULD run: ${GODOT:-godot} --path game -- ${GAME_ARGS[*]:-}"; exit 0; fi

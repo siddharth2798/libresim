@@ -1,16 +1,21 @@
 #!/usr/bin/env bash
 # Add the A320-family 3D models (GPL-2.0-only, pinned commit) to the sparse checkout of data/raw/fg/a320.
-# Run tools/22_a320_fetch.sh first (it creates the clone); this script only ADDS paths, never touches the others.
-# Sizes at the pinned commit (GitHub tree API): Models/ is 144 MB in total; we take about 92 MB:
-#   Models/Fuselage/           exterior: res/A320-216.ac (airframe, gear, surfaces), res/CFM56.ac (engine), PNG textures, animation XML (hinge centres/axes: read as data, never executed)
-#   Models/FlightDeck/res/     flight deck: fd_complete.ac (32 MB) and its PNG textures (71 MB in the folder; the converter uses only what the .ac references)
-#   Models/Lights/             light glow definitions (reference for lamp positions only)
-#   single files via `git show`: Models/A320-common.xml, A320-200-CFM.xml (model composition), Models/Liveries/CFM/2k/CFM56-white.png (clean engine texture),
-#   and the 481-byte display-screen quads Models/Instruments/{PFD,ND,Upper-ECAM,Lower-ECAM,IESI}/res/*.ac (screen positions only; no canvas/Nasal code)
-# NOT fetched (licence audit, docs/LICENSING.md): Models/Liveries/* airline textures (AAL AUA DAL SWR BAW SAS IAE/PW/NEO liveries, 4k fuselages), fuselage-dirt.png,
-#   the rest of Models/Instruments/ (Nasal/canvas displays: libresim draws its own), Models/Effects/ (FlightGear .eff shader files), Models/Services/ (ground vehicles),
-#   Models/Autopush/, FlightDeck/QRH/ and the 1.1 MB cockpit animation XML, Sounds/, Fonts/, Nasal/.
-# Idempotent: does nothing when the files are already there. The checkout is untrusted data: nothing in it is ever executed.
+# Run tools/22_a320_fetch.sh first (it creates the clone). This only ADDS paths, never touches others.
+# Models/ is 144 MB at the pinned commit; we take about 92 MB:
+#   Models/Fuselage/         exterior: res/A320-216.ac (airframe, gear, surfaces), res/CFM56.ac (engine),
+#                            PNG textures, animation XML (hinge centres/axes, read as data)
+#   Models/FlightDeck/res/   fd_complete.ac (32 MB) and its PNG textures (71 MB in the folder; the
+#                            converter uses only what the .ac references)
+#   Models/Lights/           light glow definitions (reference for lamp positions only)
+#   single files via `git show`: Models/A320-common.xml, A320-200-CFM.xml (model composition),
+#   Models/Liveries/CFM/2k/CFM56-white.png (clean engine texture), and the 481-byte display-screen
+#   quads Models/Instruments/{PFD,ND,Upper-ECAM,Lower-ECAM,IESI}/res/*.ac (screen positions only)
+# NOT fetched (licence audit, docs/LICENSING.md): Models/Liveries/* airline textures (AAL AUA DAL SWR
+#   BAW SAS IAE/PW/NEO liveries, 4k fuselages), fuselage-dirt.png, the rest of Models/Instruments/
+#   (Nasal/canvas displays: libresim draws its own), Models/Effects/ (.eff shader files),
+#   Models/Services/ (ground vehicles), Models/Autopush/, FlightDeck/QRH/, the 1.1 MB cockpit
+#   animation XML, Sounds/, Fonts/, Nasal/.
+# Idempotent. The checkout is untrusted data: nothing in it is ever executed.
 # NB: `tools/22_a320_fetch.sh --force` deletes the clone; rerun this script afterwards.
 # Usage: tools/24_a320_models_fetch.sh [--force]
 set -Eeuo pipefail
