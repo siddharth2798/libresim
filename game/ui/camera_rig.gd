@@ -23,6 +23,8 @@ var _look_goal := Vector2.ZERO
 var _fov_goal := 70.0
 var _focus_back := []  # [look, fov] while focused
 var _chase_pos := Vector3.ZERO
+var _chase_back := Vector3.ZERO  # smoothed horizontal "behind" direction
+var _chase_trail := 0.0  # extra metres behind, eased from ground speed / follow rate
 var _eye := Vector3.ZERO
 var _free_enu := Vector3.ZERO
 var _free_speed := 40.0
@@ -76,6 +78,8 @@ func set_mode(m: int) -> void:
 		_place_flyby(FloatingOrigin.to_world(aircraft.global_position))
 	_look_goal = _look  # focus-zoom targets follow the new view
 	_fov_goal = _fov_cockpit
+	_chase_back = Vector3.ZERO  # a view change snaps the chase camera behind the aircraft
+	_chase_trail = 0.0
 	_focus_back = []
 	Props.set_v("view/free_cam", mode == Mode.FREE)
 	Props.set_v("view/mode", NAMES[mode])
@@ -148,11 +152,15 @@ func _process(dt: float) -> void:
 			var back := t.basis.z
 			back.y = 0.0
 			back = back.normalized() if back.length() > 0.1 else Vector3.BACK
-			var target := t.origin + back * float(_cams.chase[0]) + Vector3.UP * float(_cams.chase[1])
-			var follow := float(_cams.chase[2]) if _cams.chase.size() > 2 else 4.0  # 1/s: the camera trails by speed / follow
-			_chase_pos = _chase_pos.lerp(target, 1.0 - exp(-follow * dt))  # frame-rate independent follow
-			if _chase_pos.distance_to(target) > 60.0:
-				_chase_pos = target
+			var dist := float(_cams.chase[0])
+			var height := float(_cams.chase[1])
+			var follow := float(_cams.chase[2]) if _cams.chase.size() > 2 else 4.0
+			var vn: Vector3 = aircraft.fdm_node.fdm.velocity_ned()
+			var step := chase_step(_chase_back, _chase_trail, back, Vector2(vn.x, vn.y).length(), follow, dt)
+			_chase_back = step.back
+			_chase_trail = step.trail
+			# Placed from the aircraft every frame: a hitch or a floating-origin shift cannot dolly the lens.
+			_chase_pos = t.origin + _chase_back * (dist + _chase_trail) + Vector3.UP * height
 			look_at_from_position(_chase_pos, t.origin + Vector3.UP)
 		Mode.ORBIT:
 			fov = 55.0
@@ -181,6 +189,20 @@ func _process(dt: float) -> void:
 			var p2 := FloatingOrigin.to_render(_flyby_enu)
 			fov = FlybyPlacement.fov_deg(p2.distance_to(t.origin), _flyby_par)  # zoom: the aircraft keeps its share of the frame
 			look_at_from_position(p2, t.origin)
+
+
+## One chase-camera step. `back` is the aircraft's horizontal aft direction; the smoothed copy eases toward it at
+## `follow` 1/s (cornering lag). The extra distance is ground speed / follow, eased over about a second, so a speed
+## change or a long frame does not zoom the picture. A zero smoothed direction snaps to `back`.
+static func chase_step(back_s: Vector3, trail: float, back: Vector3, speed: float, follow: float, dt: float) -> Dictionary:
+	var k := 1.0 - exp(-maxf(follow, 0.0) * maxf(dt, 0.0))
+	var b := back
+	if back_s.length() > 0.1:
+		b = back_s.lerp(back, k)
+		b = b.normalized() if b.length() > 0.1 else back
+	var target := 0.0 if follow <= 0.0 else speed / follow
+	var trail_k := 1.0 - exp(-maxf(dt, 0.0) / 1.2)
+	return {"back": b, "trail": lerpf(trail, target, trail_k)}
 
 
 func _free_fly(dt: float) -> void:

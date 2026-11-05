@@ -21,14 +21,26 @@ REV_FLAP = [[-1.0, 60.0], [-0.04, 60.0], [0.0, 0.0], [1.0, 0.0]]
 BOOTS = (("boot1", "level1", 2.0 / 14.0), ("boot2", "level2", 5.0 / 14.0), ("boot3", "level3", 9.0 / 14.0))
 
 
+def _panel_rows():
+    """FCU, overhead and pedestal controls (a320_panel_*.py). Disconnect buttons are nested under the thrust levers."""
+    import a320_panel_fcu as fcu
+    import a320_panel_overhead as ovh
+    import a320_panel_pedestal as ped
+    return fcu.rows() + ovh.rows() + ped.rows()
+
+
 def rows():
+    panels = _panel_rows()
+    discs = {r["name"]: r for r in panels if str(r["name"]).startswith("athr_disc_")}
     out = []
     for n, side, y, rev_y in ((1, "l", -0.0204, -0.0187), (2, "r", 0.0204, 0.0186)):
         out.append(dict(name=f"rev_{side}", objs=[f"rev_{side}"], at=(-16.5878, rev_y, -0.0736), axis=RIGHT, kind="rotate",
                         drive=f"controls/throttle_{n} - controls/reverse_{n}", map=REV_FLAP, rate=240.0,
                         note="reverser flap on the lever: lifts when the lever is taken below idle"))
-        out.append(dict(name=f"thr_{side}", objs=[f"thr_{side}_body", f"thr_{side}_button"], at=(THR_PIVOT[0], y, THR_PIVOT[2]), axis=LEFT,
-                        kind="rotate", children=[f"rev_{side}"], drive=f"controls/throttle_{n} - controls/reverse_{n}", map=TLA, rate=110.0,
+        disc = f"athr_disc_{side}"
+        out.append(discs[disc])  # before the lever, so the button pivot exists when the lever parents it
+        out.append(dict(name=f"thr_{side}", objs=[f"thr_{side}_body"], at=(THR_PIVOT[0], y, THR_PIVOT[2]), axis=LEFT,
+                        kind="rotate", children=[f"rev_{side}", disc], drive=f"controls/throttle_{n} - controls/reverse_{n}", map=TLA, rate=110.0,
                         note="thrust lever; + = forward, TLA 0..45 deg (IDLE 0, CL 25, FLX/MCT 35, TOGA 45), reverse to -23"))
     for seat, i, y in (("cpt", 1, -0.8775), ("fo", 2, 0.8774)):
         st = "" if seat == "cpt" else "_2"
@@ -74,6 +86,7 @@ def rows():
                         note="toe brake, + = toe forward"))
         out.append(dict(name=f"pedal_{foot}_{seat}", objs=[], at=at, axis=FWD, kind="translate", lag=0.08, children=[f"pedal_{foot}_{seat}_brake"],
                         drive="controls/yaw", map=[[-1.0, -0.04 * sgn], [1.0, 0.04 * sgn]], note="+ = forward (m); right rudder pushes the right pedal"))
+    out += [r for r in panels if not str(r["name"]).startswith("athr_disc_")]
     return out
 
 

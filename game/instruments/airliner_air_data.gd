@@ -2,7 +2,7 @@ class_name AirlinerAirData
 extends Node
 ## Air data computer of an airliner (ADR), in the units the PFD shows. Reads the FDM / atmosphere
 ## Props, publishes instruments/pfd/*:
-##   ias_kt mach tas_kt trend_kt (speed in 10 s) vls_kt vsw_kt vmax_kt alt_ft (baro-corrected)
+##   ias_kt mach tas_kt trend_kt (speed in 10 s) vls_kt vsw_kt vmax_kt vfe_next_kt alt_ft (baro-corrected)
 ##   baro_hpa (the setting in use, 1013.25 in STD) baro_std vs_fpm ra_ft (radio altitude, -1 above 2500 ft)
 ##   valid (false with Props failures/adr: the PFD shows its red SPD / ALT / V/S flags)
 ## Inputs: fdm/{cas_mps, tas_mps, mach (optional), alt_m, vs_mps, agl_m, mass_kg, flap_deg, slat_deg,
@@ -45,7 +45,10 @@ func publish(dt: float) -> void:
 	var gear: Variant = Props.get_v("fdm/gear_pos", 1.0)
 	var gear_down: bool = (gear.min() if gear is Array and not gear.is_empty() else float(gear)) > 0.5
 	var ext := Props.get_f("fdm/slat_deg") + Props.get_f("fdm/flap_deg")
+	var lever := roundi(Props.get_f("fdm/flap_lever"))
 	var mk := AirSpeeds.markers(_spec, Props.get_f("fdm/mass_kg", float(_spec.ref_mass_kg)), ext, gear_down, p)
+	# The red band is the selected detent's Vfe at once, and stays at the surfaces' lower limit while they retract.
+	var flap_limit := minf(AirSpeeds.vfe_selected(_spec, lever), AirSpeeds.table(_spec.vfe_kt, ext))
 	Props.set_v("instruments/pfd/valid", ok)
 	Props.set_v("instruments/pfd/ias_kt", ias if ok else 0.0)
 	Props.set_v("instruments/pfd/mach", mach if ok else 0.0)
@@ -53,7 +56,8 @@ func publish(dt: float) -> void:
 	Props.set_v("instruments/pfd/trend_kt", AirSpeeds.trend_kt(_accel) if ok else 0.0)
 	Props.set_v("instruments/pfd/vls_kt", mk.vls)
 	Props.set_v("instruments/pfd/vsw_kt", mk.vsw)
-	Props.set_v("instruments/pfd/vmax_kt", mk.vmax)
+	Props.set_v("instruments/pfd/vmax_kt", AirSpeeds.envelope_max(_spec, flap_limit, gear_down, p))
+	Props.set_v("instruments/pfd/vfe_next_kt", AirSpeeds.vfe_next(_spec, lever))
 	Props.set_v("instruments/pfd/alt_ft", Units.m_to_ft(alt_m) if ok else 0.0)
 	Props.set_v("instruments/pfd/baro_hpa", baro)
 	Props.set_v("instruments/pfd/baro_std", std)

@@ -7,6 +7,7 @@ extends RefCounted
 ## extension index = slat_deg + flap_deg (0 clean ... ~62 full). Per aircraft in aircraft.json
 ## "limits.speeds" (any key may be omitted, the defaults are an A320-class 64 t twin-jet):
 ##   ref_mass_kg, vs1g_kt [[ext, kt]], vls_k, vsw_k, vmo_kt, mmo, vfe_kt [[ext, kt]], vle_kt
+## vfe_kt is one row per flap-lever detent, in lever order (clean, 1, 1+F, 2, 3, FULL on the A320).
 
 const DEFAULTS := {
 	"ref_mass_kg": 64000.0,
@@ -43,14 +44,34 @@ static func cas_kt_at_mach(m: float, p_pa: float) -> float:
 	return Units.mps_to_kt(AtmosphereISA.cas_from_qc(qc))
 
 
-## {vls, vsw, vmax} in kt.
-static func markers(spec: Dictionary, mass_kg: float, ext_deg: float, gear_down: bool, p_pa: float) -> Dictionary:
-	var vs1g := table(spec.vs1g_kt, ext_deg) * sqrt(maxf(mass_kg, 1.0) / float(spec.ref_mass_kg))
-	var vmax := minf(float(spec.vmo_kt), table(spec.vfe_kt, ext_deg))
+## Lowest of Vmo, the Mmo speed, a flap limit and Vle with the gear down.
+static func envelope_max(spec: Dictionary, flap_limit_kt: float, gear_down: bool, p_pa: float) -> float:
+	var vmax := minf(float(spec.vmo_kt), flap_limit_kt)
 	if p_pa > 1000.0:
 		vmax = minf(vmax, cas_kt_at_mach(float(spec.mmo), p_pa))
 	if gear_down:
 		vmax = minf(vmax, float(spec.vle_kt))
+	return vmax
+
+
+## Vfe of flap-lever detent `lever`. `vfe_kt` has one row per detent, in lever order.
+static func vfe_selected(spec: Dictionary, lever: int) -> float:
+	var rows: Array = spec.vfe_kt
+	return float(rows[clampi(lever, 0, rows.size() - 1)][1])
+
+
+## Vfe of the next detent (0 at the last one): the amber "=" on the speed tape.
+static func vfe_next(spec: Dictionary, lever: int) -> float:
+	var rows: Array = spec.vfe_kt
+	if lever < 0 or lever + 1 >= rows.size():
+		return 0.0
+	return float(rows[lever + 1][1])
+
+
+## {vls, vsw, vmax} in kt. Vmax here follows the actual slat + flap angle. The PFD uses the selected detent.
+static func markers(spec: Dictionary, mass_kg: float, ext_deg: float, gear_down: bool, p_pa: float) -> Dictionary:
+	var vs1g := table(spec.vs1g_kt, ext_deg) * sqrt(maxf(mass_kg, 1.0) / float(spec.ref_mass_kg))
+	var vmax := envelope_max(spec, table(spec.vfe_kt, ext_deg), gear_down, p_pa)
 	return {"vls": vs1g * float(spec.vls_k), "vsw": vs1g * float(spec.vsw_k), "vmax": vmax}
 
 

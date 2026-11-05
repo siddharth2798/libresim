@@ -21,6 +21,26 @@
    "max": 60.0,
    "note": "reverser flap on the lever: lifts when the lever is taken below idle"
   },
+  "athr_disc_l": {
+   "at": [
+    -16.5329,
+    -0.044,
+    -0.0295
+   ],
+   "axis": [
+    0.0,
+    0.0,
+    -1.0
+   ],
+   "kind": "translate",
+   "objects": [
+    "thr_l_button"
+   ],
+   "children": [],
+   "min": 0.0,
+   "max": 0.003,
+   "note": "A/THR instinctive disconnect, left lever: in when autothrust is off, out when on"
+  },
   "thr_l": {
    "at": [
     -16.6348,
@@ -34,11 +54,11 @@
    ],
    "kind": "rotate",
    "objects": [
-    "thr_l_body",
-    "thr_l_button"
+    "thr_l_body"
    ],
    "children": [
-    "rev_l"
+    "rev_l",
+    "athr_disc_l"
    ],
    "min": -23.0,
    "max": 45.0,
@@ -64,6 +84,26 @@
    "max": 60.0,
    "note": "reverser flap on the lever: lifts when the lever is taken below idle"
   },
+  "athr_disc_r": {
+   "at": [
+    -16.5329,
+    0.0437,
+    -0.0295
+   ],
+   "axis": [
+    0.0,
+    0.0,
+    -1.0
+   ],
+   "kind": "translate",
+   "objects": [
+    "thr_r_button"
+   ],
+   "children": [],
+   "min": 0.0,
+   "max": 0.003,
+   "note": "A/THR instinctive disconnect, right lever: in when autothrust is off, out when on"
+  },
   "thr_r": {
    "at": [
     -16.6348,
@@ -77,11 +117,11 @@
    ],
    "kind": "rotate",
    "objects": [
-    "thr_r_body",
-    "thr_r_button"
+    "thr_r_body"
    ],
    "children": [
-    "rev_r"
+    "rev_r",
+    "athr_disc_r"
    ],
    "min": -23.0,
    "max": 45.0,
@@ -789,6 +829,516 @@
    "min": -0.04,
    "max": 0.04,
    "note": "+ = forward (m); right rudder pushes the right pedal"
+  },
+  "hdg_sel": {
+   "at": [
+    -16.8344,
+    -0.049,
+    0.3786
+   ],
+   "axis": [
+    -0.9574,
+    0.0,
+    -0.2888
+   ],
+   "kind": "rotate",
+   "objects": [
+    "hdg_sel"
+   ],
+   "children": [],
+   "min": 0.0,
+   "max": 4050.0,
+   "note": "heading knob; 11.25 deg of knob per 1 deg of heading"
+  },
+  "spd_sel": {
+   "at": [
+    -16.8312,
+    -0.0901,
+    0.3796
+   ],
+   "axis": [
+    -0.9574,
+    0.0,
+    -0.2888
+   ],
+   "kind": "rotate",
+   "objects": [
+    "spd-sel"
+   ],
+   "children": [],
+   "min": -4488.75,
+   "max": -1125.0,
+   "note": "speed knob; -11.25 deg of knob per knot"
+  },
+  "alt_sel": {
+   "at": [
+    -16.8311,
+    0.0444,
+    0.3794
+   ],
+   "axis": [
+    -0.9574,
+    0.0,
+    -0.2888
+   ],
+   "kind": "rotate",
+   "objects": [
+    "alt-sel"
+   ],
+   "children": [],
+   "min": 11.25,
+   "max": 4387.5,
+   "note": "altitude knob; 11.25 deg of knob per 100 ft"
+  },
+  "vs_sel": {
+   "at": [
+    -16.8348,
+    0.0958,
+    0.3785
+   ],
+   "axis": [
+    -0.9574,
+    0.0,
+    -0.2888
+   ],
+   "kind": "rotate",
+   "objects": [
+    "vs-sel"
+   ],
+   "children": [],
+   "min": -675.0,
+   "max": 675.0,
+   "note": "vertical speed knob; -11.25 deg of knob per 100 fpm"
+  },
+  "ap1": {
+   "at": [
+    -16.8433,
+    -0.0106,
+    0.3727
+   ],
+   "axis": [
+    -0.9604,
+    0.0,
+    -0.2785
+   ],
+   "kind": "translate",
+   "objects": [
+    "ap1"
+   ],
+   "children": [],
+   "min": 0.0,
+   "max": 0.010016,
+   "note": "AP1 pushbutton; 1 = pressed in along the FCU face"
+  },
+  "ap2": {
+   "at": [
+    -16.8433,
+    0.0101,
+    0.3727
+   ],
+   "axis": [
+    -0.9604,
+    0.0,
+    -0.2785
+   ],
+   "kind": "translate",
+   "objects": [
+    "ap2"
+   ],
+   "children": [],
+   "min": 0.0,
+   "max": 0.010016,
+   "note": "AP2 pushbutton; 1 = pressed in along the FCU face"
+  },
+  "athr": {
+   "at": [
+    -16.8369,
+    -0.0003,
+    0.3522
+   ],
+   "axis": [
+    -0.9604,
+    0.0,
+    -0.2785
+   ],
+   "kind": "translate",
+   "objects": [
+    "a-thr"
+   ],
+   "children": [],
+   "min": 0.0,
+   "max": 0.010016,
+   "note": "A/THR pushbutton; 1 = pressed in along the FCU face"
+  },
+  "loc": {
+   "at": [
+    -16.8347,
+    -0.0492,
+    0.35
+   ],
+   "axis": [
+    -0.9604,
+    0.0,
+    -0.2785
+   ],
+   "kind": "translate",
+   "objects": [
+    "loc"
+   ],
+   "children": [],
+   "min": 0.0,
+   "max": 0.010016,
+   "note": "LOC pushbutton; 1 = pressed in along the FCU face"
+  },
+  "appr": {
+   "at": [
+    -16.8347,
+    0.0959,
+    0.35
+   ],
+   "axis": [
+    -0.9604,
+    0.0,
+    -0.2785
+   ],
+   "kind": "translate",
+   "objects": [
+    "appr"
+   ],
+   "children": [],
+   "min": 0.0,
+   "max": 0.010016,
+   "note": "APPR pushbutton; 1 = pressed in along the FCU face"
+  },
+  "beacon_lt": {
+   "at": [
+    -16.6114,
+    -0.1009,
+    0.8115
+   ],
+   "axis": [
+    0.0,
+    1.0,
+    0.0
+   ],
+   "kind": "rotate",
+   "objects": [
+    "BeaconLtSwtch"
+   ],
+   "children": [],
+   "min": -30.0,
+   "max": 30.0,
+   "note": "beacon; OFF -30 deg, ON +30"
+  },
+  "strobe_lt": {
+   "at": [
+    -16.6114,
+    -0.1303,
+    0.8115
+   ],
+   "axis": [
+    0.0,
+    1.0,
+    0.0
+   ],
+   "kind": "rotate",
+   "objects": [
+    "StrobeLtSwtch"
+   ],
+   "children": [],
+   "min": -30.0,
+   "max": 30.0,
+   "note": "strobe; OFF -30 deg, ON +30"
+  },
+  "wing_lt": {
+   "at": [
+    -16.6114,
+    -0.0708,
+    0.8115
+   ],
+   "axis": [
+    0.0,
+    1.0,
+    0.0
+   ],
+   "kind": "rotate",
+   "objects": [
+    "WingLtSwtch"
+   ],
+   "children": [],
+   "min": -30.0,
+   "max": 30.0,
+   "note": "wing lights; OFF -30 deg, ON +30"
+  },
+  "landing_lt": {
+   "at": [
+    -16.6572,
+    -0.101,
+    0.7935
+   ],
+   "axis": [
+    0.0,
+    1.0,
+    0.0
+   ],
+   "kind": "rotate",
+   "objects": [
+    "LandingLtSwtch"
+   ],
+   "children": [],
+   "min": -30.0,
+   "max": 30.0,
+   "note": "left landing light; shares the drive with the right switch"
+  },
+  "landing_lt_r": {
+   "at": [
+    -16.6572,
+    -0.0718,
+    0.7935
+   ],
+   "axis": [
+    0.0,
+    1.0,
+    0.0
+   ],
+   "kind": "rotate",
+   "objects": [
+    "LandingLtRSwtch"
+   ],
+   "children": [],
+   "min": -30.0,
+   "max": 30.0,
+   "note": "right landing light; moves with the left switch"
+  },
+  "nose_lt": {
+   "at": [
+    -16.6572,
+    -0.0428,
+    0.7935
+   ],
+   "axis": [
+    0.0,
+    1.0,
+    0.0
+   ],
+   "kind": "rotate",
+   "objects": [
+    "NoseLtSwtch"
+   ],
+   "children": [],
+   "min": -30.0,
+   "max": 30.0,
+   "note": "nose / taxi light; OFF -30 deg, ON +30"
+  },
+  "turnoff_lt": {
+   "at": [
+    -16.6572,
+    -0.1303,
+    0.7935
+   ],
+   "axis": [
+    0.0,
+    1.0,
+    0.0
+   ],
+   "kind": "rotate",
+   "objects": [
+    "TurnoffLtSwtch"
+   ],
+   "children": [],
+   "min": -30.0,
+   "max": 30.0,
+   "note": "runway turnoff lights; OFF -30 deg, ON +30"
+  },
+  "nav_logo_lt": {
+   "at": [
+    -16.6114,
+    -0.0428,
+    0.8115
+   ],
+   "axis": [
+    0.0,
+    1.0,
+    0.0
+   ],
+   "kind": "rotate",
+   "objects": [
+    "NavLogoLtSwtch"
+   ],
+   "children": [],
+   "min": -35.0,
+   "max": 35.0,
+   "note": "0 off, 1 nav or logo, 2 both; upstream factor 35, offset-deg -35"
+  },
+  "apu_master": {
+   "at": [
+    -16.6124,
+    -0.0001,
+    0.8145
+   ],
+   "axis": [
+    -0.365,
+    0.0,
+    0.931
+   ],
+   "kind": "translate",
+   "objects": [
+    "APUMasterBtn",
+    "APUMasterBtn1F",
+    "APUMasterBtn2O"
+   ],
+   "children": [],
+   "min": 0.0,
+   "max": 0.01,
+   "note": "APU master; 10 mm along the panel normal"
+  },
+  "apu_start": {
+   "at": [
+    -16.6577,
+    -0.0001,
+    0.7967
+   ],
+   "axis": [
+    -0.365,
+    0.0,
+    0.931
+   ],
+   "kind": "translate",
+   "objects": [
+    "APUStartBtn",
+    "APUStartBtn1A",
+    "APUStartBtn2O"
+   ],
+   "children": [],
+   "min": 0.0,
+   "max": 0.01,
+   "note": "APU start, held; 10 mm along the panel normal"
+  },
+  "wing_anti_ice": {
+   "at": [
+    -16.5674,
+    -0.1302,
+    0.8322
+   ],
+   "axis": [
+    -0.365,
+    0.0,
+    0.931
+   ],
+   "kind": "translate",
+   "objects": [
+    "WingAntiIceBtn",
+    "WingAntiIceBtn1F",
+    "WingAntiIceBtn2O"
+   ],
+   "children": [],
+   "min": 0.0,
+   "max": 0.01,
+   "note": "wing anti-ice; 10 mm along the panel normal"
+  },
+  "eng1_anti_ice": {
+   "at": [
+    -16.5674,
+    -0.0725,
+    0.8322
+   ],
+   "axis": [
+    -0.365,
+    0.0,
+    0.931
+   ],
+   "kind": "translate",
+   "objects": [
+    "Eng1AntiIceBtn",
+    "Eng1AntiIceBtn1F",
+    "Eng1AntiIceBtn2O"
+   ],
+   "children": [],
+   "min": 0.0,
+   "max": 0.01,
+   "note": "engine 1 anti-ice; 10 mm along the panel normal"
+  },
+  "eng2_anti_ice": {
+   "at": [
+    -16.5674,
+    -0.0398,
+    0.8322
+   ],
+   "axis": [
+    -0.365,
+    0.0,
+    0.931
+   ],
+   "kind": "translate",
+   "objects": [
+    "Eng2AntiIceBtn",
+    "Eng2AntiIceBtn1F",
+    "Eng2AntiIceBtn2O"
+   ],
+   "children": [],
+   "min": 0.0,
+   "max": 0.01,
+   "note": "engine 2 anti-ice; 10 mm along the panel normal"
+  },
+  "autobrake_lo": {
+   "at": [
+    -17.0447,
+    0.1491,
+    0.1648
+   ],
+   "axis": [
+    -0.960424,
+    0.0,
+    -0.278543
+   ],
+   "kind": "translate",
+   "objects": [
+    "abs_low"
+   ],
+   "children": [],
+   "min": 0.0,
+   "max": 0.010016,
+   "note": "autobrake 0 off, 1 LO, 2 MED, 3 MAX; this button is in only at LO"
+  },
+  "autobrake_med": {
+   "at": [
+    -17.0447,
+    0.1688,
+    0.1648
+   ],
+   "axis": [
+    -0.960424,
+    0.0,
+    -0.278543
+   ],
+   "kind": "translate",
+   "objects": [
+    "abs_med"
+   ],
+   "children": [],
+   "min": 0.0,
+   "max": 0.010016,
+   "note": "autobrake 0 off, 1 LO, 2 MED, 3 MAX; this button is in only at MED"
+  },
+  "autobrake_max": {
+   "at": [
+    -17.0446,
+    0.196,
+    0.1647
+   ],
+   "axis": [
+    -0.960424,
+    0.0,
+    -0.278543
+   ],
+   "kind": "translate",
+   "objects": [
+    "abs_max"
+   ],
+   "children": [],
+   "min": 0.0,
+   "max": 0.010016,
+   "note": "autobrake 0 off, 1 LO, 2 MED, 3 MAX; this button is in only at MAX"
   }
  },
  "levers": {
@@ -813,6 +1363,21 @@
     ]
    ],
    "rate": 240.0
+  },
+  "athr_disc_l": {
+   "drive": "controls/fcu/athr",
+   "map": [
+    [
+     0.0,
+     0.003
+    ],
+    [
+     1.0,
+     0.0
+    ]
+   ],
+   "move": "translate",
+   "rate": 0.05
   },
   "thr_l": {
    "drive": "controls/throttle_1 - controls/reverse_1",
@@ -869,6 +1434,21 @@
     ]
    ],
    "rate": 240.0
+  },
+  "athr_disc_r": {
+   "drive": "controls/fcu/athr",
+   "map": [
+    [
+     0.0,
+     0.003
+    ],
+    [
+     1.0,
+     0.0
+    ]
+   ],
+   "move": "translate",
+   "rate": 0.05
   },
   "thr_r": {
    "drive": "controls/throttle_2 - controls/reverse_2",
@@ -1417,6 +1997,393 @@
    ],
    "move": "translate",
    "lag": 0.08
+  },
+  "hdg_sel": {
+   "drive": "controls/fcu/hdg_deg",
+   "map": [
+    [
+     0.0,
+     0.0
+    ],
+    [
+     360.0,
+     4050.0
+    ]
+   ],
+   "rate": 400.0
+  },
+  "spd_sel": {
+   "drive": "controls/fcu/spd_kt",
+   "map": [
+    [
+     100.0,
+     -1125.0
+    ],
+    [
+     399.0,
+     -4488.75
+    ]
+   ],
+   "rate": 400.0
+  },
+  "alt_sel": {
+   "drive": "controls/fcu/alt_ft",
+   "map": [
+    [
+     100.0,
+     11.25
+    ],
+    [
+     39000.0,
+     4387.5
+    ]
+   ],
+   "rate": 400.0
+  },
+  "vs_sel": {
+   "drive": "controls/fcu/vs_fpm",
+   "map": [
+    [
+     -6000.0,
+     675.0
+    ],
+    [
+     6000.0,
+     -675.0
+    ]
+   ],
+   "rate": 400.0
+  },
+  "ap1": {
+   "drive": "controls/fcu/ap1",
+   "map": [
+    [
+     0.0,
+     0.0
+    ],
+    [
+     1.0,
+     0.010016
+    ]
+   ],
+   "move": "translate",
+   "rate": 0.05
+  },
+  "ap2": {
+   "drive": "controls/fcu/ap2",
+   "map": [
+    [
+     0.0,
+     0.0
+    ],
+    [
+     1.0,
+     0.010016
+    ]
+   ],
+   "move": "translate",
+   "rate": 0.05
+  },
+  "athr": {
+   "drive": "controls/fcu/athr",
+   "map": [
+    [
+     0.0,
+     0.0
+    ],
+    [
+     1.0,
+     0.010016
+    ]
+   ],
+   "move": "translate",
+   "rate": 0.05
+  },
+  "loc": {
+   "drive": "controls/fcu/loc",
+   "map": [
+    [
+     0.0,
+     0.0
+    ],
+    [
+     1.0,
+     0.010016
+    ]
+   ],
+   "move": "translate",
+   "rate": 0.05
+  },
+  "appr": {
+   "drive": "controls/fcu/appr",
+   "map": [
+    [
+     0.0,
+     0.0
+    ],
+    [
+     1.0,
+     0.010016
+    ]
+   ],
+   "move": "translate",
+   "rate": 0.05
+  },
+  "beacon_lt": {
+   "drive": "controls/lights/beacon",
+   "map": [
+    [
+     0.0,
+     -30.0
+    ],
+    [
+     1.0,
+     30.0
+    ]
+   ],
+   "rate": 240.0
+  },
+  "strobe_lt": {
+   "drive": "controls/lights/strobe",
+   "map": [
+    [
+     0.0,
+     -30.0
+    ],
+    [
+     1.0,
+     30.0
+    ]
+   ],
+   "rate": 240.0
+  },
+  "wing_lt": {
+   "drive": "controls/lights/wing",
+   "map": [
+    [
+     0.0,
+     -30.0
+    ],
+    [
+     1.0,
+     30.0
+    ]
+   ],
+   "rate": 240.0
+  },
+  "landing_lt": {
+   "drive": "controls/lights/landing",
+   "map": [
+    [
+     0.0,
+     -30.0
+    ],
+    [
+     1.0,
+     30.0
+    ]
+   ],
+   "rate": 240.0
+  },
+  "landing_lt_r": {
+   "drive": "controls/lights/landing",
+   "map": [
+    [
+     0.0,
+     -30.0
+    ],
+    [
+     1.0,
+     30.0
+    ]
+   ],
+   "rate": 240.0
+  },
+  "nose_lt": {
+   "drive": "controls/lights/taxi",
+   "map": [
+    [
+     0.0,
+     -30.0
+    ],
+    [
+     1.0,
+     30.0
+    ]
+   ],
+   "rate": 240.0
+  },
+  "turnoff_lt": {
+   "drive": "controls/lights/rwy_turnoff",
+   "map": [
+    [
+     0.0,
+     -30.0
+    ],
+    [
+     1.0,
+     30.0
+    ]
+   ],
+   "rate": 240.0
+  },
+  "nav_logo_lt": {
+   "drive": "controls/lights/nav + controls/lights/logo",
+   "map": [
+    [
+     0.0,
+     -35.0
+    ],
+    [
+     1.0,
+     0.0
+    ],
+    [
+     2.0,
+     35.0
+    ]
+   ],
+   "rate": 240.0
+  },
+  "apu_master": {
+   "drive": "controls/apu_master",
+   "map": [
+    [
+     0.0,
+     0.0
+    ],
+    [
+     1.0,
+     0.01
+    ]
+   ],
+   "move": "translate",
+   "rate": 0.05
+  },
+  "apu_start": {
+   "drive": "controls/apu_start",
+   "map": [
+    [
+     0.0,
+     0.0
+    ],
+    [
+     1.0,
+     0.01
+    ]
+   ],
+   "move": "translate",
+   "rate": 0.05
+  },
+  "wing_anti_ice": {
+   "drive": "controls/anti_ice/wing",
+   "map": [
+    [
+     0.0,
+     0.0
+    ],
+    [
+     1.0,
+     0.01
+    ]
+   ],
+   "move": "translate",
+   "rate": 0.05
+  },
+  "eng1_anti_ice": {
+   "drive": "controls/anti_ice/eng_1",
+   "map": [
+    [
+     0.0,
+     0.0
+    ],
+    [
+     1.0,
+     0.01
+    ]
+   ],
+   "move": "translate",
+   "rate": 0.05
+  },
+  "eng2_anti_ice": {
+   "drive": "controls/anti_ice/eng_2",
+   "map": [
+    [
+     0.0,
+     0.0
+    ],
+    [
+     1.0,
+     0.01
+    ]
+   ],
+   "move": "translate",
+   "rate": 0.05
+  },
+  "autobrake_lo": {
+   "drive": "controls/autobrake",
+   "map": [
+    [
+     0.0,
+     0.0
+    ],
+    [
+     1.0,
+     0.010016
+    ],
+    [
+     2.0,
+     0.0
+    ],
+    [
+     3.0,
+     0.0
+    ]
+   ],
+   "move": "translate",
+   "rate": 0.05
+  },
+  "autobrake_med": {
+   "drive": "controls/autobrake",
+   "map": [
+    [
+     0.0,
+     0.0
+    ],
+    [
+     1.0,
+     0.0
+    ],
+    [
+     2.0,
+     0.010016
+    ],
+    [
+     3.0,
+     0.0
+    ]
+   ],
+   "move": "translate",
+   "rate": 0.05
+  },
+  "autobrake_max": {
+   "drive": "controls/autobrake",
+   "map": [
+    [
+     0.0,
+     0.0
+    ],
+    [
+     2.0,
+     0.0
+    ],
+    [
+     3.0,
+     0.010016
+    ]
+   ],
+   "move": "translate",
+   "rate": 0.05
   }
  }
 }

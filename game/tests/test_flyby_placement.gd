@@ -123,6 +123,21 @@ func test_flyby_avoids_cloud() -> String:
 	return "" if r.has("pos") and r.pos.distance_to(Vector3(0, 0, 2000)) > 50.0 else "no position in solid cloud"
 
 
+## Chase distance eases with speed. A long frame at constant speed must not change it, and one frame of a speed jump must not either.
+func test_chase_camera_does_not_zoom_on_a_hitch() -> String:
+	var back := Vector3(0, 0, 1)
+	var held := CameraRig.chase_step(back, 10.0, back, 120.0, 12.0, 0.25)
+	if absf(held.trail - 10.0) > 0.05:
+		return "a 250 ms hitch at constant speed moved the trail by %.2f m" % (held.trail - 10.0)
+	var jumped := CameraRig.chase_step(back, 10.0, back, 230.0, 12.0, 1.0 / 60.0)
+	if jumped.trail > 10.4:
+		return "one frame at jet speed zoomed the trail to %.2f m" % jumped.trail
+	var turn := CameraRig.chase_step(back, 10.0, Vector3(1, 0, 0), 120.0, 12.0, 1.0 / 60.0)
+	if turn.back.distance_to(Vector3(1, 0, 0)) < 0.5:
+		return "the chase heading snapped through a 90 deg turn in one frame"
+	return ""
+
+
 ## A re-placement moves the camera far enough in one frame that PostFxRules.is_cut (motion blur, TAA history) sees a cut.
 func test_flyby_replacement_is_a_cut() -> String:
 	for id in ["c172", "a320"]:

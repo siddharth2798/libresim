@@ -49,6 +49,11 @@ static func speed(d: Display) -> void:
 		_band(d, SPD_R.end.x - 5, 5, yl, ys, Display.AMBER, false)
 		_band(d, SPD_R.end.x - 9, 9, ys, SPD_R.end.y, Display.RED, true)
 		_band(d, SPD_R.end.x - 9, 9, SPD_R.position.y, DispMath.tape_y(vmax, ias, PX_KT, CY), Display.RED, true)
+	var nxt := Props.get_f("instruments/pfd/vfe_next_kt")
+	if nxt > 0.0:
+		var yn := clampf(DispMath.tape_y(nxt, ias, PX_KT, CY), SPD_R.position.y + 6, SPD_R.end.y - 6)
+		d.line(Vector2(SPD_R.end.x - 22, yn - 3), Vector2(SPD_R.end.x - 12, yn - 3), Display.AMBER, 3.0)
+		d.line(Vector2(SPD_R.end.x - 22, yn + 3), Vector2(SPD_R.end.x - 12, yn + 3), Display.AMBER, 3.0)
 	var sel := Props.get_f("controls/fcu/spd_kt", 0.0)
 	if sel > 0.0:
 		var col := Display.MAGENTA if Props.get_b("controls/fcu/spd_managed") else Display.CYAN

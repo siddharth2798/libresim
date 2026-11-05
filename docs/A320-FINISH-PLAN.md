@@ -1,6 +1,6 @@
 # A320: body and flight-deck finish: plan
 
-Goal: make the A320 look like a finished airliner up close and from the chase view. No cockpit-button work (paused by the owner) and no FDM changes. Not started.
+Goal: make the A320 look like a finished airliner up close and from the chase view. Keyed FCU, overhead and pedestal controls already move with the property tree (see A320-STATUS). Mouse picking and the remaining unkeyed overhead buttons stay out of this plan, as do FDM changes. Not started.
 
 Everything stays generic (shared code in `game/aircraft/common/`, per-aircraft data in `aircraft.json`), so the C172 and future aircraft gain wherever the feature applies.
 
@@ -26,7 +26,7 @@ Everything stays generic (shared code in `game/aircraft/common/`, per-aircraft d
 3. **Night panel lighting (½ day).** Backlighting on the existing textures (emissive mask from the legend colours), dome and flood lights.
 4. **Windscreen.** Faint panel reflections at night. Rain and wipers already exist.
 
-Out of scope: interactive buttons, cabin interior beyond the window effect, FDM changes.
+Out of scope: mouse picking and the unkeyed overhead buttons, cabin interior beyond the window effect, FDM changes.
 
 ## Checks
 - Before/after renders: a320_gate, a320_chase, a320_final, a320_cockpit, plus close-ups (nose, wing root, engine, main gear, tail) by day and night, Ultra and Medium.

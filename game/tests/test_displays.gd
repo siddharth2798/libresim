@@ -156,7 +156,13 @@ func test_disp_airspeeds() -> String:
 	var mmo := AirSpeeds.cas_kt_at_mach(0.82, 23842.0)
 	if mmo < 270.0 or mmo > 300.0 or AirSpeeds.markers(spec, 64000.0, 0.0, false, 23842.0).vmax != mmo:
 		return "Mmo speed at FL350 %.1f" % mmo
-	return "" if is_equal_approx(AirSpeeds.table([[0.0, 10.0], [10.0, 20.0]], 5.0), 15.0) else "table"
+	if not is_equal_approx(AirSpeeds.table([[0.0, 10.0], [10.0, 20.0]], 5.0), 15.0):
+		return "table"
+	if AirSpeeds.vfe_selected(spec, 1) != 230.0 or AirSpeeds.vfe_next(spec, 1) != 215.0 or AirSpeeds.vfe_next(spec, 5) != 0.0:
+		return "flap detent Vfe"
+	if AirSpeeds.envelope_max(spec, 230.0, false, 101325.0) != 230.0 or AirSpeeds.envelope_max(spec, 230.0, true, 101325.0) != 230.0:
+		return "selected Vfe under Vmo and Vle"
+	return ""
 
 
 func test_disp_air_data_publisher() -> String:
@@ -185,6 +191,12 @@ func test_disp_air_data_publisher() -> String:
 		err = "ra"
 	elif not Props.get_b("instruments/pfd/baro_std") or Props.get_f("instruments/pfd/baro_hpa") != 1013.25:
 		err = "baro std"
+	Props.set_v("fdm/flap_lever", 1.0)
+	Props.set_v("fdm/slat_deg", 0.0)
+	Props.set_v("fdm/flap_deg", 0.0)
+	a.publish(1.0 / 120.0)
+	if err == "" and (absf(Props.get_f("instruments/pfd/vmax_kt") - 230.0) > 0.5 or absf(Props.get_f("instruments/pfd/vfe_next_kt") - 215.0) > 0.5):
+		err = "flap 1 vmax %s next %s" % [Props.get_f("instruments/pfd/vmax_kt"), Props.get_f("instruments/pfd/vfe_next_kt")]
 	Props.set_v("fdm/agl_m", 5000.0)
 	Props.set_v("failures/adr", true)
 	a.publish(1.0 / 120.0)
