@@ -24,6 +24,7 @@ var _ctl: AircraftControls
 var _lever_keys: LeverKeys
 var _flap_idx := -1  # last notch of the flaps lever, -1 until it has been read
 var fake_buttons := {}  # tests only: action -> held, stands in for a connected pad (empty = real hardware)
+var fake_axes := {}  # tests only: axis action -> raw value, null = the pad has not reported that axis yet
 var _sel := {}  # selector name -> last value written
 var _live := {}  # "device:axis" -> true once a lever axis has reported a non-zero value
 
@@ -69,6 +70,8 @@ func axis_value(action: String) -> Variant:
 	var b: Dictionary = table.get(action, {})
 	if int(b.get("axis", -1)) < 0:
 		return null
+	if fake_axes.has(action):
+		return null if fake_axes[action] == null else InputBindings.shape(float(fake_axes[action]), b)
 	var dev := InputBindings.resolve_device(b)
 	if dev < 0:
 		return null
@@ -76,6 +79,14 @@ func axis_value(action: String) -> Variant:
 	if str(b.get("range", "full")) == "half" and not _reported(dev, int(b.axis), raw):
 		return null
 	return InputBindings.shape(raw, b)
+
+
+## True when the lever-2 axis is bound to a connected pad: it is then a lever of its own even before it has reported.
+func _lever2_bound(ctl: AircraftControls) -> bool:
+	if not ctl.offers("throttle_2") or not ctl.levers.separate:
+		return false
+	var b: Dictionary = table.get("throttle_2", {})
+	return int(b.get("axis", -1)) >= 0 and (fake_axes.has("throttle_2") or InputBindings.resolve_device(b) >= 0)
 
 
 ## A lever reads exactly 0.0 until it has moved once on some systems (macOS sends no initial
@@ -145,21 +156,23 @@ func _process(dt: float) -> void:
 
 ## Throttle (lever 1), throttle_2 (lever 2, separate levers only) and mixture axes; true when one is bound.
 ## A lever axis maps through the reverse range and detents (lever_detents.gd). With separate levers and
-## no throttle_2 axis bound, the throttle axis moves all levers.
+## no throttle_2 axis bound, the throttle axis moves all levers. A bound lever 2 that has not reported yet
+## (macOS sends no initial report, so it reads 0.0 until it moves once) rests at idle: it must not copy lever 1.
 func _levers(ctl: AircraftControls) -> bool:
 	var lv := ctl.levers
 	var v1 = axis_value("throttle") if ctl.offers("throttle") else null
-	var v2 = axis_value("throttle_2") if ctl.offers("throttle_2") and lv.separate else null
+	var bound2 := _lever2_bound(ctl)
+	var v2 = axis_value("throttle_2") if bound2 else null
 	_own("throttle", v1 != null)
-	_own("throttle_2", v2 != null or (v1 != null and lv.separate))
+	_own("throttle_2", bound2 or (v1 != null and lv.separate))
 	if v1 != null:
 		var p := LeverDetents.snap(_lever_pos("throttle", v1, lv), lv.detents)
-		if lv.separate and v2 == null:
+		if lv.separate and not bound2:
 			lv.write_pos_all(p)
 		else:
 			lv.write_pos(0, p)
-	if v2 != null:
-		lv.write_pos(1, LeverDetents.snap(_lever_pos("throttle_2", v2, lv), lv.detents))
+	if bound2:
+		lv.write_pos(1, LeverDetents.snap(_lever_pos("throttle_2", v2, lv), lv.detents) if v2 != null else 0.0)
 	var m = axis_value("mixture") if ctl.offers("mixture") else null
 	_own("mixture", m != null)
 	if m != null:
@@ -170,7 +183,7 @@ func _levers(ctl: AircraftControls) -> bool:
 ## Lever position of a shaped axis value v (lever_detents.gd from_binding, which has the rules).
 func _lever_pos(action: String, v: float, lv: EngineLevers) -> float:
 	var b: Dictionary = table.get(action, {})
-	var raw = InputBindings.raw_value(b)
+	var raw = fake_axes[action] if fake_axes.has(action) else InputBindings.raw_value(b)
 	return LeverDetents.axis_to_pos(v, lv.reverse_frac) if raw == null \
 		else LeverDetents.from_binding(b, float(raw), v, lv.detents, lv.reverse_frac)
 

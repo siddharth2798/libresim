@@ -64,7 +64,7 @@ func test_a320_thrust_lever_detents_coincide() -> String:
 	var flx := _det(c, "FLX/MCT")
 	# [action, raw, wanted position, what]: both levers, the measured clicks and some play around them
 	var cases := [
-		["throttle", 0.48, 0.0, "L1 idle"], ["throttle", 0.476, 0.0, "L1 idle low play"], ["throttle", 0.488, 0.0, "L1 idle high play"],
+		["throttle", 0.48, 0.0, "L1 idle"], ["throttle", 0.476, 0.0, "L1 idle low play"], ["throttle", 0.488, 0.0, "L1 idle high play"], ["throttle", 0.445, 0.0, "L1 idle, rested slightly forward (live check 2026-11-05)"],
 		["throttle", -0.01, cl, "L1 CL"], ["throttle", 0.02, cl, "L1 CL play"], ["throttle", -0.035, cl, "L1 CL play"],
 		["throttle", -0.485, flx, "L1 FLX/MCT"], ["throttle", -0.505, flx, "L1 FLX/MCT play"], ["throttle", -0.465, flx, "L1 FLX/MCT play"],
 		["throttle", -1.0, 1.0, "L1 TOGA"],
@@ -175,3 +175,24 @@ func test_a320_speedbrake_notches() -> String:
 	if not _near(InputBindings.shape(-0.523, m), 0.76, 0.02):
 		return "mixture at the second stop: %f" % InputBindings.shape(-0.523, m)
 	return ""
+
+
+## Lever 2 rests at idle until its axis has reported (macOS sends no initial report): moving lever 1 first must not
+## drag lever 2 along (live check 2026-11-05), and once lever 2 reports it is independent; with no lever-2 axis at all
+## the throttle axis still moves every lever.
+func test_unreported_lever_2_does_not_copy_lever_1() -> String:
+	var c := FX.a320()
+	c.seed_props()
+	var j := FX.joystick(c)
+	j.fake_axes = {"throttle": -1.0, "throttle_2": null}  # lever 1 at TOGA, lever 2 has not reported
+	j._levers(c)
+	if not _near(c.levers.pos(0), 1.0) or not _near(c.levers.pos(1), 0.0):
+		return "lever 1 TOGA with lever 2 unreported gave %.3f / %.3f, want 1 / 0" % [c.levers.pos(0), c.levers.pos(1)]
+	j.fake_axes = {"throttle": 0.47, "throttle_2": -1.0}  # lever 1 back at idle, lever 2 now at TOGA
+	j._levers(c)
+	if not _near(c.levers.pos(0), 0.0) or not _near(c.levers.pos(1), 1.0):
+		return "independent levers gave %.3f / %.3f, want 0 / 1" % [c.levers.pos(0), c.levers.pos(1)]
+	j.table["throttle_2"].axis = -1  # no lever-2 axis bound at all: the throttle axis moves every lever
+	j.fake_axes = {"throttle": -1.0}
+	j._levers(c)
+	return "" if _near(c.levers.pos(0), 1.0) and _near(c.levers.pos(1), 1.0) else "unbound lever 2 did not follow lever 1"

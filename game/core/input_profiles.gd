@@ -23,7 +23,7 @@ extends RefCounted
 ## 0,1,2,5. Linux (evdev) can number the same pad differently and is NOT checked: record any
 ## difference in OS_OVERRIDES, keyed by Godot's OS.get_name().
 ##   thrust lever 1 / 2 (axis 0 / 1): forward = DECREASING. TOGA -1.0, FLX/MCT click -0.485 (lever 2 -0.48),
-##     CLB click -0.01 (lever 2 -0.02), IDLE detent +0.48 (lever 2 +0.47), reverse = back towards +1.0
+##     CLB click -0.01 (lever 2 -0.02), IDLE detent +0.48 measured (lever 1 rests anywhere in +0.445 .. +0.488, so its `lo` is the middle, +0.465; lever 2 +0.47), reverse = back towards +1.0
 ##     (one reverse position, full at +1.0). Binding fields: lo = raw at idle, hi = raw at TOGA, rev = raw at
 ##     full reverse, clicks = the physical clicks with the sim detent each one is (play = raw width that still
 ##     reads as the click), see input/lever_detents.gd. The C172 has no such detents: linear idle..TOGA.
@@ -54,7 +54,7 @@ const PROFILES := {
 		"quadrant": {
 			"name": "q-eng",
 			"axes": {
-				"throttle": {"axis": 0, "deadzone": 0.02, "lo": 0.48, "hi": -1.0, "rev": 1.0, "clicks": [
+				"throttle": {"axis": 0, "deadzone": 0.02, "lo": 0.465, "hi": -1.0, "rev": 1.0, "clicks": [
 					{"raw": -0.485, "detent": "FLX/MCT", "play": 0.03}, {"raw": -0.01, "detent": "CL", "play": 0.03}]},
 				"throttle_2": {"axis": 1, "deadzone": 0.02, "lo": 0.47, "hi": -1.0, "rev": 1.0, "clicks": [
 					{"raw": -0.48, "detent": "FLX/MCT", "play": 0.03}, {"raw": -0.02, "detent": "CL", "play": 0.03}]},
