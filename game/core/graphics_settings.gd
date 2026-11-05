@@ -40,6 +40,11 @@ const OVERRIDE := "override.cfg"
 var preset := "high"
 ## Renderer saved to override.cfg for the next start ("" = none saved in this run).
 var _pending_renderer := ""
+## --quality=<preset> is a one-off for this run: it never saves a renderer (pass --rendering-method for one).
+var _quality_cli := false
+## Tests only: the folder of override.cfg ("" = next to the project / the executable) and a pretend running renderer.
+var override_dir := ""
+var running_override := ""
 var _atlas := [-1, -1, -1]  # last atlas size / soft qualities sent to the RenderingServer
 signal changed(preset: String)
 ## The renderer saved for the next start differs from the running one (or matches it again).
@@ -53,6 +58,7 @@ func _ready() -> void:
 	for a in OS.get_cmdline_user_args():
 		if a.begins_with("--quality="):
 			preset = a.substr(10).to_lower()
+			_quality_cli = true
 	if not PRESETS.has(preset):
 		preset = "high"
 	_match_renderer_once.call_deferred()  # deferred: Session (autoloaded after us) decides interactive()
@@ -61,7 +67,7 @@ func _ready() -> void:
 ## The renderer actually running ("forward_plus", "mobile" or "gl_compatibility"); also right when it
 ## was picked with --rendering-method or override.cfg rather than project.godot.
 func renderer() -> String:
-	return RenderingServer.get_current_rendering_method()
+	return running_override if running_override != "" else RenderingServer.get_current_rendering_method()
 
 
 ## The renderer a preset is meant to run on.
@@ -98,9 +104,10 @@ func set_preset(p: String) -> void:
 ## Persist a renderer choice ("mobile" or "forward_plus"); takes effect on restart. Also the manual
 ## F10 toggle: the choice stands until the next preset change on the other renderer.
 func set_renderer(method: String) -> void:
-	var f := FileAccess.open(_override_path(), FileAccess.WRITE)
-	if f:
-		f.store_string("[rendering]\nrenderer/rendering_method=\"%s\"\n" % method)
+	if Session.interactive():  # tests and probes never leave an override.cfg behind
+		var f := FileAccess.open(_override_path(), FileAccess.WRITE)
+		if f:
+			f.store_string("[rendering]\nrenderer/rendering_method=\"%s\"\n" % method)
 	var was := restart_needed()
 	_pending_renderer = method
 	if restart_needed() != was:
@@ -108,14 +115,17 @@ func set_renderer(method: String) -> void:
 
 
 func _override_path() -> String:
+	if override_dir != "":
+		return override_dir.path_join(OVERRIDE)
 	var dir := ProjectSettings.globalize_path("res://") if OS.has_feature("editor") else OS.get_executable_path().get_base_dir()
 	return dir.path_join(OVERRIDE)
 
 
 ## First start after the default became Forward+: if no renderer was ever chosen (no override.cfg), save the
 ## preset's own so a Low / Medium player on integrated GPU is not moved to Forward+; the menus then say "restart to apply".
+## Not for a --quality= run (a one-off must not change the next start).
 func _match_renderer_once() -> void:
-	if not Session.interactive() or FileAccess.file_exists(_override_path()):
+	if _quality_cli or not Session.interactive() or FileAccess.file_exists(_override_path()):
 		return
 	if preset_renderer(preset) != renderer() and renderer() in ["mobile", "forward_plus"]:
 		set_renderer(preset_renderer(preset))

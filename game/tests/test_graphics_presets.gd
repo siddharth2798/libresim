@@ -64,7 +64,9 @@ func test_renderer_per_preset() -> String:
 		var want := "mobile" if p in ["low", "medium"] else "forward_plus"
 		if Graphics.preset_renderer(p) != want:
 			return "%s should run on %s" % [p, want]
-	return "" if ProjectSettings.get_setting("rendering/renderer/rendering_method") == "forward_plus" else "project default renderer should be Forward+"
+	var cf := ConfigFile.new()  # project.godot itself: ProjectSettings would also show a player's override.cfg
+	cf.load("res://project.godot")
+	return "" if cf.get_value("rendering", "renderer/rendering_method", "") == "forward_plus" else "project default renderer should be Forward+"
 
 
 func test_forward_plus_features_only_high_up() -> String:
