@@ -1,12 +1,10 @@
 class_name BuildingCollision
 extends RefCounted
-## Collision footprints of the OSM buildings (data/processed/buildings/<tx>_<ty>.col, written by
-## tools/10_buildings.py next to the drawn meshes). Loaded around the AIRCRAFT, not the camera:
-## focus() is called every physics tick and starts a worker-thread load for every level-0 tile
-## within LOAD_R of the aircraft or of where it will be in LOOKAHEAD_S; load_now() reads the tile
-## under a freshly placed aircraft synchronously (a few 100 ms at most), so a crash never depends on
-## the picture having streamed in. Footprints of buildings drawn as landmark terminal models are left
-## out (the model's own collision, Terminals, replaces them).
+## Collision footprints of the OSM buildings (data/processed/buildings/<tx>_<ty>.col, from tools/10_buildings.py). Loaded
+## around the AIRCRAFT, not the camera: focus() runs every physics tick and starts a worker-thread load for every level-0 tile
+## within LOAD_R of the aircraft or of where it will be in LOOKAHEAD_S; load_now() reads the tile under a freshly placed
+## aircraft synchronously, so a crash never depends on the picture having streamed in. Footprints of buildings drawn as
+## landmark terminals are left out (Terminals has their collision).
 
 const CELL := 64.0  # spatial hash cell in a tile (m)
 const LOAD_R := 1500.0
@@ -180,9 +178,8 @@ static func make_tile(polys: Array[PackedVector2Array], base: PackedFloat32Array
 	return {"cells": cells, "polys": polys, "base": base, "top": top, "lo": los, "hi": his, "recs": {}}
 
 
-## Is a footprint drawn by a landmark terminal model? The same rule as tools/10_buildings.py is_landmark(): its vertex
-## mean is inside a landmark ring, or (a concave footprint, e.g. VABB T1, whose mean falls outside) 3/4 of the points
-## 0.5 m inside its edge midpoints are (rings are counter-clockwise, so inside is left of an edge).
+## Is a footprint drawn by a landmark terminal model? Same rule as tools/10_buildings.py is_landmark(): its vertex mean is in
+## a landmark ring, or (concave footprint, e.g. VABB T1) 3/4 of the points 0.5 m inside its edge midpoints are.
 static func is_landmark(pts: PackedVector2Array, mean: Vector2, rings: Array[PackedVector2Array]) -> bool:
 	for ring in rings:
 		if Geometry2D.is_point_in_polygon(mean, ring):

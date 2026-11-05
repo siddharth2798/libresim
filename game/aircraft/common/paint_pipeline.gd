@@ -1,19 +1,15 @@
 class_name PaintPipeline
 extends RefCounted
-## One pass over every atlas of the player's aircraft at flight start: the pilot's livery colours AND the tail number.
-## Per atlas, in this fixed order: base atlas -> livery recolour (LiveryPaint.compose, an async GPU one-shot; the factory livery
-## or a renderer without pixels gives null = the original) -> registration (wipe the old number, stamp the new one; both read
-## the recoloured pixels) -> generate_mipmaps -> a cached ImageTexture, set as a surface override on every surface of the glb
-## whose albedo texture is that atlas.
-## Why one pass: a surface that has an override no longer shows its atlas path, so a second painter would find nothing.
-## Why this order: the registration boxes are outside every livery mask and the wipe interpolates the (recoloured) rows around
-## the number, so the number sits on the new paint; mipmaps last so no level shows the old paint.
-## Cache key: aircraft | TEXT | atlas | livery key of the regions on THAT atlas (Livery.cache_key; "factory" when they are all at
-## their factory colour), so a new colour or call sign repaints, a setup seen before does not, and a colour that is not on an atlas
-## never repaints it. Nothing to do (livery at factory colours AND no registration, or the number the atlas already carries, see
-## RegistrationPaint.is_baked) = nothing painted, no override, the model keeps the file's own texture.
-## While atlases are being painted (a frame or two the first time) the exterior is hidden, so the flight never starts with a
-## half-painted aircraft; a headless run does not paint at all, a renderer that returns no pixels or a timeout shows the factory look.
+## One pass over every atlas of the player's aircraft at flight start: the livery colours and the tail number.
+## Per atlas, in this order: base atlas -> livery recolour (LiveryPaint.compose, async GPU one-shot; factory livery or a
+## renderer without pixels gives null = the original) -> registration (wipe the old number, stamp the new one) ->
+## generate_mipmaps -> cached ImageTexture set as a surface override on every glb surface whose albedo is that atlas.
+## One pass because a surface with an override no longer shows its atlas path. This order because the registration boxes
+## are outside every livery mask and the wipe reads the recoloured rows; mipmaps last so no level shows the old paint.
+## Cache key: aircraft | TEXT | atlas | livery key of the regions on that atlas (Livery.cache_key). Nothing to do (factory
+## colours and no registration, or the number is baked in, RegistrationPaint.is_baked) = no override.
+## While atlases paint (a frame or two the first time) the exterior is hidden. A headless run does not paint; a renderer
+## with no pixels, or a timeout, shows the factory look.
 
 const MAX_CACHE := 9  # textures kept: 3 atlases x 3 looks (about 22 MB each with mipmaps)
 const WATCHDOG_S := 12.0  # the exterior is shown again after this long whatever happens
@@ -34,8 +30,8 @@ static func clear_cache() -> void:
 
 
 ## What to paint: [{rel, path, atlas (livery atlas id or ""), steps (registration steps), colors ({key: Color} of this atlas),
-## livery (bool: some region differs from the factory), key}], one entry per atlas that has something to do. Pure: `text` is the
-## registration to show ("" = none) and `stored` the pilot's {key: "#rrggbb"} (or the setup entry); nothing is rendered.
+## livery (bool: some region differs from factory), key}], one per atlas with something to do. Pure: `text` is the
+## registration ("" = none), `stored` the pilot's {key: "#rrggbb"} (or the setup entry); nothing is rendered.
 static func plan(def: AircraftDef, text: String, stored: Variant) -> Array:
 	var out := []
 	var lv := Livery.of(def)

@@ -1,27 +1,22 @@
 class_name RegistrationPaint
 extends RefCounted
 ## Paints the tail number on the exterior model at flight start (aircraft.json "registration"):
-##   source   "callsign" (the pilot's call sign, Callsign.effective: what was typed on the Aircraft step / in Options, else "text")
-##            | "fixed" (always "text": a tail number the pilot cannot change)
-##   text     source "callsign": the aircraft's own registration, shown until the pilot types one (C172 VT-LBR, A320 VT-ZZA);
-##            source "fixed": the registration
-##   texture  the atlas the old number is painted on, relative to the aircraft folder
-##   targets  [{"erase": [x,y,w,h]   pixels of the old number (plus a margin) to wipe,
-##              "text": [x,y,w,h]     box the new number is fitted into (aspect kept),
+##   source   "callsign" (the pilot's call sign, Callsign.effective, else "text") | "fixed" (always "text")
+##   text     the aircraft's own registration (shown until the pilot types one) or the fixed registration
+##   texture  the atlas the old number is on, relative to the aircraft folder
+##   baked    optional: the number already painted in the atlas; when the registration is that text nothing is repainted
+##   targets  [{"erase": [x,y,w,h]  pixels of the old number (plus margin) to wipe,
+##              "text": [x,y,w,h]   box the new number is fitted into (aspect kept),
 ##              "align": "left|right|center", "color": [r,g,b] 0..1, "italic": true,
-##              "rotate": 90 | 180 | 270   the atlas island is turned (180: the A320's other fuselage side; 90: the C172's wing
-##                        undersides, the number runs down the strip): the text is turned clockwise by this much,
-##              "erase_axis": "y" (default) | "x"   wipe by interpolating between the clean rows above and below the number,
-##                        or, for a vertical number, between the clean columns left and right of it,
-##              "texture": another atlas than the section's (the C172's wing atlas), relative to the aircraft folder}]
-## The old number is wiped by interpolating the clean pixels on both sides of it (the paint is white
-## with a soft gradient), the new one is drawn once with a Label in a one-shot SubViewport and blended
-## in. Each edited atlas is an ImageTexture cached per (aircraft, text, atlas) and set as a surface override
-## on the glb's surfaces that use the atlas; the file on disk is never changed. A renderer without
-## pixels (headless / dummy) returns an empty image: the model then keeps the original number.
-## "baked" (optional): the number painted in the atlas as shipped; when the registration is that text nothing is repainted.
-## The game paints the livery colours (livery.gd) and this registration in ONE pass per atlas, in this order: recolour, wipe + stamp
-## the number, mipmaps (aircraft/common/paint_pipeline.gd). texture() below is the registration-only variant of that pass.
+##              "rotate": 90 | 180 | 270  the atlas island is turned; the text is turned clockwise by this much,
+##              "erase_axis": "y" (default) | "x"  wipe by interpolating between the clean rows above and below
+##                  the number, or (vertical number) the clean columns left and right,
+##              "texture": another atlas than the section's, relative to the aircraft folder}]
+## The old number is wiped by interpolating the clean pixels around it, the new one is drawn with a Label in a
+## one-shot SubViewport and blended in. Each edited atlas is an ImageTexture cached per (aircraft, text, atlas)
+## and set as a surface override; the file on disk is never changed. A renderer without pixels (headless)
+## returns an empty image: the model keeps the original number.
+## The game paints livery and registration in one pass (paint_pipeline.gd); texture() here is registration only.
 
 const FONT_PX := 200
 const ABORTED := &"registration_aborted"  # host meta: it left the tree during a glyph render
@@ -213,9 +208,8 @@ static func render_glyphs(host: Node, text: String, italic: bool) -> Image:
 	lab.add_theme_color_override("font_color", Color.WHITE)
 	vp.add_child(lab)
 	host.add_child(vp)
-	# Resumed after the next drawn frame, or at once (ok = false) when the viewport leaves the tree first: the host
-	# freed or the game quitting. A chain of awaiting calls (apply -> texture -> here) that never resumes holds
-	# itself alive and leaks at exit, so it must always end.
+	# Resumed after the next drawn frame, or at once (ok = false) if the viewport leaves the tree. A chain of
+	# awaiting calls that never resumes leaks at exit, so it must always end.
 	vp.add_user_signal("drawn", [{"name": "ok", "type": TYPE_BOOL}])
 	RenderingServer.frame_post_draw.connect(vp.emit_signal.bind("drawn", true), CONNECT_ONE_SHOT)
 	vp.tree_exiting.connect(vp.emit_signal.bind("drawn", false), CONNECT_ONE_SHOT)

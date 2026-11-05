@@ -1,15 +1,14 @@
 class_name EnvironmentEffects
 extends RefCounted
-## What ice and rain do to the aircraft, applied from FdmNode each tick (no logic in fdm.gd): airframe
-## ice raises drag, lowers the lift near the stall (CLmax) and brings the stall alpha down; heavy rain
-## costs a little lift and adds a little drag; engine inlet ice and bleed air scale the power (piston) or
-## thrust (turbine) and raise a turbine's EGT. Everything is neutral at level 0 (active = false: Aero and
-## the engines then give exactly the clean-air numbers).
-## The levels come from systems/icing.gd (Props icing/airframe, icing/engine_<n>, icing/bleed_penalty_<n>)
-## and the local rain rate (environment/precip); the per-aircraft factors from aircraft.json "icing"
-## (Icing.params). Aero.evaluate calls shape_forces(); update() / apply() set the engine fields.
-## Effects at full airframe ice (C172 numbers): CD0 + 0.011 (about +35 %), lift near the stall x(1 - 0.22 - up
-## to 0.09 past the stall alpha), stall alpha x0.89 (together about -26 % CLmax, +16 % stall speed), lift slope -3 %.
+## What ice and rain do to the aircraft, applied from FdmNode each tick: airframe ice raises drag, lowers lift near the stall
+## (CLmax) and the stall alpha; heavy rain costs a little lift and adds a little drag; engine inlet ice and bleed air scale the
+## power (piston) or thrust (turbine) and raise a turbine's EGT. Neutral at level 0 (active = false: Aero and the engines give
+## the clean-air numbers).
+## Levels come from systems/icing.gd (Props icing/airframe, icing/engine_<n>, icing/bleed_penalty_<n>) and the rain rate
+## (environment/precip); per-aircraft factors from aircraft.json "icing" (Icing.params). Aero.evaluate calls shape_forces();
+## update() / apply() set the engine fields.
+## At full airframe ice (C172 numbers): CD0 + 0.011 (about +35 %), lift near the stall x(1 - 0.22 - up to 0.09 past the stall
+## alpha), stall alpha x0.89 (about -26 % CLmax, +16 % stall speed), lift slope -3 %.
 
 const RAIN_FROM := 0.6  # environment/precip above which rain affects the airframe
 const SLOPE_K := 0.15  # lift-slope loss at full ice, as a fraction of clmax_k

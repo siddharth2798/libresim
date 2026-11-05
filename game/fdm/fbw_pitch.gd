@@ -1,15 +1,14 @@
 class_name FbwPitch
 extends RefCounted
-## Pitch law of the A320-style fly-by-wire (flight mode). The sidestick (or the autopilot) demands a load
-## factor, nz_c = cos(gamma) / cos(phi) + stick increment: neutral stick means "hold the flight path", also
-## in a bank (turn compensation). Loops:
+## Pitch law of the A320-style fly-by-wire (flight mode). The sidestick (or autopilot) demands a load factor,
+## nz_c = cos(gamma) / cos(phi) + stick increment: neutral stick = "hold the flight path", also in a bank. Loops:
 ##   outer: pitch rate demand q_c = (g / V) * ((nz_c - cos(gamma) cos(phi)) + kn * (nz_c - nz) + ki * integral)
 ##          (the first term is the rate the manoeuvre needs, so the nz loop only corrects)
-##   inner: elevator = -(sched * kq * (q_c - q) + I)  with I integrated (sched * kiq); I is the nose-up elevator
-##          the law holds, and FbwTrim moves the THS until it is zero (auto-trim)
-## `ground` blends the direct stick-to-elevator mapping (a speed-scheduled gain) in on the ground; I tracks it,
-## so liftoff and touchdown are bumpless. Flare mode: below the flare height with the thrust levers back, a small
-## nose-down bias, so the pilot has to flare. Elevator is in surface degrees, + = trailing edge down.
+##   inner: elevator = -(sched * kq * (q_c - q) + I), I integrated (sched * kiq); I is the nose-up elevator the law holds, and
+##          FbwTrim moves the THS until it is zero (auto-trim)
+## `ground` blends the direct stick-to-elevator mapping (speed-scheduled gain) in on the ground; I tracks it, so liftoff and
+## touchdown are bumpless. Flare mode: below the flare height with the thrust levers back, a small nose-down bias, so the pilot
+## has to flare. Elevator is in surface degrees, + = trailing edge down.
 
 var i_deg := 0.0  # nose-up elevator held (the trim state)
 var q_demand := 0.0  # last pitch rate demand, rad/s

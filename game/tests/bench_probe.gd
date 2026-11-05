@@ -1,17 +1,14 @@
 class_name BenchProbe
 extends RefCounted
 ## Frame-time measurement for tools/bench.sh (through tests/debug_showcase.gd --bench=<s>). Everything in ms.
-## Vsync: switched off here while measuring (DisplayServer, and Engine.max_fps = 0); tools/bench.sh also passes
-## --disable-vsync. On macOS 4.7.2 that flag was ignored whenever another option followed it on the command line
-## (window_get_vsync_mode() still 1), so the run-time switch is what counts; it lifts a light scene well past 120 fps.
-## GPU: the viewport's render-time query (RenderingServer.viewport_get_measured_render_time_gpu, GPU timestamps).
-## Godot 4.7's Metal driver has no timestamp queries (the query and --gpu-profile read 0), so on macOS / Metal the
-## GPU columns are "n/a"; bench.sh DRIVER=vulkan (MoltenVK) gives real GPU times there.
-## CPU: main-thread work per frame, measured here: from the first physics / process step of a frame to the start of
-## drawing (scripts, physics, the property tree) plus the renderer's CPU time for the viewport and frame setup
-## (viewport_get_measured_render_time_cpu, get_frame_setup_time_cpu). Waiting for vsync or the GPU is not counted,
-## so it is never above the frame time. (Performance TIME_PROCESS is not usable: it is the worst frame of the last
-## second, waits included.)
+## Vsync is switched off while measuring (DisplayServer, Engine.max_fps = 0); bench.sh also passes --disable-vsync, but on macOS
+## 4.7.2 that flag is ignored when another option follows it, so the run-time switch is what counts.
+## GPU: the viewport's render-time query (RenderingServer.viewport_get_measured_render_time_gpu). Godot 4.7's Metal driver has no
+## timestamp queries, so on macOS / Metal the GPU columns are "n/a"; bench.sh DRIVER=vulkan (MoltenVK) gives real GPU times.
+## CPU: main-thread work per frame: from the first physics / process step of a frame to the start of drawing (scripts, physics,
+## property tree) plus the renderer's CPU time for viewport and frame setup (viewport_get_measured_render_time_cpu,
+## get_frame_setup_time_cpu). Waiting for vsync or the GPU is not counted. (Performance TIME_PROCESS is not usable: it is the
+## worst frame of the last second, waits included.)
 
 ## Per-frame timestamps, written by the signal handlers below (main thread).
 class _Clock:

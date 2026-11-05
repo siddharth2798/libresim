@@ -1,13 +1,10 @@
 class_name KeyboardControls
 extends Node
-## Keyboard (and optional mouse-yoke) pilot input -> Props "controls/*".
-## Primary controls are rate-based: holding a key moves the surface; on release it
-## springs back to centre (UserOptions keyboard_mode "spring", default) or stays put
-## ("sticky", FlightGear style: tap the opposite key to come back, it stops at centre).
-## Throttle/mixture/trim move while held and stay put. FdmNode low-passes the result.
-## Keys come from core/key_bindings.gd (defaults: docs/USAGE.md key map). Only the actions the
-## aircraft offers (aircraft.json "controls", aircraft_controls.gd) do anything; levers: lever_keys.gd,
-## press effects: control_steps.gd.
+## Keyboard (and optional mouse-yoke) pilot input -> Props "controls/*". Primary controls are rate-based: holding a key moves the
+## surface; on release it springs back to centre (UserOptions keyboard_mode "spring", default) or stays put ("sticky", FlightGear
+## style: tap the opposite key to come back, it stops at centre). Throttle / mixture / trim move while held and stay put. FdmNode
+## low-passes the result. Keys come from core/key_bindings.gd (defaults: docs/USAGE.md key map). Only actions the aircraft offers
+## (aircraft.json "controls", aircraft_controls.gd) do anything; levers: lever_keys.gd, press effects: control_steps.gd.
 
 const RATE := 1.6          # stick travel per second while held
 const SPRING := 2.5        # return-to-centre per second

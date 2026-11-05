@@ -1,10 +1,9 @@
 class_name ControlActions
 extends RefCounted
-## Catalogue of the pilot actions an aircraft can offer (aircraft.json "controls", see
-## aircraft_controls.gd) and what they do to the property tree. Key / button / axis action
-## names share one name space (core/key_bindings.gd, core/input_bindings.gd).
-## An action in no group is offered by every aircraft (pitch, roll, yaw, views, map, switches);
-## an action in a group is offered only when the aircraft lists that group.
+## Catalogue of the pilot actions an aircraft can offer (aircraft.json "controls", aircraft_controls.gd) and what
+## they do to the property tree. Key / button / axis action names share one name space (core/key_bindings.gd,
+## core/input_bindings.gd). An action in no group is offered by every aircraft; an action in a group only when the
+## aircraft lists that group.
 ##
 ## Props published (written by input/*, consumed by fdm/ and systems/):
 ##   controls/speedbrake 0..1            controls/gear 0 (up) / 1 (down)
@@ -84,9 +83,8 @@ const KNOBS := {
 	"fcu_vs_up": ["controls/fcu/vs_fpm", 100.0, -6000.0, 6000.0, false], "fcu_vs_down": ["controls/fcu/vs_fpm", -100.0, -6000.0, 6000.0, false],
 }
 ## Latching switches (a joystick button that stays down): action -> [prop, value when off, value when on, sync].
-## They act when the switch changes, on both edges. `sync` says what the hardware position does when the
-## switch is first seen (flight start, pad plugged in): "both" sets the prop from it, "on" only when it is on
-## (never switches a running engine off at start), "" nothing (a magneto switch must not stop a running engine).
+## They act on both edges. `sync` is what the hardware position does when first seen (flight start, pad plugged in):
+## "both" sets the prop from it, "on" only when on, "" nothing (a magneto switch must not stop a running engine).
 const LEVELS := {
 	"parking_brake_switch": ["controls/parking_brake", false, true, "both"],
 	"magnetos_switch": ["controls/magnetos", 0, 3, ""],  # OFF / BOTH
@@ -95,9 +93,9 @@ const LEVELS := {
 	"gear_switch": ["controls/gear", 0, 1, "both"],  # pressed = DOWN
 }
 ## Selector switches, one button per position (held while the selector is there); no button held = `rest`.
-## The prop follows the position at first sight and whenever it changes: name -> {prop, rest, positions}.
-## Engine mode: NORM = rest 0, CRANK 1, IGN/START 2. Auto brake dial (DISARM BTV LOW 2 3 HI) onto the sim's
-## 0 off / 1 LO / 2 MED / 3 MAX: BTV and LOW = LO, 2 and 3 = MED, HI = MAX (the sim has no brake-to-vacate).
+## The prop follows the position at first sight and on change: name -> {prop, rest, positions}.
+## Engine mode: NORM = rest 0, CRANK 1, IGN/START 2. Auto brake dial (DISARM BTV LOW 2 3 HI) -> sim 0 off / 1 LO /
+## 2 MED / 3 MAX: BTV and LOW = LO, 2 and 3 = MED, HI = MAX (no brake-to-vacate in the sim).
 const SELECTORS := {
 	"engine_mode": {"prop": "controls/engine_mode", "rest": 0, "positions": {"engine_mode_crank": 1, "engine_mode_ign": 2}},
 	"autobrake": {"prop": "controls/autobrake", "rest": 0, "positions": {"autobrake_btv": 1, "autobrake_low": 1,

@@ -1,17 +1,14 @@
 class_name RetractableGear
 extends GearGround
-## GearGround of an aircraft with retractable gear (config gear[].retractable, A320): the lever
-## (fcs.gear_cmd) drives gear_pos 0 (up) .. 1 (down) over controls.gear_transit {leg: {down_s, up_s}}
-## (one travel for the whole gear, the slowest leg's times); a retractable wheel has ground contact only
-## when fully down, and the lever is locked down while the wheels are loaded (WOW switch). Extra on top:
-##   nose wheel: gear[].steer {tiller_deg, pedal_deg, fade_mps: [lo, hi]}; defaults for a wheel that
-##     turns 30 deg or more: tiller = its max_steer_deg, pedals 6 deg, authority fading linearly from
-##     full at 10 m/s to none at 36 m/s (20 -> 70 kt). angle = authority * (tiller * tiller_deg +
-##     pedal * pedal_deg), `tiller` (-1..1) is set by FdmNode (controls/tiller).
-##   brakes: gear[].brake_mu per wheel (base class), anti-skid (`antiskid`: off = hard braking at speed
-##     skids, mu x SKID_MU) and autobrake `autobrake_mode` 0 off / 1 LO / 2 MED / 3 MAX: after touchdown
-##     (WOW, ground spoilers out, thrust levers idle) or RTO it brakes for AUTOBRAKE_DECEL m/s^2
-##     (MAX: full pressure); pedal pressure above PEDAL_DISARM switches it off until the mode is reselected.
+## GearGround of an aircraft with retractable gear (config gear[].retractable, A320): the lever (fcs.gear_cmd) drives gear_pos
+## 0 (up) .. 1 (down) over controls.gear_transit {leg: {down_s, up_s}} (one travel for the whole gear, the slowest leg's times);
+## a retractable wheel has ground contact only when fully down, and the lever is locked down while the wheels are loaded (WOW).
+##   nose wheel: gear[].steer {tiller_deg, pedal_deg, fade_mps: [lo, hi]}; defaults for a wheel that turns 30 deg or more:
+##     tiller = its max_steer_deg, pedals 6 deg, authority fading linearly from full at 10 m/s to none at 36 m/s.
+##     angle = authority * (tiller * tiller_deg + pedal * pedal_deg); `tiller` (-1..1) is set by FdmNode (controls/tiller).
+##   brakes: gear[].brake_mu per wheel (base class), anti-skid (`antiskid`: off = hard braking at speed skids, mu x SKID_MU) and
+##     autobrake `autobrake_mode` 0 off / 1 LO / 2 MED / 3 MAX: after touchdown (WOW, ground spoilers out, levers idle) or RTO it
+##     brakes for AUTOBRAKE_DECEL m/s^2 (MAX: full pressure); pedal pressure above PEDAL_DISARM switches it off until reselected.
 ## State saved with a situation: gear_pos gear_cmd gear_state door_pos.
 
 const AUTOBRAKE_DECEL := [0.0, 1.7, 3.0, 99.0]

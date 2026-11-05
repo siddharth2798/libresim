@@ -2,23 +2,19 @@ class_name AfLogic
 extends RefCounted
 ## The autoflight state machine (pure logic: AfInputs in, commands and FMA text out; the Props side is
 ## systems/autoflight.gd). Holds the lateral / vertical / thrust mode objects and decides:
-##  - AP1 / AP2 / A/THR engagement from the FCU requests (level vs state: the node writes the state back
-##    to controls/fcu/{ap1, ap2, athr}, so a difference means the pilot pressed the button); the AP needs
-##    power, the air and 100 ft of radio altitude; it drops on touchdown
-##  - disconnects: button / instinctive disconnect (voluntary: 1.5 s warning), sidestick takeover, power or
-##    AP failure, the landing auto-disconnect at 50 ft in LAND (limits.autoflight.land_disconnect_ft; 0 = off);
-##    `disc_pulse` is true for 0.5 s, `disconnect_count` counts them, `warning` stays on after an
-##    involuntary one until the disconnect button is pressed again
-##  - the vertical mode the FCU selects: a changed vs_fpm selects V/S, a changed alt_ft in ALT hold selects
-##    OP CLB / OP DES (CLB / DES when vs_managed), vs_managed toggles managed / V/S, or
-##    controls/fcu/vert_select = "OPEN" | "MANAGED" | "VS" (consumed) for a knob pull / push
-##  - takeoff: on the ground with the flight director on and the levers at FLX or TOGA, SRS + RWY; SRS ends
-##    at the acceleration altitude (1500 ft above the field) into OP CLB; TOGA with flaps out on the glide
-##    slope is a go-around (SRS, heading hold)
-##  - defaults when guidance starts in flight: HDG on the present heading (FCU written) and ALT (within
-##    100 ft of the FCU altitude) or V/S at the present vertical speed (FCU written)
-## Outputs: nz_g, roll_rate (rad/s), fd_pitch / fd_roll (rad), lever_cmd, athr_active, FMA strings,
-## `writes` = FCU set-points in SI to give back to the FCU ({hdg (true rad), vs (m/s)}).
+##  - AP1 / AP2 / A/THR engagement from the FCU requests (the node writes the state back to controls/fcu/{ap1, ap2, athr},
+##    so a difference means the pilot pressed the button); the AP needs power, air and 100 ft radio altitude; drops on touchdown
+##  - disconnects: button / instinctive (voluntary: 1.5 s warning), sidestick takeover, power or AP failure, landing
+##    auto-disconnect at 50 ft in LAND (limits.autoflight.land_disconnect_ft; 0 = off); `disc_pulse` is true for 0.5 s,
+##    `disconnect_count` counts them, `warning` stays on after an involuntary one until the button is pressed again
+##  - vertical mode from the FCU: a changed vs_fpm selects V/S, a changed alt_ft in ALT hold selects OP CLB / OP DES (CLB / DES
+##    when vs_managed), vs_managed toggles managed / V/S, controls/fcu/vert_select = "OPEN" | "MANAGED" | "VS" (consumed)
+##  - takeoff: on the ground with FD on and levers at FLX or TOGA, SRS + RWY; SRS ends at the acceleration altitude (1500 ft
+##    above the field) into OP CLB; TOGA with flaps out on the glide slope is a go-around (SRS, heading hold)
+##  - defaults when guidance starts in flight: HDG on the present heading and ALT (within 100 ft of the FCU altitude) or V/S
+##    at the present vertical speed (FCU written)
+## Outputs: nz_g, roll_rate (rad/s), fd_pitch / fd_roll (rad), lever_cmd, athr_active, FMA strings, `writes` = FCU set-points
+## in SI to give back to the FCU ({hdg (true rad), vs (m/s)}).
 
 const WARN_VOLUNTARY_S := 1.5
 const PULSE_S := 0.5

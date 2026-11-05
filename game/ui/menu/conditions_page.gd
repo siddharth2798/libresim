@@ -1,11 +1,9 @@
 extends HBoxContainer
-## Start screen page 3: weather, time of day and wind. Always shown: the weather presets (with a line
-## about the chosen one), time of day (presets, the day strip, the time slider, the month), wind (presets,
-## direction and speed sliders, the wind dial against the chosen runway and its head / crosswind line).
-## The fine controls (clouds, visibility, rain, turbulence, thermals, storms, icing, gusts, QNH,
-## temperature, time rate) sit behind "More weather", which stays as the player left it for the rest
-## of the session. Everything is read from and written to Session.setup, the keys are unchanged.
-## The choices and the preset matching are in weather_choices.gd, the controls in wind_dial.gd / day_strip.gd.
+## Start screen page 3: weather, time of day and wind. Always shown: weather presets (with a line about the chosen one), time of
+## day (presets, day strip, time slider, month), wind (presets, direction and speed sliders, the wind dial against the chosen
+## runway with its head / crosswind line). The fine controls (clouds, visibility, rain, turbulence, thermals, storms, icing,
+## gusts, QNH, temperature, time rate) sit behind "More weather", which stays as left for the session. Everything is read from and
+## written to Session.setup. Choices and preset matching: weather_choices.gd; controls: wind_dial.gd / day_strip.gd.
 
 signal changed
 

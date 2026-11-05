@@ -1,19 +1,15 @@
 class_name Damage
 extends RefCounted
-## Damage & crash model, evaluated every FDM step. Thresholds come from the aircraft's aircraft.json
-## ("limits": speeds and load factors, "damage": touchdown and gear thresholds, propeller hubs);
-## the values in DEFAULTS are those of the C172S (POH / FAR 23):
-## - Landing gear: touchdown sink rate (at each wheel) > HARD -> hard landing (damage),
-##   > COLLAPSE -> that gear collapses (it becomes a scraping structure point lowered
-##   by COLLAPSE_DROP). Nose gear is weaker. Gear loads > N x static also collapse it.
+## Damage & crash model, evaluated every FDM step. Thresholds come from aircraft.json ("limits": speeds and load factors,
+## "damage": touchdown and gear thresholds, propeller hubs); DEFAULTS are the C172S's (POH / FAR 23).
+## - Landing gear: touchdown sink rate (per wheel) > HARD -> hard landing (damage), > COLLAPSE -> that gear collapses (a
+##   scraping structure point lowered by COLLAPSE_DROP). Nose gear is weaker. Gear loads > N x static also collapse it.
 ## - Prop strike: lowest propeller tip below the ground while turning -> engine destroyed.
-## - Structure contacts (tail, wingtips, nose skid, collapsed gear) hitting with a high
-##   vertical speed, or the airframe sliding at speed -> crash.
-## - Water contact (land class 255) -> ditching (crash). Trees/terrain impact -> crash.
-## - Overspeed: IAS > VNE (structural damage after 2 s), > VD (failure, crash).
-##   Flaps above VFE -> flap damage (jammed) after 2 s.
-## - Flight load factor (aero + thrust) beyond +3.8 / -1.52 g -> overstress; beyond 1.5x
-##   (ultimate) -> failure. Ground-contact loads are judged by the gear rules instead.
+## - Structure contacts (tail, wingtips, nose skid, collapsed gear) with high vertical speed, or sliding at speed -> crash.
+## - Water contact (land class 255) -> ditching (crash). Trees / terrain impact -> crash.
+## - Overspeed: IAS > VNE (structural damage after 2 s), > VD (failure, crash). Flaps above VFE -> jammed after 2 s.
+## - Load factor (aero + thrust) beyond +3.8 / -1.52 g -> overstress; beyond 1.5x -> failure. Ground loads are judged by
+##   the gear rules.
 ## Publishes via the arrays below; FdmNode copies them into Props "damage/*".
 
 const KT := 0.514444

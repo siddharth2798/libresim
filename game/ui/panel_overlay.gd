@@ -1,13 +1,9 @@
 extends Control
-## 2D instrument panel for outside views, built from pieces (AtlasTexture regions) of
-## the live panel SubViewport, in switchable layouts. Tab / Shift+Tab cycle layouts:
-##   Full     - whole panel along the bottom
-##   Split    - six-pack bottom-left, tach + engine strip on the right edge
-##   Compact  - small six-pack bottom-left only
-##   Minimal  - top row (ASI, AI, ALT) small, top-right
-##   Off
-## Hidden in the cockpit view (the 3D panel is used there). Clicks are forwarded to
-## the SubViewport, so knobs and switches work in every layout. Choice is saved.
+## 2D instrument panel for outside views, built from pieces (AtlasTexture regions) of the live panel SubViewport, in switchable
+## layouts. Tab / Shift+Tab cycle them: Full (whole panel along the bottom), Split (six-pack bottom-left, tach + engine strip on the
+## right edge), Compact (small six-pack bottom-left), Minimal (top row ASI, AI, ALT small, top-right), Off.
+## Hidden in the cockpit view (the 3D panel is used). Clicks are forwarded to the SubViewport, so knobs and switches work in every
+## layout. The choice is saved.
 
 const CFG := "user://ui.cfg"
 const LAYOUTS := ["Full", "Split", "Compact", "Minimal", "Off"]

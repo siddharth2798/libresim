@@ -1,13 +1,10 @@
 class_name TerrainTileCache
 extends RefCounted
-## Loads heightmap (.r16), imagery (.dds, BC1), land-class (.r8.gz) and WorldCover
-## class (wc/, .r8.gz) and shore distance + openness (sd/, .rg8.gz) tiles, both with the same source tile as lc, on
-## worker threads and turns them into textures on the main thread. Heights and
-## textures are cached separately: a tile without imagery / land class (flags in
-## TerrainMeta) shares its nearest ancestor's textures, which are loaded once.
-## Also answers CPU height queries from level-0 tiles (camera clamp, FDM ground
-## contact, LOS) and land-class queries (ditching, tree density).
-## Tile key = Vector3i(level, tx, ty); see tools/02_dem_tiles.py for the layout.
+## Loads heightmap (.r16), imagery (.dds, BC1), land-class (.r8.gz), WorldCover class (wc/, .r8.gz) and shore distance +
+## openness (sd/, .rg8.gz) tiles on worker threads and turns them into textures on the main thread. Heights and textures
+## are cached separately: a tile without imagery / land class (flags in TerrainMeta) shares its nearest ancestor's textures.
+## Also answers CPU height queries from level-0 tiles (camera clamp, FDM ground contact, LOS) and land-class queries
+## (ditching, tree density). Tile key = Vector3i(level, tx, ty); layout in tools/02_dem_tiles.py.
 
 const MAX_UPLOADS_PER_FRAME := 6
 const TILE_SIZE_DEFAULT := 7680.0  # level-0 tile size (tools/common.py TILE_SIZE)
@@ -190,10 +187,8 @@ func process() -> int:
 	return batch.size()
 
 
-## Drops the least recently used ready entries not touched for EVICT_MS
-## (time, not frames: the quadtree only re-walks every RESELECT_S at most).
-## Composites (_tiles) hold their own texture refs, so dropping an entry
-## under a live composite is safe; the composite touches its entries anyway.
+## Drops the least recently used ready entries not touched for EVICT_MS (time, not frames: the quadtree re-walks every
+## RESELECT_S at most). Composites (_tiles) hold their own texture refs, so dropping an entry under a live one is safe.
 func _evict(store: Dictionary) -> void:
 	var keys := store.keys()
 	keys.sort_custom(func(a, b): return store[a].used < store[b].used)
@@ -215,9 +210,9 @@ static func _cap(d: Dictionary) -> void:
 		d.erase(d.keys()[0])  # oldest inserted
 
 
-## Terrain height (m) at world ENU (east, north) on level-0 samples, interpolated exactly as the finest terrain
-## mesh draws it: two triangles per cell split along the (i+1, j)-(i, j+1) diagonal (TerrainMesh), so the FDM's
-## ground, the pavement ribbons (GroundDrape) and the drawn terrain are one surface (docs/TYRE-CONTACT-PLAN.md).
+## Terrain height (m) at world ENU (east, north) on level-0 samples, interpolated as the finest terrain mesh draws it: two
+## triangles per cell split along the (i+1, j)-(i, j+1) diagonal (TerrainMesh), so the FDM ground, pavement ribbons
+## (GroundDrape) and drawn terrain are one surface (docs/TYRE-CONTACT-PLAN.md).
 func height_at(east: float, north: float) -> float:
 	var size: float = tmeta.tile_size_m
 	var tx := floori(east / size)
@@ -256,9 +251,8 @@ static func key_level(k: Vector3i) -> int:
 	return k.x
 
 
-## Land-class value (0 other, 1..200 tree density, 255 water) at world (east, north),
-## from the finest tile that has a land-class mask there (level 0, else the nearest
-## ancestor). -1 while that mask is still loading; 0 where no tile has one.
+## Land-class value (0 other, 1..200 tree density, 255 water) at world (east, north), from the finest tile that has a
+## land-class mask (level 0, else nearest ancestor). -1 while that mask is loading; 0 where no tile has one.
 func landclass_at(east: float, north: float) -> int:
 	var size: float = tmeta.tile_size_m
 	var src := tmeta.tex_source(0, floori(east / size), floori(north / size), TerrainMeta.HAS_LC)

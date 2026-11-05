@@ -1,27 +1,21 @@
 class_name AirlinerFuel
 extends Node
-## Fuel system of an airliner (A320-style tanks: outer / inner wing tank per side, a centre tank, and tiny
-## "pipe" tanks in front of each engine and the APU that the FDM never draws from). Tank roles come from
-## config.json "tanks" (pipe = capacity under 1 % of the total, centre = y ~ 0, wing tanks by side; on a side
-## the innermost tank is the inner one, the others are outer ones) and "engines" (side by y).
-## Which tank the burn is taken from (fuel/feed: per tank, fractions summing to 1, which fdm.tank_feed reads;
-## pipe tanks always 0, so they just carry their fixed mass): the centre tank first while its pumps run and it
-## has fuel, else each engine takes its own wing's inner tank (needs the wing pumps or, below
-## gravity_ceiling_m, gravity); once the inner tank is below transfer_kg its outer tank is drawn instead, which
-## is the net effect of the outer-to-inner transfer valves (the inner tank stays near transfer_kg until the
-## outer one is empty). The crossfeed valve (controls/fuel/crossfeed) lets every engine draw from both wings.
-## Each engine's share of the feed is its fuel flow (engines/<n>/ff; the APU's is apu/ff_kgs, from the
-## apu_side wing), so a one-sided source gives one-sided burn.
-## The numbers are the aircraft's aircraft.json "systems.fuel" over DEFAULTS: line_s (seconds an engine runs
-## on its line after losing supply), low_kg (wing tank LO LVL), transfer_kg, leak_kg_per_h,
-## gravity_ceiling_m, apu_side.
+## Fuel system of an airliner (A320-style: outer / inner wing tank per side, centre tank, and tiny "pipe" tanks in front
+## of each engine and the APU that the FDM never draws from). Tank roles come from config.json "tanks" (pipe = capacity
+## under 1 % of total, centre = y ~ 0, wing tanks by side, innermost = inner) and "engines" (side by y).
+## Feed (fuel/feed: per tank, fractions summing to 1, read by fdm.tank_feed; pipe tanks 0): the centre tank first while its
+## pumps run and it has fuel, else each engine takes its own wing's inner tank (needs wing pumps or, below gravity_ceiling_m,
+## gravity); once the inner tank is below transfer_kg its outer tank is drawn instead (the net effect of the transfer
+## valves). Crossfeed (controls/fuel/crossfeed) lets every engine draw from both wings. Each engine's share is its fuel
+## flow (engines/<n>/ff; APU: apu/ff_kgs from the apu_side wing), so a one-sided source gives one-sided burn.
+## Numbers: aircraft.json "systems.fuel" over DEFAULTS: line_s (s an engine runs on its line after losing supply), low_kg
+## (wing tank LO LVL), transfer_kg, leak_kg_per_h, gravity_ceiling_m, apu_side.
 ## Switches (Props controls/fuel/*): pump_left, pump_centre, pump_right (default on), crossfeed (default off).
-## Reads: fuel/tank_kg (FDM), engines/<n>/ff, apu/ff_kgs, fdm/alt_m, systems/electrical/ac1_on / ac2_on
-##   (pumps need AC power; absent = powered), failures/fuel_pump_<left|centre|right>, failures/fuel_leak_<left|right>.
-## Publishes fuel/feed, fuel/leak_kgs, fuel/available (any engine fed: the existing FDM read),
-##   fuel/available_<n> (engine n, 1-based; the FDM should use it per engine), fuel/available_apu,
-##   fuel/pump_<left|centre|right> (running), fuel/low_<left|right> (wing total under low_kg), fuel/low (either),
-##   fuel/used_kg (array, per engine), fuel/used_total_kg.
+## Reads: fuel/tank_kg, engines/<n>/ff, apu/ff_kgs, fdm/alt_m, systems/electrical/ac1_on / ac2_on (pumps need AC; absent =
+## powered), failures/fuel_pump_<left|centre|right>, failures/fuel_leak_<left|right>.
+## Publishes fuel/feed, fuel/leak_kgs, fuel/available (any engine fed), fuel/available_<n> (engine n, 1-based),
+## fuel/available_apu, fuel/pump_<left|centre|right>, fuel/low_<left|right> (wing total under low_kg), fuel/low (either),
+## fuel/used_kg (per engine), fuel/used_total_kg.
 
 const DEFAULTS := {
 	"line_s": 6.0, "low_kg": 750.0, "transfer_kg": 750.0, "leak_kg_per_h": 13.6,

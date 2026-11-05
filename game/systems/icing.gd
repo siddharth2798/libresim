@@ -1,18 +1,17 @@
 class_name Icing
 extends Node
-## Airframe, pitot / static and engine inlet ice, and the protection against it. One node for every
-## aircraft (world/flight.tscn, Systems); what the ice does is applied by fdm/environment_effects.gd (drag,
-## CLmax, engine power) and systems/pitot_static.gd (blocked probes).
-## Accretion (IcingRates): in cloud (environment/ac_cloud_density > 0.05) with static air temperature between
-## +2 and -20 C, at a rate from cloud density x airspeed x liquid water (cloud kind: stratiform < cumulus <
-## storm) x availability (weather/icing, plus the storm cells' share); freezing rain below 0 C adds fast. Out of
-## conditions the ice sublimates slowly, and melts above +5 C.
-## Protection (aircraft.json "icing"): "protection" is "none", "pitot_only" (pitot / static heat and the engine
-## "alt air" lever; the C172) or "wing_and_engine" (also wing anti-ice and engine anti-ice, bleed air from running
-## engines: the A320). Probe heat needs the electrical bus. Bleed-powered anti-ice costs thrust (icing/bleed_penalty).
-## Reads: atmosphere/temperature_k (static, ISA + weather), fdm/tas_mps, environment/{ac_cloud_density, cloud_kind,
-##   storm_intensity, precip}, weather/icing, systems/electrical/powered, engines/<n>/running, the switch Props named
-##   in the section (default controls/electrical/pitot_heat; airliner: controls/anti_ice/{probe, wing, eng_<n>}).
+## Airframe, pitot / static and engine inlet ice, and its protection. One node for every aircraft (world/flight.tscn,
+## Systems); the effects are applied by fdm/environment_effects.gd (drag, CLmax, engine power) and systems/pitot_static.gd
+## (blocked probes).
+## Accretion (IcingRates): in cloud (environment/ac_cloud_density > 0.05) with static air temperature between +2 and -20 C,
+## at a rate from cloud density x airspeed x liquid water (stratiform < cumulus < storm) x availability (weather/icing plus
+## the storm cells' share); freezing rain below 0 C adds fast. Out of conditions ice sublimates slowly and melts above +5 C.
+## Protection (aircraft.json "icing"): "protection" is "none", "pitot_only" (pitot / static heat and engine "alt air"
+## lever; C172) or "wing_and_engine" (also wing and engine anti-ice, bleed air from running engines; A320). Probe heat
+## needs the electrical bus. Bleed anti-ice costs thrust (icing/bleed_penalty).
+## Reads: atmosphere/temperature_k, fdm/tas_mps, environment/{ac_cloud_density, cloud_kind, storm_intensity, precip},
+##   weather/icing, systems/electrical/powered, engines/<n>/running, the switch Props named in the section (default
+##   controls/electrical/pitot_heat; airliner: controls/anti_ice/{probe, wing, eng_<n>}).
 ## Publishes icing/{airframe, pitot, static, engine_<n>, rate, conditions, ice_detected, pitot_blocked, static_blocked,
 ##   bleed_penalty, bleed_penalty_<n>} (levels 0..1). Saved with a flight (group "saveable").
 

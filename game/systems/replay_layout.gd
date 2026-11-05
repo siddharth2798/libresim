@@ -1,17 +1,13 @@
 class_name ReplayLayout
 extends RefCounted
-## Which Props a replay frame records for one aircraft (used by ReplayChannels). The BASE_* lists
-## are the C172 / engine-1 set (derived by grepping what aircraft/, ui/gauges, ui/hud.gd,
-## instruments/ and avionics/ read) and never change, so the C172 recording layout stays the same.
-## Everything else comes from the aircraft's aircraft.json "replay" section (all keys optional):
+## Which Props a replay frame records for one aircraft (used by ReplayChannels). The BASE_* lists are the C172 / engine-1 set and
+## never change, so the C172 recording layout stays the same. Everything else comes from aircraft.json "replay" (all keys optional):
 ##   lerp / rad / deg / bool / int  extra prop keys per interpolation kind (deg and rad = angles)
 ##   enums   {"ap/fma/lateral": ["", "HDG", "NAV", ...]}  string props recorded as an index into the list
-##   units   true / false: per-engine channels engines/<n>/* and controls/throttle_<n> (default: on
-##           when the aircraft has more than one engine)
-##   fcs     true (ReplayChannels.EXTRA_FCS_FIELDS) or a list of FlightControls fields to record
-##           (a missing field is skipped; an Array field gets one channel per element)
-## Tanks beyond the two the C172's fuel/left_kg + fuel/right_kg cover are recorded as fuel/tank_kg#<i>
-## (element i of the fuel/tank_kg array prop).
+##   units   true / false: per-engine channels engines/<n>/* and controls/throttle_<n> (default: on when more than one engine)
+##   fcs     true (ReplayChannels.EXTRA_FCS_FIELDS) or a list of FlightControls fields to record (a missing field is skipped; an
+##           Array field gets one channel per element)
+## Tanks beyond the two the C172's fuel/left_kg + fuel/right_kg cover are recorded as fuel/tank_kg#<i> (element i of fuel/tank_kg).
 
 const BASE_LERP := [
 	"fdm/tas_mps", "fdm/cas_mps", "fdm/groundspeed_mps", "fdm/vs_mps", "fdm/alt_m", "fdm/agl_m",

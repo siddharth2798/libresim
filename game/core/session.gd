@@ -1,17 +1,16 @@
 extends Node
-## Autoload "Session": the flight setup chosen on the start screen (or on the command
-## line), handed to the flight scene. Saved to user://last_flight.json so the start
-## screen reopens with the previous choices.
+## Autoload "Session": the flight setup chosen on the start screen (or the command line), handed to the flight scene.
+## Saved to user://last_flight.json so the start screen reopens with the last choices.
 ## Command-line flight options (after "--") skip the start screen; see world/flight.gd.
-## --livery=body=#c8101a,accent=#f2f2f2 paints the chosen aircraft's regions (or c172:body=#c8101a,...), see Livery.parse_cli.
+## --livery=body=#c8101a,accent=#f2f2f2 (or c172:body=#c8101a,...) paints the aircraft's regions, see Livery.parse_cli.
 
 const SAVE := "user://last_flight.json"
 const DEFAULT := {
 	"airport": "VAJJ", "runway": "", "start": "runway",  # runway | stand | air
 	"stand": "", "air_ft": 1500.0, "air_nm": 5.0, "air_kt": 90.0, "cold": false,
-	"air_custom": false,  # false: air_ft / air_nm follow the aircraft (apply_air_defaults); true: the pilot (start screen), a lesson or --air* chose them
-	"air_kt_given": false,  # true only for --air-kt and lesson speeds: otherwise air_kt is always the aircraft's own (the start screen has no speed control)
-	"aircraft": "c172", "callsign": "",  # callsign "" = untouched: the aircraft's own registration (core/callsign.gd), else what the pilot typed
+	"air_custom": false,  # false: air_ft / air_nm follow the aircraft (apply_air_defaults); true: the pilot, a lesson or --air* chose them
+	"air_kt_given": false,  # true only for --air-kt and lesson speeds; otherwise air_kt is the aircraft's own
+	"aircraft": "c172", "callsign": "",  # "" = untouched: the aircraft's own registration (core/callsign.gd), else what the pilot typed
 	"fuel_gal": 17.0, "copilot_kg": 0.0, "rear_kg": 0.0, "baggage_kg": 0.0,  # per tank (total kg when payload.fuel_unit is "kg") / per station
 	"cabin_kg": 0.0, "cargo_kg": 0.0,  # A320 stations
 	"weather": "Fair", "time_h": 10.0, "time_rate": 1.0, "day_of_year": 45.0,
@@ -23,12 +22,12 @@ const DEFAULT := {
 	"random": {"enabled": false, "count": 1, "from_min": 2.0, "to_min": 30.0,
 		"categories": ["Engine", "Fuel", "Electrical", "Vacuum & gyros", "Pitot-static", "Flight controls", "Avionics"]},
 	"notify": true,
-	"livery": {},  # aircraft id -> {colors: {region key: "#rrggbb"}} (aircraft/common/livery.gd); a missing entry = the factory paint
+	"livery": {},  # aircraft id -> {colors: {region key: "#rrggbb"}} (livery.gd); missing = factory paint
 	"record": false, "record_dir": "", "record_height": 720, "record_fps": 30, "record_mp4": true,  # tell the pilot when a failure happens (off = find out yourself)
 }
 ## Weather presets: name -> weather/* values (wind is chosen separately).
 ## precip: rain 0..1 (below 0.3 it comes and goes in showers; visibility_m is between showers).
-## icing: supercooled water available in cloud 0..1 (systems/icing.gd); it only ices where the air is below +2 C (the tropics: above ~5000 m).
+## icing: supercooled water in cloud 0..1 (systems/icing.gd); ices only where the air is below +2 C.
 const WEATHER := {
 	"Clear": {"cloud_cover": 0.0, "cloud_base_ft": 6000.0, "visibility_m": 40000.0, "turbulence": 0.05, "precip": 0.0, "icing": 0.0, "convection": 0.2, "storms": 0.0},
 	"Fair": {"cloud_cover": 0.3, "cloud_base_ft": 4500.0, "visibility_m": 20000.0, "turbulence": 0.15, "precip": 0.0, "icing": 0.0, "convection": 0.5, "storms": 0.0},
@@ -44,9 +43,8 @@ const WEATHER_KEYS := ["wind_dir_deg", "wind_kt", "gust_kt", "turbulence", "visi
 var setup := {}
 var save_path := SAVE  # tests redirect it
 var interactive_override := -1
-## Training: lesson id ("" = free flight) and assist level (full | light | off). A lesson
-## rewrites `setup` for its own airport / weather; the free-flight setup is kept here and
-## restored when the menu opens again (end_lesson).
+## Training: lesson id ("" = free flight) and assist level (full | light | off). A lesson rewrites `setup`; the
+## free-flight setup is kept and restored when the menu opens again (end_lesson).
 var training := ""
 var assist := "full"
 var _lesson_backup := {}
@@ -63,7 +61,7 @@ func _ready() -> void:
 	setup = DEFAULT.duplicate(true)
 	_load()
 	_parse_cmdline()
-	Callsign.migrate_legacy()  # after the command line (interactive() needs it): a call sign typed in the old Options field moves into the setup
+	Callsign.migrate_legacy()  # after the command line (interactive() needs it): moves a call sign typed in the old Options field into the setup
 
 
 func _load() -> void:
@@ -98,10 +96,8 @@ static func legacy_air_custom(s: Dictionary) -> void:
 		and is_equal_approx(float(s.air_kt), DEFAULT.air_kt))
 
 
-## The "In the air" numbers follow the chosen aircraft (aircraft/air_start.gd). Height and distance unless
-## `air_custom` (then the pilot's values stay, only clamped into the aircraft's limits); the speed unless
-## `air_kt_given` (--air-kt, a lesson): the start screen cannot show or change it, so it never outlives the aircraft
-## it was meant for. Keys in `keep` are left as they are (the command line and lessons give some themselves).
+## The "In the air" numbers follow the chosen aircraft (aircraft/air_start.gd). Height and distance unless `air_custom`
+## (then only clamped into the aircraft's limits); the speed unless `air_kt_given`. Keys in `keep` are left as they are.
 func apply_air_defaults(keep: Array = []) -> void:
 	var def := AircraftDef.load_def(str(setup.get("aircraft", AircraftDef.DEFAULT_ID)))
 	if not bool(setup.get("air_kt_given", false)) and not "air_kt" in keep:
@@ -205,7 +201,7 @@ func _parse_args(args: PackedStringArray) -> void:
 				setup.start = "stand"
 				setup.stand = v
 			"cold": setup.cold = true
-			"aircraft":  # --aircraft=a320 (an unknown id falls back to the c172); its payload defaults apply
+			"aircraft":  # --aircraft=a320 (unknown id: c172); its payload defaults apply
 				setup.aircraft = v.to_lower()
 				apply_payload_defaults(AircraftDef.load_def(setup.aircraft))
 			"livery": livery_cli = v  # --livery=body=#c8101a,accent=#f2f2f2 (Livery.parse_cli)

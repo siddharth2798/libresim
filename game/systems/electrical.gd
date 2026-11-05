@@ -1,19 +1,15 @@
 class_name Electrical
 extends Node
-## 28 V system (C172S numbers by default: 24 V battery, 60 A alternator that needs ~1000+ RPM),
-## master switches, avionics master, loads from switches. Simplified bus model:
-## bus voltage = alternator regulation if it can carry the load, else
-## battery voltage under load. Battery state of charge integrates current.
-## The numbers are the aircraft's aircraft.json "systems.electrical" over DEFAULTS: battery_ah,
-## alt_max_a, alt_rpm_min / alt_rpm_ramp (alternator output ramps up over that many RPM), bus_volts
-## (regulated), bat_v_empty / bat_v_full (open circuit), bat_ohm (internal resistance + wiring),
-## charge_gain / charge_min_a (charge current taper), starter_a, flap_motor_a, low_volts, powered_volts,
-## starter_min_volts, loads (amps at 28 V, per consumer).
-## Switches (Props controls/electrical/*): master_bat, master_alt, avionics,
-##   pitot_heat; lights from controls/lights/*.
+## 28 V system (C172S numbers by default: 24 V battery, 60 A alternator that needs ~1000+ RPM), master switches, avionics master,
+## loads from switches. Simplified bus model: bus voltage = alternator regulation if it can carry the load, else battery voltage
+## under load. Battery state of charge integrates current.
+## Numbers: aircraft.json "systems.electrical" over DEFAULTS: battery_ah, alt_max_a, alt_rpm_min / alt_rpm_ramp (alternator ramps
+## up over that many RPM), bus_volts (regulated), bat_v_empty / bat_v_full (open circuit), bat_ohm, charge_gain / charge_min_a
+## (charge current taper), starter_a, flap_motor_a, low_volts, powered_volts, starter_min_volts, loads (amps at 28 V per consumer).
+## Switches (Props controls/electrical/*): master_bat, master_alt, avionics, pitot_heat; lights from controls/lights/*.
 ## Failures: failures/alternator, failures/battery (dead/flat).
-## Publishes systems/electrical/{bus_volts, battery_amps, soc, low_volts,
-##   powered, avionics_powered, gauges_powered, tc_powered, flaps_powered, starter_ok}
+## Publishes systems/electrical/{bus_volts, battery_amps, soc, low_volts, powered, avionics_powered, gauges_powered, tc_powered,
+##   flaps_powered, starter_ok}
 
 const DEFAULTS := {
 	"battery_ah": 35.0,

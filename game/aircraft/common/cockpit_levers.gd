@@ -1,18 +1,16 @@
 class_name CockpitLevers
 extends Node
-## Moves the cockpit's levers, sidesticks, pedals and knobs with the property tree. Built by Cockpit from
-## aircraft.json "cockpit"."levers" and the interior glb's `pivot_<name>` nodes (the C172 has no section:
-## nothing is built). Only runs in the cockpit view.
-##   levers  {pivot name: {"drive": expr, "map": [[value, deg|m], ...], "move": "translate", "sign": +-1,
-##            "lag": seconds, "rate": deg/s | m/s}}
-##   drive   a property path, or paths joined by " + " / " - " (a thrust lever is
-##           "controls/throttle_1 - controls/reverse_1"); a bool reads 0/1
-##   map     piecewise linear and clamped like model.surfaces' "map" (ModelDrives.table); the result is
-##           degrees about the pivot's +X (rotate) or metres along it (translate)
-##   lag     first-order low pass (a sidestick follows a hand, a lever follows a pilot's grip)
-##   rate    travel limit, so a lever never jumps further than a person could move it
-## Pivots are nested in the glb where one part sits on another (reverser flap on a thrust lever, pitch
-## then roll of a sidestick): each pivot keeps its own base transform and is turned about its own axis.
+## Moves the cockpit's levers, sidesticks, pedals and knobs with the property tree. Built by Cockpit from aircraft.json
+## "cockpit"."levers" and the interior glb's `pivot_<name>` nodes (the C172 has no section: nothing is built). Runs only in
+## the cockpit view.
+##   levers  {pivot name: {"drive": expr, "map": [[value, deg|m], ...], "move": "translate", "sign": +-1, "lag": seconds,
+##            "rate": deg/s | m/s}}
+##   drive   a property path, or paths joined by " + " / " - " (thrust lever: "controls/throttle_1 - controls/reverse_1"); bool = 0/1
+##   map     piecewise linear, clamped like model.surfaces' "map" (ModelDrives.table); result = degrees about the pivot's +X
+##           (rotate) or metres along it (translate)
+##   lag     first-order low pass;  rate: travel limit, so a lever never jumps further than a person could move it
+## Pivots are nested in the glb where one part sits on another (reverser flap on a thrust lever, pitch then roll of a
+## sidestick): each keeps its own base transform and is turned about its own axis.
 
 var _items: Array = []  # {node, basis, pos, terms, map, move, sign, lag, rate, value}
 var _active := false

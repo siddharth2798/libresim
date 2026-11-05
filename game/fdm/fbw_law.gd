@@ -1,20 +1,19 @@
 class_name FbwLaw
 extends RefCounted
-## Simplified Airbus-style fly-by-wire control law, installed as FlightControls.law of an AirlinerControls when
-## aircraft.json "fcs" has {"law": "airbus_fbw"} (FbwLaw.for_def; absent = direct control, the C172). It is hand
-## written and tuned against the JSBSim A320's own responses (tools/a320_reference.json); JSBSim's FBW is never
-## interpreted at runtime. Each tick, after FDM.step set the pilot inputs and before the actuators move:
+## Simplified Airbus-style fly-by-wire law, installed as FlightControls.law of an AirlinerControls when aircraft.json "fcs"
+## has {"law": "airbus_fbw"} (FbwLaw.for_def; absent = direct control). Hand written and tuned against the JSBSim A320's
+## responses (tools/a320_reference.json); JSBSim's FBW is never interpreted at runtime. Each tick, after FDM.step set the
+## pilot inputs and before the actuators move:
 ##   1. AirlinerControls._direct() gives the direct mapping and the speedbrake / ground spoiler commands,
-##   2. the active law (FbwReversion: NORMAL / ALTERNATE / DIRECT) overwrites the surface commands:
-##      FbwPitch (load factor + auto-trim via FbwTrim), FbwRoll (rate + bank hold, roll spoilers), FbwYaw
-##      (pedals, damper, coordination), limits and warnings from FbwProtection,
+##   2. the active law (FbwReversion: NORMAL / ALTERNATE / DIRECT) overwrites the surface commands: FbwPitch (load factor +
+##      auto-trim via FbwTrim), FbwRoll (rate + bank hold, roll spoilers), FbwYaw (pedals, damper, coordination), limits and
+##      warnings from FbwProtection,
 ##   3. on the ground (weight on wheels) the direct mapping takes over, blended over `ground_blend_s`.
 ## Pilot inputs: fcs.pitch (+1 = stick aft), roll (+1 right), yaw (+1 right pedal), pitch_trim (wheel).
 ## Autopilot: Props ap/cmd/active, ap/cmd/nz_g (g increment), ap/cmd/roll_rate_dps (+ right) replace the stick;
-## ap/cmd/takeover is published true when the stick is moved past `takeover` (the autoflight then disengages).
-## Publishes: fcs/law ("NORMAL" ...), fcs/law_id (0..2), fcs/law_reason, fcs/ground_mode, fcs/flare, plus the
-## protection props (FbwProtection). Parameters: FbwParams. Law state is rebuilt from the surfaces on
-## restart() (after trim, load, reset), so it is never part of a saved flight.
+## ap/cmd/takeover is true when the stick moves past `takeover` (autoflight then disengages).
+## Publishes: fcs/law ("NORMAL" ...), fcs/law_id (0..2), fcs/law_reason, fcs/ground_mode, fcs/flare, plus FbwProtection props.
+## Parameters: FbwParams. Law state is rebuilt on restart() (after trim, load, reset), so it is never saved.
 
 var par: FbwParams
 var s := FbwSense.new()

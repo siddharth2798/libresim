@@ -1,17 +1,16 @@
 class_name ModelDrives
 extends RefCounted
-## What moves a glb pivot (aircraft.json model.surfaces[name].drive), as an angle in radians. Pure
-## functions of the FDM, used by AircraftModel._animate_glb. The first group is the C172's; the rest
-## is for the A320 (draft in aircraft/a320/model_sections.json):
+## What moves a glb pivot (aircraft.json model.surfaces[name].drive), as an angle in radians. Pure functions of the FDM, used
+## by AircraftModel._animate_glb. The first group is the C172's; the rest is for the A320 (aircraft/a320/model_sections.json):
 ##   elevator | aileron | rudder        FlightControls field, rad
 ##   flap_deg | slat_deg | stabilizer_deg   fcs field, degrees
 ##   spoiler_<l|r><1..n>_deg            one spoiler panel (fcs.spoiler: left panels first, then right)
 ##   gear_pos | reverser                0..1 unit values: they need a "map"
 ##   nose_steer_deg                     the steered wheel's angle (tiller + pedals)
 ##   wheel_nose_rad | wheel_main_l_rad | wheel_main_r_rad   rolling angle (integrated from ground speed)
-## "map": [[value, degrees], ...] (piecewise linear, clamped) converts a drive value to degrees, e.g. a
-## gear door that opens at 0.1 and shuts at 0.9. "sign" multiplies the result. A reverser pivot belongs to
-## engine "engine" (0-based; default: _L -> 0, _R -> 1) and reads Props engines/<n>/reverser.
+## "map": [[value, degrees], ...] (piecewise linear, clamped) converts a drive value to degrees, e.g. a gear door that opens at
+## 0.1 and shuts at 0.9. "sign" multiplies the result. A reverser pivot belongs to engine "engine" (0-based; default: _L -> 0,
+## _R -> 1) and reads Props engines/<n>/reverser.
 
 const NOSE_WHEEL_RADIUS_M := 0.40  # measured on the A320 glb (NLGWheels mesh: 0.80 m tall)
 const MAIN_WHEEL_RADIUS_M := 0.57  # MLGWheels mesh: 1.14 m tall

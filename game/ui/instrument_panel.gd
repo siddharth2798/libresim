@@ -1,19 +1,17 @@
 class_name InstrumentPanel
 extends Control
-## Steam-gauge panel of the current aircraft, laid out from its panel.json (the C172's: six-pack +
-## VOR1 / VOR2(ILS) in two rows, tach - engine cluster - ADF in the third, the radio stack on the
-## right, the switch row along the bottom). Lives in a SubViewport (see aircraft/common/cockpit.gd) so
-## it can be mapped onto the 3D panel and shown as 2D overlay pieces in outside views.
-## panel.json: cell, pad, switch_h (px), radio_w (cells), cols, rows, gauges {name: {script, cell, meta}},
-## and the optional items strip {script, cell, span}, switches {script}, radios {script}.
-## Additive keys for non-square / free layouts (the C172's file uses none of them):
-##   size [w, h]            natural size in px (default: from the grid, enlarged to hold every rect)
-##   gauges[name].span      [cols, rows] of grid cells (default [1, 1]); strip.span as before
-##   gauges[name].rect      [x, y, w, h] in px, instead of cell / span (also on strip, radios, switches)
-##   gauges[name].kind      "display": the script is a full-rect Display (ui/displays/display.gd)
-##                          that scales its own drawing to the rect; any other value = a round Gauge
-## Item names (asi, ai, ..., strip, radios, switches, pfd, nd, ...) are what the 3D cockpit spots and
-## the 2D overlay layouts refer to.
+## Steam-gauge panel of the current aircraft, laid out from its panel.json (C172: six-pack + VOR1 / VOR2(ILS) in two rows,
+## tach - engine cluster - ADF in the third, radio stack on the right, switch row at the bottom). Lives in a SubViewport
+## (aircraft/common/cockpit.gd) so it can be mapped onto the 3D panel and shown as 2D overlay pieces.
+## panel.json: cell, pad, switch_h (px), radio_w (cells), cols, rows, gauges {name: {script, cell, meta}}, and optional
+## items strip {script, cell, span}, switches {script}, radios {script}.
+## Optional keys for free layouts (the C172's file uses none):
+##   size [w, h]         natural size in px (default: from the grid, enlarged to hold every rect)
+##   gauges[name].span   [cols, rows] of grid cells (default [1, 1]); strip.span likewise
+##   gauges[name].rect   [x, y, w, h] in px instead of cell / span (also on strip, radios, switches)
+##   gauges[name].kind   "display": the script is a full-rect Display (ui/displays/display.gd) that scales its drawing;
+##                       any other value = a round Gauge
+## Item names (asi, ai, ..., strip, radios, switches, pfd, nd, ...) are what the 3D cockpit spots and the 2D overlays use.
 
 const SIZES := {"cell": 190.0, "pad": 12.0, "switch_h": 70.0, "radio_w": 0.0, "cols": 1.0, "rows": 1.0}  # defaults
 

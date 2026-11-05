@@ -3,8 +3,8 @@ extends Node3D
 ## Session autoload, or directly with command-line options (after "--"):
 ##   --aircraft=c172|a320         the aircraft (default c172; its payload defaults apply)
 ##   --airport=VAJJ --runway=08   start on a runway (default VAJJ, first runway)
-##   --air[=<alt_ft>] [--air-nm=N] [--air-kt=N]  start airborne on the runway's extended centreline; what is not given is the
-##                                aircraft's own (start.air: C172 1500 ft, 5 nm, 90 KIAS; A320 3500 ft, 11 nm, 205 KIAS, gear up)
+##   --air[=<alt_ft>] [--air-nm=N] [--air-kt=N]  start airborne on the runway's extended centreline; what is not given
+##                                is the aircraft's own (aircraft.json start.air)
 ##   --stand[=REF]                start parked at a stand/gate, cold & dark (e.g. --stand="Bay 40"); default: a jetbridge gate
 ##   --cold                       cold & dark (everything off, parking brake set)
 ##   --shot=<png>                 screenshot after 6 s and quit (testing)

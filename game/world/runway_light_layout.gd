@@ -1,13 +1,11 @@
 class_name RunwayLightLayout
 extends RefCounted
-## ICAO Annex 14 / FAA runway lights for one runway (pure layout, no nodes):
-## edge lights every <= 60 m (white; last 600 m or last third yellow toward the far end on
-## instrument runways), green threshold / red end bars across the full width, green wing
-## bars on long or precision runways, centreline lights every 15 m (white, alternating
-## red/white 900-300 m from the end, red in the last 300 m) and touchdown-zone barrettes
-## over the first 900 m of ILS ends.
-## A runway descriptor r (built by AirportLights.describe) has: a, b (Vector2 ENU ends),
-## len, width, u (unit a->b), ils (Array[bool] per end), instrument, centreline.
+## ICAO Annex 14 / FAA runway lights for one runway (pure layout, no nodes): edge lights every <= 60 m (white; last 600 m or last
+## third yellow toward the far end on instrument runways), green threshold / red end bars across the full width, green wing bars
+## on long or precision runways, centreline lights every 15 m (white, alternating red/white 900-300 m from the end, red in the last
+## 300 m), touchdown-zone barrettes over the first 900 m of ILS ends.
+## A runway descriptor r (AirportLights.describe): a, b (Vector2 ENU ends), len, width, u (unit a->b), ils (Array[bool] per end),
+## instrument, centreline.
 
 const WHITE := Color(1.0, 0.92, 0.78)
 const YELLOW := Color(1.0, 0.68, 0.18)

@@ -1,23 +1,16 @@
 extends Node
-## Autoload "Graphics": quality presets (low / medium / high / ultra / max), saved in
-## user://graphics.cfg, overridable with --quality=<preset> on the command line.
-## Applies to the viewport, environment, sun, shadow atlas and the scenery streamers of the
-## current scene (call apply_to_scene after the scene is ready).
-## Each preset names a renderer: Low / Medium run on Mobile (fastest on integrated GPUs), High and
-## up on Forward+ (SSAO, SSIL, SSR, TAA, FSR2 and no lights-per-mesh limit). The renderer itself
-## needs a restart: set_renderer() writes override.cfg next to the project / executable and
-## restart_needed() tells the menus to say so.
-
-## scale: 3D render scale (> 1 = supersampling, bilinear down; < 1 = upscaled, FSR1 on Mobile,
-## FSR2 on Forward+). msaa: index into [off, 2x, 4x]. shadow: sun shadow distance (m), pssm:
-## directional_shadow_mode. atlas / soft / pos_soft: directional shadow atlas size and the soft
-## shadow filter quality (RenderingServer.ShadowQuality) of the sun and of omni / spot lights.
-## ssao / ssil / taa: Forward+ only; ssr: SSR ray steps (0 = off, Forward+ only).
-## cloud_light: light samples per cloud raymarch step. real_lights: real SpotLights on the apron
-## floodlight banks nearest the camera (world/apron_lamps.gd); Mobile only lights a mesh with 8 spot
-## lights, so the Mobile presets stay at 4 or less and any preset is held to 4 when run on Mobile.
-## apron_shadows: how many of them (nearest the player's aircraft) cast shadows, Forward+ only.
-## vfog: volumetric fog level (world/vfog_rules.gd QUALITY: 0 off, 1..3 froxel grid / range), Forward+ only.
+## Autoload "Graphics": quality presets (low / medium / high / ultra / max), saved in user://graphics.cfg,
+## overridable with --quality=<preset>. Applies to viewport, environment, sun, shadow atlas and the scenery streamers
+## (call apply_to_scene once the scene is ready).
+## Each preset names a renderer: Low / Medium use Mobile, High and up use Forward+. Changing the renderer needs a
+## restart: set_renderer() writes override.cfg and restart_needed() tells the menus.
+## Preset keys: scale (3D render scale, > 1 supersample, < 1 FSR1 on Mobile / FSR2 on Forward+), msaa (index into
+## [off, 2x, 4x]), shadow (sun shadow distance, m), pssm (directional_shadow_mode), atlas / soft / pos_soft (shadow
+## atlas size, soft filter quality of sun and omni / spot lights), ssao / ssil / taa (Forward+ only), ssr (ray steps,
+## 0 = off, Forward+ only), cloud_light (light samples per cloud step), real_lights (real SpotLights on the nearest
+## apron floodlights, world/apron_lamps.gd; Mobile lights a mesh with 8 spots, so Mobile is held to 4),
+## apron_shadows (how many of them cast shadows, Forward+ only), vfog (volumetric fog level 0..3, Forward+ only,
+## world/vfog_rules.gd).
 const PRESETS := {
 	"low": {"renderer": "mobile", "scale": 0.7, "fsr": true, "msaa": 0, "fxaa": true, "shadow": 0.0, "pssm": 0,
 		"atlas": 2048, "soft": 1, "pos_soft": 1, "glow": false, "lod_k": 1.2, "bld": 4000.0, "trees": 1200.0,
@@ -119,9 +112,8 @@ func _override_path() -> String:
 	return dir.path_join(OVERRIDE)
 
 
-## First start after the project default became Forward+: a player on Low / Medium (integrated
-## GPU) would now run Forward+. If no renderer was ever chosen (no override.cfg), save the preset's
-## one so the next start is right; the menus then say "restart to apply".
+## First start after the default became Forward+: if no renderer was ever chosen (no override.cfg), save the
+## preset's own so a Low / Medium player on integrated GPU is not moved to Forward+; the menus then say "restart to apply".
 func _match_renderer_once() -> void:
 	if not Session.interactive() or FileAccess.file_exists(_override_path()):
 		return
@@ -180,8 +172,8 @@ func apply_to_scene(root: Node) -> void:
 	PostFx.apply(root, preset)  # bloom, motion blur and the other post effects (user options x this preset)
 
 
-## Supersampling above 1 is a plain bilinear downscale (FSR only upscales). Below 1, Forward+ gets
-## FSR2, which is temporal and antialiases on its own, so TAA is left off with it.
+## Supersampling above 1 is a plain bilinear downscale (FSR only upscales). Below 1, Forward+ uses FSR2, which
+## antialiases itself, so TAA is off.
 func _apply_viewport(vp: Viewport, s: Dictionary, forward_plus: bool) -> void:
 	var up: bool = s.fsr and s.scale < 1.0
 	if up and forward_plus:
@@ -197,8 +189,7 @@ func _apply_viewport(vp: Viewport, s: Dictionary, forward_plus: bool) -> void:
 	vp.use_taa = s.taa and forward_plus and not (up and forward_plus)
 
 
-## SSAO / SSIL / SSR exist only on Forward+ (Mobile ignores them, but they are switched off there
-## anyway so a scene saved from either renderer behaves the same).
+## SSAO / SSIL / SSR exist only on Forward+; they are switched off elsewhere so saved scenes behave the same.
 func _apply_environment(env: Environment, s: Dictionary, forward_plus: bool) -> void:
 	env.glow_enabled = s.glow
 	env.ssao_enabled = s.ssao and forward_plus

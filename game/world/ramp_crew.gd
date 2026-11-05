@@ -1,12 +1,10 @@
 class_name RampCrew
 extends Node3D
-## The ground crew's vehicles around the player's aircraft while it is parked on a stand (RampLayout:
-## tug, GPU, fuel, baggage trains, bus). They come when the aircraft stands on a stand point with the
-## parking brake set and every engine stopped (a stand start is cold and dark: at once) and clear away
-## when it is about to move: the brake released (pushback needs that, GroundOps), an engine started, or
-## the aircraft rolled off the stand. They are solid (OpsSolids, group "ramp:<ICAO>") but allowed in the
-## stand's own corridor: RampLayout keeps them off the airframe, its danger zones and the taxi-in path.
-## Child of AirportOps (setup), which owns the airports and stand data.
+## The ground crew's vehicles around the player's aircraft while parked on a stand (RampLayout: tug, GPU, fuel, baggage trains,
+## bus). They come when the aircraft stands on a stand point with the parking brake set and every engine stopped (a stand start is
+## cold and dark: at once) and clear away when it is about to move: brake released (pushback needs that, GroundOps), an engine
+## started, or the aircraft rolled off the stand. They are solid (OpsSolids, group "ramp:<ICAO>") but allowed in the stand's own
+## corridor: RampLayout keeps them off the airframe, its danger zones and the taxi-in path. Child of AirportOps (setup).
 
 const CHECK_S := 0.5
 const PARK_M := 3.0  # CG this close to a stand's CG point
@@ -114,9 +112,8 @@ func _exit_tree() -> void:
 		_solids.clear()
 
 
-## Is something solid in the way of a vehicle footprint (world) of height top: a registered solid (jetway at
-## rest, terminal, other dressing, mast) or a jetway docked at this stand (not solid while docked: a strip
-## from its terminal end to the door)?
+## Is something solid in the way of a vehicle footprint (world) of height top: a registered solid (jetway at rest, terminal,
+## other dressing, mast) or a jetway docked at this stand (not solid while docked: a strip from its terminal end to the door)?
 func blocked(poly: PackedVector2Array, top: float, jetways: Array) -> bool:
 	for j in jetways:
 		if not Geometry2D.intersect_polygons(poly, j).is_empty():

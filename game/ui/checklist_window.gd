@@ -1,12 +1,10 @@
 class_name ChecklistWindow
 extends Control
-## The floating window that holds the checklist (ui/checklist_panel.gd fills it): drag it by the
-## title bar, resize it by any edge or corner, collapse it to one line, close it, make its
-## background see-through. Like a window in MSFS. The node is exactly the window's rectangle, so
-## the mouse passes through everything outside it. Geometry rules: ui/checklist_geom.gd.
-## Position (fractions of the free screen space), size, opacity and collapsed state are kept in
-## user options; a window that was never moved docks at the right edge, centred, and keeps clear
-## of the 2D instrument panel pieces and the cards.
+## The floating window that holds the checklist (ui/checklist_panel.gd fills it): drag by the title bar, resize by any edge or
+## corner, collapse to one line, close, make the background see-through. The node is exactly the window's rectangle, so the
+## mouse passes through everything outside it. Geometry rules: ui/checklist_geom.gd. Position (fractions of the free screen
+## space), size, opacity and collapsed state are kept in user options; a window never moved docks at the right edge, centred,
+## clear of the 2D panel pieces and the cards.
 
 signal close_requested
 signal list_step(delta: int)

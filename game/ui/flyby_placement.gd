@@ -1,18 +1,16 @@
 class_name FlybyPlacement
 extends RefCounted
-## Where the fly-by camera (CameraRig mode 8) stands, how far it zooms and when it re-places. Pure functions
-## of the aircraft's size and velocity, so a 140 kt airliner and a 100 kt C172 both pass the camera after
-## about the same few seconds, each at a distance that suits its size. ENU metres (east, north, up AMSL).
-##
-## Size = max(wingspan (config.json metrics.wingspan_m), ground footprint length (aircraft.json ground ahead_m +
-## behind_m)). aircraft.json cameras.flyby (optional dictionary, defaults in DEFAULTS) tunes it:
+## Where the fly-by camera (CameraRig mode 8) stands, how far it zooms and when it re-places. Pure functions of the
+## aircraft's size and velocity, so a 140 kt airliner and a 100 kt C172 both pass after about the same few seconds, at a
+## distance that suits their size. ENU metres (east, north, up AMSL).
+## Size = max(wingspan (config.json metrics.wingspan_m), ground footprint length (aircraft.json ground ahead_m + behind_m)).
+## aircraft.json cameras.flyby (optional, defaults in DEFAULTS):
 ##   lead_s       seconds until the aircraft is abeam the camera (ahead = ground speed x lead_s, clamped by size)
-##   side_sizes   lateral offset from the track, in aircraft sizes
-##   up_sizes     height above the pass point, in aircraft sizes
-##   frame        fraction of the frame height the aircraft's size should cover (the zoom), fov_min / fov_max deg
+##   side_sizes   lateral offset from the track, in aircraft sizes;  up_sizes: height above the pass point
+##   frame        fraction of the frame height the aircraft's size should cover (zoom); fov_min / fov_max deg
 ##   ahead_sizes  [min, max] distance ahead, in sizes; replace_k: re-place once the aircraft is this x ahead past it
-## The camera never stands in terrain or an obstacle (env.height / env.obstacle_top + MARGIN_M), avoids
-## a candidate whose view of the pass point is blocked by terrain and prefers one outside cloud (env.cloud).
+## The camera never stands in terrain or an obstacle (env.height / env.obstacle_top + MARGIN_M), avoids a candidate whose view
+## of the pass point is blocked by terrain and prefers one outside cloud (env.cloud).
 
 const DEFAULTS := {"lead_s": 5.0, "side_sizes": 2.3, "up_sizes": 0.45, "frame": 0.42, "fov_min": 10.0, "fov_max": 55.0,
 	"ahead_sizes": [3.0, 40.0], "replace_k": 0.9}
@@ -38,9 +36,9 @@ static func params(def: AircraftDef) -> Dictionary:
 	return p
 
 
-## Camera position for an aircraft at w moving with v (ENU m/s); fwd = horizontal unit direction to use when it
-## stands still (its nose). env: optional {height: Callable(e, n) -> ground m, obstacle_top: Callable(e, n) -> top m
-## or -INF, cloud: Callable(Vector3) -> density 0..1}. Returns {pos, pass_pt (the point abeam the camera), ahead_m, score}.
+## Camera position for an aircraft at w moving with v (ENU m/s); fwd = horizontal unit direction to use when it stands still.
+## env: optional {height: Callable(e, n) -> ground m, obstacle_top: Callable(e, n) -> top m or -INF, cloud: Callable(Vector3) ->
+## density 0..1}. Returns {pos, pass_pt (point abeam the camera), ahead_m, score}.
 static func place(w: Vector3, v: Vector3, fwd: Vector2, p: Dictionary, env := {}) -> Dictionary:
 	var size: float = p.size_m
 	var hs := Vector2(v.x, v.y).length()

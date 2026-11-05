@@ -1,25 +1,21 @@
 class_name AirlinerElectrical
 extends Node
-## Electrical network of an airliner (A320-style): 115 V AC buses AC 1 / AC 2 / AC ESS, 28 V DC buses
-## DC 1 / DC 2 / DC ESS / DC BAT, two engine generators, an APU generator, ground power, two TRs, two
-## batteries and a static inverter. Which bus is powered comes from AirlinerBusLogic.solve; this node adds
-## the sources (generators need N2 >= gen_n2_min percent), the batteries (charge off a TR, otherwise carry
-## the DC BAT / DC ESS loads and the inverter) and the Props the rest of the game reads. No emergency
-## generator (RAT) is modelled: with both engine generators lost the batteries carry on.
-## The numbers are the aircraft's aircraft.json "systems.electrical" over DEFAULTS: battery_ah, bat_v_empty /
-## bat_v_full (open circuit), bat_ohm, charge_gain / charge_min_a / charge_max_a (per battery), dc_volts
-## (TR output), ac_volts, gen_n2_min (percent), gen_kva (for the load percentages), inverter_eff, low_volts,
-## powered_volts, loads (W per consumer, see DEFAULTS).
-## Switches (Props controls/electrical/*, all default on): bat1, bat2, gen1, gen2, apu_gen, ext_pwr.
-## Reads: engines/<n>/n2 (percent), apu/running, ground/gpu_connected (ground power truck there),
-##   controls/lights/*, systems/hydraulics/flaps_ok (default true), failures/{gen1, gen2, apu_gen, apu, battery,
-##   battery_1, battery_2}.
-## Publishes systems/electrical/{ac1, ac2, ac_ess, dc1, dc2, dc_ess, dc_bat}_on (bool) and _v (volts), *_src
-##   (names of the source), bus_volts (DC BAT), battery_amps (net, + charging), soc (mean), bat1_soc, bat2_soc,
-##   bat1_v, bat2_v, gen1_on, gen2_on, apu_gen_on, ext_on, gen<n>_load_pct, apu_gen_load_pct, ext_load_pct, emer (no AC 1 and
-##   AC 2 in flight), and for the existing consumers: powered (AC ESS), avionics_powered (AC ESS),
-##   gauges_powered, tc_powered (DC ESS), flaps_powered (DC ESS and hydraulics flaps_ok), starter_ok (DC BAT),
-##   low_volts.
+## Electrical network of an airliner (A320-style): 115 V AC buses AC 1 / AC 2 / AC ESS, 28 V DC buses DC 1 / DC 2 /
+## DC ESS / DC BAT, two engine generators, APU generator, ground power, two TRs, two batteries, static inverter.
+## Which bus is powered: AirlinerBusLogic.solve. This node adds the sources (generators need N2 >= gen_n2_min percent),
+## the batteries (charge off a TR, otherwise carry the DC BAT / DC ESS loads and the inverter) and the Props.
+## No emergency generator (RAT): with both engine generators lost the batteries carry on.
+## Numbers: aircraft.json "systems.electrical" over DEFAULTS: battery_ah, bat_v_empty / bat_v_full (open circuit), bat_ohm,
+## charge_gain / charge_min_a / charge_max_a (per battery), dc_volts (TR output), ac_volts, gen_n2_min (percent), gen_kva,
+## inverter_eff, low_volts, powered_volts, loads (W per consumer).
+## Switches (Props controls/electrical/*, default on): bat1, bat2, gen1, gen2, apu_gen, ext_pwr.
+## Reads: engines/<n>/n2 (percent), apu/running, ground/gpu_connected, controls/lights/*, systems/hydraulics/flaps_ok
+## (default true), failures/{gen1, gen2, apu_gen, apu, battery, battery_1, battery_2}.
+## Publishes systems/electrical/{ac1, ac2, ac_ess, dc1, dc2, dc_ess, dc_bat}_on (bool) and _v (volts), *_src (source names),
+##   bus_volts (DC BAT), battery_amps (net, + charging), soc (mean), bat1_soc, bat2_soc, bat1_v, bat2_v, gen1_on, gen2_on,
+##   apu_gen_on, ext_on, gen<n>_load_pct, apu_gen_load_pct, ext_load_pct, emer (no AC 1 and AC 2 in flight), and for existing
+##   consumers: powered (AC ESS), avionics_powered (AC ESS), gauges_powered, tc_powered (DC ESS),
+##   flaps_powered (DC ESS and hydraulics flaps_ok), starter_ok (DC BAT), low_volts.
 
 const DEFAULTS := {
 	"battery_ah": 23.0, "bat_v_empty": 22.0, "bat_v_full": 26.5, "bat_ohm": 0.04,

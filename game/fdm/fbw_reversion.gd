@@ -1,15 +1,15 @@
 class_name FbwReversion
 extends RefCounted
-## Which flight control law is active, from failures and configuration (a simplified A320 reversion logic).
+## Which flight control law is active, from failures and configuration (simplified A320 reversion logic).
 ##   NORMAL    everything: load factor / roll rate laws, auto-trim, protections, yaw damper, turn coordination
-##   ALTERNATE load factor law and auto-trim stay, protections are lost (stall warning only), roll is direct
+##   ALTERNATE load factor law and auto-trim stay, protections lost (stall warning only), roll is direct
 ##   DIRECT    stick to surface, gearing only; the trim wheel moves the THS
 ## Triggers (Props "failures/<id>" flags, set by the failure manager or the systems):
 ##   adr, adirs           air data / inertial reference lost         -> ALTERNATE
 ##   elac (or elac_1 and elac_2)  both ELACs lost                    -> ALTERNATE (with sec: DIRECT)
 ##   hyd_g, hyd_b, hyd_y  two circuits lost -> ALTERNATE, all three -> DIRECT
 ##   fac                  no yaw damper, no rudder travel limit (the law itself is unchanged)
-## and the configuration: ALTERNATE with the landing gear down (gear_pos > 0.5) becomes DIRECT.
+## and configuration: ALTERNATE with the landing gear down (gear_pos > 0.5) becomes DIRECT.
 ## `fcs/law_force` (Props, 0..2, absent = automatic) forces at least that law (tests, debugging).
 
 enum {NORMAL, ALTERNATE, DIRECT}

@@ -1,21 +1,19 @@
 class_name AirStart
 extends RefCounted
-## The "In the air" start of an aircraft: how high, how far out on final, how fast, and the gear and
-## flap setting it begins with. Read from aircraft.json `start.air`, every key optional:
+## The "In the air" start of an aircraft: height, distance out on final, speed, gear and flaps. Read from aircraft.json
+## `start.air`, every key optional:
 ##   {"alt_ft": 1500, "dist_nm": 5, "kias": 90, "gear": "down" | "up", "flaps": <detent index>,
 ##    "limits": {"alt_ft": [min, max], "dist_nm": [min, max]}}
-## A key the aircraft does not give is derived from its speeds, so a new aircraft needs no block:
-##   kias     start.air.kias, else start.air_kt (the older key), else 1.3 x limits.vs1_kias rounded to 5 kt
-##            (no vs1: 90)
-##   dist_nm  from the approach speed (1.3 x vs1): under 120 kt 5 nm, up to 160 kt 8 nm, above that 11 nm
+## A missing key is derived, so a new aircraft needs no block:
+##   kias     start.air.kias, else start.air_kt (older key), else 1.3 x limits.vs1_kias rounded to 5 kt (no vs1: 90)
+##   dist_nm  by approach speed (1.3 x vs1): under 120 kt 5 nm, up to 160 kt 8 nm, above 11 nm
 ##   alt_ft   the 3 degree path at that distance: dist_nm x 318 ft rounded to 100 ft
-##   gear     "down" (retractable gear only; fixed gear ignores it); flaps 0
+##   gear     "down" (retractable gear only); flaps 0
 ##   limits   height 300..12,000 ft, distance 1..25 nm
-## The numbers stay in ft / nm / KIAS, what the start screen shows (Session.setup keeps them so too); flight.gd converts.
-## The block describes the aircraft's own start. A pilot who sets another airspeed (--air-kt, a lesson)
-## gets the gear by that speed instead (up at 200 kt or more) and flaps 0 (AirStart.spawn, used by world/flight.gd).
-## Whatever asked for the speed, the start is clamped into the aircraft's safe range [1.2 x vs1, 0.9 x vne] (kias_range):
-## above it the airframe fails in the first seconds, below it the aircraft is stalled. A limit the aircraft does not give is skipped.
+## Units stay ft / nm / KIAS (what the start screen shows); flight.gd converts.
+## A pilot who sets another speed (--air-kt, a lesson) gets gear by that speed (up at 200 kt or more) and flaps 0
+## (AirStart.spawn). Every start is clamped to [1.2 x vs1, 0.9 x vne] (kias_range): above it the airframe fails, below it
+## the aircraft is stalled. A limit the aircraft does not give is skipped.
 
 const FT_PER_NM_3DEG := 318.0  # 1 nm x tan(3 deg), in ft
 const LIMITS := {"alt_ft": [300.0, 12000.0], "dist_nm": [1.0, 25.0]}

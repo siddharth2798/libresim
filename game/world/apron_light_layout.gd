@@ -1,21 +1,15 @@
 class_name ApronLightLayout
 extends RefCounted
-## Where the apron floodlights of one airport stand and what they aim at (pure: no nodes). Three kinds:
-##   "facade": floods on the terminal facade above a contact stand (a stand with a jetbridge and a gate point
-##             ahead of its nose), aimed back at the parked aircraft; no pole, no collision.
-##   "mast":   high masts (12-30 m, taller on bigger airports) on the head-of-stand line between airliner stands
-##             (remote stands, contact stands without a facade), every ~2 stands.
-##   "pole":   10 m pole lights on GA aprons (stands "GA..."), every few tie-downs.
-## Every stand ends up within reach of a light where a clear spot exists: no MIN_STANDS cliff. A spot is clear
-## when it is outside every ObstacleRegistry corridor (stands with their pushback swing, taxiways, runway strips),
-## outside the parking box of every stand (sized by the stand spacing, so an airliner on a neighbouring stand
-## never meets a mast), away from jetways, and low enough for its distance to a runway (a mast is no taller
-## than (distance from the runway edge - 30 m) / 4).
-## Each light has banks (one per aim direction); a bank is one real SpotLight near the camera
-## (ApronLamps) or one fake pool on the ground (ApronFloodlights).
-## Lamp colour: one per airport (a mix of warm and cool pools overlapping reads as coloured blotches): ops
-## "apron_lamps" ("led" | "hps", via the data fixups) else a hash of the ICAO code (newer LED neutral white,
-## older high-pressure sodium soft warm white).
+## Where the apron floodlights of one airport stand and what they aim at (pure, no nodes). Three kinds:
+##   "facade": floods on the terminal facade above a contact stand (jetbridge and gate point ahead of the nose), aimed
+##             back at the aircraft; no pole, no collision.
+##   "mast":   masts (12-30 m, taller on bigger airports) on the head-of-stand line between airliner stands, every ~2 stands.
+##   "pole":   10 m poles on GA aprons (stands "GA..."), every few tie-downs.
+## Every stand gets a light where a clear spot exists. A spot is clear when outside every ObstacleRegistry corridor
+## (stands with pushback swing, taxiways, runway strips), outside every stand's parking box, away from jetways, and low
+## enough for its runway distance (mast height <= (distance from the runway edge - 30 m) / 4).
+## Each light has banks (one per aim direction): one real SpotLight near the camera (ApronLamps) or one fake ground pool
+## (ApronFloodlights). Lamp colour is one per airport: ops "apron_lamps" ("led" | "hps"), else a hash of the ICAO code.
 
 const LED := Color(1.0, 0.94, 0.86)  # ~4000 K LED (neutral white)
 const HPS := Color(1.0, 0.83, 0.62)  # high-pressure sodium, toned down (a saturated orange goes pink in AgX)

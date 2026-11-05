@@ -1,21 +1,19 @@
 class_name AirlinerWarnings
 extends Node
-## E/WD memo and warning lines of an airliner, built from Props (ui/displays/ewd.gd reads them). Ten times a
-## second. Warnings are sorted red before amber, each by priority; memo lines are green.
-## Warnings: ENG n FIRE, ELEC EMER CONFIG, STALL, CONFIG (take-off: park brake / flaps / speed brake), L/G GEAR NOT
-## DOWN (gear not down below gear_warn_ft RA with flaps 3 or more, or thrust at idle), OVERSPEED (red);
-## ENG n FAIL (latched once the engine ran, cleared by its master off), HYD G / B / Y SYS LO PR, ELEC AC BUS n FAULT,
-## ELEC GEN n FAULT, FUEL L / R WING TK LO LVL (amber). Hydraulic and electrical faults only show with an engine
-## running or in the air.
-## The aircraft's aircraft.json "systems.warnings" over DEFAULTS: vmo_kt, mmo, takeoff_lever (thrust lever
-## position that counts as take-off thrust), gear_warn_ft, gen_n2_min (percent), engine_run_n2 (percent).
-## Reads: engines/<n>/{running, n2}, controls/engine_master_<n>, controls/throttle_1, controls/{parking_brake,
-##   autobrake, spoilers_armed, signs/seatbelts, signs/no_smoking, lights/landing}, failures/engine_fire[_<n>],
-##   fdm/{wow, agl_m, cas_mps, mach, gear_pos, flap_lever, speedbrake, stall_warning}, hyd/low_{g, b, y},
-##   icing/ice_detected, controls/anti_ice/{wing, eng_1, eng_2} (memo ICE DETECTED / ANTI ICE),
-##   systems/electrical/{ac1_on, ac2_on, gen1_on, gen2_on, emer}, fuel/low_{left, right}, apu/running.
-## Publishes ewd/warnings and ewd/memo (arrays of [text, colour]: what EWD draws), ewd/warnings_text and
-##   ewd/memo_text (the same lines joined with "\n"), ewd/master_warning (any red), ewd/master_caution (any amber).
+## E/WD memo and warning lines of an airliner, built from Props (ui/displays/ewd.gd reads them), ten times a second.
+## Warnings sort red before amber, each by priority; memo lines are green.
+## Red: ENG n FIRE, ELEC EMER CONFIG, STALL, CONFIG (take-off: park brake / flaps / speed brake), L/G GEAR NOT DOWN (below
+## gear_warn_ft RA with flaps 3 or more, or thrust at idle), OVERSPEED. Amber: ENG n FAIL (latched once the engine ran, cleared
+## by its master off), HYD G / B / Y SYS LO PR, ELEC AC BUS n FAULT, ELEC GEN n FAULT, FUEL L / R WING TK LO LVL. Hydraulic and
+## electrical faults only show with an engine running or in the air.
+## aircraft.json "systems.warnings" over DEFAULTS: vmo_kt, mmo, takeoff_lever (thrust lever position that counts as take-off
+## thrust), gear_warn_ft, gen_n2_min (percent), engine_run_n2 (percent).
+## Reads: engines/<n>/{running, n2}, controls/engine_master_<n>, controls/throttle_1, controls/{parking_brake, autobrake,
+##   spoilers_armed, signs/seatbelts, signs/no_smoking, lights/landing}, failures/engine_fire[_<n>], fdm/{wow, agl_m, cas_mps,
+##   mach, gear_pos, flap_lever, speedbrake, stall_warning}, hyd/low_{g, b, y}, icing/ice_detected, controls/anti_ice/{wing,
+##   eng_1, eng_2}, systems/electrical/{ac1_on, ac2_on, gen1_on, gen2_on, emer}, fuel/low_{left, right}, apu/running.
+## Publishes ewd/warnings and ewd/memo (arrays of [text, colour]), ewd/warnings_text and ewd/memo_text (joined with "\n"),
+##   ewd/master_warning (any red), ewd/master_caution (any amber).
 
 const DEFAULTS := {
 	"vmo_kt": 350.0, "mmo": 0.82, "takeoff_lever": 0.7, "gear_warn_ft": 1000.0, "gen_n2_min": 50.0, "engine_run_n2": 20.0,

@@ -1,29 +1,28 @@
 extends RefCounted
-## README showcase scenes for tests/debug_showcase.gd. One entry per screenshot:
-##   menu: start-screen page (home | training | flight [+ step: 0 Aircraft, 1 Airport, 2 Weather]), else a flight scene with
-##   weather: preset name; setup: Session.setup overrides (airport, runway, start, air_ft, air_nm,
-##            air_kt, time_h IST, day_of_year, wind_*, visibility_m, precip ...)
-##   lesson: training lesson id; view: cockpit | chase | orbit | ...
-##   fly: {secs, pitch, throttle, roll, flaps}: scripted flight before the aircraft is frozen
-##   cam: [forward, right, up] metres from the aircraft in its heading frame, aim: same frame ("agl": true makes the
-##        up values metres above the ground under the camera / aim point)
-##        (free camera); look: [yaw_deg, pitch_deg] for cockpit / orbit; fov; dist (orbit)
-##   ui: UI elements to keep ("Hud", "Map", "Panel", "training"); map: show the moving map;
-##   panel: 2D panel layout index (0 Full, 1 Split, 2 Compact, 3 Minimal, 4 Off)
-##   wait: seconds before polling the streamers
-##   setup.aircraft: "a320" etc. (payload defaults applied; setup.callsign sets the call sign / tail number); props: {property path: value} set after placement
-##   prop_deg: fixed propeller angle; lights: {name: bool} cockpit light switches (e.g. strobe);
-##   pilot_lesson: fly the landing lesson's scripted pilot (fly.landing) without any training UI;
-##   variants: several camera tries from one placement (files <scene>_<n>.png), for looking around;
-##   moving map: gps (direct-to ident) or map_route [target, next...]; map_across (nm wide, default = fit), map_heading_up, map_centre_on (ident)
-##   taxi_banner: {stack, fade_s}: ATC gives "taxi to the apron" just after landing; saves <scene>_a (just issued) and <scene>_b (after fading); keep "Hud", "Atc", "Crash"
-##   checklist: {frac, size, opacity, collapsed, list, ticks}: open the floating checklist window (F2); keep "Panel", "Atc", "Hud" in ui to check overlaps
-##   att: [roll_deg, pitch_deg] attitude of the frozen aircraft
-##   scroll: (menu) pixels to scroll the page down
-##   pause: open the full-screen pause on that page (home | options | settings | controls | saves | failures); keep "Hud" in ui
-##   follow_me: {on_route_m, secs}: ask for taxi, stand the aircraft on the route, let the follow-me car settle ahead; on_follow: cam / aim in the car's frame;
-##   frame_vehicle: cam / aim in the frame of the nearest ground vehicle of that kind ("gpu", "fuel_truck", ...)
-## Order and file names of the final README images are in tools/make_screenshots.sh.
+## README showcase scenes for tests/debug_showcase.gd, one entry per screenshot. Keys:
+##   menu      start-screen page (home | training | flight [+ step: 0 Aircraft, 1 Airport, 2 Weather]); else a flight scene
+##   weather   preset name; setup: Session.setup overrides (airport, runway, start, air_ft, air_nm, air_kt, time_h IST,
+##             day_of_year, wind_*, visibility_m, precip ...); setup.aircraft e.g. "a320", setup.callsign = tail number
+##   lesson    training lesson id; view: cockpit | chase | orbit | ...
+##   fly       {secs, pitch, throttle, roll, flaps}: scripted flight before the aircraft is frozen
+##   cam, aim  free camera [forward, right, up] m in the aircraft's heading frame ("agl": true = up is above the ground)
+##   look      [yaw_deg, pitch_deg] for cockpit / orbit; fov; dist (orbit)
+##   ui        elements to keep ("Hud", "Map", "Panel", "training", "Atc", "Crash"); map: show the moving map
+##   panel     2D panel layout index (0 Full, 1 Split, 2 Compact, 3 Minimal, 4 Off)
+##   wait      seconds before polling the streamers
+##   props     {property path: value} set after placement; prop_deg: fixed propeller angle
+##   lights    {name: bool} cockpit light switches (e.g. strobe)
+##   pilot_lesson  fly the landing lesson's scripted pilot (fly.landing) without training UI
+##   variants  several camera tries from one placement (files <scene>_<n>.png)
+##   gps / map_route [target, next...] / map_across (nm, default fit) / map_heading_up / map_centre_on (ident): moving map
+##   taxi_banner  {stack, fade_s}: ATC taxi instruction after landing; saves <scene>_a (issued) and <scene>_b (faded)
+##   checklist {frac, size, opacity, collapsed, list, ticks}: open the floating checklist window (F2)
+##   att       [roll_deg, pitch_deg] of the frozen aircraft
+##   scroll    (menu) pixels to scroll the page down
+##   pause     open the pause screen on that page (home | options | settings | controls | saves | failures)
+##   follow_me {on_route_m, secs}: ask for taxi, stand on the route, let the follow-me car settle; on_follow: cam / aim in the car's frame
+##   frame_vehicle  cam / aim in the frame of the nearest ground vehicle of that kind ("gpu", "fuel_truck", ...)
+## File names of the final README images are in tools/make_screenshots.sh.
 
 const SCENES := {
 	"start_home": {"menu": "home"},

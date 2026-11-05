@@ -1,16 +1,15 @@
 class_name StandNames
 extends RefCounted
-## Names of the parking stands of an airport (airport_ops.json "stands"), worked out at run time, no data
-## tool and no generated file: a pure function of the stand list, so the same data always gives the same names.
+## Names of the parking stands of an airport (airport_ops.json "stands"), worked out at run time: a pure function of the
+## stand list, so the same data always gives the same names.
 ##   - a stand with a real OSM ref keeps it ("12", "Bay 40", "GA3");
-##   - any other stand gets a made-up, stable name: "Gate n" for a gate (jetbridge, or kind "gate"), "Bay n" for a
-##     remote or apron stand, numbered per airport in position order (west to east, then south to north, then the
-##     order of the data) and skipping numbers a real ref already uses ("Bay 12" is real: the made-up bays go 11, 13);
-##   - two stands with the same real ref keep the ref on the first and get "ref (2)", "ref (3)" on the next ones, so a
-##     name always picks one stand;
-##   - the nearest terminal (name from terminals/<ICAO>.json, within TERMINAL_RADIUS_M) is a hint: "near Terminal 1".
-## Session.setup.stand holds the name (a real ref is its own name, so older saves keep working). AirportOps.find_stand
-## resolves a made-up name through find_index(). Natural order ("Bay 2" before "Bay 10"): natural_less().
+##   - any other stand gets a stable made-up name: "Gate n" (jetbridge, or kind "gate") or "Bay n" (remote / apron),
+##     numbered per airport in position order (west to east, then south to north, then data order), skipping numbers a
+##     real ref already uses;
+##   - two stands with the same real ref: the first keeps it, the next get "ref (2)", "ref (3)";
+##   - the nearest terminal (terminals/<ICAO>.json, within TERMINAL_RADIUS_M) gives a hint: "near Terminal 1".
+## Session.setup.stand holds the name. AirportOps.find_stand resolves a made-up name through find_index().
+## Natural order ("Bay 2" before "Bay 10"): natural_less().
 
 const TERMINAL_RADIUS_M := 2500.0
 

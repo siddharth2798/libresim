@@ -1,8 +1,8 @@
 extends Node
-## Debug: walk every start-screen page (home, the five Free-flight steps, Training, Saved flights, each Options and
-## Controls tab, credits, the controls overlay J and the pause screen) at one window size and UI scale, save a
-## screenshot of each and print the layout audit (tests/ui_audit.gd). Needs a display; scratch data only: nothing of the
-## player's saves, options, bindings or training stars is read or written (the UI scale is kept in memory).
+## Debug: walk every start-screen page (home, the five Free-flight steps, Training, Saved flights, each Options and Controls tab,
+## credits, the controls overlay J and the pause screen) at one window size and UI scale, save a screenshot of each and print the
+## layout audit (tests/ui_audit.gd). Needs a display; scratch data only: nothing of the player's saves, options, bindings or
+## training stars is read or written (the UI scale is kept in memory).
 ##   FREESIM_SIZE=1280x720   window size in pixels (see the UI scale note below: the system scale is taken as 1)
 ##   FREESIM_UISCALE=125%    Auto | 100% | 125% | 150% | 200%
 ##   FREESIM_SHOTS=<dir>     where <tag><name>.png go;  FREESIM_TAG=<prefix>
@@ -38,9 +38,8 @@ func _ready() -> void:
 	Session.save_path = "user://_walk_last_flight.json"
 	TrainingLogic.save_path = "user://_walk_training.json"
 	SituationStore.dir = "user://_walk_saves/"
-	# A fixed percentage is relative to the system scale (2 on a Retina screen), but the UI units it leaves
-	# (window / percentage) do not depend on it. So the probe pretends the system scale is 1: the window is
-	# W x H pixels, the factor is exactly the percentage, and the screenshot is as big as the window.
+	# A fixed percentage is relative to the system scale (2 on Retina), but the UI units it leaves (window / percentage) do not
+	# depend on it. So the probe pretends the system scale is 1: the window is W x H pixels, the factor is exactly the percentage.
 	var choice := OS.get_environment("FREESIM_UISCALE")
 	if choice != "":
 		if get_window().size_changed.is_connected(UiScale.apply):

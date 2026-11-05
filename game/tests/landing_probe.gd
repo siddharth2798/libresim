@@ -1,11 +1,9 @@
 extends Node
-## Probe: fly a training lesson (training/lessons.json) in the real flight scene with a
-## scripted pilot (tests/lesson_pilots.gd) and log when each step completes. Not part of the
-## unit suite. Run (faster than real time):
+## Probe: fly a training lesson (training/lessons.json) in the real flight scene with a scripted pilot (tests/lesson_pilots.gd)
+## and log when each step completes. Not part of the unit suite. Faster than real time:
 ##   godot --headless --fixed-fps 120 --path game res://tests/landing_probe.tscn -- --lesson=landing --pilot=good
-## Options after "--": --lesson=takeoff|cruise|landing  --pilot=<kind, see lesson_pilots.gd>
-## --max=<sim seconds, default 400>  --retry [--pilot2=good] (after the first attempt ends, wait
-## until the aircraft has stopped, press Try again and fly once more).
+## Options after "--": --lesson=takeoff|cruise|landing  --pilot=<kind, see lesson_pilots.gd>  --max=<sim seconds, default 400>
+## --retry [--pilot2=good] (after the first attempt ends, wait until the aircraft has stopped, press Try again, fly once more)
 ## --nm=<n> --ft=<ft above the field>  shorten the airborne start (e.g. --nm=1.3 --ft=400)
 ## --pics=<dir>  (needs a window, not --headless) save <dir>/card.png at 20 s and <dir>/end.png 1 s after the end.
 ## Note: a finished lesson saves its stars to user://training.json (back it up first).

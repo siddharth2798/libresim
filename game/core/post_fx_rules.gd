@@ -1,15 +1,12 @@
 class_name PostFxRules
 extends RefCounted
-## Which post effects run, and the motion-blur reset rules. Pure functions (no nodes, no RenderingDevice), so
-## tests/test_post_fx.gd checks them headless. core/post_fx.gd and world/postfx/* call them; the effects themselves
-## never decide gating on their own.
-##
-## Every effect has a UserOptions toggle of the same name, a lowest preset and the renderers it can run on:
-##   compute  = a CompositorEffect with a compute shader (RenderingDevice): Forward+ always; Mobile only for effects
-##              that do not need motion vectors (the color buffer format is checked again at run time).
-##   canvas   = a CanvasLayer screen pass after tonemapping / TAA / upscaling (any renderer).
-##   spatial  = a full-screen transparent quad with the screen / depth textures (Forward+ and Mobile).
-##   env      = Environment / CameraAttributes settings (Forward+ and Mobile).
+## Which post effects run, and the motion-blur reset rules. Pure functions (no nodes, no RenderingDevice), tested by
+## tests/test_post_fx.gd. core/post_fx.gd and world/postfx/* call them; effects never gate themselves.
+## Every effect has a UserOptions toggle of the same name, a lowest preset and the renderers it runs on:
+##   compute  = CompositorEffect with a compute shader: Forward+ always; Mobile only if it needs no motion vectors
+##   canvas   = CanvasLayer screen pass after tonemapping / TAA / upscaling (any renderer)
+##   spatial  = full-screen transparent quad with the screen / depth textures (Forward+ and Mobile)
+##   env      = Environment / CameraAttributes settings (Forward+ and Mobile)
 
 const PRESET_RANK := {"low": 0, "medium": 1, "high": 2, "ultra": 3, "max": 4}
 const FX := {
@@ -33,8 +30,8 @@ const SHUTTER := 0.5
 const REF_DT := 1.0 / 60.0
 const MAX_BLUR_PX := 40.0
 const BLUR_SAMPLES := 12
-const SKIP_FRAMES := 2  # frames without blur after a cut: the renderer's previous transforms are stale for one frame, +1 margin
-const CUT_MIN_JUMP_M := 25.0  # a camera move larger than this in one frame is a cut (fly-by re-placement, teleport) ...
+const SKIP_FRAMES := 2  # frames without blur after a cut: the previous transforms are stale for one frame, +1 margin
+const CUT_MIN_JUMP_M := 25.0  # a camera move larger than this in one frame is a cut (fly-by re-placement, teleport)
 const CUT_SPEED_MPS := 400.0  # ... unless it is below what this speed covers in the frame (x1.5)
 const CUT_TURN_RAD := 0.6  # a camera turn of more than ~34 degrees in one frame is a cut (view switch)
 

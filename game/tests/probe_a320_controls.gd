@@ -1,18 +1,15 @@
 extends Node
 ## Live check of the Thrustmaster Captain Pack mapping through the game's real input code: loads the profile
-## (core/input_profiles.gd) for an aircraft, runs a JoystickControls node on the live pads and prints one line
-## whenever a control property changes, with the hardware values that caused it. Move each control once and read
-## the lines. Windowed (a joystick reaches only the active window on macOS unless SDL_JOYSTICK_ALLOW_BACKGROUND_EVENTS
-## is set), muted, always on top. Writes nothing except the optional --out log: the table is the profile, never the
-## saved input_bindings.json, and nothing is saved.
-##
+## (core/input_profiles.gd) for an aircraft, runs a JoystickControls node on the live pads and prints a line whenever a
+## control property changes, with the hardware values that caused it. Windowed (on macOS a joystick reaches only the active
+## window unless SDL_JOYSTICK_ALLOW_BACKGROUND_EVENTS is set), muted, always on top. Writes nothing except the optional --out
+## log; the table is the profile, never the saved input_bindings.json.
 ##   SDL_JOYSTICK_MFI=0 SDL_JOYSTICK_ALLOW_BACKGROUND_EVENTS=1 ~/.local/bin/godot --path game --windowed \
 ##       --resolution 960x540 --audio-driver Dummy res://tests/probe_a320_controls.tscn \
 ##       -- [--aircraft=a320|c172] [--seconds=60] [--air] [--out=/path/log.txt]
-##
 ## Line format:   t=<s> <property> <old> -> <new>  [<detail>]  | hw: pad0 axis0=-0.485 pad0 btn20=down
 ##   detail = lever position and detent name for a thrust lever, the flap setting name for the flaps.
-##   hw = the pad axes (moved by more than 0.004) and buttons that changed in that frame; empty = start-up sync.
+##   hw = pad axes (moved by more than 0.004) and buttons that changed in that frame; empty = start-up sync.
 ##   --air starts with the wheels off the ground (fdm/wow false): the A320 flaps lever notch 1 then gives CONF 1, not 1+F.
 
 const WATCH := ["throttle", "throttle_1", "throttle_2", "reverse_1", "reverse_2", "mixture", "flaps", "speedbrake",

@@ -1,21 +1,15 @@
 class_name TerrainQuadtree
 extends Node3D
-## Chunked-LOD terrain. Quadtree roots are the coarsest data tiles; nodes split
-## while the camera is closer than size * lod_k. Levels below 0 are "virtual":
-## they reuse a level-0 tile's heights on a sub-rectangle so the finest node
-## (MIN_LEVEL) reaches the DEM's native 30 m vertex spacing. Heights and textures
-## have separate sources: a tile without imagery / land class (region packs)
-## borrows its nearest ancestor's, so each node gets one sub-rect per source.
-## A node only splits once all its children's textures are loaded (no holes).
-##
-## Cost: node records (bounds, height source, children) are memoised per key, and
-## the tree is only re-walked when the camera moved > RESELECT_M, a tile finished
-## uploading, or RESELECT_S passed. Anti-popping: split at d < size*lod_k, merge
-## only at d > size*lod_k*HYSTERESIS; the shader geomorphs each node toward its
-## parent's geometry over [MORPH_START, 1] x the parent's split distance.
-## Focus (the aircraft): nodes within FOCUS_KEEP_M of it always split to MIN_LEVEL and never geomorph, whatever
-## the camera distance, so the ground under the tyres is the drawn ground (= the FDM's, TerrainTileCache.height_at)
-## from a far tower or fly-by camera too; ground_focus tells the ground overlays (ground_lift.gdshaderinc).
+## Chunked-LOD terrain. Quadtree roots are the coarsest data tiles; nodes split while the camera is closer than
+## size * lod_k. Levels below 0 are "virtual": they reuse a level-0 tile's heights on a sub-rectangle so the finest node
+## (MIN_LEVEL) reaches the DEM's 30 m spacing. Heights and textures have separate sources: a tile without imagery / land
+## class borrows its nearest ancestor's, so each node gets one sub-rect per source. A node only splits once all its
+## children's textures are loaded (no holes).
+## Cost: node records are memoised per key; the tree is re-walked only when the camera moved > RESELECT_M, a tile finished
+## uploading, or RESELECT_S passed. Anti-popping: split at d < size*lod_k, merge only at d > size*lod_k*HYSTERESIS; the shader
+## geomorphs each node toward its parent over [MORPH_START, 1] x the parent's split distance.
+## Focus (the aircraft): nodes within FOCUS_KEEP_M always split to MIN_LEVEL and never geomorph, so the ground under the
+## tyres is the FDM's ground (TerrainTileCache.height_at) from any camera; ground_focus tells the overlays (ground_lift.gdshaderinc).
 
 const MIN_LEVEL := -2
 const SKIRT_FRAC := 0.004

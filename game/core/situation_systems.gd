@@ -1,12 +1,12 @@
 class_name SituationSystems
 extends RefCounted
-## The systems' own state in a saved situation (core/situation.gd). A system node that carries
-## state between ticks joins the group "saveable" in _ready and implements
+## The systems' own state in a saved situation (core/situation.gd). A system node that carries state between ticks joins the
+## group "saveable" in _ready and implements
 ##   save_key() -> String          stable key in the file ("electrical", "fuel", ...), never renamed
 ##   save_state() -> Dictionary    JSON-safe values (floats, bools, strings, arrays of those)
 ##   load_state(d: Dictionary)     put them back; every key optional (read with d.get(k, default))
-## so a new system (APU, hydraulics, autoflight) is saved by implementing the three methods, with no
-## change here. Old saves keep the flat C172 keys (soc, suction, ...): migrate() reads them.
+## so a new system is saved by implementing these three methods, with no change here. Old saves keep the flat C172 keys (soc,
+## suction, ...): migrate() reads them.
 
 const GROUP := "saveable"
 ## File written before the hook existed: flat key -> [system key, key in that system's state].

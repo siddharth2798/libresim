@@ -1,12 +1,10 @@
 class_name VehicleGeo
 extends RefCounted
-## Small mesh builder for procedural vehicles (follow-me car): lofted rounded-rectangle shells,
-## chamfered boxes, extruded profiles, lathes. Every vertex carries its material in COLOR:
-## rgb = linear albedo, a = kind / 10 (see K and world/follow_me.gdshader). All faces are
-## described counter-clockwise about their outward normal; Godot wants clockwise, tri() flips.
-## Vehicle frame: x right, y up, -z forward. CUSTOM0 (optional) = pivot of the vertex for the shader:
-## xyz = hub / beacon centre, w = wheel radius (+20 when the wheel steers), 100 = beacon lens, 0 = none.
-## wheels / lamps record what the vehicle has (contact shadow, steering, light points).
+## Mesh builder for procedural vehicles (follow-me car): lofted rounded-rectangle shells, chamfered boxes, extruded profiles,
+## lathes. Every vertex carries its material in COLOR: rgb = linear albedo, a = kind / 10 (see K and world/follow_me.gdshader).
+## Faces are described counter-clockwise about the outward normal; Godot wants clockwise, tri() flips.
+## Vehicle frame: x right, y up, -z forward. CUSTOM0 (optional) = vertex pivot for the shader: xyz = hub / beacon centre,
+## w = wheel radius (+20 when the wheel steers), 100 = beacon lens, 0 = none. wheels / lamps record what the vehicle has.
 
 enum K { PAINT, PLASTIC, RUBBER, METAL, TAPE, SIGN, LENS_L, LENS_R, HEAD, TAIL, NUMBER }
 const STEERS := 20.0  # added to the radius in CUSTOM0.w for a steering wheel

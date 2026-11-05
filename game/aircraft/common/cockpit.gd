@@ -1,17 +1,15 @@
 class_name Cockpit
 extends Node3D
-## 3D cockpit. With the aircraft's interior glb (def.path("interior"), e.g. the FlightGear c172p
-## interior, GPL-2.0-or-later) and spots, the live gauges from the InstrumentPanel SubViewport are
-## mapped onto small quads at the real instrument positions; otherwise a placeholder panel quad +
-## frame is used. Mouse clicks on any gauge quad are forwarded to the SubViewport (knobs work).
-## Child of AircraftModel (local: -Z nose, +Y up, origin = CG).
-## aircraft.json "cockpit":
-##   eye         [x, y, z] pilot eye in the glb's model frame (x aft, y right, z up from the model origin)
+## 3D cockpit. With the aircraft's interior glb (def.path("interior"), e.g. the FlightGear c172p interior, GPL-2.0-or-later)
+## and spots, the InstrumentPanel SubViewport gauges are mapped onto small quads at the real instrument positions; otherwise
+## a placeholder panel quad + frame. Mouse clicks on a gauge quad are forwarded to the SubViewport (knobs work).
+## Child of AircraftModel (local: -Z nose, +Y up, origin = CG). aircraft.json "cockpit":
+##   eye         [x, y, z] pilot eye in the glb model frame (x aft, y right, z up from the model origin)
 ##   panel_mesh  name of the gauge panel's mesh node (round gauges are lifted clear of its bezels)
 ##   spots       {item name: {"pos": [x,y,z] model frame, "size": face width m, "round": bool, "screen": name, "item": panel item}}
-##   screens     {name: {centre, width, height, u_dir, v_dir, normal}} glass displays measured on the glb (model
-##               frame, m). A spot whose item (or "screen") names one gets a quad of exactly that size and tilt
-##               (the display is stretched to the glass); other spots are upright quads of "size" wide.
+##   screens     {name: {centre, width, height, u_dir, v_dir, normal}} glass displays measured on the glb (model frame, m).
+##               A spot whose item (or "screen") names one gets a quad of that size and tilt; other spots are upright
+##               quads of "size" wide.
 ##   levers      {pivot: {drive, map, ...}} moving controls of the interior glb (cockpit_levers.gd); absent = static
 ## Item names are the InstrumentPanel ones (panel.json): gauges, "radios", "strip", "switches".
 

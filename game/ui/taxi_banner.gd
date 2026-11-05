@@ -1,12 +1,9 @@
 class_name TaxiBanner
 extends Node
-## The taxi / pushback instruction on screen (replaces the old centred label that never went away).
-## It is one compact card in the notification stack (top-centre, under the flight-data bar), so it
-## never covers the view or other cards; it stays 8-12 s and fades by itself (atc/taxi_banner_logic.gd),
-## Backspace dismisses it at once, and it goes when the aircraft starts taxiing, the route ends,
-## or a newer instruction replaces it. What stays is a tiny line in the radio bar (Props
-## ops/taxi_hint: the route and the distance left) and a line in the radio History (the radio panel
-## reads Props ops/taxi_msg). GroundOps owns this node and only calls announce / say / route_progress.
+## The taxi / pushback instruction on screen: one compact card in the notification stack (top-centre, under the flight-data bar).
+## It stays 8-12 s and fades (atc/taxi_banner_logic.gd); Backspace dismisses it; it goes when the aircraft starts taxiing, the
+## route ends or a newer instruction replaces it. What stays is a line in the radio bar (Props ops/taxi_hint: route and distance
+## left) and a line in the radio History (Props ops/taxi_msg). GroundOps owns this node and only calls announce / say / route_progress.
 
 const KEY := "taxi"
 const ACCENT := Color(0.3, 0.9, 0.45)

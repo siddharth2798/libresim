@@ -1,10 +1,9 @@
 class_name LeverDetents
 extends RefCounted
-## Pure logic of a thrust lever with named detents (aircraft.json controls.levers.throttle
-## "detents": [{"name": "IDLE", "pos": 0.0, "zone": 0.03}, ...]).
-## Lever position: forward travel 0 (idle) .. 1 (full), reverse travel 0 .. -1 (REV MAX).
-## A detent grabs the lever when it is within `zone` of it (default DEFAULT_ZONE).
-## An A320 lever as pos = thrust lever angle / 45 deg: IDLE 0, CL 0.556, FLX/MCT 0.778, TOGA 1.
+## Pure logic of a thrust lever with named detents (aircraft.json controls.levers.throttle "detents":
+## [{"name": "IDLE", "pos": 0.0, "zone": 0.03}, ...]). Lever position: forward 0 (idle) .. 1 (full), reverse 0 .. -1 (REV MAX).
+## A detent grabs the lever within `zone` of it (default DEFAULT_ZONE).
+## An A320 lever is pos = thrust lever angle / 45 deg: IDLE 0, CL 0.556, FLX/MCT 0.778, TOGA 1.
 
 const DEFAULT_ZONE := 0.025
 const EPS := 1e-4
@@ -72,12 +71,10 @@ static func pos_to_axis(pos: float, reverse_frac: float) -> float:
 	return (1.0 + pos) * reverse_frac if pos < 0.0 else reverse_frac + pos * (1.0 - reverse_frac)
 
 
-## A joystick lever with a reverse range whose idle detent was calibrated (binding "lo" = raw at
-## idle, input_bindings.gd): from idle up it is the forward position `fwd`, behind idle it is reverse,
-## down to REV MAX at raw `rev_raw` (the direction of "behind" is the one towards rev_raw, so a lever
-## that reads rising towards reverse works as well as one that reads falling). The idle detent has some
-## play (IDLE_BAND of raw travel) that reads as idle, not as reverse thrust: reverse starts that far
-## behind the calibrated idle and grows linearly to REV MAX.
+## A joystick lever with a reverse range whose idle was calibrated (binding "lo" = raw at idle, input_bindings.gd):
+## above idle it is the forward position `fwd`, behind idle it is reverse, down to REV MAX at raw `rev_raw` ("behind" is
+## the direction towards rev_raw). The idle detent has some play (IDLE_BAND of raw travel) that reads as idle: reverse
+## starts that far behind the calibrated idle and grows linearly to REV MAX.
 const IDLE_BAND := 0.05
 
 
@@ -89,10 +86,9 @@ static func calibrated_pos(raw: float, fwd: float, idle_raw: float, rev_raw := -
 	return -clampf(behind / maxf(absf(rev_raw - idle_raw) - IDLE_BAND, 0.05), 0.0, 1.0)
 
 
-## Forward lever position of a raw value, piecewise linear through the lever's physical clicks:
-## idle_raw -> 0, each click (raw, play, and the aircraft detent it names) -> that detent's position over
-## +-play of raw, full_raw -> 1. A click whose detent the aircraft does not have is skipped, so a lever on
-## an aircraft without such detents is linear idle..full. Beyond idle or full it clamps.
+## Forward lever position of a raw value, piecewise linear through the lever's physical clicks: idle_raw -> 0, each click
+## (raw, play, detent name) -> that detent's position over +-play of raw, full_raw -> 1. A click whose detent the aircraft
+## lacks is skipped; beyond idle or full it clamps.
 ## clicks = [{"raw": r, "detent": "CL", "play": 0.03}], detents = aircraft.json controls.levers.throttle.detents.
 static func forward_pos(raw: float, idle_raw: float, full_raw: float, clicks: Array, detents: Array) -> float:
 	var span := full_raw - idle_raw
@@ -120,10 +116,9 @@ static func forward_pos(raw: float, idle_raw: float, full_raw: float, clicks: Ar
 	return 1.0
 
 
-## Lever position of a raw axis value for a binding (input_bindings.gd) on an aircraft with these detents and
-## reverse_frac: calibrated (binding "lo") = forward_pos through the binding's clicks and, with a reverse range,
-## reverse behind idle towards "rev"; not calibrated = the first reverse_frac of the shaped travel `v` is reverse.
-## The result is snapped to the detents.
+## Lever position of a raw axis value for a binding (input_bindings.gd): calibrated (binding "lo") = forward_pos through
+## the binding's clicks and, with a reverse range, reverse behind idle towards "rev"; not calibrated = the first
+## reverse_frac of the shaped travel `v` is reverse. The result is snapped to the detents.
 static func from_binding(b: Dictionary, raw: float, v: float, detents: Array, reverse_frac: float) -> float:
 	if not b.has("lo"):
 		return snap(axis_to_pos(v, reverse_frac), detents)

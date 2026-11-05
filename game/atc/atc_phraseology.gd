@@ -1,12 +1,10 @@
 class_name AtcPhraseology
 extends RefCounted
-## Radio phrases from atc/phraseology.json: section -> message key -> unit role -> template
-## (a string, or a list of variants picked by a counter). Templates hold {slots}; fill()
-## formats each slot by its name in the written (transcript) or spoken (voice) form, see
-## atc_speech.gd. Slots whose name starts with opt_ may be empty.
-## "profiles" -> profile -> section -> key -> role -> template overrides the base phrase for an
-## aircraft profile (aircraft.json atc.profile, e.g. "airline"); a key the profile does not have
-## falls back to the base ("ga") template, the role falls back to "*" in each layer.
+## Radio phrases from atc/phraseology.json: section -> message key -> unit role -> template (a string, or a list of variants picked
+## by a counter). Templates hold {slots}; fill() formats each slot by name in the written (transcript) or spoken (voice) form, see
+## atc_speech.gd. Slots named opt_* may be empty. "profiles" -> profile -> section -> key -> role -> template overrides the base
+## phrase for an aircraft profile (aircraft.json atc.profile, e.g. "airline"); a missing key falls back to the base ("ga")
+## template, the role falls back to "*" in each layer.
 
 const PATH := "res://atc/phraseology.json"
 ## Every slot a template may use, with a sample value (also used by the template check in the tests).

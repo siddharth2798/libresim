@@ -1,17 +1,14 @@
 class_name JoystickControls
 extends Node
 ## Joystick / gamepad pilot input -> Props "controls/*", per core/input_bindings.gd.
-## Coexists with KeyboardControls: while a bound axis (or a held brake/starter button)
-## drives a control, Props "input/axis_owner/<name>" = "joy" and the keyboard skips it.
-## Publishes "controls/joystick_active" (a bound axis on a connected pad).
-## View / map / pause buttons inject the matching key press so existing handlers run.
-## Reloads the table when Props "input/bindings_rev" changes (the controls page bumps it).
-## A lever (half-range axis) is ignored until its pad has reported a non-zero value (macOS sends no
-## initial position). The flaps lever acts only when it changes; latching switches (ControlActions.LEVELS) act
-## when they change and, per their `sync`, once when first seen (flight start, pad plugged in); selector switches
-## (ControlActions.SELECTORS: engine mode, auto brake) follow their position from first sight.
-## Only the axes / buttons the aircraft offers (aircraft_controls.gd) act. Held buttons that have no
-## prop of their own (reverse, APU start) publish "input/held/<action>" for the keyboard side to use.
+## Coexists with KeyboardControls: while a bound axis (or held brake / starter button) drives a control,
+## Props "input/axis_owner/<name>" = "joy" and the keyboard skips it. Publishes "controls/joystick_active".
+## View / map / pause buttons inject the matching key press. Reloads the table when "input/bindings_rev" changes.
+## A lever (half-range axis) is ignored until its pad has reported a non-zero value (macOS sends no initial position).
+## The flaps lever acts only when it changes; latching switches (ControlActions.LEVELS) act on change and, per their
+## `sync`, once when first seen; selector switches (ControlActions.SELECTORS) follow their position from first sight.
+## Only axes / buttons the aircraft offers (aircraft_controls.gd) act. Held buttons with no prop of their own
+## (reverse, APU start) publish "input/held/<action>" for the keyboard side.
 
 const TRIM_RATE := 0.15  # same as KeyboardControls
 const KEYS := {"view_next": KEY_C, "view_cockpit": KEY_1, "toggle_map": KEY_N, "pause": KEY_ESCAPE}
@@ -56,9 +53,8 @@ func _on_joy_connection(device: int, connected: bool) -> void:
 	_live.clear()
 
 
-## Forget the switch and lever positions seen so far: the next frame treats them as first seen (flight start
-## or restart, pad plugged in), so latching switches and selectors set the sim from the hardware. The flaps
-## lever only records its notch again.
+## Forget the switch and lever positions seen so far: the next frame treats them as first seen (flight start,
+## pad plugged in). The flaps lever only records its notch again.
 func resync() -> void:
 	_prev.clear()
 	_sel.clear()
@@ -89,8 +85,7 @@ func _lever2_bound(ctl: AircraftControls) -> bool:
 	return int(b.get("axis", -1)) >= 0 and (fake_axes.has("throttle_2") or InputBindings.resolve_device(b) >= 0)
 
 
-## A lever reads exactly 0.0 until it has moved once on some systems (macOS sends no initial
-## report), which would be a phantom mid-travel throttle. Ignore it until then.
+## A lever reads exactly 0.0 until it has moved once on some systems (macOS): a phantom mid-travel throttle. Ignore it until then.
 func _reported(dev: int, axis: int, raw: float) -> bool:
 	var k := "%d:%d" % [dev, axis]
 	if raw != 0.0:
@@ -155,9 +150,8 @@ func _process(dt: float) -> void:
 
 
 ## Throttle (lever 1), throttle_2 (lever 2, separate levers only) and mixture axes; true when one is bound.
-## A lever axis maps through the reverse range and detents (lever_detents.gd). With separate levers and
-## no throttle_2 axis bound, the throttle axis moves all levers. A bound lever 2 that has not reported yet
-## (macOS sends no initial report, so it reads 0.0 until it moves once) rests at idle: it must not copy lever 1.
+## A lever axis maps through the reverse range and detents (lever_detents.gd). With separate levers and no throttle_2
+## axis bound, the throttle axis moves all levers. A bound lever 2 that has not reported yet rests at idle: it must not copy lever 1.
 func _levers(ctl: AircraftControls) -> bool:
 	var lv := ctl.levers
 	var v1 = axis_value("throttle") if ctl.offers("throttle") else null

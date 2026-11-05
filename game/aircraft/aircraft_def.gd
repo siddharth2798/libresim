@@ -1,52 +1,47 @@
 class_name AircraftDef
 extends RefCounted
-## One aircraft = one folder res://aircraft/<id>/ with an aircraft.json that describes it. Everything
-## that differs between aircraft is read from here, nothing else in the game names an aircraft:
-##   files    optional {key: path relative to the folder}, defaults in FILES (preview.jpg: the start-screen picture, tests/render_aircraft_previews.gd)
-##   model    exterior / interior glb, control-surface pivots, propeller pivots (aircraft_model.gd)
+## One aircraft = one folder res://aircraft/<id>/ with an aircraft.json. Everything that differs between aircraft
+## is read from it; nothing else in the game names an aircraft. Sections (reader in brackets):
+##   files    {key: path relative to the folder}, defaults in FILES (preview.jpg = start-screen picture)
+##   model    exterior / interior glb, control-surface and propeller pivots (aircraft_model.gd)
 ##   cockpit  gauge spots in the glb, panel layout (panel.json), eye point (cockpit.gd)
 ##   lights   nav / beacon / strobe / lamp positions (aircraft_lights.gd)
-##   audio    sound folder and the engine / wind mappings (aircraft_audio.gd)
-##   limits   V-speeds and load limits (damage.gd, ASI arcs, training lessons): vne_kias, vd_kias,
-##            vfe_kias [[max flap deg, kias], ...], g_pos, g_neg, vs0_kias, vs1_kias, vno_kias,
-##            asi_min_kias / asi_max_kias; tach {max_rpm, green [lo, hi], red}; gauges {fuel_gal,
-##            oil_temp_f, oil_press_psi, egt_f, fuel_flow_gph, suction_inhg, ammeter_a: {min, max,
-##            green [lo, hi], red}} (the engine strip, ui/gauges/*.gd)
-##            max_crosswind_kt: the crosswind the start screen's readiness check (core/setup_checks.gd) calls too much; absent = 15. CONFIRMED by the owner
-##            2026-11-04: C172 15, A320 33 (the in-flight UI keeps its own 15 kt colour, ui/menu/conditions_page.gd)
+##   audio    sound folder, engine / wind mappings (aircraft_audio.gd)
+##   limits   vne_kias, vd_kias, vfe_kias [[max flap deg, kias], ...], g_pos, g_neg, vs0_kias, vs1_kias, vno_kias,
+##            asi_min_kias, asi_max_kias; tach {max_rpm, green [lo, hi], red}; gauges {fuel_gal, oil_temp_f,
+##            oil_press_psi, egt_f, fuel_flow_gph, suction_inhg, ammeter_a: {min, max, green [lo, hi], red}}
+##            (damage.gd, ASI arcs, lessons, ui/gauges/*.gd); max_crosswind_kt for the start-screen
+##            readiness check (core/setup_checks.gd), absent = 15
 ##   damage   touchdown and gear thresholds, propeller hub positions (damage.gd)
-##   systems  electrical / fuel / pitot_static numbers (systems/*.gd, keys in each script's header)
-##   radio_type  how the pilot calls the aircraft on the radio ("Cessna 172", atc/atc_phraseology.gd)
-##   atc      {profile: "ga" | "airline", wake: L | M | H | J, and for an airline telephony (fictional name),
-##            flight_no, callsign_style: "airline"}: how ATC talks to the aircraft (atc/atc_profile.gd)
-##   short_name  the aircraft on the start-screen chips (name is the full title, preview.jpg the picture)
+##   systems  electrical / fuel / pitot_static numbers (systems/*.gd, keys in each header)
+##   radio_type  how the pilot calls the aircraft on the radio (atc/atc_phraseology.gd)
+##   atc      {profile: "ga" | "airline", wake: L | M | H | J; airline also telephony, flight_no,
+##            callsign_style: "airline"} (atc/atc_profile.gd)
+##   short_name  name on the start-screen chips (name is the full title)
 ##   cameras  chase / wing / tail / orbit view positions (ui/camera_rig.gd), see camera()
-##   registration  tail number painted at flight start: {source: callsign | fixed, text (source callsign: the aircraft's default registration, shown until the pilot types a call sign, core/callsign.gd; fixed: the registration), baked (the number the atlas already carries: never repainted; only the C172 has one, the A320 atlas carries none), texture, targets: [{erase, text, align, color, italic, rotate, erase_axis, texture}]} (common/registration_paint.gd; the C172 also repaints its wing undersides)
-##   livery   paint colours the pilot may change (tools/25_livery_masks.py makes it for the C172; the pilot's choice is Session.setup.livery,
-##            applied with the registration in one pass by common/paint_pipeline.gd at flight start; the C172 has body, accent, stripe, struts):
-##            {atlases: [{id, texture}], regions: [{key, label, default [r,g,b], masks: [{atlas, mask, luma}]}]}: one region may be on several
-##            atlases, each with its own 8-bit grey mask PNG (livery/<atlas>_<region>.png) and the shading reference `luma` of the atlas under it
-##            (common/livery.gd parses and merges colours, common/livery_paint.gd + livery.gdshader recolour an atlas on the GPU)
-##   start    pitch_trim of a parked start; air {alt_ft, dist_nm, kias, gear "up"|"down", flaps (detent), limits {alt_ft, dist_nm: [min, max]}}
-##            the default "In the air" start (height, distance on final, speed, config; aircraft/air_start.gd derives what is
-##            missing, air_start() returns it); air_kt is the older spelling of air.kias
+##   registration  tail number painted at flight start: {source: callsign | fixed, text, baked, texture,
+##            targets: [{erase, text, align, color, italic, rotate, erase_axis, texture}]}
+##            (common/registration_paint.gd). "baked" is the number the atlas already carries (never repainted).
+##   livery   pilot-changeable paint: {atlases: [{id, texture}], regions: [{key, label, default [r,g,b],
+##            masks: [{atlas, mask, luma}]}]} (common/livery.gd; tools/25_livery_masks.py makes the masks)
+##   start    pitch_trim of a parked start; air {alt_ft, dist_nm, kias, gear "up"|"down", flaps (detent),
+##            limits {alt_ft, dist_nm: [min, max]}}: the default "In the air" start (aircraft/air_start.gd)
 ##   fcs      {"law": "airbus_fbw"}: fly-by-wire control law (fdm/fbw_law.gd); absent = direct control
-##   callouts optional {alive_kt, rotate_kt, v1_kt, low_kt, heights}: the training callouts (ui/callouts.gd)
-##   ground   footprint, height, tow point, optional min_runway_m (the start screen flags shorter runways and SetupChecks asks before flying from one; 0 = no limit; CONFIRMED by
-##            the owner 2026-11-04: C172 175.3 = 575 ft, the C172S POH landing ground roll at sea level in ideal conditions, so no margin for density altitude, wind or surface; A320 1800) for stands, taxi corridors and jetways (world/ops_*.gd); all keys in world/ground_params.gd
-##   pushback  straight_m, radius_m, speed_mps of the pushback path (world/pushback_path.gd)
-##   ramp     optional ramp-crew service points (GPU, refuel, cargo, doors) and airframe keep-out (world/ramp_points.gd)
-##   payload  start-screen fuel slider and stations (ui/menu/aircraft_page.gd, weight_balance.gd):
-##            fuel_kg_per_gal, cruise_gph, reserve_gal, fuel_slider {min, max, step, unit},
-##            stations [{key (Session.setup), label, max, step, masses [config point-mass names]}]
+##   callouts optional {alive_kt, rotate_kt, v1_kt, low_kt, heights} for the training callouts (ui/callouts.gd)
+##   ground   footprint, height, tow point, optional min_runway_m (shorter runways are flagged at the start
+##            screen; 0 = no limit), for stands, taxi corridors, jetways (world/ops_*.gd, world/ground_params.gd)
+##   pushback  straight_m, radius_m, speed_mps (world/pushback_path.gd)
+##   ramp     optional ramp-crew service points and airframe keep-out (world/ramp_points.gd)
+##   payload  fuel_kg_per_gal, cruise_gph, reserve_gal, fuel_slider {min, max, step, unit}, stations
+##            [{key (Session.setup), label, max, step, masses [config point-mass names]}]
+##            (ui/menu/aircraft_page.gd, weight_balance.gd)
 ##   failures optional {"disabled": [failure ids]} (systems/failure_catalog.gd)
-##   icing    optional {protection: none | pitot_only | wing_and_engine, drag_k, clmax_k, power_loss_k, egt_k, pitot_heat_prop,
-##            wing_anti_ice_prop, engine_anti_ice_prop, bleed_wing, bleed_engine, rain_cl_k, rain_cd_k, rain_n1_k}: ice and rain
-##            (systems/icing.gd DEFAULTS, fdm/environment_effects.gd); absent = the C172's numbers
-##   exhausts optional {strength, list: [{pos [x, y, z], dir [x, y, z], radius, kind: jet | piston, engine (1-based),
-##            length_m, spread}]}: heat shimmer behind running exhausts, model frame of models/*_pivots.json
-##            (world/postfx/heat_shimmer.gd); absent = no exhaust shimmer
-## The flight-model numbers (aero, mass, gear, tanks, engines) are in config.json and aero.json.
+##   icing    optional {protection: none | pitot_only | wing_and_engine, drag_k, clmax_k, power_loss_k, egt_k,
+##            pitot_heat_prop, wing_anti_ice_prop, engine_anti_ice_prop, bleed_wing, bleed_engine,
+##            rain_cl_k, rain_cd_k, rain_n1_k}; absent = the C172's numbers (systems/icing.gd)
+##   exhausts optional {strength, list: [{pos [x, y, z], dir [x, y, z], radius, kind: jet | piston,
+##            engine (1-based), length_m, spread}]}: heat shimmer, model frame (world/postfx/heat_shimmer.gd)
+## Flight-model numbers (aero, mass, gear, tanks, engines) are in config.json and aero.json.
 
 const ROOT := "res://aircraft/"
 const DEFAULT_ID := "c172"
@@ -61,7 +56,7 @@ static var _previews := {}
 
 var id := ""
 var dir := ""  # "res://aircraft/<id>" (no trailing slash)
-var data := {}  # aircraft.json
+var data := {}  # aircraft.json content
 var _config := {}
 
 
@@ -144,7 +139,7 @@ func preview() -> Texture2D:
 	var tex: Texture2D = null
 	if ResourceLoader.exists(p):
 		tex = load(p) as Texture2D
-	elif FileAccess.file_exists(p):  # not imported yet (a fresh checkout before the editor ran)
+	elif FileAccess.file_exists(p):  # not imported yet (fresh checkout)
 		var img := Image.load_from_file(p)
 		tex = ImageTexture.create_from_image(img) if img != null else null
 	_previews[dir] = tex
@@ -176,9 +171,9 @@ func section_or(name: String, defaults: Dictionary) -> Dictionary:
 	return out
 
 
-## Camera view positions, render frame about the CG (x right, y up, z aft): "chase" [back_m, up_m, (follow_rate_per_s)],
-## "wing" [x, y, z, (yaw_deg, pitch_deg)] and "tail" [x, y, z], "orbit_m" [distance]. aircraft.json "cameras" wins; otherwise the
-## C172's values scaled by wingspan.
+## Camera positions, render frame about the CG (x right, y up, z aft): "chase" [back_m, up_m, (follow_rate_per_s)],
+## "wing" [x, y, z, (yaw_deg, pitch_deg)], "tail" [x, y, z], "orbit_m" [distance]. aircraft.json "cameras" wins,
+## else the C172's values scaled by wingspan.
 func camera(view: String) -> Array:
 	var own = section("cameras").get(view, null)
 	if own is Array:

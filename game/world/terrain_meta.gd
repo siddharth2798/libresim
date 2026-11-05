@@ -1,12 +1,9 @@
 class_name TerrainMeta
 extends RefCounted
-## Terrain tile index: terrain/meta.json (base pyramid) merged with every
-## terrain/meta_<region>.json (extra tiles at levels 0-2, e.g. a coastal corridor).
-## Tile entry = [min_h, max_h, flags]; flags bit 1 = imagery (img/), bit 2 = land
-## class (lc/); a missing flags element means 3. A tile without imagery or land
-## class borrows it from its nearest ancestor that has it, on a UV sub-rectangle.
-## Region tiles are only merged when their heightmap file is present, so the game
-## runs without a region data pack.
+## Terrain tile index: terrain/meta.json (base pyramid) merged with every terrain/meta_<region>.json (extra tiles at levels
+## 0-2, e.g. a coastal corridor). Tile entry = [min_h, max_h, flags]; flags bit 1 = imagery (img/), bit 2 = land class (lc/);
+## a missing flags element means 3. A tile without imagery or land class borrows it from its nearest ancestor, on a UV
+## sub-rectangle. Region tiles merge only when their heightmap file is present, so the game runs without a region data pack.
 
 const HAS_IMG := 1
 const HAS_LC := 2
@@ -129,9 +126,8 @@ func roots() -> Array[Vector3i]:
 	return out
 
 
-## UV sub-rectangle of node (level, tx, ty) inside the texture of source tile src
-## (an ancestor or itself): Vector3(u_off, v_off, scale). v is measured from the
-## north edge (image row 0), so v_off is the node's SW corner: 1 - sub.y / span.
+## UV sub-rectangle of node (level, tx, ty) inside the texture of source tile src (an ancestor or itself):
+## Vector3(u_off, v_off, scale). v is measured from the north edge (image row 0), so v_off is the node's SW corner: 1 - sub.y / span.
 static func sub_rect(node: Vector3i, src: Vector3i) -> Vector3:
 	if src == NONE:
 		return Vector3(0.0, 1.0, 1.0)

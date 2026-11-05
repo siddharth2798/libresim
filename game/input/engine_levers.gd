@@ -1,16 +1,14 @@
 class_name EngineLevers
 extends RefCounted
-## Writes the per-engine pilot levers (throttle, mixture) into Props.
-## FdmNode reads engine 1 from controls/<name> and engine n >= 2 from controls/<name>_<n> only if
-## that prop exists, else from the shared controls/<name>. A writer that set just the shared prop
-## after one separate write would leave an engine on a stale value, so the rule here is:
-##   * one engine: only controls/<name> (exactly the C172 path);
-##   * several engines: ALWAYS write controls/<name> (= engine 1), its mirror controls/<name>_1 and
-##     every controls/<name>_<n>, so the fallback never applies;
-##   * shared levers (default): a write moves every engine; separate levers (A320 style, throttle
-##     only): write(name, i, v) moves engine i alone, write_all still moves all.
-## With reverse (controls.levers.throttle reverse / group "reverse") the lever position is
-## throttle_n - reverse_n (see lever_detents.gd): reverse_n = controls/reverse_<n> for n >= 1.
+## Writes the per-engine pilot levers (throttle, mixture) into Props. FdmNode reads engine 1 from controls/<name> and engine
+## n >= 2 from controls/<name>_<n> only if that prop exists, else from the shared controls/<name>. A writer that set only the
+## shared prop after a separate write would leave an engine stale, so:
+##   * one engine: only controls/<name> (the C172 path);
+##   * several engines: ALWAYS write controls/<name> (= engine 1), controls/<name>_1 and every controls/<name>_<n>;
+##   * shared levers (default): a write moves every engine; separate levers (A320 throttle only): write(name, i, v) moves
+##     engine i alone, write_all still moves all.
+## With reverse (controls.levers.throttle reverse / group "reverse") the lever position is throttle_n - reverse_n
+## (lever_detents.gd); reverse_n = controls/reverse_<n>, n >= 1.
 
 const SEPARATE_NAMES := ["throttle"]
 

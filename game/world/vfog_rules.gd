@@ -1,13 +1,10 @@
 class_name VfogRules
 extends RefCounted
-## Volumetric fog (world/volumetric_fog.gd): the pure maps from the weather / time of day to the near-field fog,
-## the froxel settings per quality level and the composite's slice spacing. No scene access (tests/test_volumetric_fog.gd).
-##
-## Godot's volumetric fog is a froxel volume that only reaches surfaces whose material samples it, and every
-## material with render_mode fog_disabled (terrain, buildings, trees, the cloud pass, ...) skips it, exactly like
-## the Environment fog. Those materials draw their own haze, so the far haze stays theirs; the froxel fog is put
-## back onto them by VfogComposite (one full-screen draw, see vfog_composite.gdshader). The fog therefore holds
-## only what the custom haze does not: light shafts, rain curtains, mist, structure in cloud and glow round lights.
+## Volumetric fog (world/volumetric_fog.gd): pure maps from weather / time of day to the near-field fog, the
+## froxel settings per quality level and the composite's slice spacing. No scene access (tests/test_volumetric_fog.gd).
+## Godot's froxel fog skips every material with render_mode fog_disabled (terrain, buildings, trees, clouds); those
+## draw their own haze, and VfogComposite puts the froxel fog back onto them (vfog_composite.gdshader). So the fog holds
+## only what the custom haze does not: light shafts, rain curtains, mist, structure in cloud, glow round lights.
 
 ## Quality level ("vfog" key of the graphics presets): 0 off, 1 High, 2 Ultra, 3 Max.
 ##   size / depth: froxel grid (x, y / slices), length: m the froxel volume reaches, slices: composite planes,
@@ -18,9 +15,8 @@ const QUALITY := {
 	3: {"size": 128, "depth": 128, "length": 14000.0, "slices": 32, "reproject": 0.85},
 }
 const SPREAD := 2.0  # froxel / composite slice spacing exponent (Godot's volumetric_fog_detail_spread)
-## The composite's last plane stops where the Environment fog reaches 1 - e^-1.4 (75 %): its inversion multiplies any
-## mismatch with the engine's fog by 1 / (1 - f) (seen as un-hazed, posterised far terrain at 99 %), so f is kept
-## <= 0.75. Beyond that the haze hides the far froxel fog anyway (about half the visibility).
+## The composite's last plane stops where the Environment fog reaches 1 - e^-1.4 (75 %). Its inversion multiplies any
+## mismatch with the engine's fog by 1 / (1 - f), which shows as un-hazed far terrain, so f stays <= 0.75.
 const ENV_FOG_LIMIT := 1.4
 const ANISOTROPY := 0.6  # forward scattering: shafts and mist glow towards the sun
 const STORM_REACH := 16000.0  # m: storm cells (CloudStorm) within this get a rain curtain
@@ -47,9 +43,8 @@ static func composite_far(length: float, haze: float) -> float:
 	return clampf(ENV_FOG_LIMIT / maxf(haze, 1e-7), 50.0, length)
 
 
-## Dawn mist is off by default. The tree impostors are alpha-tested now (opaque pass, so they get the froxel fog),
-## but fog_dawn_mist with the mist on still shows a hard straight edge a few km out (darker inside) and the lit
-## canopy tops as pale speckles (2026-11-04, docs/GRAPHICS-PLAN.md G5): the mist profile / range needs fixing first.
+## Dawn mist is off by default: with it on, a hard straight edge shows a few km out and lit canopy tops speckle
+## pale. The mist profile / range needs fixing first (docs/GRAPHICS-PLAN.md G5).
 const MIST_ENABLED := false
 
 

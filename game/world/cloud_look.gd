@@ -1,12 +1,11 @@
 class_name CloudLook
 extends RefCounted
-## Pure maps for how flying inside cloud is drawn (CloudInside applies them, tests/test_weather_visuals.gd
-## covers them). The cockpit keeps the realistic short visibility; outside views (chase, orbit, wing, tail)
-## keep the aircraft readable: the extinction around it is capped so most of its light reaches the camera,
-## and the cloud pass leaves a pocket free of cloud around the camera-to-aircraft distance.
+## Pure maps for how flying inside cloud is drawn (CloudInside applies them; tests/test_weather_visuals.gd). The cockpit
+## keeps the short visibility; outside views (chase, orbit, wing, tail) cap the extinction around the aircraft so it stays
+## readable, and the cloud pass leaves a pocket free of cloud around the camera-to-aircraft distance.
 
 const RAMP_LO := 0.02  # camera cloud density where the in-cloud look starts ...
-const RAMP_HI := 0.45  # ... and where it is complete (was a hard switch at 0.05)
+const RAMP_HI := 0.45  # ... and where it is complete
 const SIGMA_THIN := 0.004  # 1/m extinction in thin cloud (visibility ~750 m)
 const SIGMA_THICK := 0.03  # 1/m in dense cloud (visibility ~100 m): the cockpit keeps this
 const SUBJECT_TRANS := 0.8  # outside views: share of the aircraft's light that reaches the camera

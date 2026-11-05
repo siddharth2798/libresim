@@ -1,19 +1,15 @@
 class_name GroundParams
 extends RefCounted
-## What the ground operations (pushback, taxi, stands, service vehicles) need to know about the
-## aircraft, read from its aircraft.json "ground" and "pushback" sections. Every key has a default;
-## the defaults are the C172's, so an aircraft only spells out what differs. All lengths in metres,
-## structural frame about the CG (+x forward). Each reader takes an AircraftDef, null = the current one.
-##
+## What ground operations (pushback, taxi, stands, service vehicles) need to know about the aircraft, from aircraft.json
+## "ground" and "pushback". Every key has a default (the C172's). Lengths in metres, structural frame about the CG (+x
+## forward). Each reader takes an AircraftDef, null = the current one.
 ## ground:   tow_ahead_m (tug origin ahead of the CG), ahead_m / behind_m / across_m / height_m (footprint),
-##           cg_to_door_m (L1 door ahead of the CG, jetbridge gates only), door_y_m (lateral offset of the L1 door
-##           from the centre line, negative = left/port; where a docked jetway cab meets the fuselage), door_height_m
-##           (door sill height, what a jetway must clear instead of height_m; its presence makes the jetways of a
-##           gate dock to this aircraft, see JetwayDocks), nose_gear_m (nose wheel ahead of the CG, where the
-##           stop bar is), taxi_half_m (taxiway corridor half width), max_taxi_kt (advice only, absent = none),
-##           follow_gap_m (follow-me car ahead of the CG), hold_short_m ("hold short" call distance),
-##           min_runway_m, stand_class ("any" | "ga" | "gate"), tug_scale. Where the ramp crew services the aircraft:
-##           the "ramp" section (world/ramp_points.gd).
+##           cg_to_door_m (L1 door ahead of the CG, jetbridge gates only), door_y_m (L1 door offset from the centre line,
+##           negative = left), door_height_m (door sill height; its presence makes gate jetways dock to this aircraft,
+##           see JetwayDocks), nose_gear_m (nose wheel ahead of the CG, where the stop bar is), taxi_half_m (taxiway
+##           corridor half width), max_taxi_kt (advice only, absent = none), follow_gap_m (follow-me car ahead of the CG),
+##           hold_short_m ("hold short" call distance), min_runway_m, stand_class ("any" | "ga" | "gate"), tug_scale.
+##           Ramp-crew service points: the "ramp" section (world/ramp_points.gd).
 ## pushback: straight_m, radius_m, speed_mps (path = PushbackPath).
 
 const GROUND := {"tow_ahead_m": 3.2, "ahead_m": 3.3, "behind_m": 7.4, "across_m": 6.7, "height_m": 2.5,

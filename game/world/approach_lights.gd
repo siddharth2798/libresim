@@ -1,14 +1,10 @@
 class_name ApproachLights
 extends RefCounted
 ## Approach lighting systems (pure layout):
-## - precision (ILS) ends: ALSF-II / CALVERT-like 900 m centreline of 5-light white
-##   barrettes every 30 m, crossbars at 150 m and 300 m, red side-row barrettes over the
-##   inner 270 m, and sequenced flashers ("the rabbit") from 900 m in to 330 m, 2 Hz.
-## - other ends of runways >= 1200 m: simple 420 m system (3-light barrettes every 60 m,
-##   crossbar at 300 m). Shorter runways get none.
-## Fixtures stand LIFT above the ground under them. (They used to be held at threshold height
-## or above, which left them floating up to 20 m in the air where the approach ground falls
-## away, e.g. VAPO; no pole is drawn, so a floating light has nothing to stand on.)
+## - precision (ILS) ends: ALSF-II / CALVERT-like 900 m centreline of 5-light white barrettes every 30 m, crossbars at 150 m and
+##   300 m, red side-row barrettes over the inner 270 m, and sequenced flashers ("the rabbit") from 900 m in to 330 m, 2 Hz.
+## - other ends of runways >= 1200 m: simple 420 m system (3-light barrettes every 60 m, crossbar at 300 m). Shorter runways: none.
+## Fixtures stand LIFT above the ground under them (no pole is drawn, so they must not float where the approach ground falls away).
 
 const LIFT := 0.6
 const FULL_LEN := 900.0

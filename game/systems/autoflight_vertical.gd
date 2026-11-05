@@ -1,18 +1,18 @@
 class_name AfVertical
 extends RefCounted
-## Vertical modes of the autoflight (pure logic, no Props). Every mode produces a flight path angle
-## command gamma_cmd; nz() turns it into the load-factor demand the control law gets
-## (`ap/cmd/nz_g`: the g INCREMENT over the 1 g flight-path hold; 0 = keep the flight path, + = pull).
-##   SRS      takeoff / go-around: pitch holds V2 + 10 (AfSpeeds.srs_target), thrust is manual
+## Vertical modes of the autoflight (pure logic, no Props). Every mode produces a flight path angle command gamma_cmd; nz()
+## turns it into the load-factor demand for the control law (`ap/cmd/nz_g`: g INCREMENT over the 1 g path hold; 0 = keep
+## the path, + = pull).
+##   SRS      takeoff / go-around: pitch holds V2 + 10 (AfSpeeds.srs_target), thrust manual
 ##   V/S      selected vertical speed (FCU)
 ##   OP CLB   open climb to the FCU altitude: thrust CLB, pitch holds the speed (selected or managed)
 ##   OP DES   open descent: thrust idle, pitch holds the speed
 ##   CLB/DES  managed climb / descent: same laws with the managed speed schedule (no vertical profile)
 ##   ALT*     capture of the FCU altitude: constant deceleration profile (A_CAP) ending in a linear approach
-##   ALT      altitude hold ("ALT CRZ" on the FMA when it was reached in a managed climb / descent)
+##   ALT      altitude hold ("ALT CRZ" on the FMA when reached in a managed climb / descent)
 ##   G/S*, G/S  glide slope capture and track (-3 deg path through the glide slope antenna)
-## Armed: "ALT" (a level-off is ahead), "G/S" (APPR pressed).
-## The speed-on-pitch laws are a PI: gamma = KP x (speed - target) + integral (bumpless at mode entry).
+## Armed: "ALT" (level-off ahead), "G/S" (APPR pressed).
+## Speed-on-pitch laws are a PI: gamma = KP x (speed - target) + integral (bumpless at mode entry).
 
 const G := AfInputs.G
 const A_CAP := 1.0  # m/s2 vertical deceleration of the altitude capture

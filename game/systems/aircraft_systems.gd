@@ -2,11 +2,10 @@ class_name AircraftSystems
 extends Node
 ## Builds the systems of the aircraft being flown from its aircraft.json "systems.profile":
 ## - "ga" (default): nothing. world/flight.tscn keeps its C172 nodes (Electrical, Fuel, Vacuum, PitotStatic).
-## - "airliner": AirlinerElectrical, AirlinerHydraulics, AirlinerFuel, AirlinerLights, AirlinerCabin and
-##   AirlinerWarnings as children, and PitotStatic (data-driven, "systems.pitot_static") when no sibling or
-##   child has one. The C172-only sibling nodes in GA_NODES (piston electrical, selector fuel, vacuum pump)
-##   are removed from the parent, so put this node first under Systems in the scene (their _ready never
-##   runs, no stale controls/electrical/master_bat Props). The APU node is not made here: FdmNode adds it.
+## - "airliner": AirlinerElectrical, AirlinerHydraulics, AirlinerFuel, AirlinerLights, AirlinerCabin and AirlinerWarnings as
+##   children, and PitotStatic (data-driven, "systems.pitot_static") when no sibling or child has one. The C172-only siblings in
+##   GA_NODES (piston electrical, selector fuel, vacuum pump) are removed from the parent, so put this node first under Systems
+##   (their _ready never runs, no stale controls/electrical/master_bat Props). The APU node is added by FdmNode, not here.
 ## Every part reads its own "systems.<name>" section of aircraft.json, merged over its DEFAULTS.
 
 const GA_NODES := ["Electrical", "Fuel", "Vacuum"]

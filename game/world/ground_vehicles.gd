@@ -1,14 +1,12 @@
 class_name GroundVehicles
 extends RefCounted
-## The parked and working ground vehicles of an airport, built in code (no imported models): one cached
-## mesh per kind (body surface + glass surface, with automatic LODs), shared materials, plus a small ground
-## decal (contact shadow, tyre blobs, headlamp pool). Models face -Z with the origin on the ground at their
-## middle. Each vehicle gets a seed (fleet number, dirt, beacon phase) and a working flag (beacon turning,
-## headlamps at night) as instance uniforms, so every vehicle of a kind still shares one mesh and material.
-## Pieces: vehicle_geo.gd (mesh builder), vehicle_parts.gd / vehicle_trim.gd (wheels, slabs, lamps...),
-## veh_*.gd (one per vehicle), vehicle.gdshader (+ vehicle_surface.gdshaderinc), follow_me_glass.gdshader,
-## vehicle_ground.gd(shader); night light points: vehicle_lamps.gd; driving (wheels): vehicle_motion.gd.
-## The follow-me car (follow_me_car.gd) has its own builder and materials.
+## The parked and working ground vehicles of an airport, built in code (no imported models): one cached mesh per kind (body
+## + glass surface, automatic LODs), shared materials, and a small ground decal (contact shadow, tyre blobs, headlamp pool).
+## Models face -Z, origin on the ground at their middle. Each vehicle has a seed (fleet number, dirt, beacon phase) and a
+## working flag (beacon turning, headlamps at night) as instance uniforms, so a kind shares one mesh and material.
+## Pieces: vehicle_geo.gd (mesh builder), vehicle_parts.gd / vehicle_trim.gd, veh_*.gd (one per vehicle), vehicle.gdshader
+## (+ vehicle_surface.gdshaderinc), follow_me_glass.gdshader, vehicle_ground.gd(shader), vehicle_lamps.gd (night lights),
+## vehicle_motion.gd (wheels). The follow-me car (follow_me_car.gd) has its own builder and materials.
 
 const KINDS := ["fuel_truck", "hydrant_dispenser", "gpu", "baggage_tug", "baggage_cart", "apron_bus", "fire_truck", "pushback_tug"]
 const NOTES := {"fuel_truck": "refuelling truck", "hydrant_dispenser": "hydrant dispenser", "gpu": "ground power unit",
@@ -99,11 +97,10 @@ static func seed_at(p: Vector2) -> float:
 	return fposmod(sin(p.x * 12.9898 + p.y * 78.233) * 43758.5453, 1.0)
 
 
-## A vehicle node: a Node3D holding the body MeshInstance3D ("Body", its bounds are the footprint) and the
-## ground decal ("Ground", meta no_solid). size scales the model uniformly (the pushback tug for an
-## airliner: ground.tug_scale); the cached meshes are shared. seed 0..1 picks fleet number, dirt and
-## beacon phase; working: beacon turning, headlamps at night. moving: a VehicleMotion root that rolls
-## and steers the wheels as the node is moved.
+## A vehicle node: a Node3D holding the body MeshInstance3D ("Body", its bounds are the footprint) and the ground decal
+## ("Ground", meta no_solid). size scales the model (pushback tug for an airliner: ground.tug_scale); meshes are shared.
+## seed 0..1 picks fleet number, dirt, beacon phase; working: beacon turning, headlamps at night. moving: a VehicleMotion
+## root that rolls and steers the wheels as the node moves.
 static func make(kind: String, size := 1.0, seed := 0.5, working := false, moving := false) -> Node3D:
 	var root: Node3D = VehicleMotion.new() if moving else Node3D.new()
 	root.name = kind

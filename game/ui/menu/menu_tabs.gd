@@ -1,18 +1,14 @@
 class_name MenuTabs
 extends BoxContainer
-## Tabs for the Options and Controls pages: a bar of flat toggle Buttons (pill with an accent tint when
-## selected, MenuTheme.focus_box ring on keyboard focus) and a stack of pages; only the selected page shows.
-## All pages are built up front and only hidden, so every control stays alive (and findable by tests).
-##
-##     var tabs := MenuTabs.new().setup(false, true)   # (as_rail, sticky): bar on top / rail at the left; sticky = the pages
-##                                                     # scroll under a bar that stays in view (the page must fill its height)
-##     tabs.add_tab("sound", "Sound", page_control)
-##     tabs.tab_changed.connect(func(id): ...)
-##     tabs.select("sound")                            # also emits tab_changed unless emit := false
-##
-## Keys: Left / Right (Up / Down on a rail) on a focused tab select the neighbour (wraps) and keep the focus
-## there; Ctrl+Tab / Ctrl+Shift+Tab switch from anywhere while the tabs are visible. The key rules are
-## pure statics (`step`, `delta_for_key`) so they are tested without a window.
+## Tabs for the Options and Controls pages: a bar of flat toggle Buttons (accent tint when selected, MenuTheme.focus_box
+## ring on focus) and a stack of pages; only the selected page shows. All pages are built up front and only hidden, so
+## every control stays alive (and findable by tests).
+##   var tabs := MenuTabs.new().setup(false, true)  # (as_rail, sticky)
+##   tabs.add_tab("sound", "Sound", page_control)
+##   tabs.tab_changed.connect(func(id): ...)
+##   tabs.select("sound")                           # also emits tab_changed unless emit := false
+## Keys: Left / Right (Up / Down on a rail) on a focused tab select the neighbour (wraps); Ctrl+Tab / Ctrl+Shift+Tab
+## switch from anywhere. The key rules are pure statics (`step`, `delta_for_key`), tested without a window.
 
 signal tab_changed(id: String)
 
@@ -31,8 +27,7 @@ var _cur := ""
 
 
 ## `as_rail`: tabs stacked at the left of the pages instead of a row above them. `sticky`: the pages scroll inside this
-## control (both ways when they need to, the focused control is kept in view) and the tab bar never scrolls away; the
-## page that holds the tabs must then give them its whole height instead of scrolling as a whole.
+## control and the tab bar never scrolls away; the page that holds the tabs must then give them its whole height.
 func setup(as_rail := false, sticky := false) -> MenuTabs:
 	rail = as_rail
 	vertical = not as_rail

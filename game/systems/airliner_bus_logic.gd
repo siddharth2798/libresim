@@ -1,13 +1,11 @@
 class_name AirlinerBusLogic
 extends RefCounted
-## Which electrical buses of an A320-style network are powered, from the sources: a pure function so
-## it is easy to test (the node is airliner_electrical.gd).
-## Sources: gen1 / gen2 (engine generators), apu (APU generator), ext (ground power), bat (a battery is
-## connected). Each AC bus is fed by its own generator first, then ground power, then the APU generator
-## (these three can feed both buses), then the other engine generator through the bus tie. AC ESS
-## follows AC 1, then AC 2, then the static inverter off the batteries. TR 1 / TR 2 make DC 1 / DC 2
-## from AC 1 / AC 2; DC ESS comes from either DC bus, from AC ESS (ESS TR) or from the batteries; DC BAT
-## is DC 1, DC 2 or the batteries.
+## Which electrical buses of an A320-style network are powered, from the sources: a pure function (the node is
+## airliner_electrical.gd). Sources: gen1 / gen2 (engine generators), apu, ext (ground power), bat (a battery is connected).
+## Each AC bus is fed by its own generator first, then ground power, then the APU generator (these three can feed both buses), then
+## the other engine generator through the bus tie. AC ESS follows AC 1, then AC 2, then the static inverter off the batteries.
+## TR 1 / TR 2 make DC 1 / DC 2 from AC 1 / AC 2; DC ESS comes from either DC bus, from AC ESS (ESS TR) or from the batteries;
+## DC BAT is DC 1, DC 2 or the batteries.
 
 
 ## in: {gen1, gen2, apu, ext, bat: bool}. out: bus booleans and the source names ("GEN1", "GEN2",

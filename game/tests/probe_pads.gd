@@ -1,8 +1,7 @@
 extends Node
-## Live probe for joysticks and gamepads: prints every connected pad (index, name, guid) and then every axis and
-## button change, so the real numbers of a device can be read while somebody moves its controls. Used to calibrate
-## the Thrustmaster TCA Captain Pack (core/input_profiles.gd). Windowed (a joystick only reaches a focused window on
-## macOS), muted, always on top. Nothing is written except the log file.
+## Live probe for joysticks and gamepads: prints every connected pad (index, name, guid) and then every axis and button
+## change, to read a device's real numbers (used to calibrate the Thrustmaster TCA Captain Pack, core/input_profiles.gd).
+## Windowed (a joystick only reaches a focused window on macOS), muted, always on top. Writes only the log file.
 ##
 ##   ~/.local/bin/godot --path game --windowed --resolution 640x360 --audio-driver Dummy res://tests/probe_pads.tscn \
 ##       -- --out=/path/to/log.txt [--seconds=120] [--eps=0.04] [--settle=0.5]
@@ -14,7 +13,7 @@ extends Node
 ##   RANGE pad=<i> axis=<n> min=<v> max=<v> rest=<v>   at the end, every axis that moved
 ##   BTN t=<s> pad=<i> button=<n> down|up
 ##   KEY t=<s> <key>                            a keyboard key (digits, letters, space) used as a marker: press 1 before
-##                                              moving control 1, and so on, so the log says which control a line belongs to
+##                                              moving control 1, etc., so the log says which control a line belongs to
 ## The window shows the same lines, newest last.
 
 var _out := ""

@@ -1,14 +1,12 @@
 extends RefCounted
-## Hands-off flight from a trimmed start (the e2e sweep's handsoff_* jobs): the fixed aileron / rudder tabs
-## (controls.aileron_rigging 0.033 / rudder_rigging 0.004) balance the rolling moment at about 100 KIAS,
-## and JSBSim's c172p with the same tabs behaves the same: below that speed the pilot's weight and the engine
-## torque win and the nearly neutral spiral mode lets the bank grow slowly to the left.
+## Hands-off flight from a trimmed start (the e2e sweep's handsoff_* jobs): the fixed aileron / rudder tabs (controls.aileron_rigging
+## 0.033 / rudder_rigging 0.004) balance the rolling moment at about 100 KIAS, as in JSBSim's c172p with the same tabs: below that
+## speed pilot weight and engine torque win and the nearly neutral spiral mode lets the bank grow slowly to the left.
 ## JSBSim 1.3.2 c172p (engIO360C, same rigging, 3000 ft, ISA, calm, solo), bank / heading change after 60 s:
 ##   90 KCAS -10.7 deg / -76 deg;  95 KCAS -4.7 / -32;  100 KCAS 0.0 / 0 (tools/18_compare_fdm.py setup_air).
-## Ours is within a few degrees of that, so a real regression (rigging, trim, wind, gear or thrust changes)
-## shows up here, in the pure FDM, long before the game-level e2e run.
-## The game adds a weak wings-level pull (controls.roll_stability, FlightControls._wings_level) because a
-## neutral spiral mode made the aircraft hard to fly and land; the JSBSim comparison runs with it off.
+## Ours is within a few degrees, so a real regression (rigging, trim, wind, gear, thrust) shows up here in the pure FDM before the
+## e2e run. The game adds a weak wings-level pull (controls.roll_stability, FlightControls._wings_level); the JSBSim comparison
+## runs with it off.
 
 const DT := 1.0 / 120.0
 const KT := 0.514444

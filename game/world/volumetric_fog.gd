@@ -1,21 +1,19 @@
 class_name VolumetricFog
 extends Node
-## Near-field volumetric fog (G5, Forward+ only, the "volumetric_fog" option and the presets' "vfog" level): Godot's
-## Environment volumetric fog plus FogVolumes, driven by the weather Props each frame:
-##   light shafts under broken cloud, rain curtains under storm cells (CloudStorm) and streaks in heavy rain,
-##   morning mist over the low ground, puffs inside cloud, a soft glow round real lights at night.
-## The far haze stays the custom aerial perspective; the rules (VfogRules) keep the froxel fog to what that does not
-## draw. The fog_disabled materials get the froxel fog through VfogComposite (a child of the camera); the aircraft and
-## other standard materials get it from the engine. Created / reconfigured by Graphics.apply_to_scene:
-##   VolumetricFog.apply(root, level)
-## All FogVolumes sit in the render frame: they are placed from world (ENU) positions every frame and moved with
-## FloatingOrigin.shifted at once, so an origin shift never leaves them 5 km off for a frame.
+## Near-field volumetric fog (Forward+ only; the "volumetric_fog" option and the presets' "vfog" level): Godot's Environment
+## volumetric fog plus FogVolumes, driven by the weather Props each frame: light shafts under broken cloud, rain curtains
+## under storm cells (CloudStorm), streaks in heavy rain, morning mist over low ground, puffs in cloud, glow round lights at night.
+## The far haze stays the custom aerial perspective; VfogRules keep the froxel fog to what that does not draw. fog_disabled
+## materials get it through VfogComposite (child of the camera); standard materials get it from the engine.
+## Created / reconfigured by Graphics.apply_to_scene: VolumetricFog.apply(root, level)
+## All FogVolumes sit in the render frame: placed from world (ENU) positions every frame and moved with FloatingOrigin.shifted
+## at once, so an origin shift never leaves them 5 km off for a frame.
 
 const NODE := "VolumetricFog"
 const AIR := preload("res://world/vfog_air.gdshader")
 const RAIN := preload("res://world/vfog_rain.gdshader")
-const AIR_GLOW := 0.8  # froxel air emission x the haze colour: ~1.2 is neutral in shade (fog_dawn_mist), lower so the lit air (sun) is not whiter than the haze
-const MIST_GLOW := 0.5  # mist emission x the haze colour: shaded mist stays as pale as the air around it
+const AIR_GLOW := 0.8  # froxel air emission x haze colour; lowered so sunlit air is not whiter than the haze
+const MIST_GLOW := 0.5  # mist emission x haze colour: shaded mist stays as pale as the air around it
 const FLOOR_EVERY := 2.0  # s between terrain samples for the mist floor
 
 var level := 0  # VfogRules.QUALITY key, 0 = off

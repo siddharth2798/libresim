@@ -1,13 +1,12 @@
 class_name CloudPhysics
 extends RefCounted
-## Clouds as physics at the aircraft: owned by Weather, which calls update() every physics tick and adds
-## the returned wind / turbulence terms. Publishes (all at the aircraft position):
-##   environment/ac_cloud_density 0..1, ac_in_cloud, cloud_base_m, cloud_top_m (AMSL), cloud_kind,
-##   turbulence_scale (x the Dryden sigma), thermal_mps (+ up), storm_intensity 0..1, storm_core,
-##   storm_shear_mps (wind the storm cell adds).
-## Reads weather/cloud_*, precip, convection, storms, turbulence, temp_c, aloft wind, environment/sun_elev_deg
-## and environment/cloud_drift (SkyTime: the advection of the visual cloud layer, so structure matches).
-## environment/in_cloud stays the camera's (fog, visuals). Details: docs/USAGE.md "Weather physics".
+## Clouds as physics at the aircraft: owned by Weather, which calls update() every physics tick and adds the returned wind /
+## turbulence terms. Publishes (at the aircraft position): environment/ac_cloud_density 0..1, ac_in_cloud, cloud_base_m,
+## cloud_top_m (AMSL), cloud_kind, turbulence_scale (x the Dryden sigma), thermal_mps (+ up), storm_intensity 0..1, storm_core,
+## storm_shear_mps (wind the storm cell adds).
+## Reads weather/cloud_*, precip, convection, storms, turbulence, temp_c, aloft wind, environment/sun_elev_deg and
+## environment/cloud_drift (SkyTime: advection of the visual cloud layer, so structure matches). environment/in_cloud stays the
+## camera's (fog, visuals). Details: docs/USAGE.md "Weather physics".
 
 const LAND_EVERY := 0.5  # s between land-class lookups under the aircraft
 

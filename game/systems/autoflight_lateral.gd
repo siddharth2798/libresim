@@ -1,16 +1,14 @@
 class_name AfLateral
 extends RefCounted
-## Lateral modes of the autoflight (pure logic, no Props). Output: bank_cmd (rad, + right) and the roll
-## rate demand (rad/s) that the control law gets as `ap/cmd/roll_rate_dps`.
+## Lateral modes of the autoflight (pure logic, no Props). Output: bank_cmd (rad, + right) and the roll rate demand (rad/s) the
+## control law gets as `ap/cmd/roll_rate_dps`.
 ##   RWY   takeoff: hold the runway heading until 30 ft, then HDG (or NAV when managed)
 ##   HDG   selected heading (FCU), shortest turn
 ##   NAV   managed: GPS leg (avionics/gps: direct-to or the route), track intercept with cross-track
-##   LOC*  localizer capture: the capture point is found from the closure rate (lead = turn radius x
-##         (1 - cos of the intercept angle)); same guidance as LOC
+##   LOC*  localizer capture: the capture point comes from the closure rate (lead = turn radius x (1 - cos of the intercept angle))
 ##   LOC   localizer track: track = course - K x offset (clamped), so a crosswind is flown out
-## Armed: "LOC" (LOC or APPR pressed, waiting for the signal and the capture point). LAND is the
-## localizer / glide slope mode below 400 ft (shown by the FMA only).
-## Bank is limited to 25 deg; the roll demand is K x (bank - roll), limited to 8 deg/s.
+## Armed: "LOC" (LOC or APPR pressed, waiting for signal and capture point). LAND is the localizer / glide slope mode below 400 ft
+## (FMA only). Bank is limited to 25 deg; the roll demand is K x (bank - roll), limited to 8 deg/s.
 
 const BANK_MAX := deg_to_rad(25.0)
 const K_HDG := 1.2  # bank per heading error

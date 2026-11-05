@@ -1,13 +1,12 @@
 class_name JetwayRig
 extends Node3D
-## One movable jetway of an airport, hinged at its rotunda (tools/jetway_net.py: the OSM network node where the
-## apron-drive bridge starts; a fixed link, JetwayLinks, joins it to the terminal), in two layouts: rest (straight
-## toward the drawn cab end, hood REST_BACK_M short of it) and docked (hood face on the door of the aircraft parked
-## at a gate it serves, JetwayDocks), and the move between them. Tunnel sections stretch, the drum / girder / cab
-## move rigidly (the cab turns about the drum to face the fuselage), the bridge tilts about the rotunda to put the
-## cab floor at the door sill. The rotunda (column, room and the stub into the building or along the fixed link)
-## stays put, and the wheel support stands upright on the apron under the girder (JetwayLegs). Retracted it is
-## solid (OpsSolids); extended it is not (it stands against its own aircraft). Poses: JetwayPose.
+## One movable jetway of an airport, hinged at its rotunda (tools/jetway_net.py: the OSM network node where the apron-drive bridge
+## starts; a fixed link, JetwayLinks, joins it to the terminal), in two layouts: rest (straight toward the drawn cab end, hood
+## REST_BACK_M short of it) and docked (hood face on the door of the aircraft parked at a gate it serves, JetwayDocks), and the
+## move between them. Tunnel sections stretch; drum / girder / cab move rigidly (the cab turns about the drum to face the
+## fuselage); the bridge tilts about the rotunda to put the cab floor at the door sill. The rotunda stays put, and the wheel
+## support stands upright on the apron under the girder (JetwayLegs). Retracted it is solid (OpsSolids); extended it is not.
+## Poses: JetwayPose.
 
 const TUNNELS := ["Tunnel1", "Tunnel2", "Tunnel3", "Tunnel4", "Scissors"]
 const WITH_DRUM := ["Rotunda2", "SupportGirder"]

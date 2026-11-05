@@ -1,13 +1,11 @@
 extends "res://ui/menu/page_frame.gd"
-## Free flight: the guided setup. A left rail (FlowRail: the five steps with their live value and a
-## status mark) beside one page at a time; a footer with Back, the setup as clickable chips
-## (FlowChips), Next (names the next step, hidden on the last) and the one filled Fly button. Fly
-## is never disabled: it is the normal accent when the setup is ready (or only has warnings) and
-## amber "Fly anyway" when SetupChecks finds a "bad" problem (start_screen.gd then asks first).
-## Back on the first step leaves for the home screen (back_pressed). The choices go into
-## Session.setup. The aircraft comes first because the airport page depends on it (air-start
-## height and distance, runways long enough, stands that suit it). Keys: 1-5 jump to a step,
-## Page Up / Page Down step, Ctrl+Enter flies, Esc goes back. Texts: flow_values.gd.
+## Free flight: the guided setup. A left rail (FlowRail: the five steps with live value and status mark) beside one page at a time;
+## a footer with Back, the setup as clickable chips (FlowChips), Next (names the next step, hidden on the last) and the one filled
+## Fly button. Fly is never disabled: normal accent when the setup is ready (or has only warnings), amber "Fly anyway" when
+## SetupChecks finds a "bad" problem (start_screen.gd then asks first). Back on the first step leaves for home (back_pressed).
+## Choices go into Session.setup. Aircraft comes first because the airport page depends on it (air-start height and distance,
+## runways long enough, stands that suit it). Keys: 1-5 jump to a step, Page Up / Down step, Ctrl+Enter flies, Esc goes back.
+## Texts: flow_values.gd.
 
 signal fly_requested
 

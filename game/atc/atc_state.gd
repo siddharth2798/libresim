@@ -1,14 +1,13 @@
 class_name AtcState
 extends RefCounted
-## ATC state names and the pilot's calls ("intents"): which service answers each call and
-## which calls make sense in which state. The menu shows only those.
-##
-## States (published as /atc/state):
+## ATC state names and the pilot's calls ("intents"): which service answers each call and which calls make sense in which
+## state (the menu shows only those).
+## States (/atc/state):
 ##   ground:  parked -> clearance -> taxi -> hold_short -> lined_up -> takeoff
 ##   air:     departed -> enroute -> inbound -> final
 ##   landing: landed -> vacated -> (taxi ->) parked
-## Pilot calls: atis, clearance, pushback, taxi, ready, inbound, final, goaround, taxi_stand.
-## "Say again" and "Tune COM1" are added by the controller.
+## Pilot calls: atis, clearance, pushback, taxi, ready, inbound, final, goaround, taxi_stand. The controller adds
+## "Say again" and "Tune COM1".
 
 const STATES := ["parked", "clearance", "taxi", "hold_short", "lined_up", "takeoff", "departed",
 	"enroute", "inbound", "final", "landed", "vacated"]

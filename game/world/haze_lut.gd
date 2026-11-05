@@ -1,12 +1,11 @@
 class_name HazeLut
 extends RefCounted
-## View-dependent far-haze colour (docs/GRAPHICS-PLAN.md G4): a small RGBAH texture over (angle between the view's
-## and the sun's azimuth, 0..180 deg; view elevation above the dipped horizon, sine 0..S_MAX on a square-root
-## scale) holding the clear-sky colour of the analytic sky (Atmosphere.sky + the sky shader's sun glow), read by
-## world/haze_sky.gdshaderinc in the terrain / building / tree / cloud haze. The table only depends on the sun's
-## elevation and the aerosol (not on the heading), so SkyTime refills it when those change (0.25 deg of sun,
-## ~1 min of sim time), one row per frame (32 Atmosphere.sky calls, ~1 ms) into a back image that is uploaded
-## when complete; the first fill is immediate (~7 ms). Globals: haze_lut, haze_sun, haze_ref (project.godot).
+## View-dependent far-haze colour (docs/GRAPHICS-PLAN.md G4): a small RGBAH texture over (angle between view and sun azimuth,
+## 0..180 deg; view elevation above the dipped horizon, sine 0..S_MAX on a square-root scale) holding the clear-sky colour of
+## the analytic sky (Atmosphere.sky + the sky shader's sun glow), read by world/haze_sky.gdshaderinc in the terrain / building /
+## tree / cloud haze. It depends only on sun elevation and aerosol, so SkyTime refills it when those change (0.25 deg of sun,
+## ~1 min of sim time), one row per frame (32 Atmosphere.sky calls, ~1 ms) into a back image uploaded when complete; the first
+## fill is immediate. Globals: haze_lut, haze_sun, haze_ref (project.godot).
 
 const W := 32
 const H := 8

@@ -1,10 +1,9 @@
 class_name PostFx
 extends RefCounted
-## Post-processing entry point. Call apply() after the graphics preset has been applied to the scene
-## (Graphics.apply_to_scene) and again whenever a post-fx option changes:
-##   PostFx.apply(root, Graphics.preset)
-## It sets Environment glow from the "bloom" option (never on Low) and creates / reconfigures the
-## "PostFxDriver" node under root (world/postfx/post_fx_driver.gd), which owns the effects:
+## Post-processing entry point. Call apply() after the graphics preset is applied (Graphics.apply_to_scene) and whenever a
+## post-fx option changes: PostFx.apply(root, Graphics.preset)
+## It sets Environment glow from the "bloom" option (never on Low) and creates / reconfigures the "PostFxDriver" node under
+## root (world/postfx/post_fx_driver.gd), which owns the effects:
 ##   motion_blur     CompositorEffect, compute (High+, Forward+)          world/postfx/motion_blur_effect.gd
 ##   sun_shafts      CompositorEffect, compute (Medium+, Forward+/Mobile) world/postfx/sun_shafts_effect.gd
 ##   sharpen, lens_effects, lens_rain   one canvas pass after TAA         world/postfx/screen_post.gd

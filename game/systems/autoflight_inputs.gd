@@ -1,15 +1,14 @@
 class_name AfInputs
 extends RefCounted
-## What the autoflight sees on one tick, in SI (m, s, rad, m/s). read() fills it from Props; tests fill
-## the fields directly. The FCU set-points are converted from pilot units here (the only place).
-## From Props: fdm/{cas_mps, tas_mps, mach, vs_mps, agl_m, position_enu, pitch_rad, roll_rad,
-## heading_rad (true), track_rad (true), groundspeed_mps, wow, gear_pos, flap_lever, flap_deg, slat_deg,
-## mass_kg, alpha_rad}, atmosphere/pressure_pa, controls/baro/{hpa, std}, controls/throttle[_n] (the pilot's
-## levers), engines/<n>/lever, controls/flex_temp_c, fcs/alpha_floor and ap/cmd/takeover (from the control
-## law), systems/electrical/avionics_powered, failures/ap, avionics/nav{1,2}/{kind, valid, gs_valid},
-## avionics/gps/{valid, brg_mag, dist_nm, xtk_nm}, controls/fcu/*.
-## The ILS geometry (course, antenna positions, glide path angle) comes from a NavDatabase `db` (set by the
-## wiring, as for Gps); the radios only say whether the signals are received.
+## What the autoflight sees on one tick, in SI (m, s, rad, m/s). read() fills it from Props; tests fill the fields directly.
+## FCU set-points are converted from pilot units here (the only place).
+## From Props: fdm/{cas_mps, tas_mps, mach, vs_mps, agl_m, position_enu, pitch_rad, roll_rad, heading_rad (true), track_rad
+## (true), groundspeed_mps, wow, gear_pos, flap_lever, flap_deg, slat_deg, mass_kg, alpha_rad}, atmosphere/pressure_pa,
+## controls/baro/{hpa, std}, controls/throttle[_n] (the pilot's levers), engines/<n>/lever, controls/flex_temp_c, fcs/alpha_floor
+## and ap/cmd/takeover (from the control law), systems/electrical/avionics_powered, failures/ap, avionics/nav{1,2}/{kind, valid,
+## gs_valid}, avionics/gps/{valid, brg_mag, dist_nm, xtk_nm}, controls/fcu/*.
+## The ILS geometry (course, antenna positions, glide path angle) comes from a NavDatabase `db` (set by the wiring, as for Gps);
+## the radios only say whether the signals are received.
 
 const VAR_DEG := -0.3  # magnetic variation, as in avionics/gps.gd and instruments/adirs.gd (mag = true - VAR)
 const G := 9.80665

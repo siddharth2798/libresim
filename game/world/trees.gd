@@ -1,12 +1,10 @@
 class_name Trees
 extends Node3D
-## Forests from the land-class mask (tools/11_landclass.py, 1..200 = tree density).
-## The world is split into CHUNK-metre cells; cells within radius of the camera get
-## a MultiMesh of crossed-quad impostor trees (sprites from the TreeAtlas baked at startup, four
-## species, see TreeSpecies), placed deterministically (same trees every time). Trees within
-## lod_radius of the camera are drawn as real meshes by TreeLod instead (dither swap).
-## Generation runs on worker threads (TreeSampler reads the data files itself); the main
-## thread only uploads finished buffers, BUDGET per frame. Hidden above HIDE_AGL.
+## Forests from the land-class mask (tools/11_landclass.py, 1..200 = tree density). The world is split into CHUNK-metre cells;
+## cells within radius of the camera get a MultiMesh of crossed-quad impostor trees (TreeAtlas sprites baked at startup, four
+## species, TreeSpecies), placed deterministically. Trees within lod_radius are real meshes (TreeLod, dither swap).
+## Generation runs on worker threads (TreeSampler reads the data files); the main thread uploads finished buffers, BUDGET per
+## frame. Hidden above HIDE_AGL.
 
 const CHUNK := 480.0
 var radius := 2200.0  # graphics presets
@@ -196,10 +194,9 @@ func _reposition() -> void:
 			_place(_chunks[k], k)
 
 
-## Collision: a vertical cylinder per tree (ObstacleShapes.disc, TreeSpecies.hit_radius / hit_top: 0.4 x width and
-## 0.9 x height, less for palms), made lazily from the same TreeSampler.cell_tree rule as the drawn trees and cached per
-## land cell. Independent of the camera and of which chunks are drawn: it works wherever the
-## aircraft is, as soon as the land-class mask there has loaded (it loads with the terrain).
+## Collision: a vertical cylinder per tree (ObstacleShapes.disc, TreeSpecies.hit_radius / hit_top: 0.4 x width and 0.9 x
+## height, less for palms), made lazily from the same TreeSampler.cell_tree rule as the drawn trees and cached per land cell.
+## Independent of the camera and drawn chunks: works wherever the aircraft is once the land-class mask has loaded.
 func near(e: float, n: float, r: float, alt_lo: float, out: Array) -> void:
 	if terrain == null or alt_lo > terrain.cache.height_at(e, n) + MAX_TREE_H + r + 2.0:
 		return  # nothing here reaches that high

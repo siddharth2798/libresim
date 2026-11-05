@@ -1,15 +1,12 @@
 class_name TrainingSession
 extends Node
-## Runs a training lesson inside the flight scene (Session.training = lesson id, set by the
-## start screen's Training page or --lesson=ID). Each physics tick it builds a snapshot of
-## the flight (speed, height, runway-relative position, glide-path deviation ...), advances
-## the lesson (training_logic.gd), drives the card / gauges (training_hud.gd), the 3D
-## markers (training_markers.gd) and coach messages, and shows the graded result at the end.
-## Assist level (Session.assist): full = markers + gauges + hints; light = card + hints +
-## callouts; off = card and warnings only for the steps.
-## A lesson ends either graded (all steps done) or "not completed" (the pilot touched down or
-## left the approach too early, crashed ...: abort rules in lessons.json): the pilot always gets
-## a result card, never a card stuck on a step. Try again / F5 restart it from the start.
+## Runs a training lesson inside the flight scene (Session.training = lesson id, set by the Training page or --lesson=ID). Each
+## physics tick it builds a snapshot of the flight (speed, height, runway-relative position, glide-path deviation ...), advances
+## the lesson (training_logic.gd), drives the card / gauges (training_hud.gd), the 3D markers (training_markers.gd) and coach
+## messages, and shows the graded result at the end.
+## Assist level (Session.assist): full = markers + gauges + hints; light = card + hints + callouts; off = card and warnings only.
+## A lesson ends graded (all steps done) or "not completed" (touched down or left the approach too early, crashed ...: abort
+## rules in lessons.json): the pilot always gets a result card. Try again / F5 restarts it.
 
 var fdm_node: FdmNode
 var airports: AirportBuilder

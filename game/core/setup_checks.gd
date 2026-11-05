@@ -1,18 +1,15 @@
 class_name SetupChecks
 extends RefCounted
-## Readiness of a free-flight setup (what the start screen looks at before FLY). Pure logic over a
-## Session.setup-shaped Dictionary, no nodes. checks() returns the problems found:
-##   [{step: "aircraft" | "airport" | "weather", level: "bad" | "warn", id, text}]
-## An empty list is a ready setup. Levels:
-##   bad   over maximum takeoff weight, CG outside the envelope, runway shorter than ground.min_runway_m (runway
-##         starts only), tailwind above TAILWIND_KT, crosswind above limits.max_crosswind_kt (the last two on a
-##         runway start AND an air start: the air start lines up with the same runway; not on a stand start).
-##         These make Fly ask "Fly anyway?".
+## Readiness of a free-flight setup (what the start screen checks before FLY). Pure logic over a Session.setup-shaped
+## Dictionary. checks() returns the problems: [{step: "aircraft" | "airport" | "weather", level: "bad" | "warn", id, text}];
+## an empty list is a ready setup.
+##   bad   over maximum takeoff weight, CG outside the envelope, runway shorter than ground.min_runway_m (runway starts
+##         only), tailwind above TAILWIND_KT, crosswind above limits.max_crosswind_kt (the last two on runway and air
+##         starts, not stand starts). These make Fly ask "Fly anyway?".
 ##   warn  visibility under LOW_VIS_M. Never asks.
-## The values come from the aircraft (AircraftDef: mtow_kg, cg_envelope via WeightBalance, ground.min_runway_m,
-## limits.max_crosswind_kt) and the runway data (runways.json, the same file the airport page reads). The runway
-## the flight uses is looked up as world/airport_builder.gd runway_start does: the ident, else the longest runway.
-## Gusts are not counted. Mirrors W.checks of the chosen design (docs/ui-rework/widgets.js).
+## Values come from the aircraft (mtow_kg, cg_envelope via WeightBalance, ground.min_runway_m, limits.max_crosswind_kt) and
+## runways.json. The runway is looked up as world/airport_builder.gd runway_start does: the ident, else the longest. Gusts
+## are not counted.
 
 const TAILWIND_KT := 5.0  # a tailwind above this is "bad" (exactly 5 is not)
 const LOW_VIS_M := 1600.0

@@ -1,18 +1,17 @@
 class_name Autoflight
 extends Node
-## Autopilot, flight director and autothrust of an airliner (AP1 / AP2, FD, A/THR with the FCU modes), as a
-## system node ticked in _physics_process; the logic is in autoflight_logic.gd (+ _lateral, _vertical,
-## _thrust, _speeds, _fma, _inputs). Group saveable (core/situation_systems.gd).
-## Reads (Props): see AfInputs; the FCU: controls/fcu/{ap1, ap2, athr, loc, appr, fd (default on), spd_kt,
-## hdg_deg (magnetic), alt_ft, vs_fpm, spd_managed, hdg_managed, vs_managed, ap_disc, athr_disc (pulses,
-## consumed), vert_select ("OPEN" | "MANAGED" | "VS", consumed)}.
-## Writes: ap/{ap1, ap2, athr (armed or active), athr_active, fd, loc, appr, fd_pitch_rad, fd_roll_rad,
-## thrust_limit, spd_target_kt, fma/{thrust, vertical, lateral, approach, misc}, disconnect (0.5 s pulse),
-## disconnect_warning, disconnect_count}; for the control law ap/cmd/{active, nz_g (g increment, + pull),
-## roll_rate_dps (+ right)}; for the engines ap/cmd/lever_<n> (used instead of controls/throttle_<n> by
-## FdmNode while ap/athr_active); and back to the FCU the request flags controls/fcu/{ap1, ap2, athr} (the
-## state, so a refused or dropped engagement un-presses the button) and, when the autoflight picks a mode
-## from the present state, the set-points controls/fcu/{hdg_deg, vs_fpm}.
+## Autopilot, flight director and autothrust of an airliner (AP1 / AP2, FD, A/THR with FCU modes), a system node ticked in
+## _physics_process; logic is in autoflight_logic.gd (+ _lateral, _vertical, _thrust, _speeds, _fma, _inputs). Group saveable
+## (core/situation_systems.gd).
+## Reads (Props): see AfInputs; the FCU: controls/fcu/{ap1, ap2, athr, loc, appr, fd (default on), spd_kt, hdg_deg (magnetic),
+## alt_ft, vs_fpm, spd_managed, hdg_managed, vs_managed, ap_disc, athr_disc (pulses, consumed), vert_select ("OPEN" | "MANAGED" |
+## "VS", consumed)}.
+## Writes: ap/{ap1, ap2, athr (armed or active), athr_active, fd, loc, appr, fd_pitch_rad, fd_roll_rad, thrust_limit,
+## spd_target_kt, fma/{thrust, vertical, lateral, approach, misc}, disconnect (0.5 s pulse), disconnect_warning,
+## disconnect_count}; for the control law ap/cmd/{active, nz_g (g increment, + pull), roll_rate_dps (+ right)}; for the engines
+## ap/cmd/lever_<n> (used instead of controls/throttle_<n> by FdmNode while ap/athr_active); back to the FCU the request flags
+## controls/fcu/{ap1, ap2, athr} (the state, so a refused engagement un-presses the button) and, when the autoflight picks a
+## mode from the present state, the set-points controls/fcu/{hdg_deg, vs_fpm}.
 ## The control law sets ap/cmd/takeover (sidestick moved: the AP disconnects) and fcs/alpha_floor.
 
 var logic: AfLogic

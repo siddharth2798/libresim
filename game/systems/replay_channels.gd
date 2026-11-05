@@ -1,11 +1,9 @@
 class_name ReplayChannels
 extends RefCounted
-## What a replay frame records and how it is played back. Two groups of float32
-## channels: FDM state (read directly by the 3-D model, gyros, compass and camera)
-## and Props (read by gauges, audio, lights, moving map). Which Props: ReplayLayout
-## (the C172 base lists plus the aircraft's aircraft.json "replay" section and the
-## per-engine expansion). A prop that did not exist when recorded is stored as NaN
-## and left alone on playback.
+## What a replay frame records and how it is played back. Two groups of float32 channels: FDM state (read by the 3-D
+## model, gyros, compass, camera) and Props (read by gauges, audio, lights, moving map). Which Props: ReplayLayout
+## (C172 base lists + aircraft.json "replay" section + per-engine expansion). A prop that did not exist when recorded
+## is stored as NaN and left alone on playback.
 
 ## FDM state: q (4), v_ned (3), w_b (3), accel_b (3), then scalars, then the extra
 ## FlightControls fields of the aircraft.
@@ -16,9 +14,8 @@ const S_A := 10
 const S_SCALARS := ["elevator", "aileron", "rudder", "flap_deg", "alpha", "beta", "vt", "cas", "agl", "load_factor"]
 const S_SC := 13
 const N_BASE := 23
-## FlightControls fields recorded as state when the aircraft's replay section has "fcs": true and the
-## field exists on `fcs` (a scalar, or an Array / packed array: one channel per element). Extend
-## this list when FlightControls gets a new animated field.
+## FlightControls fields recorded as state when the aircraft's replay section has "fcs": true and the field exists on
+## `fcs` (a scalar, or an array: one channel per element). Extend when FlightControls gets a new animated field.
 const EXTRA_FCS_FIELDS := ["slat_deg", "spoiler", "speedbrake", "gear_pos", "thrust_lever"]
 ## Engine fields (Powerplant) -> prop of engine 1 that older recordings and gauges use.
 const LEGACY := {"rpm": "engine/rpm", "running": "engine/running", "egt_k": "engine/egt_k", "cht_k": "engine/cht_k",
@@ -187,9 +184,8 @@ func prop_value(c: PackedFloat32Array, key: String) -> Variant:
 	return x
 
 
-## Recorded value of engine i (0-based): a Powerplant field ("rpm", "running", "egt_k", ...) from
-## engines/<n>/<name>, engine 1 also from its legacy engine/* prop; a lever ("throttle", "mixture")
-## from controls/<name>_<n>, else controls/<name> (FdmNode's rule). null if not recorded.
+## Recorded value of engine i (0-based): a Powerplant field ("rpm", "running", "egt_k", ...) from engines/<n>/<name>
+## (engine 1 also from legacy engine/*); a lever from controls/<name>_<n>, else controls/<name>. null if not recorded.
 func engine_value(c: PackedFloat32Array, i: int, name: String) -> Variant:
 	if name in ReplayLayout.ENGINE_LEVERS:
 		var own: Variant = prop_value(c, "controls/%s_%d" % [name, i + 1]) if i > 0 else null

@@ -1,20 +1,17 @@
 class_name CallsignField
 extends VBoxContainer
-## The call sign / registration of the pilot: a labelled text field, bound to Session.setup.callsign (core/callsign.gd
-## holds the rules). The same call sign is painted on the tail and used on the radio. Shared by the Aircraft step
-## and Options > Radio; every instance on screen follows the others, a typed value survives a change of aircraft.
-##
-## API (two lines to put it on a page):
-##     var cs := CallsignField.new().setup("Call sign")   # label text, optional (default "Call sign")
-##     parent.add_child(cs)                               # and, if the page wants to know: cs.callsign_changed.connect(...)
+## The pilot's call sign / registration: a labelled text field bound to Session.setup.callsign (rules in core/callsign.gd).
+## The same call sign is painted on the tail and used on the radio. Shared by the Aircraft step and Options > Radio; every
+## instance follows the others, and a typed value survives a change of aircraft.
+##     var cs := CallsignField.new().setup("Call sign")   # label text, optional
+##     parent.add_child(cs)
 ##   signal callsign_changed(value)  a valid call sign was stored ("" = cleared: the aircraft's own registration again)
-##   refresh()   re-read Session.setup and the chosen aircraft (placeholder = the aircraft's own registration, e.g. VT-LBR);
-##               call it after the aircraft changed. It runs by itself when the field becomes visible and when another
-##               instance stores a value.
+##   refresh()   re-read Session.setup and the chosen aircraft (placeholder = its own registration); call it after the aircraft
+##               changed. It also runs when the field becomes visible and when another instance stores a value.
 ##   edit        the LineEdit (tests focus it / type into it).
-## Typing: upper-case, only A-Z 0-9 and "-", 8 characters at most. Only a valid call sign is stored (live, per keystroke);
-## a half-typed one shows the hint in amber, is not stored, and on Enter / leaving the field the text goes back to the stored
-## value. An empty field = untouched = the call sign follows the aircraft (VT-LBR on the C172, VT-ZZA on the A320).
+## Typing: upper-case, A-Z 0-9 and "-", 8 characters at most. Only a valid call sign is stored (per keystroke); a half-typed
+## one shows the hint in amber and on Enter / leaving the field the text goes back to the stored value. Empty = untouched =
+## the call sign follows the aircraft.
 
 signal callsign_changed(value: String)
 

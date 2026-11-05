@@ -1,11 +1,10 @@
 class_name AirlinerCabin
 extends Node
-## Bleed air, packs and cabin pressure of an airliner, only as Props for the SD (no faults). Bleed air comes
-## from a running engine (N2 >= bleed_n2_min percent) or the APU (apu/running with its bleed on); with a
-## source and a pack on, the cabin climbs on a schedule (cabin altitude = field altitude + cabin_ratio x height
-## above it, capped at max_cabin_alt_m and, through the pressure difference, at max_dp_pa), at most
-## climb_ms up / descent_ms down. On the ground, or without air, the cabin follows the ambient altitude.
-## The numbers are the aircraft's aircraft.json "systems.cabin" over DEFAULTS.
+## Bleed air, packs and cabin pressure of an airliner, only as Props for the SD (no faults). Bleed air comes from a running
+## engine (N2 >= bleed_n2_min percent) or the APU (apu/running with its bleed on); with a source and a pack on, the cabin climbs
+## on a schedule (cabin altitude = field altitude + cabin_ratio x height above it, capped at max_cabin_alt_m and, through the
+## pressure difference, at max_dp_pa), at most climb_ms up / descent_ms down. On the ground, or without air, the cabin follows
+## the ambient altitude. Numbers: aircraft.json "systems.cabin" over DEFAULTS.
 ## Switches (Props controls/bleed/*, default on): eng1, eng2, apu, pack1, pack2.
 ## Reads: fdm/alt_m, fdm/wow, atmosphere/pressure_pa, engines/<n>/n2, apu/running.
 ## Publishes systems/bleed/{eng1_on, eng2_on, apu_on, avail, pressure_pa}, systems/packs/{1_on, 2_on},

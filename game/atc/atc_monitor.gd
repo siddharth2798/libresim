@@ -1,14 +1,11 @@
 class_name AtcMonitor
 extends RefCounted
-## Watches the world snapshot (atc_world.gd) and does what a controller does without being
-## asked: follows the flight through the state machine, hands the pilot over to the next
-## frequency, asks for "report final", clears to take off / land when the runway is free,
-## tells the pilot to vacate; and gives advisories (never blocking): taking off or landing
-## without clearance, entering a runway without clearance, COM1 failure, wrong frequency.
-## Each advisory is shown once per flight (per departure after a landing) and is worded as a note,
-## not a command. In a training lesson (silent = true) the monitor says nothing at all: the state
-## still follows the flight and clearances count as given (/atc/cleared_takeoff, cleared_land
-## true), so a lesson is never interrupted by ATC. Called a few times a second with sim time `now`.
+## Watches the world snapshot (atc_world.gd) and does what a controller does unasked: follows the flight through the state
+## machine, hands over to the next frequency, asks for "report final", clears to take off / land when the runway is free, tells
+## the pilot to vacate; and gives advisories (never blocking): take-off / landing / runway entry without clearance, COM1
+## failure, wrong frequency. Each advisory shows once per flight (per departure after a landing), worded as a note.
+## In a training lesson (silent = true) it says nothing: the state still follows the flight and clearances count as given
+## (/atc/cleared_takeoff, cleared_land true). Called a few times a second with sim time `now`.
 
 const ROLL_MPS := 15.0    # ~30 kt: the take-off roll
 const GO_AGL_M := 61.0    # ~200 ft: below this without a landing clearance = go around

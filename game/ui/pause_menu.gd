@@ -1,12 +1,10 @@
 extends Control
-## Esc: the full-screen pause screen, in the style of Microsoft Flight Simulator. The flight model
-## pauses and the frozen 3D scene stays visible behind a blurred, dimmed backdrop (nothing is
-## reloaded; resuming is instant). A big "PAUSED" title with a context line, a left column of
-## big items and, on the right, the selected page embedded (ui/pause_pages.gd: Options, Weather &
-## time, Controls & keys, Save / Load, Failures; the home page shows where the flight stands).
-## Keys: arrows move (Left / Right also cross into a page), Enter selects, Esc backs out one level
-## (text field, then page, then resume); every other key is swallowed so the flight hotkeys do
-## nothing underneath. Props ui/pause_open tells the keyboard controls to ignore held keys.
+## Esc: the full-screen pause screen. The flight model pauses and the frozen 3D scene stays visible behind a blurred, dimmed
+## backdrop (nothing is reloaded; resuming is instant). A "PAUSED" title with a context line, a left column of big items and,
+## on the right, the selected page (ui/pause_pages.gd: Options, Weather & time, Controls & keys, Save / Load, Failures; the home
+## page shows where the flight stands).
+## Keys: arrows move (Left / Right also cross into a page), Enter selects, Esc backs out one level (text field, page, resume);
+## every other key is swallowed so flight hotkeys do nothing. Props ui/pause_open tells the keyboard controls to ignore held keys.
 ## Restart, Quit to main menu and Quit game ask for a second click.
 
 const Pages := preload("res://ui/pause_pages.gd")

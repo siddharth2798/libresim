@@ -1,13 +1,12 @@
 class_name JetwayPose
 extends RefCounted
 ## Geometry of the FlightGear generic jetway (world/models/vehicles/jetway.glb) and the poses of its parts.
-## Model frame: x along the tunnel, y up, z to the right; metres. The rig's origin (the rotunda node of the
-## jet-bridge network, tools/jetway_net.py) is the rotunda column at model x = PIVOT_X: the tunnel turns and
-## tilts about it, the rotunda itself (Rotunda1: column, room and the fixed stub reaching STUB_X behind it) stays put.
-## A pose is {yaw, len, cab_yaw, pitch}: yaw = compass-free ENU angle of the tunnel (atan2(north, east)), len =
-## rotunda column to the cab drum centre, cab_yaw = ENU angle the cab faces (the way the hood points), pitch = tilt
-## about the rotunda (raises the cab floor to a door sill). The tunnel sections stretch (scale x); the drum, support
-## and cab move rigidly and are never scaled, so the hood ends exactly at the pose's tip.
+## Model frame: x along the tunnel, y up, z right; metres. The rig's origin (the rotunda node of the jet-bridge network,
+## tools/jetway_net.py) is the rotunda column at model x = PIVOT_X: the tunnel turns and tilts about it; the rotunda itself
+## (Rotunda1: column, room, fixed stub reaching STUB_X behind it) stays put.
+## A pose is {yaw, len, cab_yaw, pitch}: yaw = ENU angle of the tunnel (atan2(north, east)), len = rotunda column to cab drum
+## centre, cab_yaw = ENU angle the cab faces, pitch = tilt about the rotunda (raises the cab floor to a door sill). The tunnel
+## sections stretch (scale x); the drum, support and cab move rigidly, so the hood ends exactly at the pose's tip.
 
 const TIP_X := 17.01  # hood face
 const DRUM_X := 14.33  # centre of the cab-end drum (the cab swings about it)

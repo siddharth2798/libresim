@@ -1,12 +1,11 @@
 class_name PitotStatic
 extends Node
-## Pitot-static system: pitot (total) and static pressures seen by the
-## instruments, with position error and failure modes:
+## Pitot-static system: pitot (total) and static pressures seen by the instruments, with position error and failure modes:
 ##   failures/pitot_blocked  - pitot + drain blocked: pitot pressure frozen (ASI acts as altimeter)
 ##   failures/static_blocked - static port blocked: static pressure frozen
 ##   systems/alternate_static - cabin static source: reads ~ -0.1 inHg low (higher alt/IAS)
-##   icing/pitot_blocked, icing/static_blocked (systems/icing.gd) act like the two failures; ice on the static
-##   port does not matter with the alternate static source selected
+##   icing/pitot_blocked, icing/static_blocked (systems/icing.gd) act like the two failures; ice on the static port does not
+##   matter with the alternate static source selected
 ## Publishes systems/pitot_static/{pitot_pa, static_pa}.
 
 const ALT_STATIC_DP := -0.1 * 3386.389  # cabin pressure slightly below ambient

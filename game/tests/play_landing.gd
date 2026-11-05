@@ -1,33 +1,21 @@
 extends Node
 ## Debug: a "user-like" landing. Flies the landing lesson's runway in the real flight scene with the real
-## KeyboardControls: the pilot (play_landing_pilot.gd) only holds / releases keys (Input.parse_input_event)
-## and decides every 0.1 s from what a pilot can see (airspeed, altitude AGL, vertical speed, attitude,
-## track, runway position and the 3 deg path picture) like a student: pitch holds speed, power holds the
-## path, trim off the stick, flaps by distance, flare by vertical speed, brakes after the nose is down.
-## It also checks the PAPI of the landing runway end (play_landing_papi.gd): the 4 units are there on the
-## left, abeam the glide-slope point (or 300 m past the threshold), and the reading the pilot's eye sees
-## (camera position, "WWRR" outer unit first) is the one worked out from the elevation angle to each unit,
-## sampled at 4.5 / 3 / 2 / 1 / 0.5 nm and once a second. A PAPI fault fails the run.
-## Headless only; the run never writes the player's files (Session.interactive() is false for a test scene).
-##
-## Run (one run is about a minute):
-##   godot --headless --fixed-fps 120 --path game res://tests/play_landing.tscn -- --lesson=landing,off [options]
-## Options: --seed=N (airspeed-needle noise, default 1)  --nm=4.5 --ft=1500 --kt=90 (start; --ft follows --nm
-##   on the 3 deg path if not given)  --vref=65  --wind=220/12G18 (dir/kt[Ggust], default the lesson's 280/4)
-##   --turb=0.3  --max=400 (sim seconds)  --wall=900 (real seconds)  --papi-need=WWWW|RRRR (that reading must
-##   be seen: use it with a deliberately high / low start)  --p_<gain>=value (a gain of the pilot, see P in
-##   play_landing_pilot.gd)
-## Verified: 5 seeds x calm / 220/12G18 turb 0.15, at the lesson start and at --nm=4.5 --ft=1700 (turb 0.3 is beyond a student).
-## PAPI is OK when the layout is right, every reading equals the worked-out one, and on the path (+-0.2 deg) WWRR
-## is seen at least half of the time (the unit settings are +-0.17 deg wide).
+## KeyboardControls: the pilot (play_landing_pilot.gd) only holds / releases keys and decides every 0.1 s from what a
+## pilot can see (airspeed, AGL, vertical speed, attitude, track, runway position, the 3 deg path picture).
+## It also checks the PAPI of the landing runway end (play_landing_papi.gd): 4 units on the left, abeam the glide-slope
+## point (or 300 m past the threshold), and the reading from the camera ("WWRR" outer unit first) equals the one worked out
+## from the elevation angle, sampled at 4.5 / 3 / 2 / 1 / 0.5 nm and once a second. A PAPI fault fails the run.
+## PAPI is OK when the layout is right, every reading matches, and on the path (+-0.2 deg) WWRR is seen at least half of the time.
+## Headless only; never writes the player's files (Session.interactive() is false for a test scene). One run is ~1 minute.
+## Run: godot --headless --fixed-fps 120 --path game res://tests/play_landing.tscn -- --lesson=landing,off [options]
+## Options: --seed=N (airspeed-needle noise, default 1)  --nm=4.5 --ft=1500 --kt=90 (start; --ft follows --nm on the 3 deg
+##   path if not given)  --vref=65  --wind=220/12G18 (dir/kt[Ggust], default 280/4)  --turb=0.3  --max=400 (sim s)
+##   --wall=900 (real s)  --papi-need=WWWW|RRRR (that reading must be seen; use with a high / low start)
+##   --p_<gain>=value (a pilot gain, see P in play_landing_pilot.gd)
 ## Last line: PLAY RESULT PASS|FAIL reason=.. touchdown_ias=.. vs_fpm=.. along_m=.. cross_m=.. bounces=.. papi=OK|FAIL ..
 ##   Exit code 0 = PASS, 1 = FAIL.
-## Sweep (calm, crosswind, off-nominal starts, high / low PAPI starts):
-##   for s in 1 2 3 4 5; do for w in "" "--wind=220/12G18 --turb=0.3"; do
-##     godot --headless --fixed-fps 120 --path game res://tests/play_landing.tscn -- --lesson=landing,off --seed=$s $w \
-##       | grep "PLAY RESULT"; done; done
-##   ... -- --lesson=landing,off --nm=4.5 --ft=1700 --seed=2                     (farther out and higher)
-##   ... -- --lesson=landing,off --ft=1300 --papi-need=WWWW   /   --ft=700 --papi-need=RRRR   (high / low)
+## Sweep: for s in 1 2 3 4 5; do for w in "" "--wind=220/12G18 --turb=0.3"; do
+##     godot --headless --fixed-fps 120 --path game res://tests/play_landing.tscn -- --lesson=landing,off --seed=$s $w | grep "PLAY RESULT"; done; done
 
 const Pilot := preload("res://tests/play_landing_pilot.gd")
 const PapiCheck := preload("res://tests/play_landing_papi.gd")

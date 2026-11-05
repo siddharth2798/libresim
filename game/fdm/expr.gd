@@ -2,13 +2,11 @@ class_name Expr
 extends RefCounted
 ## Evaluator for the JSBSim-derived expression trees of aero.json / config.json (tools/jsb_expr.py):
 ##   number | {"p": property} | {"table": {...}} (Table) | {"op": name, "args": [...]}
-## Operators: sum product min max avg and or (n-ary), difference (a - b - ...), quotient pow atan2 mod
-## lt le gt ge eq ne (comparisons give 1 / 0), abs sqrt exp ln log2 log10 sin cos tan asin acos atan
-## floor ceil fraction not neg toradians todegrees, ifthen (cond, then, else), interpolate1d (x, x0, y0,
-## x1, y1, ...). Not converted (so not here): integral derivative lag switch clipto random.
-## Properties are read from a context Dictionary (JSBSim name -> value). A name that is not in it reads
-## 0.0, as the C172 always did; with Expr.strict set (tests, aircraft that opt in) it is also an error:
-## recorded in Expr.unknown and pushed with push_error, so a converter / context mismatch is noticed.
+## Operators: sum product min max avg and or (n-ary), difference (a - b - ...), quotient pow atan2 mod lt le gt ge eq ne
+## (comparisons give 1 / 0), abs sqrt exp ln log2 log10 sin cos tan asin acos atan floor ceil fraction not neg toradians todegrees,
+## ifthen (cond, then, else), interpolate1d (x, x0, y0, x1, y1, ...). Not converted: integral derivative lag switch clipto random.
+## Properties are read from a context Dictionary (JSBSim name -> value). A name not in it reads 0.0; with Expr.strict set (tests,
+## aircraft that opt in) it is also an error: recorded in Expr.unknown and pushed with push_error.
 
 static var strict := false
 static var unknown := {}  # property / operator name -> true, filled in strict mode

@@ -1,15 +1,11 @@
 class_name SpeechBackend
 extends RefCounted
-## The only place that touches DisplayServer text-to-speech and the file system probe for it.
-## core/speech_service.gd owns the policy (when to probe, caching); tests swap this class for a
-## fake (tests/test_speech.gd).
-##
-## Why a warm-up exists (Godot 4.7, Linux): the first tts_* call creates the speech-dispatcher
-## client and connects to the daemon on a background thread. tts_get_voices_for_language() right
-## after that first call sees no connection yet and prints 'ERROR: Parameter "synth" is null.
-## at: get_voices (platform/linuxbsd/tts_linux.cpp:197)' even when espeak-ng works. tts_is_speaking()
-## creates the client without that error, and it takes the client's lock, so a second call waits
-## for the connection to finish.
+## The only place that touches DisplayServer text-to-speech and the file-system probe for it. core/speech_service.gd owns the
+## policy (when to probe, caching); tests swap this class for a fake (tests/test_speech.gd).
+## Why a warm-up exists (Godot 4.7, Linux): the first tts_* call creates the speech-dispatcher client and connects on a background
+## thread. tts_get_voices_for_language() right after it sees no connection and prints 'ERROR: Parameter "synth" is null. at:
+## get_voices (platform/linuxbsd/tts_linux.cpp:197)' even when espeak-ng works. tts_is_speaking() creates the client without that
+## error and takes the client's lock, so a second call waits for the connection to finish.
 
 ## Where the dynamic loader would find libspeechd (Godot opens libspeechd.so.2 itself).
 const LIB_DIRS := ["/usr/lib", "/usr/lib64", "/lib", "/lib64", "/usr/local/lib", "/app/lib", "/run/current-system/sw/lib",

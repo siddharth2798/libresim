@@ -1,11 +1,9 @@
 class_name Situation
 extends RefCounted
-## Saved flight situations ("save flight" / "load flight"), milestone M8.
-## capture() snapshots a running flight scene (world/flight.tscn) into a JSON-safe
-## Dictionary: FDM state (core/situation_fdm.gd), the pilot's controls / radios /
-## failures / weather / instrument settings from Props, the systems' (core/situation_systems.gd,
-## group "saveable") and the gyros' internal state, the failure scheduler, the camera and the Session setup.
-## apply() puts it all back. Files: user://saves/<name>.json + <name>.png (320x180).
+## Saved flight situations ("save flight" / "load flight"). capture() snapshots a running flight scene (world/flight.tscn)
+## into a JSON-safe Dictionary: FDM state (situation_fdm.gd), the pilot's controls / radios / failures / weather /
+## instrument settings from Props, the systems' (situation_systems.gd, group "saveable") and gyros' state, the failure
+## scheduler, camera and Session setup. apply() puts it back. Files: user://saves/<name>.json + <name>.png (320x180).
 ## A crashed aircraft cannot be saved.
 
 const VERSION := 1
@@ -143,9 +141,8 @@ static func apply(root: Node, d: Dictionary) -> String:
 	return ""
 
 
-## Ground height lookups are synchronous (terrain_tile_cache.height_at reads the tile
-## on demand), so the aircraft cannot fall through. If the terrain data changed since
-## the save, keep the saved height above ground instead of the saved altitude.
+## Ground height lookups are synchronous (height_at reads the tile on demand), so the aircraft cannot fall through. If the
+## terrain data changed since the save, keep the saved height above ground instead of the saved altitude.
 static func _settle_on_terrain(f: FDM, d: Dictionary) -> void:
 	var agl := float(d.get("agl", 1e9))
 	if agl > 100.0:

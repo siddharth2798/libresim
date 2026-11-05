@@ -1,11 +1,8 @@
 class_name Replay
 extends Node
-## Instant replay. While flying it records the FDM state and the Props that the
-## model, gauges and sound read (ReplayChannels) into a ring buffer at 20 Hz
-## (last `minutes`). In replay mode the FDM is held (FdmNode.replaying) and this
-## node writes the interpolated recorded state into the FDM object and Props every
-## frame, so the model, cameras, instruments and audio all follow the recording.
-## take_control() resumes live flight from the current replay point.
+## Instant replay. While flying it records the FDM state and the Props that the model, gauges and sound read (ReplayChannels) into
+## a ring buffer at 20 Hz (last `minutes`). In replay mode the FDM is held (FdmNode.replaying) and this node writes the
+## interpolated recorded state into the FDM object and Props every frame. take_control() resumes live flight from the replay point.
 ## Props: "replay/active" (bool), "replay/speed", "replay/playing".
 
 signal started

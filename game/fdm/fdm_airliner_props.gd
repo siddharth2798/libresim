@@ -1,16 +1,13 @@
 class_name FdmAirlinerProps
 extends RefCounted
-## The Props side of the airliner parts of the FDM (FdmNode calls read() before every physics tick and
-## publish() after it); everything is skipped for aircraft without these parts, so the C172's Props
-## stay as they were.
-## Reads:  controls/gear (1 down) controls/speedbrake controls/autobrake (0..3) controls/tiller
-##   controls/engine_master_<n> controls/engine_mode (0 NORM, 1 CRANK, 2 IGN/START) controls/reverse_<n>
-##   controls/flex_temp_c controls/lights/landing failures/engine_fire[_<n>] systems/hydraulics/antiskid
-##   (absent = on)
-## Publishes (turbofan engines, n = 1-based): engines/<n>/n1 n2 egt_k ff oil thrust_n running reverser
-##   lever, (legacy engine/* stay engine 1's); fdm/slat_deg fdm/spoiler (per panel) fdm/spoiler_left_deg
-##   fdm/spoiler_right_deg fdm/speedbrake fdm/gear_pos fdm/gear_state fdm/door_pos fdm/mach
-##   fdm/stabilizer_deg fdm/flap_lever fdm/autobrake_on fdm/ground_speed_mps
+## The Props side of the airliner parts of the FDM (FdmNode calls read() before every physics tick and publish() after it);
+## skipped for aircraft without these parts, so the C172's Props stay as they were.
+## Reads:  controls/gear (1 down) controls/speedbrake controls/autobrake (0..3) controls/tiller controls/engine_master_<n>
+##   controls/engine_mode (0 NORM, 1 CRANK, 2 IGN/START) controls/reverse_<n> controls/flex_temp_c controls/lights/landing
+##   failures/engine_fire[_<n>] systems/hydraulics/antiskid (absent = on)
+## Publishes (turbofan engines, n = 1-based): engines/<n>/n1 n2 egt_k ff oil thrust_n running reverser lever (legacy engine/*
+##   stay engine 1's); fdm/slat_deg fdm/spoiler (per panel) fdm/spoiler_left_deg fdm/spoiler_right_deg fdm/speedbrake fdm/gear_pos
+##   fdm/gear_state fdm/door_pos fdm/mach fdm/stabilizer_deg fdm/flap_lever fdm/autobrake_on fdm/ground_speed_mps
 
 
 static func read(f: FDM) -> void:

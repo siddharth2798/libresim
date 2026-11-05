@@ -1,27 +1,23 @@
 class_name AudioCurves
 extends RefCounted
-## The pure part of the data-driven layer sound engine (audio_layers.gd): curves, gates, edge triggers
-## and the per-engine expansion of the aircraft.json "audio.layers" list. No audio server, no Props:
-## everything takes plain values, so it is unit-testable headless (tests/test_audio_layers.gd).
-##
+## Pure part of the layer sound engine (audio_layers.gd): curves, gates, edge triggers and the per-engine expansion
+## of aircraft.json "audio.layers". No audio server, no Props: plain values, unit-testable (tests/test_audio_layers.gd).
 ## A layer (all keys optional but "file"):
-##   file       sound file, relative to the aircraft sounds/ folder, or a res:// path (reuse another aircraft's)
+##   file       sound file relative to the aircraft sounds/ folder, or a res:// path
 ##   bus        Engine | Environment | Cockpit (core/audio_settings.gd), default Cockpit
 ##   loop       true: plays always, volume / pitch follow the drive; false: a one-shot played on "trigger"
-##   drive      number source: a Props key ("engines/{n}/n1"), a number, or [op, args...] with op in
-##              sum mul sub div max min abs; {n} is the engine number when per_engine is set
-##   volume     [[x, gain], ...] gain over the drive (linear interpolation, clamped at the ends)
-##   pitch      [[x, pitch_scale], ...] over the drive
+##   drive      a Props key ("engines/{n}/n1"), a number, or [op, args...] with op in sum mul sub div max min abs;
+##              {n} is the engine number when per_engine is set
+##   volume     [[x, gain], ...] over the drive (linear, clamped at the ends); pitch: [[x, pitch_scale], ...]
 ##   gain       fixed multiplier (default 1)
-##   view       {"cockpit": f, "outside": f} extra volume factor per camera view (default 1 and 1)
-##   muffle_hz  low-pass cut-off heard in the cockpit view (outside views are not filtered)
-##   per_engine true: one copy per engine n = 1..count, panned from pan_spread (left) to +pan_spread (right)
-##   gate       conditions, all must hold: view "cockpit" | "outside"; ground true | false (fdm/wow);
-##              props [keys true]; not_props [keys false]; min {key: v}; max {key: v}; between {key: [lo, hi]}
-##              (exclusive: "in transit"); moving {keys: [...], rate_min: per second}
-##   trigger    one-shots: {prop, edge: rising | falling | change, threshold (numeric rising / falling,
-##              default 0.5), to: [values] (change only: new value must be one of them)}; the volume is
-##              gain * the volume curve of the drive at that moment
+##   view       {"cockpit": f, "outside": f} extra volume per camera view (default 1)
+##   muffle_hz  low-pass cut-off in the cockpit view only
+##   per_engine true: one copy per engine n = 1..count, panned from -pan_spread to +pan_spread
+##   gate       all must hold: view "cockpit" | "outside"; ground true | false (fdm/wow); props [keys true];
+##              not_props [keys false]; min {key: v}; max {key: v}; between {key: [lo, hi]} (exclusive);
+##              moving {keys: [...], rate_min: per second}
+##   trigger    one-shots: {prop, edge: rising | falling | change, threshold (default 0.5), to: [values] (change only)};
+##              volume = gain * the volume curve at that moment
 
 const BUSES := ["Engine", "Environment", "Cockpit"]
 

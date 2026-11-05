@@ -1,13 +1,10 @@
 extends Control
-## The radio (see docs/ATC.md): a slim bar at the top-left in free flight (COM1 frequency and unit,
-## the suggested next call, the latest controller message); ` or a click opens a short list of calls
-## (the suggested one first): Up/Down or 1-4 choose, Enter calls, Esc or ` closes, A says again,
-## H shows the history, V toggles the voice. A call closes the list. Incoming messages are a calm
-## card in the notification stack (ui/atc_card.gd). In a training lesson the bar stays hidden: only
-## ` opens it. While it is open the arrow keys do not pitch the aircraft (Props ui/radio_open).
-## This node is the keys and the wiring; the logic is in atc/ (atc_session.gd, atc_assist.gd,
-## atc_card_logic.gd) and the drawing in atc_box.gd. flight.gd sets ground_ops and fdm_node.
-## Where it sits: atc/atc_layout.gd (never over the other UI).
+## The radio (docs/ATC.md): a slim bar at the top-left in free flight (COM1 frequency and unit, suggested next call, latest
+## controller message). ` or a click opens a short call list (suggested first): Up/Down or 1-4 choose, Enter calls, Esc or `
+## closes, A says again, H history, V toggles the voice. Incoming messages are a card in the notification stack
+## (ui/atc_card.gd). In a lesson the bar stays hidden: only ` opens it. While open, arrow keys do not pitch (Props ui/radio_open).
+## This node is keys and wiring; logic is in atc/ (atc_session.gd, atc_assist.gd, atc_card_logic.gd), drawing in atc_box.gd,
+## placement in atc/atc_layout.gd. flight.gd sets ground_ops and fdm_node.
 
 var ground_ops: GroundOps
 var fdm_node: FdmNode

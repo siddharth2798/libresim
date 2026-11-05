@@ -1,18 +1,15 @@
 class_name TyreContact
 extends RefCounted
-## Keeps every tyre of the exterior model on the ground the FDM stands on (docs/TYRE-CONTACT-PLAN.md). The FDM's
-## gear contact point sinks into the ground by the spring compression c, so the ground is c above it (and follows
-## FDM.ground_height to the axle). Each frame a wheel's parts are raised (vertically, in world space) until the
-## lowest point of its tyre (axle - radius,
-## measured from the meshes in the rest pose, so a new aircraft needs no data and the static attitude does not
-## matter) is on that ground. Per wheel contact (config.json gear, BOGEY):
-##   leg     a pivot in model.surfaces with "compress": <contact> (retractable legs, the A320): that pivot moves,
-##           times gear_pos; an optional "lift_m" (metres the tyre hangs below the contact, extended) replaces
-##           the measured tyre: raise = (c + lift_m) * gear_pos
-##   parts   fixed gear (the C172): the glb meshes named like a wheel part (WORDS) nearest that contact, or the
-##           names in model.wheels {<contact>: [node names]}
-##   model   nothing found: the whole model moves by the largest raise of those contacts (lowest vertex near the
-##           contact as the tyre), so no tyre sinks
+## Keeps every tyre of the exterior model on the ground the FDM stands on (docs/TYRE-CONTACT-PLAN.md). The FDM's gear
+## contact point sinks by the spring compression c, so the ground is c above it. Each frame a wheel's parts are raised
+## (vertically, world space) until the lowest point of its tyre (axle - radius, measured from the meshes in the rest
+## pose, so a new aircraft needs no data) is on that ground. Per wheel contact (config.json gear, BOGEY):
+##   leg     a pivot in model.surfaces with "compress": <contact> (retractable legs, A320): that pivot moves, times gear_pos;
+##           an optional "lift_m" (metres the tyre hangs below the contact, extended) replaces the measured tyre:
+##           raise = (c + lift_m) * gear_pos
+##   parts   fixed gear (C172): the glb meshes named like a wheel part (WORDS) nearest that contact, or the names in
+##           model.wheels {<contact>: [node names]}
+##   model   nothing found: the whole model moves by the largest raise of those contacts, so no tyre sinks
 
 const WORDS := ["wheel", "tyre", "tire", "fairing", "spat", "brake", "strut", "fork", "oleo"]
 const NOT_TYRE := ["brake", "strut", "fairing", "spat", "fork", "oleo", "door", "well", "bay"]

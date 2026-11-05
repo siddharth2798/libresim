@@ -1,20 +1,15 @@
 class_name Callsign
 extends RefCounted
-## The pilot's call sign: the tail number painted on the aircraft AND the registration used on the radio.
-## Pure helpers, no nodes. One rule for everyone (registration_paint.gd, atc_session.gd, CallsignField):
-##   typed()    what the pilot chose: Session.setup.callsign ("" = never typed = "untouched"). It is saved with the setup
-##              (user://last_flight.json) and may come from --callsign=.
-##   default_of(def)   the aircraft's own registration: aircraft.json registration.text (C172 VT-LBR, A320 VT-ZZA),
-##              else FALLBACK.
-##   effective(def)    typed(), else default_of(def). So an untouched call sign follows the aircraft (switch C172 to
-##              A320 and the tail goes from VT-LBR to VT-ZZA); a typed one stays when the aircraft changes.
-## The old Options field kept the call sign in options.cfg (UserOptions "callsign", default VT-FSM): migrate_legacy() moves a
-## value the pilot had typed there into Session.setup.callsign once, at start (interactive runs only), and puts the option back to
-## its default; nothing reads that option any more.
-## Session.setup.callsign only ever holds a valid, upper-case call sign (or "" or what --callsign= gave).
-## Validation is AtcSpeech.normalize_callsign: letters and digits with one optional dash after the first 1-2
-## characters, 3 to 7 letters / digits (MAX_CHARS with the dash). The painter scales any such text into the
-## box of aircraft.json registration targets (aspect kept), so every valid call sign fits; "VT-ABCDE" is the longest.
+## The pilot's call sign: the tail number painted on the aircraft and the registration used on the radio.
+## Pure helpers, no nodes (used by registration_paint.gd, atc_session.gd, CallsignField):
+##   typed()          what the pilot chose: Session.setup.callsign ("" = untouched); saved with the setup, may come from --callsign=
+##   default_of(def)  the aircraft's own registration (aircraft.json registration.text), else FALLBACK
+##   effective(def)   typed(), else default_of(def): an untouched call sign follows the aircraft, a typed one stays
+## migrate_legacy() moves a call sign typed in the old Options field (options.cfg "callsign") into Session.setup.callsign
+## once at start (interactive runs only) and resets the option; nothing else reads that option.
+## Session.setup.callsign holds only a valid upper-case call sign, "" or what --callsign= gave.
+## Validation is AtcSpeech.normalize_callsign: letters and digits with an optional dash after the first 1-2 characters,
+## 3 to 7 letters / digits. The painter fits any valid text into the registration box ("VT-ABCDE" is the longest).
 
 const FALLBACK := "VT-FSM"  # when neither the pilot nor the aircraft names one (also the old Options default)
 const MAX_CHARS := 8  # characters in the text field, dash included

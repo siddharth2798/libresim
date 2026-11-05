@@ -1,13 +1,10 @@
 class_name FlightControls
 extends RefCounted
-## Pilot inputs (normalised) -> control surface positions, JSBSim c172p FCS.
-## Pilot conventions: pitch +1 = yoke full aft (nose up), roll +1 = right,
-## yaw +1 = right pedal, trim like pitch. Flaps: detent index 0..3, electric travel.
-## JSBSim surface signs: +elevator = trailing edge down (nose down),
-## +aileron = right roll, +rudder = nose LEFT, hence the sign flips below.
-## Actuators: the pilot commands move through a rate limit (full travel -1..1 in
-## controls.full_travel_s, from FlightGear's c172p FCS <kinematic> filters), like a
-## real yoke/cable system that cannot jump; trim and rigging add after it.
+## Pilot inputs (normalised) -> control surface positions, JSBSim c172p FCS. Pilot conventions: pitch +1 = yoke full aft
+## (nose up), roll +1 = right, yaw +1 = right pedal, trim like pitch. Flaps: detent index 0..3, electric travel.
+## JSBSim surface signs: +elevator = trailing edge down (nose down), +aileron = right roll, +rudder = nose LEFT, hence the
+## sign flips below. Pilot commands move through a rate limit (full travel -1..1 in controls.full_travel_s, from
+## FlightGear's c172p FCS filters), like a yoke/cable system that cannot jump; trim and rigging add after it.
 
 var _surf: Dictionary
 var _flap_detents: Array = []  # deg
@@ -24,9 +21,8 @@ var airborne := false  # set by the FDM each step
 var flaps_powered := true
 var flap_motor_running := false
 var rudder_rigging := 0.0
-## Control law seam (fly-by-wire): an object with update(dt: float, fdm: FDM), called by FDM.step before
-## update(); AirlinerControls then takes its surface commands from the law (fcs.cmd) instead of the
-## direct stick mapping. null = direct control, which is all the C172 has.
+## Control law seam (fly-by-wire): an object with update(dt: float, fdm: FDM), called by FDM.step; AirlinerControls then
+## takes its surface commands from the law (fcs.cmd). null = direct control (all the C172 has).
 var law: Object = null
 var _rate := {"pitch": INF, "roll": INF, "yaw": INF}  # normalised units per second
 var act_pitch := 0.0  # rate-limited pilot commands (actuator positions, saved in situations)
@@ -95,9 +91,8 @@ func update(dt: float) -> void:
 		flap_deg = move_toward(flap_deg, target, rate * dt)
 
 
-## The real C172 is spirally stable (dihedral, wing rigging) but JSBSim's model is almost neutral, so it
-## rolls off to the left on its own. A weak pull back to wings level, only with the stick near centre and
-## below ~25 deg of bank, so steep turns are still flown with the stick.
+## The real C172 is spirally stable but JSBSim's model is almost neutral and rolls off to the left. A weak pull back to
+## wings level, only with the stick near centre and below ~25 deg of bank.
 func _wings_level() -> float:
 	if not airborne or roll_stability == 0.0:
 		return 0.0

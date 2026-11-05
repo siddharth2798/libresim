@@ -1,13 +1,11 @@
 class_name RampLayout
 extends RefCounted
-## Where the ramp crew parks around an aircraft on a stand, from its RampPoints: the pushback tug ahead
-## of the nose wheel, the GPU at the ground-power receptacle, the fuel truck (remote stand) or hydrant
-## dispenser (contact gate) at the refuel coupling, a baggage train at each cargo door (it trails away from
-## the wing), the apron bus at the first passenger door of a remote stand. Each vehicle starts at its
-## service point and slides (along, then outward) until it is clear of the airframe keep-out (fuselage, wing
-## and tail planform unless it fits under, engines with their intake / exhaust zones, the taxi-in path), of
-## the vehicles already placed and of whatever `blocked` reports (jetways, terminals, other dressing).
-## Pure: no nodes. Stand frame [forward, right] about the CG, see RampPoints.
+## Where the ramp crew parks around an aircraft on a stand, from its RampPoints: pushback tug ahead of the nose wheel, GPU
+## at the ground-power receptacle, fuel truck (remote stand) or hydrant dispenser (contact gate) at the refuel coupling,
+## a baggage train at each cargo door (trailing away from the wing), apron bus at the first passenger door of a remote stand.
+## Each vehicle starts at its service point and slides (along, then outward) until clear of the airframe keep-out (fuselage,
+## wing and tail unless it fits under, engines with intake / exhaust zones, taxi-in path), of vehicles already placed and of
+## whatever `blocked` reports (jetways, terminals, other dressing). Pure: no nodes. Stand frame [forward, right] about the CG.
 
 const AIRFRAME_GAP := 0.8  # m between a vehicle and the airframe / a danger zone
 const VEHICLE_GAP := 0.8  # m between two vehicles
@@ -74,9 +72,8 @@ static func _items(rp: Dictionary, gate: bool) -> Array:
 	return out
 
 
-## The spots nearest the service point first (the gap between the vehicles and the point, plus a little for
-## the slide, each further base BASE_COST more: the other wing, beside the nose); the first clear spot wins
-## ([] = no room).
+## The spots nearest the service point first (gap to the point, plus a little for the slide, each further base BASE_COST
+## more: the other wing, beside the nose); the first clear spot wins ([] = no room).
 static func _fit(it: Dictionary, parts: Array, placed: Array, frame: Array, blocked: Variant) -> Array:
 	var cands := []
 	for bi in it.bases.size():

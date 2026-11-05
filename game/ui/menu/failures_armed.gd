@@ -1,13 +1,11 @@
 class_name FailuresArmed
 extends VBoxContainer
-## Right-hand column of the Failures step: the ARMED list ("what you will get": every armed failure with its
-## trigger and a remove button, a line for random failures, "0 armed" when empty, Clear all) and the RANDOM
-## FAILURES settings (switch, how many, time window, which systems) with the "Tell me when something fails"
-## switch. All values live in Session.setup (failures, random, notify). `refresh()` repaints everything from there.
-## Signals: `changed` after any edit; `removed(id)` when an armed row's button disarmed a failure (or Clear all, id "").
-## After a remove the list is rebuilt, so the keyboard focus is put back at once: on the next armed row's x, else the
-## previous one's, else Clear all while it is shown; when none of those exists `focus_lost` tells the page
-## (failures_page.gd), which focuses the first failure switch. (After `changed`: the page repaints this list again.)
+## Right-hand column of the Failures step: the ARMED list (every armed failure with its trigger and a remove button, a line for
+## random failures, "0 armed" when empty, Clear all) and the RANDOM FAILURES settings (switch, how many, time window, which
+## systems) with the "Tell me when something fails" switch. All values live in Session.setup (failures, random, notify).
+## `refresh()` repaints everything from there. Signals: `changed` after any edit; `removed(id)` when an armed row's button disarmed
+## a failure (or Clear all, id ""). After a remove the list is rebuilt and focus goes to the next armed row's x, else the previous
+## one's, else Clear all; when none exists `focus_lost` tells the page (failures_page.gd), which focuses the first failure switch.
 
 signal changed
 signal removed(id: String)

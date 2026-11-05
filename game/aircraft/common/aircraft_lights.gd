@@ -1,28 +1,26 @@
 class_name AircraftLights
 extends Node3D
-## Exterior lights driven by Props controls/lights/* and bus power. Positions come from aircraft.json "lights"
-## (AircraftDef); every list entry is one light:
-##   nav     [{"pos": [x,y,z], "side": "left|right|tail", "color": "red|green|white", ...}]  position lights: red left
-##           tip / green right tip (110 deg forward sectors), white tail (140 deg aft), LightLogic.nav_sector
-##   beacon  [{...}]  flashing red anti-collision (fin top on a light aircraft, top + belly on an airliner)
-##   strobe  [{...}]  double-flash white (wingtips, an airliner's tail cone too)
+## Exterior lights driven by Props controls/lights/* and bus power. Positions come from aircraft.json "lights";
+## every list entry is one light:
+##   nav     [{"pos": [x,y,z], "side": "left|right|tail", "color": "red|green|white", ...}]  red left tip / green
+##           right tip (110 deg forward sectors), white tail (140 deg aft), LightLogic.nav_sector
+##   beacon  flashing red anti-collision (fin top on a light aircraft, top + belly on an airliner)
+##   strobe  double-flash white (wingtips, an airliner's tail cone too)
 ##   lamps   [{"switch", "pos", "energy", "range", "angle", "beam", "tilt", "yaw" | "aim", "skin", "pool"}]  spot lights:
 ##           landing / taxi / take-off / runway turn-off (light the world and the ground pool, LandingPool), logo and
-##           wing / engine scan lights ("skin": true lights the aircraft's own skin instead, no ground pool)
-## Keys of every entry (all optional but pos):
-##   pos      structural metres (x aft, y right, z up), the light on its housing
+##           wing / engine scan ("skin": true lights the aircraft's own skin, no ground pool)
+## Entry keys (all optional but pos):
+##   pos      structural metres (x aft, y right, z up)
 ##   switch   controls/lights/<switch>, or a list (lit when any is on); default nav / beacon / strobe / landing
-##   lit      a Props bool that must also be true (e.g. systems/lights/landing_l_on: a retractable lamp is extended)
-##   gear     true: only while the gear is down and locked (fdm/gear_pos >= 0.98; lights on a gear leg)
-##   parent   model pivot name (glb node pivot_<name>, e.g. gear_nose): the light moves with that part
-##   size     halo scale; bulb = bulb radius (m); range = skin-lighting omni range (m); omni_off = omni offset in
-##            render axes (x right, y up, z aft)
-##   tilt     lamp aim, deg down from the nose; yaw = deg to the right; aim = [x, y, z] structural direction (wins)
-## Each point light = emissive bulb (day and night) + additive halo with a minimum pixel size (world/light_point.gdshader,
-## night only) + a small shadowless OmniLight lighting the aircraft's own skin (AIRCRAFT_LAYER, off in daylight).
-## A faint camera-side fill keeps the airframe readable against dark terrain in outside views.
-## debug/lights_steady (showcase screenshots) keeps beacons and strobes lit. Rules and timing: light_logic.gd;
-## node builders: light_parts.gd. Built by AircraftModel with its structural->local converter and the glb root.
+##   lit      a Props bool that must also be true (e.g. systems/lights/landing_l_on: lamp extended)
+##   gear     true: only while the gear is down and locked (fdm/gear_pos >= 0.98)
+##   parent   model pivot name (glb node pivot_<name>): the light moves with that part
+##   size     halo scale; bulb = bulb radius (m); range = skin-lighting omni range (m); omni_off = omni offset in render axes
+##   tilt     lamp aim, deg down from the nose; yaw = deg right; aim = [x, y, z] structural direction (wins)
+## Each point light = emissive bulb (day and night) + additive halo with a minimum pixel size (night only,
+## world/light_point.gdshader) + a small shadowless OmniLight for the aircraft's own skin (AIRCRAFT_LAYER, off in
+## daylight). A faint camera-side fill keeps the airframe readable in outside views.
+## debug/lights_steady keeps beacons and strobes lit (screenshots). Timing: light_logic.gd; nodes: light_parts.gd.
 
 const RED := Color(1.0, 0.08, 0.04)
 const GREEN := Color(0.1, 1.0, 0.35)

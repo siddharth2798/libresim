@@ -1,17 +1,13 @@
 class_name AircraftAudio
 extends Node
-## Recorded aircraft sounds (the aircraft's sounds/ folder, e.g. aircraft/c172/sounds, see SOURCES.md)
-## driven by Props. A sound the folder lacks is simply silent, so a partial set works. The engine
-## and wind mappings are the aircraft.json "audio" section (defaults below = c172p); the engine
-## loops follow engine 1 (props engine/rpm, engine/running).
-## Loops: engine idle/run (volume & pitch from RPM, mappings after the c172p
-## sound config), starter crank, gyro spin, wind (airspeed), tyre roll + rumble
-## (ground speed), stall horn, flap motor, trim wheel, avionics fan, rain (environment/precip;
-## on the windshield it drums harder with airspeed).
-## One-shots: engine catch / cut, touchdown squeal, switch clicks, levers.
+## Recorded aircraft sounds (the aircraft's sounds/ folder, see SOURCES.md) driven by Props. A missing sound is silent, so a
+## partial set works. Engine and wind mappings are aircraft.json "audio" (defaults = c172p); engine loops follow engine 1
+## (props engine/rpm, engine/running).
+## Loops: engine idle/run (volume & pitch from RPM), starter crank, gyro spin, wind (airspeed), tyre roll + rumble (ground
+## speed), stall horn, flap motor, trim wheel, avionics fan, rain (environment/precip; on the windshield it drums harder with
+## airspeed). One-shots: engine catch / cut, touchdown squeal, switch clicks, levers.
 ## Cockpit view hears everything; outside views hear the engine louder and no clicks.
-## An aircraft whose aircraft.json "audio" has a "layers" list (the A320) uses audio_layers.gd instead and
-## none of the code below (audio_curves.gd has the schema).
+## An aircraft whose "audio" has a "layers" list (A320) uses audio_layers.gd instead (schema in audio_curves.gd).
 
 ## aircraft.json "audio": "engine" and "wind" override these keys one by one.
 const DEFAULTS := {

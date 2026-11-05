@@ -1,15 +1,15 @@
 extends Node
-## Probe: the REAL start path, without the start screen's dry_run hook. One run takes one flow from the start screen's
-## own buttons to the flight scene, lets 2 s of simulated time pass and reports. Needs the generated data (data/processed).
+## Probe: the REAL start path, without the start screen's dry_run hook. One run takes one flow from the start screen's own buttons
+## to the flight scene, lets 2 s of simulated time pass and reports. Needs the generated data (data/processed).
 ##   godot --headless --fixed-fps 120 --audio-driver Dummy --path game res://tests/probe_real_start.tscn -- --flow=<name>
 ## flows: fly_now      Free flight, a ready setup, the filled Fly button
 ##        fly_again    home "Fly again" (a last flight saved in the scratch file)
 ##        continue     home "Continue: next lesson" (one lesson flown in the scratch stars file)
 ##        fly_anyway   an overweight C172: Fly turns amber, the "Fly anyway?" question, its "Fly anyway" button
-## Last line: REAL START PASS|FAIL flow=.. reason=.. (exit code 0 / 1). PASS needs: the scene changed to the flight scene,
-## the flight node holds its parts (FDM, weather, UI) and the FDM publishes its state, 2 s of physics time ran, and no script / engine ERROR was logged
-## (warnings are not counted). Never touches the player's files: Session.save_path, TrainingLogic.save_path and
-## SituationStore.dir are scratch paths, and Session.interactive_override = 0 keeps options and saves in memory.
+## Last line: REAL START PASS|FAIL flow=.. reason=.. (exit code 0 / 1). PASS needs: the scene changed to the flight scene, the flight
+## node holds its parts (FDM, weather, UI), the FDM publishes its state, 2 s of physics ran, and no script / engine ERROR was logged.
+## Never touches the player's files: Session.save_path, TrainingLogic.save_path and SituationStore.dir are scratch paths, and
+## Session.interactive_override = 0 keeps options and saves in memory.
 
 const SAVE := "user://_probe_start_last_flight.json"
 const STARS := "user://_probe_start_training.json"

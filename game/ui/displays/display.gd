@@ -1,13 +1,11 @@
 class_name Display
 extends Control
-## Base class of the glass displays (PFD, ND, E/WD, SD, FCU, MCDU). A display draws in its own
-## fixed design space (`design`, px) that is scaled uniformly into whatever rect the panel gives it, and
-## reads ONLY Props (never the FDM), so replays and saved flights drive it like a live flight. Used
-## from panel.json with "kind": "display". Subclasses override _paint(); buttons and knobs are
-## registered while painting (button() / hot()) and answer clicks and the wheel through _press() /
-## _wheel(). Text uses Godot's default font; digits are drawn right-aligned so values do not jitter.
-## Colours follow the usual airliner convention: green = normal, white = scale, cyan = selected /
-## target, magenta = managed / FMS, amber = caution, red = warning.
+## Base class of the glass displays (PFD, ND, E/WD, SD, FCU, MCDU). A display draws in its own fixed design space (`design`,
+## px), scaled uniformly into the rect the panel gives it, and reads ONLY Props (never the FDM), so replays and saved flights
+## drive it. Used from panel.json with "kind": "display". Subclasses override _paint(); buttons and knobs are registered while
+## painting (button() / hot()) and answer clicks and the wheel through _press() / _wheel(). Text uses Godot's default font;
+## digits are right-aligned so values do not jitter. Colours: green = normal, white = scale, cyan = selected / target,
+## magenta = managed / FMS, amber = caution, red = warning.
 
 const BG := Color(0.015, 0.02, 0.03)
 const GREEN := Color(0.1, 0.95, 0.25)

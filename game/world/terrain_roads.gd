@@ -1,13 +1,11 @@
 class_name TerrainRoads
 extends RefCounted
-## Lazy cache of the road / river signed-distance tiles (tools/20_roads_rivers.py ->
-## terrain/ro/0/<tx>_<ty>.png, 1920^2 LA8, one per level-0 tile). Only the few tiles around the
-## camera are ever resident (the shader draws ribbons within ~3.3 km), so this sits beside
-## TerrainTileCache instead of inside its per-tile composites. PNGs decode on worker threads;
-## textures are created on the main thread, one per frame. Idle tiles are dropped after EVICT_MS
-## (materials keep their own reference while bound).
-## The airport pavement mask of the same tile (tools/27_pavement.py -> terrain/pv/0/<tx>_<ty>.png, RGBA8, same
-## lattice) loads with it when there is one: pavement(tx, ty).
+## Lazy cache of the road / river signed-distance tiles (tools/20_roads_rivers.py -> terrain/ro/0/<tx>_<ty>.png, 1920^2 LA8, one
+## per level-0 tile). Only the few tiles around the camera are resident (the shader draws ribbons within ~3.3 km), so this sits
+## beside TerrainTileCache. PNGs decode on worker threads; textures are created on the main thread, one per frame. Idle tiles are
+## dropped after EVICT_MS (materials keep their own reference while bound).
+## The airport pavement mask of the same tile (tools/27_pavement.py -> terrain/pv/0/<tx>_<ty>.png, RGBA8, same lattice) loads
+## with it when there is one: pavement(tx, ty).
 
 const EVICT_MS := 20000
 const MAX_UPLOADS_PER_FRAME := 1

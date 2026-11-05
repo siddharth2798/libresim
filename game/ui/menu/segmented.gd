@@ -1,23 +1,18 @@
 class_name Segmented
 extends HBoxContainer
-## Shared start-screen control: a row of joined toggle Buttons (one ButtonGroup), exactly one lit.
-## Pages put their own options in, listen to `selected` and write the value into Session.setup;
-## the control keeps no state outside itself.
-##
-## API
-##   set_options(options, current = null) -> Segmented   rebuild the buttons. `options` is a list of
-##                         [value, label] / [value, label, tooltip] / {value, label, tip} / plain values
-##                         (label = str(value)). `current` is the value to light (none lit when it matches nothing).
+## Start-screen control: a row of joined toggle Buttons (one ButtonGroup), exactly one lit. Pages put their options in,
+## listen to `selected` and write the value into Session.setup; the control keeps no state outside itself.
+##   set_options(options, current = null) -> Segmented   rebuild the buttons. `options`: [value, label] /
+##                       [value, label, tooltip] / {value, label, tip} / plain values (label = str(value)).
+##                       `current` is the value to light (none if it matches nothing).
 ##   select(value)       light the button of `value` without emitting `selected`
-##   get_value()         the lit value (null when none is lit)
+##   get_value()         the lit value (null when none)
 ##   set_disabled(bool)  grey out all segments (`disabled` property does the same)
-##   button_of(value)    the Button of a value (for focus or tests), null if there is none
+##   button_of(value)    the Button of a value (focus, tests), null if none
 ##   signal selected(value)   the player picked a different segment (not on select(), not on a re-click)
-## Keyboard: Tab enters the row, Left / Right move the focus between segments, Space / Enter picks the one with
-## the focus. The focus ring is MenuTheme.focus_box(). Minimum width is the sum of the labels (fixed),
-## `equal_width` (default true) stretches the segments to the width the row is given; `pad_x` (12) is the space beside
-## each label.
-## Pure helpers (headless tests): normalize, index_of, corner_radii.
+## Keyboard: Tab enters the row, Left / Right move focus, Space / Enter picks. Focus ring: MenuTheme.focus_box().
+## Minimum width is the sum of the labels; `equal_width` (default true) stretches the segments to the row width;
+## `pad_x` (12) is the space beside each label. Pure helpers (headless tests): normalize, index_of, corner_radii.
 
 signal selected(value: Variant)
 

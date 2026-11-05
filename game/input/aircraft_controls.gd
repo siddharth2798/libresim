@@ -1,16 +1,15 @@
 class_name AircraftControls
 extends RefCounted
 ## The pilot controls one aircraft offers: aircraft.json "controls".
-##   actions  list of action groups (ControlActions.GROUPS), default = the C172 set
-##            (ControlActions.DEFAULT_GROUPS). Actions in no group are offered by every aircraft.
-##   levers   {"throttle": {separate: bool (throttle_1 / _2 independent), reverse: bool,
-##            reverse_frac: share of a joystick lever's travel that is reverse (default 0.2),
-##            detents: [{name, pos, zone}]}}  pos: forward 0..1, reverse -1..0 (lever_detents.gd)
-##   flaps_lever {"settings": [sim flap setting per lever notch], "on_ground": {"<notch>": setting}} for a flaps
-##            lever with fewer notches than the sim has settings (A320: notches 0 1 2 3 FULL = settings 0 1 3 4 5,
-##            notch 1 on the ground = setting 2 = 1+F); absent = notch i is setting i (control_steps.gd flap_setting)
+##   actions  list of action groups (ControlActions.GROUPS), default = the C172 set (ControlActions.DEFAULT_GROUPS). Actions in
+##            no group are offered by every aircraft.
+##   levers   {"throttle": {separate: bool (throttle_1 / _2 independent), reverse: bool, reverse_frac: share of a joystick
+##            lever's travel that is reverse (default 0.2), detents: [{name, pos, zone}]}}  pos: forward 0..1, reverse -1..0
+##   flaps_lever {"settings": [sim flap setting per lever notch], "on_ground": {"<notch>": setting}} for a lever with fewer
+##            notches than the sim has settings (A320: notches 0 1 2 3 FULL = settings 0 1 3 4 5, notch 1 on the ground =
+##            setting 2); absent = notch i is setting i (control_steps.gd flap_setting)
 ##   defaults {"controls/gear": 1, ...} initial Props, over ControlActions.SEEDS
-## Which axis drives which prop is InputBindings.AXES; flap positions come from fdm/flap_detents.
+## Which axis drives which prop: InputBindings.AXES; flap positions: fdm/flap_detents.
 ## Actions not offered are hidden from the controls page and help, not dropped from the saved profile.
 
 var id := ""

@@ -1,20 +1,17 @@
 class_name RampPoints
 extends RefCounted
-## Where a ramp crew services an aircraft and what it must keep clear of, from the aircraft.json "ramp"
-## section; every key missing there is derived from the aircraft's size (config.json, "ground"), so any
-## aircraft gets a sensible layout. Frame: about the CG on the ground, [forward, right] metres (the stand
+## Where a ramp crew services an aircraft and what it keeps clear of, from aircraft.json "ramp"; a missing key is derived
+## from the aircraft's size (config.json, "ground"). Frame: about the CG on the ground, [forward, right] metres (the stand
 ## frame of GroundParams.cg_at_stand), heights in metres above the ground.
-##
 ## ramp: fuselage_half_m   half width of the fuselage
 ##       wing      {outline: [[f, r], ...] the right wing (mirrored), low_m: [root, tip] underside height}
 ##       tailplane {outline, low_m} the same for the horizontal tail
-##       engines   [{at: [f, r], length_m, radius_m, intake_m, exhaust_m}]: nacelle or propeller, each listed
-##                 (no mirroring); intake_m / exhaust_m: the danger zone ahead of / behind it
-##       gpu       [f, r] ground-power receptacle, null = none
-##       refuel    [f, r] refuel coupling (or filler cap), null = none
+##       engines   [{at: [f, r], length_m, radius_m, intake_m, exhaust_m}]: each listed (no mirroring); intake_m /
+##                 exhaust_m: danger zone ahead of / behind it
+##       gpu       [f, r] ground-power receptacle, null = none;  refuel: [f, r] refuel coupling or filler cap, null = none
 ##       cargo     [[f, r], ...] cargo / baggage doors (a baggage train each)
-##       doors     [[f, r], ...] passenger doors (the first one gets the apron bus at a remote stand)
-##       tug       false = no pushback tug parked ahead of the nose (default true)
+##       doors     [[f, r], ...] passenger doors (the first gets the apron bus at a remote stand)
+##       tug       false = no pushback tug ahead of the nose (default true)
 
 const MARGIN := 1.2  # the "ground" footprint (ahead_m, behind_m) is the airframe plus this
 const BIG_M := 20.0  # longer than this: an airliner (ground power, cargo holds, doors by default)

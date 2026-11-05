@@ -1,20 +1,19 @@
 class_name LiveryPaint
 extends RefCounted
-## The livery compositor: one GPU pass over an atlas (SubViewport + livery.gdshader, the way RegistrationPaint.render_glyphs
-## draws its text) that recolours the regions of aircraft.json "livery" and returns the result as an Image. Pure rule and
-## data are in livery.gd. L0 colours only; stickers become a second pass after this one (L3), and the registration number is
-## stamped on the result afterwards (RegistrationPaint wipes the old number from the recoloured rows around it, which is why
-## the registration boxes are outside every mask).
-## compose() does not generate mipmaps: the caller does, once, after everything else is drawn on the image
-## (img.generate_mipmaps(); ImageTexture.create_from_image(img)), as RegistrationPaint.texture does.
+## The livery compositor: one GPU pass over an atlas (SubViewport + livery.gdshader, as RegistrationPaint.render_glyphs draws its
+## text) that recolours the regions of aircraft.json "livery" and returns an Image. Rule and data are in livery.gd. Colours only;
+## the registration number is stamped on the result afterwards (RegistrationPaint wipes the old number from the recoloured rows
+## around it, which is why the registration boxes are outside every mask).
+## compose() does not generate mipmaps: the caller does, once, after everything else is drawn (img.generate_mipmaps();
+## ImageTexture.create_from_image(img)), as RegistrationPaint.texture does.
 
 const SHADER := preload("res://aircraft/common/livery.gdshader")
 const ABORTED := &"livery_aborted"  # host meta: it left the tree during a pass
 
 
-## The atlas `atlas_id` of the aircraft recoloured with `colors` ({region key: Color}, Livery.colors_of), as an RGBA8 image of the
-## atlas size without mipmaps. null = "use the original": the livery is the factory one, no region is on this atlas, a mask is
-## missing or of another size, or the renderer gives no pixels (headless / dummy). Awaits one drawn frame.
+## The atlas `atlas_id` recoloured with `colors` ({region key: Color}, Livery.colors_of), as an RGBA8 image of the atlas size
+## without mipmaps. null = "use the original": factory livery, no region on this atlas, a mask missing or of another size, or the
+## renderer gives no pixels (headless). Awaits one drawn frame.
 static func compose(host: Node, def: AircraftDef, atlas_id: String, atlas: Texture2D, colors: Dictionary) -> Image:
 	var lv := Livery.of(def)
 	if atlas == null or lv.regions.is_empty() or Livery.is_identity(lv, colors):

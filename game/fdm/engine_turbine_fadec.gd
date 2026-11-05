@@ -1,23 +1,19 @@
 class_name EngineTurbineFadec
 extends EngineTurbine
-## Turbofan with JSBSim-derived tables (config engines[i] with thrust_table; A320 CFM56-5B4) instead of
-## EngineTurbine's single-point fit:
-##   lever (throttle - reverse, -1..1) --TurbineFadec--> N1 target %; N1 follows it through the spool
-##   rate tables (n1_spool_up/down_rate_table, % N1 per s vs N1); N2 follows N1 (idle_n2 at idle N1,
-##   rated_n2 at the TOGA limit).
-##   thrust = idle + mil * f^2 with idle = thrust_n * idle_thrust_table(mach, density altitude),
-##   mil = (thrust_n - idle) * thrust_table(mach, density altitude) * reverser_loss_table(deploy) and
-##   f = (N1 - idle N1) / (TOGA limit N1 - idle N1): thrust_n is the flat-rated TOGA thrust, so the
-##   limit tables decide the N1 at which it is reached. JSBSim's own N2norm^2 form is the same shape; the
-##   normalisation to the FADEC limit instead of max N2 is ours (not checked against JSBSim).
+## Turbofan with JSBSim-derived tables (config engines[i] with thrust_table; A320 CFM56-5B4) instead of EngineTurbine's fit:
+##   lever (throttle - reverse, -1..1) --TurbineFadec--> N1 target %; N1 follows it through the spool rate tables
+##   (n1_spool_up/down_rate_table, % N1 per s vs N1); N2 follows N1 (idle_n2 at idle N1, rated_n2 at the TOGA limit).
+##   thrust = idle + mil * f^2, idle = thrust_n * idle_thrust_table(mach, density altitude),
+##   mil = (thrust_n - idle) * thrust_table(mach, density altitude) * reverser_loss_table(deploy),
+##   f = (N1 - idle N1) / (TOGA limit N1 - idle N1); thrust_n is the flat-rated TOGA thrust. (JSBSim's N2norm^2 form has the
+##   same shape; normalising to the FADEC limit instead of max N2 is ours, not checked against JSBSim.)
 ##   fuel flow = tsfc * |thrust| * sqrt(T / 288.15) (* tsfc_table(mach, density altitude) if given).
-## Start: the starter (engine_mode IGN/START with the master on, or CRANK) spools N2 at
-## jsbsim.n2startrate; above LIGHT_N2 with fuel it lights and accelerates to idle N2 by itself; the
-## starter cuts out at CUTOUT_N2. Reverse: only on the ground, the reverser takes REVERSER_S to deploy
-## and N1 goes to the reverse target once it is deployed; the thrust is -x. Not running: windmill drag.
-## Config keys read: thrust_n idle_n1 max_n1 idle_n2 max_n2 rated_n2 tsfc_kg_per_n_s tsfc_table
-## thrust_table idle_thrust_table reverser_loss_table n1_spool_up_rate_table n1_spool_down_rate_table
-## fadec_limits (merged in by PowerUnit) jsbsim{n2startrate} windmill_drag_n.
+## Start: the starter (engine_mode IGN/START with master on, or CRANK) spools N2 at jsbsim.n2startrate; above LIGHT_N2 with
+## fuel it lights and accelerates to idle N2; the starter cuts out at CUTOUT_N2. Reverse: ground only, the reverser takes
+## REVERSER_S to deploy, then N1 goes to the reverse target and thrust is -x. Not running: windmill drag.
+## Config keys read: thrust_n idle_n1 max_n1 idle_n2 max_n2 rated_n2 tsfc_kg_per_n_s tsfc_table thrust_table
+## idle_thrust_table reverser_loss_table n1_spool_up_rate_table n1_spool_down_rate_table fadec_limits (merged in by
+## PowerUnit) jsbsim{n2startrate} windmill_drag_n.
 
 const LIGHT_N2 := 0.22
 const CUTOUT_N2 := 0.50

@@ -1,15 +1,13 @@
 class_name WeightBalance
 extends RefCounted
-## Weight & balance against the POH CG envelope (aircraft.json "cg_envelope").
-## Masses and stations come from the aircraft config (the same point masses and tanks
-## the FDM's MassBalance uses); CG is reported in POH inches aft of datum:
+## Weight & balance against the POH CG envelope (aircraft.json "cg_envelope"). Masses and stations come from the aircraft
+## config (the point masses and tanks the FDM's MassBalance uses); CG in POH inches aft of datum:
 ##   cg_in = structural x (m) / 0.0254 + datum_offset_in
-## Payload keys are those of Session.setup: fuel_gal (per tank) and one kg value per station of the
-## aircraft's aircraft.json "payload.stations" (C172: copilot_kg, rear_kg, baggage_kg).
-## An aircraft with payload.fuel_unit "kg" (the A320) keeps the TOTAL fuel in kg in fuel_gal (the key name is
-## historic); fuel_per_tank() spreads it: wing tanks first in proportion to their capacity, then the centre
-## tank; the tiny pipe tanks stay empty. With cg_envelope.mac {lemac_x_m, mac_m} the CG is reported in % MAC
-## instead of inches, and cg_envelope.weight_unit "kg" makes the envelope and the result's "w" kg (default lb).
+## Payload keys are those of Session.setup: fuel_gal (per tank) and one kg value per station of aircraft.json
+## "payload.stations" (C172: copilot_kg, rear_kg, baggage_kg). With payload.fuel_unit "kg" (A320), fuel_gal holds the TOTAL
+## fuel in kg; fuel_per_tank() spreads it over the wing tanks by capacity, then the centre tank (pipe tanks stay empty).
+## With cg_envelope.mac {lemac_x_m, mac_m} the CG is in % MAC instead of inches; cg_envelope.weight_unit "kg" makes the
+## envelope and the result's "w" kg (default lb).
 
 const IN_PER_M := 1.0 / 0.0254
 const LB_PER_KG := 1.0 / 0.45359237

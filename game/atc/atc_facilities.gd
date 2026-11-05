@@ -1,13 +1,11 @@
 class_name AtcFacilities
 extends RefCounted
-## Which ATC unit COM1 is tuned to, and which one should be called for a service. Works on
-## the world snapshot w (atc_world.gd): w.apt (ICAO, "" = none), w.apt_name, w.coms (the
-## airport's published frequencies, [{type, desc, mhz}]), w.ctl (control mode) and w.com1_mhz.
-## Control modes: "published" (frequencies in the data: tune the right one), "any"
-## (controlled, but no frequency in the data: any COM1 frequency is answered), "uncontrolled"
-## (no ATC: calls are blind), "none" (no airport in range).
-## A unit that is missing at an airport is covered by the next one: clearance DEL -> GND ->
-## TWR, ground GND -> TWR, approach APP -> TWR; with no ATIS the tower gives airport information.
+## Which ATC unit COM1 is tuned to, and which should be called for a service. Works on the world snapshot w (atc_world.gd):
+## w.apt (ICAO, "" = none), w.apt_name, w.coms ([{type, desc, mhz}]), w.ctl (control mode), w.com1_mhz.
+## Control modes: "published" (frequencies in the data: tune the right one), "any" (controlled, no frequency in the data:
+## any COM1 frequency is answered), "uncontrolled" (no ATC: calls are blind), "none" (no airport in range).
+## A missing unit is covered by the next: clearance DEL -> GND -> TWR, ground GND -> TWR, approach APP -> TWR; with no ATIS
+## the tower gives airport information.
 
 const ROLES := ["TWR", "APP", "GND", "DEL", "ATIS"]  # display preference when units share a frequency
 const WORD := {"ATIS": "ATIS", "DEL": "Delivery", "GND": "Ground", "TWR": "Tower", "APP": "Approach"}

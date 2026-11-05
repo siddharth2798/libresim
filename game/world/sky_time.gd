@@ -138,9 +138,8 @@ func _process(dt: float) -> void:
 	_update_glare(dt, d, el_deg, occl, rain)
 
 
-## Clear-sky zenith and horizon colours (linear) for the sun at `sun_dir`, cached until the sun, the
-## haze or the camera heading (1 deg) change. The horizon is sampled at least 35 deg of azimuth away
-## from the sun so the fog colour never blows out; the sky shader shows the full glow itself.
+## Clear-sky zenith and horizon colours (linear) for the sun at `sun_dir`, cached until the sun, haze or camera heading
+## (1 deg) change. The horizon is sampled at least 35 deg of azimuth from the sun so the fog colour never blows out.
 func _atmosphere(sun_dir: Vector3, el_deg: float, vis: float) -> Array:
 	var az := atan2(sun_dir.x, -sun_dir.z)
 	var look := az + PI
@@ -196,9 +195,8 @@ func _update_clouds(dt: float, occl: float, rain: float, hor: Color, light: floa
 	_inside.update(dt, cam, _env, _sky, _sun, layer, d, _env.fog_density, light, hor, _drift, light_dir)
 
 
-## Eye-like auto exposure: scene brightness from the sun / sky / camera heading, shade under a cloud
-## included (the CPU cloud density along the sun ray), smoothed by AutoExposure. Multiplies the exposure
-## NightSky just set; Props environment/exposure_mult is published for the tests and the HUD.
+## Eye-like auto exposure: scene brightness from sun / sky / camera heading, including cloud shade (CPU cloud density
+## along the sun ray), smoothed by AutoExposure. Multiplies the exposure NightSky set; publishes environment/exposure_mult.
 func _update_exposure(dt: float, sun_dir: Vector3, el_deg: float, hor: Color, top: Color, night: float) -> void:
 	var target := 1.0
 	if auto_exposure:

@@ -1,17 +1,12 @@
 class_name SpeechService
 extends RefCounted
-## The one door to the operating system's text-to-speech, shared by the training callouts
-## (ui/callouts.gd) and the ATC voice (atc/atc_voice.gd).
-##
-## Nothing here runs at start-up. The engine's TTS is only touched after request() or speak(),
-## which callers use only when a voice option (`callouts_voice`, `atc_voice`) is on. The probe
-## runs once and is cached:
-##   Linux/BSD: libspeechd must exist (file check), then a warm-up call starts the engine's
-##     speech-dispatcher connection; about WARMUP_MS later the English voices are listed. Until
-##     then speak() is silent (a line or two at the very start may be dropped).
-##   Windows / macOS / web: the voices are listed at once.
-## No voice found -> status NONE: speak() does nothing, the options stay saved, and one line is
-## printed (once). See SpeechBackend for why the warm-up is needed.
+## The one door to the OS text-to-speech, shared by the training callouts (ui/callouts.gd) and the ATC voice (atc/atc_voice.gd).
+## Nothing runs at start-up: the engine's TTS is only touched after request() or speak(), used only when a voice option
+## (`callouts_voice`, `atc_voice`) is on. The probe runs once and is cached:
+##   Linux/BSD: libspeechd must exist, then a warm-up call starts the speech-dispatcher connection; about WARMUP_MS later the
+##     English voices are listed. Until then speak() is silent (the first line or two may be dropped).
+##   Windows / macOS / web: voices are listed at once.
+## No voice found -> status NONE: speak() does nothing, options stay saved, one line is printed (once). See SpeechBackend.
 
 enum Status { UNKNOWN, PENDING, READY, NONE }
 enum Kind { CALLOUT, CONTROLLER, PILOT }

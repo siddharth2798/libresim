@@ -1,21 +1,20 @@
 class_name AirlinerHydraulics
 extends Node
-## Three hydraulic systems, GREEN / BLUE / YELLOW (A320-style), as pressures. GREEN has the engine 1 pump,
-## YELLOW the engine 2 pump and an electric pump (AC 2), BLUE an electric pump (AC 1) that runs once an
-## engine runs (or with the override). Engine pumps follow N2 (nothing below edp_n2_lo percent, full
-## pressure from edp_n2_full). The power transfer unit (PTU) lifts the lower of GREEN / YELLOW to ptu_frac
-## of the higher one when they differ by more than ptu_dp_psi. No RAT, no reservoirs; a failed system
+## Three hydraulic systems, GREEN / BLUE / YELLOW (A320-style), as pressures. GREEN has the engine 1 pump, YELLOW the engine 2
+## pump and an electric pump (AC 2), BLUE an electric pump (AC 1) that runs once an engine runs (or with the override). Engine
+## pumps follow N2 (nothing below edp_n2_lo percent, full from edp_n2_full). The PTU lifts the lower of GREEN / YELLOW to
+## ptu_frac of the higher one when they differ by more than ptu_dp_psi. No RAT, no reservoirs; a failed system
 ## (failures/hyd_G, hyd_B, hyd_Y) loses its pumps and the PTU does not feed it.
-## The numbers are the aircraft's aircraft.json "systems.hydraulics" over DEFAULTS: psi (normal pressure),
-## ok_psi (usable), lo_psi (LO PR below), edp_n2_lo / edp_n2_full (percent), build_psi_s / decay_psi_s /
-## leak_psi_s (pressure change rates), ptu_dp_psi, ptu_frac, spoiler_sys (the system of each spoiler panel).
-## Switches (Props controls/hyd/*): green_edp, yellow_edp (default on), blue_epump (default on = AUTO),
-##   blue_ovrd (run before an engine runs, default off), yellow_epump (default off), ptu (default on).
+## Numbers: aircraft.json "systems.hydraulics" over DEFAULTS: psi (normal), ok_psi (usable), lo_psi (LO PR below), edp_n2_lo /
+## edp_n2_full (percent), build_psi_s / decay_psi_s / leak_psi_s (rates), ptu_dp_psi, ptu_frac, spoiler_sys (system of each
+## spoiler panel).
+## Switches (Props controls/hyd/*): green_edp, yellow_edp (default on), blue_epump (default on = AUTO), blue_ovrd (default off),
+##   yellow_epump (default off), ptu (default on).
 ## Reads: engines/<n>/n2 (percent), systems/electrical/ac1_on / ac2_on (default on), failures/hyd_G|B|Y.
-## Publishes systems/hydraulics/{green, blue, yellow}_pa and hyd/{green, blue, yellow}_psi, hyd/low_{g, b, y},
-##   hyd/ptu_active, and for the consumers: systems/hydraulics/{antiskid (GREEN or YELLOW), gear_ok (GREEN),
-##   flaps_ok (GREEN or BLUE), flaps_rate_factor (1 both, 0.5 one, 0 none), spoiler_ok (per panel, array),
-##   brake_normal (GREEN), brake_alt (YELLOW), nws_ok (YELLOW), reverser_ok (per engine: GREEN, YELLOW)}.
+## Publishes systems/hydraulics/{green, blue, yellow}_pa and hyd/{green, blue, yellow}_psi, hyd/low_{g, b, y}, hyd/ptu_active,
+##   and for consumers: systems/hydraulics/{antiskid (GREEN or YELLOW), gear_ok (GREEN), flaps_ok (GREEN or BLUE),
+##   flaps_rate_factor (1 both, 0.5 one, 0 none), spoiler_ok (per panel, array), brake_normal (GREEN), brake_alt (YELLOW),
+##   nws_ok (YELLOW), reverser_ok (per engine: GREEN, YELLOW)}.
 
 const PSI := 6894.757
 const SYS := ["green", "blue", "yellow"]

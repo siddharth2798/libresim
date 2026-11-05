@@ -1,19 +1,13 @@
 class_name SwitchRow
 extends HBoxContainer
-## Shared start-screen control: a title with an optional description and a switch (a pill with a knob) at the left.
-## The whole row is the control: a click anywhere on it, or Space / Enter while it has the focus, flips it. On is
-## the accent track with the knob at the right and a tick in it, off is a grey track with the knob at the left, so
-## the state is not only a colour. The row keeps no state outside itself: pages listen to `toggled` and write the
-## value into Session.setup.
-##
-## API
+## Start-screen control: a title with an optional description and a switch (pill with a knob) at the left. The whole row is
+## the control: a click, or Space / Enter on focus, flips it. On = accent track, knob right, with a tick; off = grey track,
+## knob left. The row keeps no state outside itself: pages listen to `toggled` and write the value into Session.setup.
 ##   setup(title, description := "", on := false) -> SwitchRow
-##   set_on(bool)           change the state without emitting `toggled`
-##   is_on() -> bool
+##   set_on(bool)           change the state without emitting `toggled`;  is_on() -> bool
 ##   set_disabled(bool)     dim the row, no focus, no clicks (`disabled` property does the same)
-##   set_title(text), set_description(text)   (an empty description hides its line)
-##   tooltip_text           the row's hover text (a normal Control property)
-##   signal toggled(on)     the player flipped the switch (not on set_on)
+##   set_title(text), set_description(text)   (empty description hides its line)
+##   tooltip_text           hover text;  signal toggled(on): the player flipped it (not on set_on)
 ## Pure helpers (headless tests): next_state, knob_x.
 
 signal toggled(on: bool)

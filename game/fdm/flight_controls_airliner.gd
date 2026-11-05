@@ -1,19 +1,17 @@
 class_name AirlinerControls
 extends FlightControls
-## Controls of an aircraft whose config.controls.flaps is a Dictionary (A320): per-surface actuators
-## (config.controls.surfaces: aileron-l/r, elevator-l/r, stabilizer, rudder), flap + slat detents,
-## spoiler panels, speedbrake, and mirrors of the gear / thrust lever state. Pilot inputs are the same
-## as the C172's (pitch +1 = stick aft, roll +1 = right, yaw +1 = right pedal, pitch_trim like pitch).
-## Direct control (law == null) maps them straight to surface commands:
-##   elevator-l/r = -pitch * max, aileron-l = +roll * max and aileron-r = -roll * max, rudder = +yaw * max,
+## Controls of an aircraft whose config.controls.flaps is a Dictionary (A320): per-surface actuators (config.controls.surfaces:
+## aileron-l/r, elevator-l/r, stabilizer, rudder), flap + slat detents, spoiler panels, speedbrake, and mirrors of the gear /
+## thrust lever state. Pilot inputs as the C172's (pitch +1 = stick aft, roll +1 = right, yaw +1 = right pedal, pitch_trim like pitch).
+## Direct control (law == null):
+##   elevator-l/r = -pitch * max, aileron-l = +roll * max, aileron-r = -roll * max, rudder = +yaw * max,
 ##   stabilizer = trim wheel (nose up = toward clip[0]), flaps / slats by lever detent index flap_cmd,
-##   spoilers by the speedbrake lever (config lever_input_table) and the ground spoilers (on the ground,
-##   fast, every thrust lever at idle or reverse).
-## A control law (FlightControls.law, P2b) writes `cmd` (surface name -> deg) and `spoiler_cmd` (deg per
-## panel) itself and the direct mapping is skipped; the actuators, flaps and slats stay here.
-## Fields saved / replayed under these names: slat_deg slat_cmd spoiler spoiler_cmd speedbrake
-## speedbrake_cmd gear_pos gear_cmd thrust_lever (and the base flap_deg / flap_cmd = lever index).
-## elevator / aileron / rudder (rad) keep the C172 meaning for animation: rudder + = nose LEFT.
+##   spoilers by the speedbrake lever (config lever_input_table) and the ground spoilers (on the ground, fast, every
+##   thrust lever at idle or reverse).
+## A control law (FlightControls.law) writes `cmd` (surface name -> deg) and `spoiler_cmd` (deg per panel) itself and the direct
+## mapping is skipped; actuators, flaps and slats stay here.
+## Fields saved / replayed: slat_deg slat_cmd spoiler spoiler_cmd speedbrake speedbrake_cmd gear_pos gear_cmd thrust_lever (and
+## the base flap_deg / flap_cmd = lever index). elevator / aileron / rudder (rad) keep the C172 meaning: rudder + = nose LEFT.
 
 const GROUND_SPOILER_MPS := 15.0  # the ground spoilers need this ground speed (about 30 kt)
 

@@ -1,11 +1,9 @@
 class_name AtcController
 extends RefCounted
-## The air traffic controller's memory: state machine value (s), the transcript (log) and the
-## queue of transmissions waiting for their time (replies come 0.6-1.5 s after the call,
-## readbacks a moment later). Pure logic: no nodes, time is passed in, so tests drive it with a
-## fake world dictionary (atc_world.gd). What the controller says to each call is in
-## atc_replies.gd; what it says unprompted and the advisories are in atc_monitor.gd.
-## Everything here is advisory: nothing blocks the simulation.
+## The controller's memory: state value (s), transcript (log) and the queue of transmissions waiting for their time
+## (replies 0.6-1.5 s after the call, readbacks a moment later). Pure logic: no nodes, time is passed in, tests use a
+## fake world dictionary (atc_world.gd). Replies to calls: atc_replies.gd; unprompted calls and advisories: atc_monitor.gd.
+## Everything is advisory: nothing blocks the simulation.
 
 const LOG_MAX := 30
 const ALT_LIMIT_FT := 2000.0  # "climb not above" in the VFR clearance
@@ -246,9 +244,8 @@ func pending() -> int:
 	return _q.size()
 
 
-## Drop everything that holds a reference back to this controller (the queued `then`
-## lambdas capture it, the callbacks may capture the owner), so it is freed at exit
-## instead of leaking as a reference cycle. Call when the controller is no longer used.
+## Drop everything that references this controller (queued `then` lambdas, owner callbacks) so it is freed at exit
+## instead of leaking as a cycle. Call when the controller is no longer used.
 func dispose() -> void:
 	_q.clear()
 	on_tx = Callable()

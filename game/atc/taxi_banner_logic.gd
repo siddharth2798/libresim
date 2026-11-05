@@ -1,13 +1,11 @@
 class_name TaxiBannerLogic
 extends RefCounted
-## When the on-screen taxi / pushback instruction (ui/taxi_banner.gd) stays and when it goes, as pure
-## logic (time is passed in). An instruction stays 8-12 s (12 s for the first one after landing, 6 s
-## for a plain note such as "No taxi route found"), then fades by itself. It goes sooner when it is
-## dismissed (Backspace), when a newer one replaces it (show() restarts it), when the route ends
-## (arrived or cleared with T), or when the aircraft starts taxiing under it: it stood still when
-## the instruction appeared and has moved for MOVE_HOLD s at over MOVE_SPEED m/s, after the
-## instruction had MIN_SHOWN s to be read. One that appears while the aircraft is still rolling out
-## after landing only follows the clock.
+## When the on-screen taxi / pushback instruction (ui/taxi_banner.gd) stays and when it goes; pure logic, time is passed in. It
+## stays 8-12 s (12 s for the first one after landing, 6 s for a plain note such as "No taxi route found"), then fades. It goes
+## sooner when dismissed (Backspace), replaced by a newer one (show() restarts it), when the route ends (arrived or cleared with
+## T), or when the aircraft starts taxiing under it: it stood still when the instruction appeared and has moved for MOVE_HOLD s
+## at over MOVE_SPEED m/s, after MIN_SHOWN s to read it. One that appears while the aircraft still rolls out after landing only
+## follows the clock.
 
 const MIN_LIFE := 8.0
 const MAX_LIFE := 12.0

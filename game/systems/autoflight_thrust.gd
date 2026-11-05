@@ -1,16 +1,14 @@
 class_name AfThrust
 extends RefCounted
-## Autothrust of the autoflight (pure logic, no Props). Lever positions are on the detent scale of
-## controls/throttle_<n>: IDLE 0, CL 0.556, FLX/MCT 0.778, TOGA 1.0.
-## A/THR states: `armed` (the button; the FMA shows A/THR), `active` (it commands the levers). Active when
-## armed, in flight and the pilot's levers are at or below the CL detent: the lever position is the most it
-## may command (limit = min(lever, CL)). A lever pushed beyond CL makes it MAN (armed, thrust = lever); back
-## in the CL detent it is active again. On the ground it never commands.
-## Modes (FMA thrust column): SPEED / MACH (hold the target CAS; PI on the lever), THR CLB (limit),
-## THR IDLE (OP DES) / THR DES (managed DES), RETARD (below 20 ft on the glide slope), A.FLOOR (alpha
-## floor from the control law: TOGA whatever the levers say), TOGA LK (thrust stays TOGA after the alpha
-## floor until A/THR is disconnected). When not active: MAN TOGA / MAN FLX <temp> / MAN MCT / MAN THR.
-## "LVR CLB" asks for the levers back to CL above the thrust reduction altitude with A/THR armed.
+## Autothrust of the autoflight (pure logic, no Props). Lever positions are on the detent scale of controls/throttle_<n>: IDLE 0,
+## CL 0.556, FLX/MCT 0.778, TOGA 1.0.
+## A/THR states: `armed` (the button; the FMA shows A/THR), `active` (it commands the levers). Active when armed, in flight and the
+## levers are at or below the CL detent: the lever position is the most it may command (limit = min(lever, CL)). A lever beyond CL
+## makes it MAN (armed, thrust = lever); back in CL it is active again. On the ground it never commands.
+## Modes (FMA thrust column): SPEED / MACH (hold the target CAS; PI on the lever), THR CLB (limit), THR IDLE (OP DES) / THR DES
+## (managed DES), RETARD (below 20 ft on the glide slope), A.FLOOR (alpha floor from the control law: TOGA whatever the levers
+## say), TOGA LK (TOGA stays after the alpha floor until A/THR is disconnected). When not active: MAN TOGA / MAN FLX <temp> /
+## MAN MCT / MAN THR. "LVR CLB" asks for the levers back to CL above the thrust reduction altitude with A/THR armed.
 
 const CL := 0.556
 const MCT := 0.778

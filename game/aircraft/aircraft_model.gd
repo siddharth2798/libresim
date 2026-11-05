@@ -1,28 +1,23 @@
 class_name AircraftModel
 extends Node3D
-## Exterior of the current aircraft (AircraftDef): models/exterior.glb when present (e.g. the FlightGear
-## c172p converted by tools/blender/convert_c172p.py, GPL-2.0-or-later), else a PlaceholderAirframe
-## sized from config.json. Origin = CG; -Z = nose, +X = right wing, +Y = up. Positions of parts are
-## JSBSim structural metres (x aft, y right, z up) converted with _s(). Animates control surfaces and
-## propellers from the FDM. Also builds the cockpit, the lights and the reflection probe.
-##
-## aircraft.json "model" (code defaults = the values below, so a glb with FlightGear-style pivot names
-## needs nothing):
-##   origin_m    [x, y, z] structural position of the glb's origin (default metrics.vrp_m)
-##   surfaces    {pivot name: {"drive": fcs field, "sign": 1 | -1}}; glb nodes are "pivot_<name>"
-##               (hinge on +X: positive moves the trailing edge down). drive = elevator | aileron |
-##               rudder (rad) or flap_deg (degrees, converted); the airliner drives (slat, stabilizer, spoiler
-##               panels, gear_pos / reverser with a piecewise "map", nose steering, wheel spin) are listed in
-##               aircraft/model_drives.gd. A leg pivot with "compress": <gear contact name> (and "lift_m": the metres
-##               its wheels hang below the contact point when extended, else measured from the meshes) is raised by
-##               the contact's compression, so tyres rest on the ground instead of sinking by the static spring
-##               deflection (0.3 m on the A320); fixed gear moves its wheel parts the same way (TyreContact)
-##   wheels      optional {<gear contact>: [glb node names]}: the parts that move with that fixed-gear wheel
-##               (default: meshes named like wheel / tyre / fairing / brake / strut nearest the contact)
+## Exterior of the current aircraft (AircraftDef): models/exterior.glb when present (e.g. the FlightGear c172p
+## converted by tools/blender/convert_c172p.py, GPL-2.0-or-later), else a PlaceholderAirframe sized from config.json.
+## Origin = CG; -Z nose, +X right wing, +Y up. Part positions are JSBSim structural metres (x aft, y right, z up),
+## converted with _s(). Animates control surfaces and propellers from the FDM; also builds the cockpit, lights and
+## reflection probe. The glb frame is FlightGear's model frame (x aft, y right, z up) exported Y-up.
+## aircraft.json "model" (code defaults match a glb with FlightGear-style pivot names):
+##   origin_m    [x, y, z] structural position of the glb origin (default metrics.vrp_m)
+##   surfaces    {pivot name: {"drive": fcs field, "sign": 1 | -1}}; glb nodes are "pivot_<name>" (hinge on +X,
+##               positive moves the trailing edge down). drive = elevator | aileron | rudder (rad) or flap_deg.
+##               Airliner drives are in aircraft/model_drives.gd. A leg pivot with "compress": <gear contact name>
+##               (and "lift_m": metres its wheels hang below the contact point when extended, else measured) is
+##               raised by the contact's compression so tyres rest on the ground; fixed gear moves its wheel parts
+##               the same way (TyreContact)
+##   wheels      optional {<gear contact>: [glb node names]}: parts that move with that fixed-gear wheel (default:
+##               meshes named wheel / tyre / fairing / brake / strut nearest the contact)
 ##   propellers  [{"pivot": name, "engine": unit index (0 = engine 1), "sign": +-1, "visual_rate": f}]
-##               spins pivot_<name> about its +X by sign * rpm/60 * TAU * dt * visual_rate (a turbofan's rpm is
-##               its N1 in percent, so a fan needs a visual_rate near 0.75, a propeller 0.13)
-## The glb frame is FlightGear's model frame (x aft, y right, z up) exported Y-up by glTF.
+##               spins pivot_<name> about +X by sign * rpm/60 * TAU * dt * visual_rate (a turbofan's rpm is N1 in
+##               percent, so a fan needs visual_rate near 0.75, a propeller 0.13)
 
 const DEFAULTS := {
 	"surfaces": {
@@ -91,11 +86,8 @@ func _build_glb(path: String) -> void:
 	PaintPipeline.apply(self, inst, def)  # livery colours + tail number from the call sign, one pass per atlas (async the first time, then cached)
 
 
-## FlightGear glass uses an effect shader; make it a clear, slightly reflective pane.
-## rain: draw rain drops / streaks on it (aircraft/common/windshield_rain.gdshader, outer skin only).
-## Tyres are black rubber: against dark asphalt at night they vanish. A faint constant
-## glow (a few percent, invisible in daylight) keeps them a readable dark grey, and the
-## taxi / landing lights and the aircraft fill light do the rest.
+## FlightGear glass uses an effect shader; make it a clear, slightly reflective pane. rain: draw drops / streaks on
+## it (windshield_rain.gdshader, outer skin only). Tyres get a faint constant glow so they stay visible at night.
 static func lift_tyres(root: Node) -> void:
 	for mi in root.find_children("*", "MeshInstance3D", true, false):
 		var m := mi as MeshInstance3D
@@ -160,9 +152,8 @@ func _process(dt: float) -> void:
 		_tyres.update(fdm_node.fdm, self)  # tyres on the ground: legs / wheel parts raised by the gear compression
 
 
-## Signs come from each hinge axis direction (see convert_c172p.py HINGES): +angle about the
-## pivot's +X moves the trailing edge down (ailerons, flaps), up (elevators, axis runs
-## outboard->inboard reversed), right (rudder); the aircraft's model.surfaces carries them.
+## Signs come from each hinge axis (see convert_c172p.py HINGES): +angle about the pivot's +X moves the trailing edge
+## down (ailerons, flaps), up (elevators, axis reversed), right (rudder); model.surfaces carries them.
 func _animate_glb(f: FDM, dt: float) -> void:
 	if _wheel_drives:
 		ModelDrives.roll_wheels(_wheels, f, dt)

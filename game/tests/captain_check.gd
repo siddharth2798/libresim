@@ -1,9 +1,9 @@
 class_name CaptainCheck
 extends RefCounted
-## The checklist behind tests/check_a320_controls.gd: every Captain Pack control that has to be moved once on the real
-## hardware, with the game's response that proves it works. Pure logic (no nodes): feed() it a snapshot of the game's
-## control state each frame and it ticks the items whose condition is met. An item that needs a move first (back to
-## IDLE, back to 0, ON again) only ticks after the lever or switch has been seen elsewhere.
+## The checklist behind tests/check_a320_controls.gd: every Captain Pack control to be moved once on the real hardware, with the
+## game's response that proves it works. Pure logic: feed() it a snapshot of the control state each frame and it ticks the items
+## whose condition is met. An item that needs a move first (back to IDLE, back to 0, ON again) ticks only after the lever or switch
+## has been seen elsewhere.
 ##
 ## Snapshot keys (what the game computed, not raw hardware): pitch, roll, yaw (-1..1), thr1, thr2 (lever position 0..1),
 ## name1, name2 (detent name at that position), rev1, rev2 (0..1), flaps (setting number, A320: 0, 1, 1+F = 2, 2 = 3,

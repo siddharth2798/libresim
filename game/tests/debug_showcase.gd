@@ -1,14 +1,14 @@
 extends Node
-## Debug: README screenshots. Builds one showcase scene (tests/showcase_scenes.gd), waits until
-## the terrain, trees, buildings and textures have finished streaming, and saves a PNG.
+## Debug: README screenshots. Builds one showcase scene (tests/showcase_scenes.gd), waits until terrain, trees, buildings and
+## textures have streamed in, and saves a PNG.
 ##   godot --path game res://tests/debug_showcase.tscn -- --scene=<name> --quality=ultra
 ##   godot --path game res://tests/debug_showcase.tscn -- --list
 ## Env: FREESIM_SHOTS (output folder, default user://), FREESIM_SIZE (default 1920x1080).
-## Run all of them, with the user's settings backed up and the JPEGs made, by tools/make_screenshots.sh.
-## Flight scenes freeze the aircraft once placed (optionally after a short scripted climb), so
-## streaming can finish with the camera standing still; the UI is hidden except what the scene keeps.
-## Split: showcase_setup.gd (session, menu pages, UI, scripted flight), showcase_camera.gd (aiming),
-## showcase_stream.gd (streaming settle), showcase_views.gd (follow-me, map, panel, pause, checklist, taxi banner).
+## tools/make_screenshots.sh runs them all (user settings backed up, JPEGs made).
+## Flight scenes freeze the aircraft once placed (optionally after a short scripted climb) so streaming finishes with the
+## camera still; the UI is hidden except what the scene keeps.
+## Split: showcase_setup.gd (session, menu pages, UI, scripted flight), showcase_camera.gd (aiming), showcase_stream.gd
+## (streaming settle), showcase_views.gd (follow-me, map, panel, pause, checklist, taxi banner).
 
 const Scenes := preload("res://tests/showcase_scenes.gd")
 const CloudScenes := preload("res://tests/showcase_cloud_scenes.gd")

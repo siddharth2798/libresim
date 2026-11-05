@@ -1,15 +1,12 @@
 class_name FailureCatalog
 extends RefCounted
-## Every failure an aircraft can simulate. CATEGORIES is the full list (C172); categories() is the
-## list for the aircraft being flown: its aircraft.json "failures": {"disabled": [ids]} removes
-## entries (and categories left empty), and each engine beyond the first adds "engine_<n>" and
-## "engine_partial_<n>" (FdmNode reads failures/engine_<n> and failures/engine_partial_<n>). Each id is a Props flag "failures/<id>" that the
-## owning module reads (engine_piston/fdm_node, systems/*, instruments/gyros, avionics/*).
-## An aircraft whose aircraft.json "systems.profile" is "airliner" gets AIRLINER_EXTRA merged in (a category with the
-## same name gets the entries added, others are appended; engine fires are made per engine); its own
-## "failures.disabled" hides the piston ones (see AIRLINER_HIDDEN). CATEGORIES itself is the C172 list (a test pins it).
-## Used by the flight-setup failures page, the in-flight failures panel (F9) and the
-## random-failure scheduler (systems/failure_manager.gd).
+## Every failure an aircraft can simulate. CATEGORIES is the full C172 list (a test pins it); categories() is the list for the
+## aircraft being flown: aircraft.json "failures": {"disabled": [ids]} removes entries (and empty categories), and each engine
+## beyond the first adds "engine_<n>" and "engine_partial_<n>" (read by FdmNode). Each id is a Props flag "failures/<id>" read
+## by the owning module (engine_piston/fdm_node, systems/*, instruments/gyros, avionics/*).
+## "systems.profile" "airliner" merges in AIRLINER_EXTRA (same-named category gets the entries added, others appended; engine
+## fires per engine); its "failures.disabled" hides the piston ones (AIRLINER_HIDDEN).
+## Used by the start-screen failures page, the in-flight panel (F9) and the random-failure scheduler (failure_manager.gd).
 
 const CATEGORIES := [
 	["Engine", [
@@ -54,10 +51,9 @@ const CATEGORIES := [
 	]],
 ]
 
-## Airliner failures (profile "airliner"), merged into CATEGORIES by categories(). Who reads them: failures/hyd_G|B|Y
-## systems/airliner_hydraulics, gen1 / gen2 / apu_gen / battery airliner_electrical, fuel_pump_* airliner_fuel,
-## engine_fire[_n] the FDM, apu (airliner_electrical for the generator; apu.gd should read it too), adr_* ADIRS,
-## gear and spoilers the gear / flight-control code.
+## Airliner failures (profile "airliner"), merged into CATEGORIES by categories(). Readers: failures/hyd_G|B|Y
+## airliner_hydraulics, gen1 / gen2 / apu_gen / battery airliner_electrical, fuel_pump_* airliner_fuel, engine_fire[_n] the FDM,
+## apu (airliner_electrical; apu.gd should read it too), adr_* ADIRS, gear and spoilers the gear / flight-control code.
 const AIRLINER_EXTRA := [
 	["Electrical", [
 		["gen1", "Generator 1"],

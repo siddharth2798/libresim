@@ -1,25 +1,20 @@
 class_name Livery
 extends RefCounted
-## Pilot-chosen paint colours of an aircraft: the pure logic (no rendering; the GPU pass is livery_paint.gd + livery.gdshader).
-## aircraft.json "livery" (made by tools/25_livery_masks.py, see AircraftDef):
-##   atlases  [{id, texture}]          the exterior atlases that carry paint (texture relative to the aircraft folder)
-##   regions  [{key, label, default [r,g,b] 0..1,
-##              masks [{atlas, mask, luma}]}]   one region may be on several atlases, each with its own mask PNG (8-bit grey,
-##                                              atlas size, 0 = untouched, 255 = recoloured) and `luma`, the mean luminance of the
-##                                              atlas under the mask at full strength (>= 242): the shading reference of that atlas
-## The pilot's choice is {region key: "#rrggbb"}; a missing or invalid entry is the factory colour. Nothing here knows a
-## specific aircraft.
-##
-## The pilot's livery lives in Session.setup.livery (see entry / repair_setup / parse_cli below); paint_pipeline.gd applies it.
-##
-## Recolour rule (all in sRGB values as stored, Rec.709 luma): out = lerp(orig, colour * clamp(luma(orig) / luma_base, 0, 1.3), mask).
-## Why sRGB and not linear: the baked shading (ambient occlusion, dirt) is a darkening multiplied onto the paint in display
-## space, so the same ratio keeps its look on any colour; in linear space the ratio would be crushed on dark colours (a dark
-## blue body would lose all its shading) and exaggerated on light ones. It also needs no conversions in the shader.
-## Where several regions meet (the edge pixels of a stripe are part blue, part white) the weights are added up and each region
-## takes the luminance left after the others' share is removed (recolor_multi), so a stripe edge has no dark halo.
+## Pilot-chosen paint colours: pure logic, no rendering (the GPU pass is livery_paint.gd + livery.gdshader).
+## aircraft.json "livery" (made by tools/25_livery_masks.py):
+##   atlases  [{id, texture}]  exterior atlases that carry paint (texture relative to the aircraft folder)
+##   regions  [{key, label, default [r,g,b] 0..1, masks [{atlas, mask, luma}]}]  a region may be on several
+##            atlases; mask = 8-bit grey PNG (0 untouched, 255 recoloured), luma = mean luminance of the
+##            atlas under the mask at full strength (>= 242), the shading reference
+## The pilot's choice is {region key: "#rrggbb"} in Session.setup.livery; a missing or invalid entry is the
+## factory colour. Nothing here knows a specific aircraft. paint_pipeline.gd applies it.
+## Recolour rule (sRGB values as stored, Rec.709 luma): out = lerp(orig, colour * clamp(luma(orig) / luma_base, 0, 1.3), mask).
+## sRGB, not linear: the baked shading (AO, dirt) darkens the paint in display space, so the same ratio keeps its
+## look on any colour; in linear space dark colours would lose their shading.
+## Where regions meet, the weights are added and each takes the luminance left after the others' share
+## (recolor_multi), so a stripe edge has no dark halo.
 
-const GAIN_MAX := 1.3  # brighter than the region's mean (clean paint) may be lifted this much, no more
+const GAIN_MAX := 1.3  # a region brighter than its mean may be lifted this much, no more
 const MAX_SLOTS := 4  # regions per atlas the shader takes in one pass (livery.gdshader)
 const KEY_VERSION := 1  # bump when masks or the rule change: old cached textures are then not reused
 
@@ -115,7 +110,7 @@ static func colors_on(lv: Dictionary, atlas_id: String, colors: Dictionary) -> D
 	return out
 
 
-## ---- Session.setup.livery: {aircraft id: {colors: {region key: "#rrggbb"}, ...}} (L3 adds "stickers"; a missing entry = factory) ----
+## ---- Session.setup.livery: {aircraft id: {colors: {region key: "#rrggbb"}, ...}}; a missing entry = factory ----
 
 ## The entry of one aircraft ({} = factory livery); anything that is not a dictionary is {}.
 static func entry(all: Variant, aircraft_id: String) -> Dictionary:
