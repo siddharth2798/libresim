@@ -1,4 +1,4 @@
-# FlightGear: reusable assets, licences and roadmap (researched 2026-10-10)
+# FlightGear: reusable assets, licences and roadmap
 
 ## Reusable assets
 - **C172 exterior + cockpit**

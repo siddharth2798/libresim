@@ -1,22 +1,20 @@
-# ATC (stage A1: a controller with memory)
+# ATC
 
-The controller answers by text (and, if you switch it on, in the system voice). It knows where you are in a flight, replies only to calls that make sense, speaks up by itself at the right moments and gives short notes (never blocking) when you skip a clearance. Code: `game/atc/` (logic, no nodes), `game/ui/atc_panel.gd` (keys and wiring), `atc_box.gd` (the bar and the open list), `atc_card.gd` (message card), `atc_transcript.gd` (history). Phrases: `game/atc/phraseology.json`.
+The controller answers by text (and, if you switch it on, in the system voice). It knows where you are in a flight, replies only to calls that make sense, speaks up by itself at the right moments, and gives short non-blocking notes when you skip a clearance. Code: `game/atc/` (logic, no nodes), `game/ui/atc_panel.gd` (keys and wiring), `atc_box.gd` (the bar and the open list), `atc_card.gd` (message card), `atc_transcript.gd` (history). Phrases: `game/atc/phraseology.json`.
 
 ## The radio on screen
-
-One obvious next action, nothing else unless you ask for it.
 
 | Look | What it shows |
 |---|---|
 | **Bar** (always, free flight) | Top-left, level with the flight-data bar: `COM1 118.100 · Pune Tower` (green when a unit answers on that frequency, amber `no facility`, grey when there is nothing to call, red when COM1 is off or failed), the suggested call (`Next: ask Ground for taxi`, assist on), and for 20 s the latest controller message. Click it or press `` ` `` to open. |
 | **Message card** | Every transmission you hear arrives as one calm card in the notification stack (top-centre, same style as the other cards): who is speaking and what they said at 16 px, your own call and read-back as small muted lines. It fades 6-8 s after its last line (longer text stays longer). `atc/atc_card_logic.gd` is the logic (tested), `ui/atc_card.gd` draws it. |
-| **Taxi instruction** | "Taxi to the apron via P" after landing, "Taxi to runway 27 via A, B - hold short" (T or the Ground call), "Hold short - contact Tower" near the end of a runway route, pushback notes. One compact green-edged card in the same notification stack (top-centre, never over the view), 8-12 s (12 s the first time after landing, 6 s for a plain note), then it fades by itself. **Backspace** dismisses it at once; it also goes when the aircraft was standing and starts taxiing under it (after 4 s and 2 s of movement), when the route ends (stand reached, T clears it) or when a newer instruction replaces it. What stays is a tiny green line under the bar (`Taxi to the apron via P  ·  2177 m`, `Pushback in progress  ·  P to stop`) and a note in the History (`Taxi: ...`, italic). It used to be a centred label that stayed until the route ended. `atc/taxi_banner_logic.gd` is the logic (tested), `ui/taxi_banner.gd` draws it (owned by `GroundOps`), Props `ops/taxi_hint` and `ops/taxi_msg` feed the bar and the History. |
+| **Taxi instruction** | "Taxi to the apron via P" after landing, "Taxi to runway 27 via A, B - hold short" (T or the Ground call), "Hold short - contact Tower" near the end of a runway route, pushback notes. One compact green-edged card in the notification stack (top-centre), shown 8-12 s (12 s the first time after landing, 6 s for a plain note). **Backspace** dismisses it. It also goes when a standing aircraft starts taxiing (after 4 s and 2 s of movement), when the route ends (stand reached, T clears it) or when a newer instruction replaces it. A tiny green line stays under the bar (`Taxi to the apron via P  ·  2177 m`, `Pushback in progress  ·  P to stop`) and a note in the History (`Taxi: ...`, italic). `atc/taxi_banner_logic.gd` is the logic (tested), `ui/taxi_banner.gd` draws it (owned by `GroundOps`), Props `ops/taxi_hint` and `ops/taxi_msg` feed the bar and the History. |
 | **Open** | A list of at most 4 plain calls, the suggested one first and highlighted (`Ask Ground for taxi`, `Report ready for departure`, `Report final`, `Report going around`...). **Up/Down** move, **Enter** or **1-4** call, **Esc** or `` ` `` close; a click on a row calls it; the list closes by itself after a call. Small row: **Say again** (A), **History** (H), **Voice** on/off (V). With assist on a note says when the call will retune COM1 (`COM1 will tune to 121.900 (Pune Ground)`). |
 | **History** | H (or the History button) replaces the list with the last 30 transmissions, scrollable (wheel or Up/Down), your own lines muted; H again goes back. |
 
-While the radio is open its keys are taken before the rest of the game: Esc does not open the pause menu, H does not toggle the flight-data bar, 1-4 do not change the camera, and the arrow keys do not pitch the aircraft (`Props ui/radio_open`, read by `input/keyboard_controls.gd`). Nothing else is bound to a new letter while it is closed. Shift/Ctrl combinations (Shift+V avionics, Ctrl+H pitot heat) are left alone.
+While the radio is open it takes its keys first: Esc does not open the pause menu, H does not toggle the flight-data bar, 1-4 do not change the camera, arrow keys do not pitch the aircraft (`Props ui/radio_open`, read by `input/keyboard_controls.gd`). No new letter is bound while it is closed. Shift/Ctrl combinations (Shift+V avionics, Ctrl+H pitot heat) are left alone.
 
-Where it sits (`atc/atc_layout.gd`): the left column beside the flight-data bar is free of other UI in free flight, whatever the panel layout (the 2D panel pieces are bottom-left/right and top-right, the message cards and the taxi card top-centre, the training card only in lessons), so the bar sits at (8, 10) with width `clamp(room left of the flight-data bar, 300, 440)`: 350 px at 1280x720, 440 px at 1920x1080. The open radio grows downwards from there (about 270 px, history 300 px); if something is open under it (checklist, training card, map) it moves to the first free spot instead (`place()`).
+Placement (`atc/atc_layout.gd`): in free flight the left column beside the flight-data bar is free of other UI, so the bar sits at (8, 10) with width `clamp(room left of the flight-data bar, 300, 440)` (350 px at 1280x720, 440 px at 1920x1080). The open radio grows downwards (about 270 px, history 300 px). If something is open under it (checklist, training card, map) it moves to the first free spot (`place()`).
 
 ## Radio assist (Options, default on)
 
@@ -61,11 +59,11 @@ Frequencies come from the airport data (ATIS, CLD/DEL, GND, TWR, APP; only 118-1
 | uncontrolled | small fields and heliports without frequencies | only blind calls, logged; nobody answers; no clearances, no notes |
 | none | no airport within 8 km (ground) / 80 km (air) | no calls |
 
-A dead COM1 (failure `com1`) says it is dead (squawk 7600 text); an unpowered one says to switch on the master and avionics (no note unless you try to call).
+A dead COM1 (failure `com1`) says so (squawk 7600 text). An unpowered one says to switch on the master and avionics (only when you try to call).
 
 ## Training lessons
 
-When a lesson is active (`Session.training != ""`) ATC is silent: the monitor sets `silent`, which suppresses every unprompted call and note, and clearances count as given (`/atc/cleared_takeoff`, `cleared_land` true). The state still follows the flight. The radio bar stays hidden in a lesson (` still opens the list; the reply to a call you make is a card as usual). Lesson steps, markers and grading never read `/atc/*`.
+When a lesson is active (`Session.training != ""`) ATC is silent: the monitor sets `silent`, which suppresses every unprompted call and note, and clearances count as given (`/atc/cleared_takeoff`, `cleared_land` true). The state still follows the flight. The radio bar stays hidden in a lesson (` still opens the list; the reply to a call you make is a card as usual). Lessons never read `/atc/*`.
 
 ## Properties
 
@@ -85,7 +83,14 @@ Call sign: `UserOptions` `callsign` (default VT-FSM; `Session.setup.callsign` ov
 
 ## Tests and debug
 
-`tests/test_atc.gd` (formatters, phrases, facility rules, geometry, panel placement), `tests/test_atc_flow.gd` (full departure and arrival with a fake world, `atc_fixture.gd`), `tests/test_atc_rules.gd` (advisories once, lessons silent, wrong frequency, uncontrolled fields, COM1 failure, ATIS letter, say again) and `tests/test_atc_session.gd` (save/load, the menu over every state, the session publishing `/atc/*`), `tests/test_atc_assist.gd` (suggested call and hint along a departure and arrival, assist on/off tuning, the short list) and `tests/test_atc_airline.gd` (airline profile: call sign forms, profile layer and fallback, departure and arrival strings, ILS or visual, destination), `tests/test_atc_radio_ui.gd` (card lifetime logic, card text, bar placement, the box, the keys of the open radio, lessons, arrow keys not pitching, the option). `tests/debug_atc.tscn` plays a departure or arrival in the real scene and saves screenshots of every look at 1280x720 and 1920x1080 (see the header of `debug_atc.gd`); the `panels` e2e scenario opens and closes the radio.
+- `tests/test_atc.gd`: formatters, phrases, facility rules, geometry, panel placement.
+- `tests/test_atc_flow.gd`: full departure and arrival with a fake world (`atc_fixture.gd`).
+- `tests/test_atc_rules.gd`: advisories once, lessons silent, wrong frequency, uncontrolled fields, COM1 failure, ATIS letter, say again.
+- `tests/test_atc_session.gd`: save/load, the menu in every state, the session publishing `/atc/*`.
+- `tests/test_atc_assist.gd`: suggested call and hint, assist on/off tuning, the short list.
+- `tests/test_atc_airline.gd`: airline profile (call sign forms, fallback, strings, ILS or visual, destination).
+- `tests/test_atc_radio_ui.gd`: card lifetime and text, bar placement, the keys of the open radio, lessons, arrow keys not pitching, the option.
+- `tests/debug_atc.tscn` plays a departure or arrival in the real scene and saves screenshots at 1280x720 and 1920x1080 (see `debug_atc.gd`). The `panels` e2e scenario opens and closes the radio.
 
 ## Airline profile
 

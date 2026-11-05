@@ -68,9 +68,7 @@ run 16 after 17. `origin h` is the area-weighted terrain height under the landma
 and every vertex of the glb (and every sign) is raised by *terrain height under it minus origin h*
 (`Glb.shift_y`, `GroundFn` in `16_terminal_models.py`). Each landmark therefore sits on its own
 ground even when they are far apart: at VABB the terrain under T2, T1 and the GA terminal is 8.8,
-6.5 and 10.2 m. (Before: one height from the DSM at the mean centroid of the big terminals, a point
-between T1 and T2: 14.8 m at VABB, a mound of terminal roofs, against 7 to 9 m of apron ground, so
-both terminals floated about 7 m.) Without DEM tiles under every landmark it falls back to the
+6.5 and 10.2 m. Without DEM tiles under every landmark it falls back to the
 OurAirports field elevation, with no per-vertex shift. `tests/test_apron_flat.gd` checks that the
 origin height matches the terrain under the landmarks and is within 2 m of the stand ground beside them.
 
@@ -219,10 +217,7 @@ round columns and a laterite-red beam and piers along the frontage. From the apr
 curves up from low airside eaves; the wings have flat roofs; glass and blue-grey metal cladding; white
 metal (double-skin aluminium) roofs. The 30 m ATC tower is a separate building.
 
-**The earlier bug:** OSM tags the terminal (and every roof part) `height=30`, the published height of the
-ATC tower. 10_buildings.py extruded the whole 28,000 m² footprint as a 30 m windowed block, a 10-storey
-office slab beside the jet bridges. No published terminal height exists; photos (jet bridges and
-vehicles for scale) give eaves of about 14 m and gable ridges of 24–28 m.
+**Height:** OSM tags the terminal (and every roof part) `height=30`, the published height of the ATC tower, so it is ignored. No published terminal height exists; photos (jet bridges and vehicles for scale) give eaves of about 14 m and gable ridges of 24–28 m.
 
 How it is modelled (`terminal_styles_ref.vokn`, values from the reference entry):
 - **Body:** glass to 60 % of the 14 m eaves (`glass_share`), blue-grey cladding above, flat white roof.
@@ -254,13 +249,10 @@ Heights are **low confidence** (photo estimates); the plan and roof form are fro
   demolished (from 2027), it should be removed or replaced with the new building.
 - **VAPO**: the roof form, glass tint and level count are unknown. The Verandah's
   Maratha arches and decorated stone columns are simplified to plain basalt cylinders.
-- **VOCI coordinates**: Kochi is outside the mapped terrain until phase R (Mumbai–Kochi).
-  Its model and `landmarks.json` entry are in the current **Mumbai-origin** world frame,
-  more than 900 km from the origin. Re-run 15 and 16 (and 10) when phase R re-projects
-  the world.
+- **VOCI** is placed in the Mumbai-origin world frame, more than 900 km from the origin. Re-run 15, 16 and 10 if the world is re-projected.
 - **VOCI ground height** comes from the OurAirports field elevation, not a DEM.
 - **Jet bridges** are only used here to work out which side is landside. The in-game jetways
-  come from the Phase A stand system: `tools/jetway_net.py` (step 13) splits each OSM jet-bridge network
+  come from the stand system: `tools/jetway_net.py` (step 13) splits each OSM jet-bridge network
   into movable bridges (one per cab end, hinged at its rotunda: a junction, a sharp bend, or 12-45 m back
   from the cab) and fixed links, which run 2 m into the wall; a rotunda at the wall is moved 3.5 m out
   of it. In game `world/jetway_build.gd` draws the bridges (`jetway_rig.gd`: the rotunda and its stub stay
@@ -323,7 +315,7 @@ storeys × 4.5 m + 1 m; `rgb(t, key, default)`.
   footprint is extruded to its reference box height (the eaves when the roof rises above them, else the
   roof top) with the reference roof colour, over any OSM `height` tag or the synthetic airfield rule. The
   same height goes into the collision `.col` (landmarks keep a collision box too).
-- **Terminal look** (2026-11-04): those boxes are no longer drawn as office blocks. `building_geom.py`
+- **Terminal look:** those boxes are not drawn as office blocks. `building_geom.py`
   marks them as roof type 2 and gives the walls their own vertex ring carrying the reference cladding colour
   (`facade_colour_hex`, else light grey), the glazing share (`glass_share`, else 0.5) and the glass tone
   (`glass_hex` luminance); the roof keeps `roof_colour_hex` (else the imagery colour as the city shades it)
@@ -334,7 +326,7 @@ storeys × 4.5 m + 1 m; `rgb(t, key, default)`.
   (warm white, a little brighter low down) instead of random lit rooms. Scenes `term_<icao>_apron`, `term_voml_night`
   (VANM, VOML, VOGA, VOSH ...).
 
-| ICAO | Terminal (OSM) | Before | Now | Source of the height |
+| ICAO | Terminal (OSM) | Was (OSM tag or synthetic) | Now | Source of the height |
 |---|---|---|---|---|
 | VOKN | Kannur (`way/392012106`) | 30 m box (OSM tag) | landmark: 14 m eaves, 26 m gables | photos (low) |
 | VOGO | Dabolim (`way/889406836`) | 10.6 m (OSM tag) | landmark: 18 m eaves, curved roof 24 m | 4 storeys (medium) + model |

@@ -396,9 +396,9 @@ footer { margin-top: 3rem; padding-top: 0.6rem; border-top: 1px solid var(--rule
 <main>
 <div class="masthead"><span>LIBRESIM · PILOT AND BUILDER HANDBOOK</span><span>AMDT 924456f · 11 OCT 2026</span></div>
 <div class="brandrow"><svg xmlns="http://www.w3.org/2000/svg" width="72" height="72" role="img" aria-label="libresim logo" viewBox="0 0 512 512" style="border-radius:16px;outline:1px solid var(--rule-strong)"><defs><clipPath id="rwy"><rect width="512" height="512" rx="104"/></clipPath></defs><g clip-path="url(#rwy)"><rect width="512" height="512" fill="#16191d"/><rect x="66" y="0" width="8" height="512" fill="#ffffff" opacity="0.9"/><rect x="438" y="0" width="8" height="512" fill="#ffffff" opacity="0.9"/><rect x="247" y="40" width="18" height="56" rx="2" fill="#ffffff"/><rect x="247" y="136" width="18" height="56" rx="2" fill="#ffffff"/><path d="M140.74 254C123.51 254 114.47 267.3 114.47 291.34C114.47 315.27 123.51 328.78 140.74 328.78C158.08 328.78 167.12 315.27 167.12 291.34C167.12 267.3 158.08 254 140.74 254ZM140.74 265.28C148.19 265.28 151.59 271.45 151.59 291.34C151.59 311.12 148.19 317.4 140.74 317.4C133.3 317.4 130 310.8 130 291.34C130 271.87 133.3 265.28 140.74 265.28Z M203.82 254C189.46 254 178.08 263.47 178.08 278.47C178.08 293.04 187.23 301.98 198.4 301.98C205.31 301.98 210.1 299 213.5 294.64C211.16 308.25 201.48 314.74 183.4 319.21L186.59 329.95C216.27 323.36 229.67 311.12 229.67 281.76C229.67 265.38 220.95 254 203.82 254ZM202.76 291.12C197.44 291.12 193.19 287.72 193.19 278.04C193.19 269.42 197.33 264.96 203.82 264.96C211.38 264.96 214.46 270.06 214.25 284.32C211.27 288.68 207.33 291.12 202.76 291.12Z M270.31 240.49 245.31 335.7 258.5 338.78 283.39 243.47Z M320.3 254C309.99 254 302.11 258.47 296.37 266.02L305.41 273.25C309.77 268.04 313.5 265.7 318.92 265.7C324.77 265.7 328.71 269.42 328.71 275.59C328.71 285.17 322.86 291.76 298.5 316.12V327.08H344.13L345.83 315.38H315.73C337.96 294.53 344.24 285.91 344.24 274.32C344.24 263.15 335.62 254 320.3 254Z M399.77 255.38H354.56V266.87H384.13L359.66 324.1L373.39 328.68L399.77 265.81Z" fill="#ffb81c"/><rect x="91.0" y="388" width="24" height="68" rx="3" fill="#ffffff"/><rect x="129.0" y="388" width="24" height="68" rx="3" fill="#ffffff"/><rect x="167.0" y="388" width="24" height="68" rx="3" fill="#ffffff"/><rect x="205.0" y="388" width="24" height="68" rx="3" fill="#ffffff"/><rect x="283.0" y="388" width="24" height="68" rx="3" fill="#ffffff"/><rect x="321.0" y="388" width="24" height="68" rx="3" fill="#ffffff"/><rect x="359.0" y="388" width="24" height="68" rx="3" fill="#ffffff"/><rect x="397.0" y="388" width="24" height="68" rx="3" fill="#ffffff"/></g></svg><h1>libresim Handbook</h1></div>
-<p class="lead">libresim is a free, open-source desktop flight simulator of the Cessna 172S over Mumbai, Pune and the Western Ghats, with a coastal corridor running south to Kochi. This handbook covers flying it first, then building and changing it.</p>
+<p class="lead">libresim is a free, open-source desktop flight simulator of the Cessna 172S and an A320-family airliner over Mumbai, Pune and the Western Ghats, with a coastal corridor south to Kochi. This handbook covers flying it first, then building and changing it.</p>
 <dl class="facts">
-  <div><dt>Aircraft</dt><dd>Cessna 172S, IO-360 180 hp</dd></div>
+  <div><dt>Aircraft</dt><dd>Cessna 172S (IO-360 180 hp), A320-family airliner</dd></div>
   <div><dt>Region</dt><dd>Mumbai–Pune + Konkan–Kerala</dd></div>
   <div><dt>Engine</dt><dd>Godot 4.7.2, GDScript</dd></div>
   <div><dt>FDM rate</dt><dd>120 Hz, 6-DOF</dd></div>
@@ -412,13 +412,13 @@ footer { margin-top: 3rem; padding-top: 0.6rem; border-top: 1px solid var(--rule
 <!-- ===================== GEN 1 ===================== -->
 <section id="overview">
 <h2><span class="no">GEN 1</span>Overview</h2>
-<p>libresim is a local, offline flight simulator built around one aircraft and one region, done in depth. It runs as a native desktop program on Linux, with a macOS build also produced. There are no accounts, servers or online services.</p>
+<p>libresim is a local, offline flight simulator built around one aircraft and one region. It runs as a native desktop program on Linux; a macOS build is also made. There are no accounts, servers or online services.</p>
 
 <h3 id="overview-region"><span class="no">1.1</span>The region</h3>
 <ul>
   <li><strong>Detailed area:</strong> about 145 × 115 km around Mumbai, Navi Mumbai, the Thane creek, the Western Ghats (Lonavala, Khandala, Sinhagad) and Pune. It has 30 m terrain and 10 m Sentinel-2 imagery, 3D buildings from 578k OpenStreetMap footprints, water and forests.</li>
   <li><strong>Outer ring:</strong> 90 m terrain and 80 m imagery out to about 245 km, reaching Nashik, Ahmednagar, Satara, Kolhapur and the Konkan coast.</li>
-  <li><strong>Konkan–Kerala corridor (phase R):</strong> a coastal strip to Kochi with 30 m terrain and 20 m imagery, covering Goa, Mangaluru, Kannur, Kozhikode and Kochi, with 13 more airfields.</li>
+  <li><strong>Konkan–Kerala corridor:</strong> a coastal strip to Kochi with 30 m terrain and 20 m imagery, covering Goa, Mangaluru, Kannur, Kozhikode and Kochi, with 13 more airfields.</li>
   <li><strong>Beyond:</strong> terrain to about 490 km is filled from the nearest real data with generated relief, so the world has no edge.</li>
 </ul>
 
@@ -438,6 +438,7 @@ footer { margin-top: 3rem; padding-top: 0.6rem; border-top: 1px solid var(--rule
     <tr><td>Range</td><td>about 640 nm</td></tr>
   </tbody>
 </table></div>
+<p>The second aircraft is an A320-family twin-jet airliner. Its model and data come from the FlightGear A320-family project (GPL-2.0). It has a fly-by-wire law, FADEC turbofans, airliner systems and glass displays (PFD, ND, E/WD, SD, FCU and a lite MCDU). It starts from a gate, a runway or the air. What is still missing is listed in <code>docs/A320-STATUS.md</code>.</p>
 
 <h3 id="overview-highlights"><span class="no">1.3</span>Highlights</h3>
 <ul>
@@ -458,7 +459,7 @@ footer { margin-top: 3rem; padding-top: 0.6rem; border-top: 1px solid var(--rule
 <h2><span class="no">GEN 2</span>Install and run</h2>
 
 <h3 id="install-quick"><span class="no">2.1</span>Quick start from source</h3>
-<p><strong>No terminal needed.</strong> In the project folder, double-click <code>Start libresim.desktop</code> (Linux) or <code>Start libresim.command</code> (macOS). When everything is already set up the game simply opens. The first time, a window opens, sets everything up (asking before any <code>sudo</code> install) and then starts the game. On GNOME, right-click the file once and choose <em>Allow Launching</em>. Every launch also adds libresim, with its logo, to your applications menu, so you can start it from there next time.</p>
+<p><strong>No terminal needed.</strong> In the project folder, double-click <code>Start libresim.desktop</code> (Linux) or <code>Start libresim.command</code> (macOS). The first time, a window sets everything up (asking before any <code>sudo</code> install) and then starts the game. After that the game just opens. On GNOME, right-click the file once and choose <em>Allow Launching</em>. Every launch adds libresim, with its logo, to your applications menu.</p>
 <p>From a terminal, one script checks prerequisites, downloads the raw data, builds the game data and opens the game:</p>
 <div class="cmd"><pre><code>git clone &lt;repository&gt; libresim &amp;&amp; cd libresim
 ./run.sh</code></pre><button class="copy" type="button">Copy</button></div>
@@ -533,8 +534,8 @@ flatpak run org.freesim.FreeSim</code></pre><button class="copy" type="button">C
 <!-- ===================== GEN 3 ===================== -->
 <section id="start-screen">
 <h2><span class="no">GEN 3</span>Start screen</h2>
-<p>Running the game opens the start screen, after the libresim splash. It asks one question first, <strong>What would you like to do?</strong>, with two large cards: <strong>Free flight</strong> (pick the airport, aircraft, weather and failures) and <strong>Training</strong> (guided lessons: take off, cruise, land). Click a card, or press <kbd>1</kbd> / <kbd>2</kbd> (or <kbd>←</kbd> / <kbd>→</kbd>) and <kbd>Enter</kbd>; the card you chose last time is focused. Small buttons below open <strong>Saved flights</strong>, <strong>Controls</strong> and <strong>Options</strong>, each with a <strong>◀ Back</strong> button (or <kbd>Esc</kbd>) to the home screen.</p>
-<p><strong>Free flight</strong> is a guided stepper: <strong>Airport → Aircraft → Weather → Failures → Recording → Fly</strong>. The current step is highlighted, finished steps get a tick, and every pill is clickable. <strong>Next: &lt;step&gt; ▶</strong> moves on, <strong>◀ Back</strong> returns (on the first step, to the home screen), and on the last step the filled button is <strong>FLY ▶</strong>. Keys <kbd>1</kbd>–<kbd>5</kbd> jump to a step, <kbd>Page Up</kbd> / <kbd>Page Down</kbd> step through and <kbd>Ctrl</kbd>+<kbd>Enter</kbd> flies. It remembers your last setup (<code>user://last_flight.json</code>). A summary line at the bottom shows the whole setup, for example <span class="mono">VAJJ · runway (longest) · Fair · 10:00 IST · wind 270/8 · 0 failure(s)</span>. <strong>Training</strong> shows only the lessons, the help level and a <strong>START LESSON ▶</strong> button, without the stepper.</p>
+<p>After the libresim splash, the start screen asks <strong>What would you like to do?</strong> It has two large cards: <strong>Free flight</strong> (pick the airport, aircraft, weather and failures) and <strong>Training</strong> (guided lessons: take off, cruise, land). Click a card, or press <kbd>1</kbd> / <kbd>2</kbd> (or <kbd>←</kbd> / <kbd>→</kbd>) and <kbd>Enter</kbd>. The card you chose last time is focused. Small buttons below open <strong>Saved flights</strong>, <strong>Controls</strong> and <strong>Options</strong>. Each has a <strong>◀ Back</strong> button (or <kbd>Esc</kbd>) to the home screen.</p>
+<p><strong>Free flight</strong> is a guided stepper: <strong>Airport → Aircraft → Weather → Failures → Recording → Fly</strong>. The current step is highlighted, finished steps get a tick, and every pill is clickable. <strong>Next: &lt;step&gt; ▶</strong> moves on and <strong>◀ Back</strong> goes back (on the first step, to the home screen). On the last step the filled button is <strong>FLY ▶</strong>. Keys: <kbd>1</kbd>–<kbd>5</kbd> jump to a step, <kbd>Page Up</kbd> / <kbd>Page Down</kbd> step through, <kbd>Ctrl</kbd>+<kbd>Enter</kbd> flies. Your last setup is remembered (<code>user://last_flight.json</code>). A summary line at the bottom shows the whole setup, for example <span class="mono">VAJJ · runway (longest) · Fair · 10:00 IST · wind 270/8 · 0 failure(s)</span>. <strong>Training</strong> shows only the lessons, the help level and a <strong>START LESSON ▶</strong> button.</p>
 
 <h3 id="ss-airport"><span class="no">3.1</span>Airport and start position</h3>
 <ul>
@@ -546,7 +547,7 @@ flatpak run org.freesim.FreeSim</code></pre><button class="copy" type="button">C
 
 <h3 id="ss-aircraft"><span class="no">3.2</span>Aircraft, payload and weight and balance</h3>
 <ul>
-  <li>Every <code>game/aircraft/&lt;id&gt;/aircraft.json</code> is listed with its specifications. Today that is the Cessna 172S.</li>
+  <li>Every <code>game/aircraft/&lt;id&gt;/aircraft.json</code> is listed with its specifications. Today those are the Cessna 172S and the A320-family airliner.</li>
   <li>Set fuel per tank (default 17 US gal each) and the front-seat, rear-seat and baggage loads (baggage up to 54 kg). The pilot is 81.6 kg (180 lb).</li>
   <li>The takeoff weight is checked against the 1157 kg (2550 lb) MTOW.</li>
   <li>A <strong>weight and balance chart</strong> plots the C172S normal and utility CG envelopes with your takeoff and landing points (landing assumes 5 gal per tank). It turns red when overweight or out of CG limits.</li>
@@ -581,7 +582,7 @@ flatpak run org.freesim.FreeSim</code></pre><button class="copy" type="button">C
   <li>Flight-control feel: yoke keys, input smoothing, auto-coordination (<a href="#flying-feel">OPS 1.5</a>).</li>
   <li>Units preference (stored for later; the C172 panel stays in ft, kt and inHg).</li>
   <li>Whether the flight-data bar shows at start.</li>
-  <li>Voice, both off by default: "Speak them" for training callouts and "ATC voice" for the radio transcript. They use your operating system's text-to-speech. If no voice is found the tick stays saved but silent, and a short note appears under it. On Linux install <code>speech-dispatcher</code> and a voice such as <code>espeak-ng</code> (for example <code>sudo apt install speech-dispatcher espeak-ng</code>), then restart the game; Windows and macOS use their built-in voices.</li>
+  <li>Voice, both off by default: "Speak them" for training callouts and "ATC voice" for the radio transcript. They use your system's text-to-speech. With no voice found, the tick is saved but silent and a note appears under it. On Linux install <code>speech-dispatcher</code> and a voice such as <code>espeak-ng</code> (<code>sudo apt install speech-dispatcher espeak-ng</code>) and restart the game. Windows and macOS use their built-in voices.</li>
 </ul>
 <p>Saved in <code>user://audio.cfg</code> and <code>user://options.cfg</code>.</p>
 
@@ -603,7 +604,7 @@ flatpak run org.freesim.FreeSim</code></pre><button class="copy" type="button">C
     <tr><td>Landing</td><td>Slowing down, flaps, the 3° glide path and centreline, the threshold, the flare, touchdown and roll-out</td></tr>
   </tbody>
 </table></div>
-<p>The landing lesson starts 3 nm out on final (1,000 ft, 80 kt, flaps up, on the 3° path), so there is time to set up. Its steps: <strong>Slow down</strong> (power about 1,700 RPM, 58 to 78 kt), <strong>Flaps and trim</strong> (flaps 20° with <kbd>]</kbd> or <kbd>F7</kbd> twice and about 65 kt; <kbd>End</kbd> trims nose-up, <kbd>Home</kbd> nose-down), <strong>Fly the glide path</strong> (within 1.5° of the path, stable by 0.8 nm out), <strong>Cross the threshold</strong> (about 60 kt), <strong>Flare and touch down</strong> and <strong>Roll out</strong> (brake with <kbd>B</kbd> to walking pace, 10 kt ground speed or less).</p>
+<p>The landing lesson starts 3 nm out on final (1,000 ft, 80 kt, flaps up, on the 3° path). Its steps: <strong>Slow down</strong> (power about 1,700 RPM, 58 to 78 kt), <strong>Flaps and trim</strong> (flaps 20° with <kbd>]</kbd> or <kbd>F7</kbd> twice and about 65 kt; <kbd>End</kbd> trims nose-up, <kbd>Home</kbd> nose-down), <strong>Fly the glide path</strong> (within 1.5° of the path, stable by 0.8 nm out), <strong>Cross the threshold</strong> (about 60 kt), <strong>Flare and touch down</strong> and <strong>Roll out</strong> (brake with <kbd>B</kbd> to walking pace, 10 kt ground speed or less).</p>
 <h3 id="training-help"><span class="no">4.1</span>What helps you</h3>
 <ul>
   <li><strong>The lesson card</strong> (left) lists the steps, shows the current instruction and a hint, and ticks steps off as you complete them.</li>
@@ -621,10 +622,10 @@ flatpak run org.freesim.FreeSim</code></pre><button class="copy" type="button">C
   </tbody>
 </table></div>
 <h3 id="training-result"><span class="no">4.3</span>Results</h3>
-<p>When the last step is done, a card shows 1–3 stars and each graded number (for example centreline error, rotation speed, climb speed, sink rate at touchdown, touchdown point and roll-out straightness) marked Good, OK or Needs work. Choose <strong>Try again</strong>, <strong>Next lesson</strong>, <strong>Keep flying</strong> or <strong>Menu</strong>. Your best stars are remembered. Lessons are data (<code>game/training/lessons.json</code>): steps, conditions, gauges, grades and abort rules, so you can add your own.</p>
+<p>After the last step, a card shows 1–3 stars and each graded number (for example centreline error, rotation speed, climb speed, sink rate at touchdown, touchdown point, roll-out straightness) marked Good, OK or Needs work. Choose <strong>Try again</strong>, <strong>Next lesson</strong>, <strong>Keep flying</strong> or <strong>Menu</strong>. Your best stars are kept. Lessons are data (<code>game/training/lessons.json</code>: steps, conditions, gauges, grades, abort rules), so you can add your own.</p>
 <h3 id="training-ended"><span class="no">4.4</span>When a lesson cannot be finished</h3>
 <p>Steps are in order, but not strict: if you already meet a later step's conditions (for example you are configured and stable on the glide path before you finished "Slow down"), the earlier steps are ticked off for you.</p>
-<p>A lesson never leaves you stuck on a step. If you can no longer finish it (you touched down or left the runway before the lesson expected it, got far too low or too high on the approach, floated off the end of the runway, settled back onto the runway after rotating, flew into the ground, or crashed), it ends with a <strong>"not completed"</strong> card: what happened and in which step, which steps you did finish, what to work on, and <strong>Try again</strong>, <strong>Keep flying</strong> or <strong>Menu</strong>. After a crash the lesson card says so, and <kbd>F5</kbd> (or Restart on the crash card) starts the lesson again. <strong>Try again</strong> and <kbd>F5</kbd> put the aircraft back at the lesson start whatever state it was in: airborne, stopped on the runway or crashed.</p>
+<p>A lesson never leaves you stuck. If you can no longer finish it (you touched down or left the runway too early, got far too low or too high on the approach, floated off the end of the runway, settled back onto the runway after rotating, flew into the ground, or crashed), it ends with a <strong>"not completed"</strong> card. The card says what happened and in which step, which steps you finished and what to work on, with <strong>Try again</strong>, <strong>Keep flying</strong> or <strong>Menu</strong>. <strong>Try again</strong> and <kbd>F5</kbd> (or Restart on the crash card) put the aircraft back at the lesson start, whether it is airborne, stopped on the runway or crashed.</p>
 <a class="top" href="#top">Back to top</a>
 </section>
 
@@ -731,7 +732,7 @@ flatpak run org.freesim.FreeSim</code></pre><button class="copy" type="button">C
 <p>The Ghats are 45 km east of Juhu; Pune (VAPO) is about 120 km east-southeast.</p>
 
 <h3 id="flying-trim"><span class="no">1.9</span>Trim and the left-wing-heavy drift</h3>
-<p>Pitch trim slews at 0.15 per second while the key is held; a trim axis is also supported. There is no cockpit aileron or rudder trim: fixed rigging tabs (aileron 0.033, rudder 0.004) cancel the left roll from the solo pilot's weight and engine torque at about 100 KIAS. Slower or at climb power the aircraft rolls gently left; faster it rolls slightly right. Hands off from trim, the bank after 60 s is about −10° at 90 KIAS, 0° at 100 KIAS and +10° at 110 KIAS, which matches JSBSim's c172p.</p>
+<p>Pitch trim moves at 0.15 per second while the key is held; a trim axis also works. There is no cockpit aileron or rudder trim. Fixed rigging tabs (aileron 0.033, rudder 0.004) cancel the left roll from the solo pilot's weight and engine torque at about 100 KIAS. Slower, or at climb power, the aircraft rolls gently left; faster, slightly right. Hands off from trim, the bank after 60 s is about −10° at 90 KIAS, 0° at 100 KIAS and +10° at 110 KIAS. This matches JSBSim's c172p.</p>
 
 <h3 id="flying-landing"><span class="no">1.10</span>Approach and landing</h3>
 <ul>
@@ -975,7 +976,7 @@ flatpak run org.freesim.FreeSim</code></pre><button class="copy" type="button">C
 <p>Some frequencies repeat far apart (for example 108.10 at Mumbai and Mangaluru); reception range keeps them from overlapping.</p>
 
 <h3 id="nav-atc"><span class="no">3.3</span>ATC</h3>
-<p>In free flight a slim <strong>radio bar</strong> sits at the top-left, level with the flight-data bar. It shows COM1 and the unit you are tuned to (<code>COM1 118.100 · Pune Tower</code>: green when a unit answers on that frequency, amber "no facility", red when COM1 is off or failed), the call to make next (<em>Next: ask Ground for taxi</em>) and, for 20 seconds, the latest controller message. Click the bar or press <kbd>`</kbd> (backquote) to open a short list of at most four plain calls, the suggested one first and highlighted. <kbd>↑</kbd> <kbd>↓</kbd> move, <kbd>Enter</kbd> or <kbd>1</kbd>–<kbd>4</kbd> make the call, <kbd>Esc</kbd> or <kbd>`</kbd> close, and the list closes by itself after a call. While it is open the arrow keys do not pitch the aircraft and the number keys do not change the cameras. The small row under the list has <em>Say again</em> (<kbd>A</kbd>), <em>History</em> (<kbd>H</kbd>, the last 30 transmissions, scrollable) and <em>Voice</em> on/off (<kbd>V</kbd>).</p>
+<p>In free flight a slim <strong>radio bar</strong> sits at the top-left, level with the flight-data bar. It shows COM1 and the unit you are tuned to (<code>COM1 118.100 · Pune Tower</code>: green when a unit answers on that frequency, amber "no facility", red when COM1 is off or failed), the call to make next (<em>Next: ask Ground for taxi</em>) and, for 20 seconds, the latest controller message. Click the bar or press <kbd>`</kbd> (backquote) to open a list of at most four calls, the suggested one first. <kbd>↑</kbd> <kbd>↓</kbd> move, <kbd>Enter</kbd> or <kbd>1</kbd>–<kbd>4</kbd> make the call, <kbd>Esc</kbd> or <kbd>`</kbd> close. The list closes by itself after a call. While it is open, arrow keys do not pitch the aircraft and number keys do not change the cameras. The small row under the list has <em>Say again</em> (<kbd>A</kbd>), <em>History</em> (<kbd>H</kbd>, the last 30 transmissions, scrollable) and <em>Voice</em> on/off (<kbd>V</kbd>).</p>
 <p>What the controller says arrives as one calm card at the top-centre, like the other notification cards, and fades after 6 to 8 seconds; your own call and read-back appear in it as small muted lines. The controller also calls on its own (handovers, "report final", "vacate").</p>
 <div class="tbl"><table>
   <caption>A normal flight through the radio</caption>
@@ -993,7 +994,7 @@ flatpak run org.freesim.FreeSim</code></pre><button class="copy" type="button">C
   <li><strong>Radio assist</strong> (Options → Radio / ATC, on by default): a call tunes COM1 to the unit that answers it ("COM1 tuned to 118.100 Pune Tower") and the bar suggests the next call. Switch it off for the realistic radio: you tune COM1 yourself, nothing is suggested, and the list offers <em>Tune COM1 to …</em> first when needed.</li>
   <li>A call is answered only by the right unit. With assist off, a call to the wrong unit of the same airport is redirected ("contact Tower 118.1") and a call on a frequency with no unit gets no reply; the radio says which frequency to tune.</li>
   <li><em>Say again</em> repeats the last instruction. Pilot readbacks are automatic and ATC answers "readback correct" to a clearance.</li>
-  <li>Airports with frequencies in the data (Mumbai, Pune, Goa, Cochin, Calicut, Mangaluru, Belgaum, Kolhapur, Garuda) need the right frequency; a unit that does not exist is covered by the next one (Pune has only a tower, which does everything). Airports without frequencies in the data (Juhu, Navi Mumbai and similar) answer on any frequency. Small fields and heliports have no ATC: your calls are blind transmissions that nobody answers.</li>
+  <li>Airports with frequencies in the data (Mumbai, Pune, Goa, Cochin, Calicut, Mangaluru, Belgaum, Kolhapur, Garuda) need the right frequency. A missing unit is covered by the next one (Pune has only a tower, which does everything). Airports without frequencies in the data (Juhu, Navi Mumbai and similar) answer on any frequency. Small fields and heliports have no ATC: your calls are blind transmissions nobody answers.</li>
   <li>With COM1 failed or no avionics power nothing is sent or heard (a failure also says: squawk 7600, lost-communications procedure).</li>
   <li>Never blocking: take off, land or enter a runway without a clearance and you get one short note, once per flight, and the flight carries on.</li>
   <li><strong>Training lessons:</strong> ATC stays quiet. No calls, no notes, the radio bar stays hidden, and clearances count as given. The radio is still there on <kbd>`</kbd>.</li>
@@ -1055,11 +1056,11 @@ flatpak run org.freesim.FreeSim</code></pre><button class="copy" type="button">C
 <h3 id="airports-stands"><span class="no">4.2</span>Stands and gates</h3>
 <ul>
   <li>Stands come from OpenStreetMap: <strong>VABB</strong> 114 stands (52 gates with jetbridges), <strong>VANM</strong> 87, <strong>VAPO</strong> 24 (11 gates), <strong>Calicut</strong> 36 (14 gates), <strong>Manohar (Goa)</strong> 16 (6 gates), <strong>Mangaluru</strong> 15 (6 gates), <strong>Dabolim</strong> 11, and generated GA parking at <strong>Juhu</strong> and other small fields.</li>
-  <li><strong>Kochi</strong> and <strong>Kannur</strong> have jet bridges in OpenStreetMap but no stands, so their airliner stands are derived from the bridges. At Kochi that is 11 jetbridge gates (numbers 2, 3, 4 and B1 to B8; the C172 stops at the L1 door with its nose to the terminal), a walk-out gate (1) and 26 remote bays (R1 to R26) along the apron lanes. At Kannur it is 3 gates. Each stand is joined to the taxi network, so taxi guidance (<kbd>T</kbd>) and ATC's "taxi to the apron" route to it.</li>
+  <li><strong>Kochi</strong> and <strong>Kannur</strong> have jet bridges in OpenStreetMap but no stands, so their airliner stands are derived from the bridges. Kochi has 11 jetbridge gates (numbers 2, 3, 4 and B1 to B8; the C172 stops at the L1 door with its nose to the terminal), a walk-out gate (1) and 26 remote bays (R1 to R26) along the apron lanes. Kannur has 3 gates. Each stand joins the taxi network, so taxi guidance (<kbd>T</kbd>) and ATC's "taxi to the apron" route to it.</li>
   <li>Stands have lead-in lines and stand numbers; jetbridges follow the OSM jetbridge lines; yellow lead-on lines carry on over the runway where a taxiway meets it; windsocks turn with the wind.</li>
   <li>From the command line: <code>--airport=VABB --stand</code> (a jetbridge gate), <code>--stand="Bay 40"</code>, or Juhu <code>--stand=GA3</code>.</li>
   <li>Stand starts are always cold and dark with the parking brake set.</li>
-  <li><strong>The apron is flat.</strong> The terrain comes from a surface model (Copernicus GLO-30), so terminal walls and roofs, parked aircraft and vehicles are in the heights. Around every stand, gate, apron polygon, taxilane and terminal or hangar the pipeline (step 17) replaces them with a smooth fill of the ground around them, blended out over 30 m, at every level of detail. At Mumbai that took the median mound within 45 m of a stand from 2.0 m to 0.3 m, and the ones over 1.5 m from 54 % of the stands to 5 %.</li>
+  <li><strong>The apron is flat.</strong> The terrain comes from a surface model (Copernicus GLO-30), so terminal walls and roofs, parked aircraft and vehicles are in the heights. Around every stand, gate, apron polygon, taxilane and terminal or hangar, the pipeline (step 17) replaces them with a smooth fill of the surrounding ground, blended out over 30 m, at every level of detail. At Mumbai this cut the median mound within 45 m of a stand from 2.0 m to 0.3 m, and mounds over 1.5 m from 54 % of the stands to 5 %.</li>
 </ul>
 
 <h3 id="airports-taxi"><span class="no">4.3</span>Taxi routing and the follow-me car</h3>
@@ -1352,7 +1353,7 @@ flatpak run org.freesim.FreeSim</code></pre><button class="copy" type="button">C
   </tbody>
 </table></div>
 <h4 id="realism-crash">What counts as a crash</h4>
-<p>Touching a solid ends the flight at any speed. The whole airframe is tested, not a few points: the propeller disc, nose, cowling, fuselage, both wings with their struts, the tail fin and stabilizers, and the wheels, so a 6&nbsp;m house or a single tree between a wingtip and the nose is hit by the wing. The crash card, and the replay, say which part hit what: &ldquo;The nose hit a parked vehicle (fuel truck) at 6 kt (taxiing)&rdquo;.</p>
+<p>Touching a solid ends the flight at any speed. The whole airframe is tested: propeller disc, nose, cowling, fuselage, both wings with their struts, tail fin and stabilizers, and wheels. So a 6&nbsp;m house or a single tree between a wingtip and the nose is hit by the wing. The crash card, and the replay, say which part hit what: &ldquo;The nose hit a parked vehicle (fuel truck) at 6 kt (taxiing)&rdquo;.</p>
 <ul>
   <li><strong>Solids:</strong> the trees you see (canopy and height), 3D OSM buildings, the landmark terminals at Mumbai, Pune and Kochi (their real shape: an 8&nbsp;m canopy leaves room to taxi underneath, a wall does not), jetways, parked ground vehicles, apron floodlight masts and windsock poles. Runway and approach lights, PAPIs, the follow-me car and the pushback tug are not solid.</li>
   <li><strong>No height gate:</strong> a tall building beside a cliff is hit however far the ground is below you. Building collision data loads around the aircraft and where it is heading, not around the camera.</li>
@@ -1361,7 +1362,7 @@ flatpak run org.freesim.FreeSim</code></pre><button class="copy" type="button">C
 <p>Not modelled yet: tyre bursts, engine damage from over-temperature or over-speed, bird strikes.</p>
 
 <h3 id="realism-wb"><span class="no">7.4</span>Weight and balance</h3>
-<p>The CG envelope comes from the C172S POH (section 2 limits, section 6 chart), plotted in inches aft of the datum (front face of the firewall) against weight in lb. The loads you set change the mass, CG and inertia in the flight model. With only the pilot aboard, the CG sits slightly left of centre (180 lb pilot 14 in left), which together with engine torque gives the slow left roll described in <a href="#flying-trim">OPS 1.9</a>.</p>
+<p>The CG envelope comes from the C172S POH (section 2 limits, section 6 chart), plotted in inches aft of the datum (front face of the firewall) against weight in lb. The loads you set change the mass, CG and inertia in the flight model. With only the pilot aboard, the CG sits slightly left of centre (180 lb pilot, 14 in left). With engine torque this gives the slow left roll described in <a href="#flying-trim">OPS 1.9</a>.</p>
 <a class="top" href="#top">Back to top</a>
 </section>
 
@@ -1769,7 +1770,7 @@ godot --path game -- --airport=VAJJ --fail=vacuum_pump@10 --random-failures --me
 <h4>The aircraft keeps rolling left</h4>
 <p>That is the real C172 flown solo: pilot weight and engine torque. It is neutral at about 100 KIAS in level flight; at climb power hold a little right aileron and rudder (<a href="#flying-trim">OPS 1.9</a>).</p>
 <h4>ATC doesn't answer</h4>
-<p>COM1's active frequency must match the unit you call. With radio assist on (the default) a call tunes it for you; with assist off open the radio with <kbd>`</kbd> and pick <em>Tune COM1 to …</em>, or tune the standby and click ⇄. The avionics must be powered. Airports without frequencies in the data answer on any frequency; small fields and heliports have no ATC. In a training lesson ATC says nothing unless you call.</p>
+<p>COM1's active frequency must match the unit you call. With radio assist on (the default) a call tunes it for you. With assist off, open the radio with <kbd>`</kbd> and pick <em>Tune COM1 to …</em>, or tune the standby and click ⇄. The avionics must be powered. Airports without frequencies in the data answer on any frequency; small fields and heliports have no ATC. In a training lesson ATC says nothing unless you call.</p>
 <h4>I lost the Pune VOR</h4>
 <p>Reception checks terrain line of sight; climb or move clear of the Ghats.</p>
 <h4>Is the ILS real?</h4>
@@ -1779,7 +1780,7 @@ godot --path game -- --airport=VAJJ --fail=vacuum_pump@10 --random-failures --me
 <h4>Where are my settings and saves?</h4>
 <p>In Godot's user folder (<code>user://</code>, on Linux <code>~/.local/share/godot/app_userdata/libresim/</code>): <code>last_flight.json</code>, <code>key_bindings.json</code>, <code>input_bindings.json</code>, <code>graphics.cfg</code>, <code>audio.cfg</code>, <code>options.cfg</code> and <code>saves/</code>.</p>
 <h4>What's next?</h4>
-<p>The Konkan–Kerala corridor (phase R) is flyable. Later milestones: a KAP 140 autopilot and voice ATC (M9), an iPhone/iPad port, and an A320-class airliner.</p>
+<p>Planned: a KAP 140 autopilot, voice ATC, circuit traffic, an iPhone/iPad port and a more complete A320 (route and managed avionics, more ND modes, a fuller MCDU). The Konkan–Kerala corridor is already flyable.</p>
 <a class="top" href="#top">Back to top</a>
 </section>
 

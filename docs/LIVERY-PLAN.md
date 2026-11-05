@@ -1,58 +1,28 @@
 # Livery builder: plan
 
-Goal: the pilot picks colours for the main areas of the aircraft and adds a few small images (a logo on the
-fin, a badge on the fuselage), sees the result on a live 3D preview on the start screen, saves it as a named
-preset, and flies with it. Everything is local; nothing the pilot adds ever enters the repository.
+Goal: the pilot picks colours for the main areas of the aircraft and adds a few small images (a logo on the fin, a badge on the fuselage), sees a live 3D preview on the start screen, saves it as a named preset, and flies with it. Everything is local; nothing the pilot adds enters the repository.
 
-Status: researched, decisions made (section 9), L0 and L1 done 2026-11-04 (section 6), L2 to L5 not started. Written 2026-10-31 from three code surveys
-(start-screen UI and saving, textures and UV layouts of both aircraft, the existing registration painter).
-The wing-underside registration the owner asked for (section 10) is done and shipped on its own.
+Status: L0 and L1 done (colours in flight, no UI yet). L2 to L5 not started. The wing-underside registration (§10) is done and shipped on its own.
 
-## 1. What the models give us (facts, not assumptions)
+## 1. What the models give us
 
-- **No paint layer exists.** All paint is baked into a few atlases with ambient occlusion and dirt in the
-  albedo; materials have no mask, emissive or ORM map and the glb has no UV2 or vertex colours.
-  No `Decal` or `albedo_color` is used on the aircraft today.
-- **C172** (`game/aircraft/c172/models/`): three 2048 px atlases (`exterior_fuselage`, `_wing`, `_tail`).
-  White base with blue and grey stripes; blue is saturated, so a colour threshold (b - r > 40) gives a clean
-  mask. The fuselage atlas is shared with the tyres, propeller and struts, so a plain tint is wrong. The fin
-  carries a baked "Cessna" logo and "SKYHAWK"; the wing undersides carried a baked `4X-CHV` (now repainted from the call sign, section 10).
-- **A320** (`game/aircraft/a320/models/`): one 4096 px atlas (`a320_fuselage`) holds fuselage, wings, fin,
-  tailplane and every control surface; a separate 2048 px engine atlas has the nacelles as tiled copies.
-  Wing tops and bottoms overlap in UV space (they cannot be painted apart). `tools/24_a320_textures.py`
-  already holds the boolean masks it used to make the white livery (`paint`, `fin`, `black`, `CHEAT`).
-- **Registration painter** (`aircraft/common/registration_paint.gd`): copies the atlas, erases the old
-  number, stamps the new one, caches an `ImageTexture` per `"<aircraft>|<TEXT>"` and sets surface override
-  materials on surfaces whose `albedo_texture.resource_path` equals the atlas path. Gotcha: after one override
-  the active texture has no path, so a second painter pass finds nothing. Livery and registration therefore
-  have to be composited in one pass into the same texture.
-- **Start screen**: Free flight steps are `STEPS` in `ui/menu/start_flow.gd` (Aircraft is step 1); the
-  setup lives in `Session.setup` and is saved to `last_flight.json`. There is no 3D aircraft preview in the
-  menu yet (`AircraftModel.build` needs an `FdmNode`; `tests/render_aircraft_previews.gd` shows how to load
-  the exterior glb on its own).
+- **No paint layer exists.** All paint is baked into atlases with ambient occlusion and dirt in the albedo. Materials have no mask, emissive or ORM map; the glb has no UV2 or vertex colours. No `Decal` or `albedo_color` is used on the aircraft.
+- **C172** (`game/aircraft/c172/models/`): three 2048 px atlases (`exterior_fuselage`, `_wing`, `_tail`). White base with blue and grey stripes; blue is saturated, so a colour threshold (b - r > 40) gives a clean mask. The fuselage atlas is shared with tyres, propeller and struts, so a plain tint is wrong. The fin carries a baked "Cessna" logo and "SKYHAWK".
+- **A320** (`game/aircraft/a320/models/`): one 4096 px atlas (`a320_fuselage`) holds fuselage, wings, fin, tailplane and all control surfaces; a separate 2048 px engine atlas has the nacelles as tiled copies. Wing tops and bottoms overlap in UV space, so they cannot be painted apart. `tools/24_a320_textures.py` holds the boolean masks used for the white livery (`paint`, `fin`, `black`, `CHEAT`).
+- **Registration painter** (`aircraft/common/registration_paint.gd`): copies the atlas, erases the old number, stamps the new one, caches an `ImageTexture` per `"<aircraft>|<TEXT>"` and sets surface override materials on surfaces whose `albedo_texture.resource_path` equals the atlas path. After one override the active texture has no path, so a second painter pass finds nothing. So livery and registration are composited in one pass into the same texture.
+- **Start screen:** Free flight steps are `STEPS` in `ui/menu/start_flow.gd` (Aircraft is step 1). Setup lives in `Session.setup` and is saved to `last_flight.json`. The menu has no 3D aircraft preview yet (`AircraftModel.build` needs an `FdmNode`; `tests/render_aircraft_previews.gd` shows how to load the exterior glb alone).
 
 ## 2. Approach
 
-**Bake, do not shade.** Colours and stickers are composited once at flight start (and in the preview) into a
-copy of each atlas, exactly where `RegistrationPaint` already works. Rejected: a recolour shader on the
-live material (loses the normal map and glass `next_pass`), per-material `albedo_color` (tints stripes, tyres
-and the A320 fin), and `Decal` stickers (project through the airframe and do not follow animated parts).
+**Bake, do not shade.** Colours and stickers are composited once at flight start (and in the preview) into a copy of each atlas, where `RegistrationPaint` already works. Rejected: a recolour shader on the live material (loses the normal map and glass `next_pass`), per-material `albedo_color` (tints stripes, tyres and the A320 fin), `Decal` stickers (project through the airframe, do not follow animated parts).
 
-**Recolour keeps the shading.** For a region with colour C: `out = lerp(orig, C * (luma(orig) / luma_base), mask)`
-where `luma_base` is the region's mean luminance under the mask (stored with the mask), so baked AO, panel
-lines and dirt survive. Stripes, tyres, propeller, glass and the registration box are outside every mask.
+**Recolour keeps the shading.** For a region with colour C: `out = lerp(orig, C * (luma(orig) / luma_base), mask)`, where `luma_base` is the region's mean luminance under the mask (stored with the mask). Baked AO, panel lines and dirt survive. Stripes, tyres, propeller, glass and the registration box are outside every mask.
 
-**Offline masks.** `tools/25_livery_masks.py` writes one 8-bit grey PNG per region per atlas next to the
-atlas (`game/aircraft/<id>/livery/*.png`), from colour thresholds (C172) and from the arrays already in
-`tools/24_a320_textures.py` (A320), with soft edges. Hand-authored masks from the Blender UV layout would be
-cleaner at the edges but cost much more; start with thresholds and review each mask visually.
+**Offline masks.** `tools/25_livery_masks.py` writes one 8-bit grey PNG per region per atlas (`game/aircraft/<id>/livery/*.png`) from colour thresholds (C172) and from the arrays in `tools/24_a320_textures.py` (A320), with soft edges. Hand-authored masks from the Blender UV layout would be cleaner at the edges but cost far more; review each mask visually.
 
-**One compositor, used by preview and flight.** A one-shot GPU pass (SubViewport + shader, the way
-`render_glyphs` already draws text) takes the atlas, the region masks, the colours and the sticker images and
-returns one `Image`; the registration text is stamped on the result, mipmaps are generated, and the
-`ImageTexture` is cached under `aircraft|TEXT|livery-hash`. Native `Image.blend_rect_mask` places stickers.
+**One compositor for preview and flight.** A one-shot GPU pass (SubViewport + shader, as `render_glyphs` draws text) takes the atlas, region masks, colours and sticker images and returns one `Image`. Registration text is stamped on the result, mipmaps are generated, and the `ImageTexture` is cached under `aircraft|TEXT|livery-hash`. `Image.blend_rect_mask` places stickers.
 
-## 3. Data (all per aircraft, in `aircraft.json`, no code per aircraft)
+## 3. Data (per aircraft, in `aircraft.json`, no code per aircraft)
 
 ```json
 "livery": {
@@ -63,16 +33,14 @@ returns one `Image`; the registration text is stamped on the result, mipmaps are
                 "mirror_box": [x, y, w, h], "rotate": 0}, ...]
 }
 ```
+(As built, a region has `masks: [{atlas, mask, luma}]` instead of one `atlas` / `mask` / `luma`; see §6.)
 
-- Regions offered: C172 fuselage, stripe 1, stripe 2 (the two blues/greys), wings and tail; A320 fuselage,
-  fin and rudder, engines, cheat line. A320 wings are not offered (top and bottom share UV space).
-- Stickers are fixed slots (2 per aircraft to start: fuselage side pair, fin), each with scale, offset and
-  mirror sliders. Free placement is a later option.
-- `Session.setup.livery` is `{<aircraft id>: {colors: {region: "#rrggbb"}, stickers: {slot: {image, scale, dx, dy}}}}`,
-  small enough to live in `last_flight.json`; a missing entry is the factory livery.
+- Regions: C172 fuselage, stripe 1, stripe 2, wings and tail; A320 fuselage, fin and rudder, engines, cheat line. A320 wings are not offered.
+- Stickers are fixed slots (2 per aircraft to start: fuselage side pair, fin), each with scale, offset and mirror sliders. Free placement is a later option.
+- `Session.setup.livery` is `{<aircraft id>: {colors: {region: "#rrggbb"}, stickers: {slot: {image, scale, dx, dy}}}}`, small enough for `last_flight.json`. A missing entry is the factory livery.
 - On disk (never in `res://`): `user://liveries/<aircraft>/<preset>.json` and `user://liveries/images/<sha1>.png`.
 
-## 4. Code layout (files under 300 lines, one job each)
+## 4. Code layout
 
 | File | Job |
 |---|---|
@@ -83,27 +51,20 @@ returns one `Image`; the registration text is stamped on the result, mipmaps are
 | `ui/menu/livery_preview.gd` | SubViewport with the exterior glb, drag to turn, debounced live update |
 | `tools/25_livery_masks.py` | masks per aircraft, written next to the textures |
 
-`RegistrationPaint.texture/apply` is refactored into the compositor's pipeline (base atlas, then livery,
-then registration), looping over every atlas of the aircraft; its public behaviour and tests stay.
+`RegistrationPaint.texture/apply` runs inside the compositor's pipeline (base atlas, then livery, then registration, over every atlas of the aircraft). Its public behaviour and tests stay.
 
-## 5. UI
+## 5. UI (L2, L3)
 
-A **Livery (optional)** step right after Aircraft (the preview needs the aircraft first; the step is skipped
-by Next like Failures and Recording). Left: the turntable preview. Right: one row per region (name, swatch
-row of about 12 preset colours, a `ColorPickerButton` for any colour), one block per sticker slot (Load image,
-scale, offset, mirror, Remove), then Save preset / Load preset / Reset to factory. The Aircraft page picture
-and chips can show the chosen livery later (the same compositor).
+A **Livery (optional)** step right after Aircraft (the preview needs the aircraft; Next skips it like Failures and Recording). Left: the turntable preview. Right: one row per region (name, about 12 preset swatches, a `ColorPickerButton` for any colour), one block per sticker slot (Load image, scale, offset, mirror, Remove), then Save preset / Load preset / Reset to factory. The Aircraft page picture and chips can show the chosen livery later (same compositor).
 
-Picture import: PNG, JPG or WebP picked with the native file dialog, at most 4 MB, decoded with
-`Image.load_from_file`, scaled down to 512 px on the long side, re-encoded as PNG (this drops metadata), named
-by its hash. Anything else is refused with a one-line message.
+Picture import: PNG, JPG or WebP from the native file dialog, at most 4 MB, decoded with `Image.load_from_file`, scaled to 512 px on the long side, re-encoded as PNG (drops metadata), named by its hash. Anything else is refused with a one-line message.
 
 ## 6. Phases
 
 | Phase | Content | Done when |
 |---|---|---|
-| L0 | `livery.gd` logic, masks tool for the C172, compositor, colours only | a coloured C172 atlas renders in a probe scene; identity livery equals the original (+/- 1) **DONE 2026-11-04** |
-| L1 | flight integration (one pass with registration), cache key, `Session.setup.livery`, `--livery` for probes | the C172 flies in a chosen colour with the right tail number, parked and in flight **DONE 2026-11-04** |
+| L0 | `livery.gd` logic, masks tool for the C172, compositor, colours only | a coloured C172 atlas renders in a probe scene; identity livery equals the original (±1). **Done** |
+| L1 | flight integration (one pass with registration), cache key, `Session.setup.livery`, `--livery` for probes | the C172 flies in a chosen colour with the right tail number, parked and in flight. **Done** |
 | L2 | Livery step: preview, colours, presets, Reset | menu tests plus a screenshot; preset round trip |
 | L3 | stickers and picture import | a picture lands in its slot box, mirrored on the right side |
 | L4 | A320: masks from `tools/24`, engine atlas, fin and cheat line | both aircraft pass the same tests |
@@ -111,63 +72,54 @@ by its hash. Anything else is refused with a one-line message.
 
 L0 to L2 give the colour builder; L3 and L4 can be reordered.
 
-**L0 done (2026-11-04).** Built: `tools/25_livery_masks.py` (C172 masks by colour thresholds inside island rectangles, 8 PNGs in `game/aircraft/c172/livery/`, the `livery` section of `aircraft.json`), `aircraft/common/livery.gd` (parse, colours, identity, cache key, the recolour rule) and `livery.gdshader` + `livery_paint.gd` (one GPU pass per atlas, up to 4 regions), `tests/test_livery.gd` (13 headless tests) and the windowed probe `tests/debug_livery.tscn` (GPU result equals the CPU rule within 0.5 level; identity returns `null`). Details in `docs/USAGE.md` "Aircraft data: livery".
-Differences from the plan: (1) a region has `masks: [{atlas, mask, luma}]` instead of one `atlas`/`mask`/`luma`, so one colour key spans fuselage, wing and tail, and `luma` is per atlas (the tail atlas is shaded darker than the fuselage); (2) regions are `body`, `accent`, `stripe` (the plan's "wings and tail" are body and accent on those atlases; no separate cowl or wing-tip region: the cowl and the side sweeps are one blue paint); wheel fairings are body paint, struts, propeller, spinner and tyres are not recoloured; (3) where regions meet the weights are added up and each region keeps the luminance left after the others' share (`recolor_multi`), this avoids the dark fringe a per-region lerp gives where the shading of a half-blue edge pixel is taken as the white's; (4) the identity livery returns `null` (use the original) instead of an equal copy; (5) the registration boxes and the fin logo glyphs are out of the masks, the registration is painted after the livery (box background is recoloured by the wipe), so L1 must run livery, registration, mipmaps in that order; (6) `compose` returns no mipmaps (the caller generates them after the registration stamp).
-Open for L1: the wing struts and gear legs stay white (they share the fuselage atlas with tyres and propeller, an optional `struts` region could take them); the baked grey tip of the pin stripe near the door has a soft green/tint glow with dark colours; a region at its factory colour still passes the shader (about 1 % darker), so L1 should skip the pass when only one region changed only if that is acceptable at the edges; the probe window must be in front on macOS.
+### As built (L0, L1)
+Details and how to run: `docs/USAGE.md` "Aircraft data: livery".
+- `tools/25_livery_masks.py`: C172 masks by colour thresholds inside island rectangles, 9 PNGs in `game/aircraft/c172/livery/`, and the `livery` section of `aircraft.json`.
+- `aircraft/common/livery.gd`: parse, colours, identity, cache key, the recolour rule. `livery.gdshader` + `livery_paint.gd`: one GPU pass per atlas, up to 4 regions.
+- A region has `masks: [{atlas, mask, luma}]`, so one colour key spans fuselage, wing and tail; `luma` is per atlas (the tail atlas is shaded darker).
+- C172 regions: `body`, `accent`, `stripe`, `struts` (optional: wing struts and main gear legs, found from the glb UV islands). The cowl and side sweeps are one blue paint. Wheel fairings are body paint. Propeller, spinner, tyres and the nose gear leg (bare steel, a metal tile shared with tie-down rings and cable hinges) are not recoloured.
+- Where regions meet, weights are added and each region keeps the luminance left after the others' share (`recolor_multi`), which avoids a dark fringe at half-blue edge pixels.
+- The identity livery returns `null` (use the original). Registration boxes and fin logo glyphs are out of the masks. Order is livery, registration, mipmaps; `compose` returns no mipmaps.
+- `Session.setup.livery` (`{id: {colors: {key: "#hex"}}}`, saved in `last_flight.json`, repaired by `Livery.repair_setup`; `--livery=` and `c172:key=#hex` through `Livery.parse_cli`).
+- `aircraft/common/paint_pipeline.gd` (`PaintPipeline`): one pass per atlas, livery -> registration -> mipmaps -> cached texture -> surface override. Cache key `aircraft|TEXT|atlas|livery key` of the regions on that atlas (a call sign never repaints the tail atlas); the cache keeps at most 9 textures. The exterior is hidden while the first paint runs (12 s watchdog); a headless run does not paint; no-pixel results fall back one step at a time. `RegistrationPaint` got `stamp_steps`, `glyph_set`, `is_baked`. `AircraftModel._build_glb` calls the pipeline. It applies to the player's aircraft only.
+- A region at factory colour still goes through the shader when another region of the same atlas changed (skipping it would give stripe edges a halo), so it can be about 1 % darker. An atlas with nothing changed is skipped.
+- `aircraft.json` `registration.baked` (optional): the number the atlas carries is never repainted.
+- Test seams `PaintPipeline.test_compose / test_glyphs` run the pipeline headless without a GPU.
+- Tests: `test_livery.gd`, `test_livery_struts.gd`, `test_paint_pipeline.gd`, `test_livery_session.gd`, `test_registration.gd`. Probes: `tests/debug_livery.tscn` (GPU result equals the CPU rule within 0.5 level), `tests/debug_livery_flight.tscn` (real flight scene, parked and `--air`). The probe window must be in front on macOS.
 
-**L1 done (2026-11-04).** Built: (1) the optional `struts` region of the C172 (wing struts + main gear legs, fuselage atlas, found from the UV islands of the glb: two strips by distance to their axis and the gear-leg capsule by flood fill; `tools/25_livery_masks.py`, `livery/fuselage_struts.png`; the fuselage atlas now fills all 4 shader slots; the `body` mask no longer covers the capsule and one strut, which L0 had half-painted as body). (2) `Session.setup.livery` (`{id: {colors: {key: "#hex"}}}`, saved in `last_flight.json`, repaired by `Livery.repair_setup`, `--livery=` and `c172:key=#hex` through `Livery.parse_cli`). (3) `aircraft/common/paint_pipeline.gd` (`PaintPipeline`): one pass per atlas, livery -> registration -> mipmaps -> cached texture -> surface override, cache key `aircraft|TEXT|atlas|livery key` of the regions on that atlas, exterior hidden while the first paint runs (12 s watchdog, shown again on every exit), a headless run does not paint, no-pixel results fall back one step at a time; `RegistrationPaint` got `stamp_steps`, `glyph_set`, `is_baked` and delegates `apply`; `AircraftModel._build_glb` calls the pipeline. (4) Applies to the player's aircraft only (other aircraft in the scene stay factory). (5) Tests: `test_livery_struts.gd`, `test_paint_pipeline.gd`, `test_livery_session.gd`, additions to `test_livery.gd` / `test_registration.gd`; probes `tests/debug_livery_flight.tscn` (real flight scene, parked and `--air`) and `debug_livery.tscn` (now with struts colours). Details and how to run in `docs/USAGE.md` "Aircraft data: livery".
-Differences from the plan: (1) the nose gear leg is bare steel (a metal tile shared with tie-down rings and cable hinges), not paint: it stays out of `struts`; (2) a region at its factory colour is not left out of the shader pass when another region of the same atlas changed (it would give stripe edges a halo); only an atlas with nothing changed is skipped, so such a region can be about 1 % darker; (3) the cache key uses only the regions on that atlas (a call sign never repaints the tail atlas, a strut colour never repaints the wing), and the cache keeps at most 9 textures; (4) aircraft.json `registration.baked` (new, optional): the number the atlas carries is never repainted, so factory colours + that number change nothing; (5) hiding the exterior during the first paint, and not painting at all when headless (a headless renderer never draws a frame to wait for); (6) test seams `PaintPipeline.test_compose / test_glyphs` so the pipeline runs headless without GPU.
-Open for L2: the Livery step UI (no way to choose colours yet except `--livery` and a hand-edited `last_flight.json`), the live turntable preview (uses `LiveryPaint.compose` + `RegistrationPaint` on a glb of its own, not `PaintPipeline.apply`, whose cache and hiding are for the flight model), presets in `user://liveries/`; whether F11 quick-saves and replays carry `Session.setup.livery` was not checked; the nose leg stays silver; A320 has no livery section yet (L4).
+### Open
+- The livery step UI (until then colours come only from `--livery` or a hand-edited `last_flight.json`), the live turntable preview (uses `LiveryPaint.compose` + `RegistrationPaint` on its own glb, not `PaintPipeline.apply`), presets in `user://liveries/`.
+- Not checked: whether F11 quick-saves and replays carry `Session.setup.livery`.
+- The baked grey tip of the pin stripe near the door glows slightly with dark colours.
+- The nose leg stays silver. The A320 has no livery section yet (L4).
 
-## 7. Tests
+## 7. Tests (planned)
 
-Pure logic in headless suites (as for registration): defaults and validation, cache hash changes with any
-colour or image, sticker box fitting and mirroring, preset save/load round trip, import limits (size, type,
-downscale), `Session.setup` save and repair of a malformed livery entry, step order (Livery follows Aircraft,
-is skippable). Pixel results (the GPU pass) cannot run headless, so a windowed probe in the style of
-`render_aircraft_previews.gd` checks: identity livery equals the original, a region colour changes only
-inside its mask, stickers land inside their box, and the registration box is untouched. Masks get a size and
-coverage check (same size as the atlas, coverage within a sane range).
+Pure logic in headless suites: defaults and validation; the cache hash changes with any colour or image; sticker box fitting and mirroring; preset save/load round trip; import limits (size, type, downscale); `Session.setup` save and repair of a malformed livery entry; step order (Livery follows Aircraft, skippable). The GPU pass cannot run headless, so a windowed probe checks: identity livery equals the original, a region colour changes only inside its mask, stickers land inside their box, the registration box is untouched. Masks get a size and coverage check (same size as the atlas, sane coverage).
 
 ## 8. Risks and limits
 
-- **Memory**: a recoloured A320 atlas is 64 to 85 MB with mipmaps and C172 is 3 x about 21 MB, replacing the
-  original in the materials; acceptable on the target machine, noted in USAGE.
-- **Mask quality** on shaded or stained areas (C172 white-to-grey belly, A320 wing root): review each mask
-  against screenshots; soft edges and a luminance floor avoid halos.
-- **Baked marks** (C172 "Cessna" logo and "SKYHAWK" on the fin): left as they are in the first version;
-  an optional "cover" region can paint over them later. The wing registration is already replaced (section 10).
-- **Licence and trademarks**: masks and recoloured copies are derived from GPL-2.0 art, so they get a dated
-  entry in the existing `SOURCE.md` change logs; the runtime recolour of a copy in memory changes no repo file.
-  Shipped sample presets are plain colour schemes only, never airline or manufacturer marks. Pictures the
-  pilot adds stay on their machine.
-- **Out of scope for now**: other aircraft in the scene (parked or AI) wearing a livery, sharing presets as
-  files, free sticker placement, per-surface weathering.
+- **Memory:** a recoloured A320 atlas is 64 to 85 MB with mipmaps; the C172 is 3 × about 21 MB. These replace the originals in the materials. Acceptable on the target machine, noted in USAGE.
+- **Mask quality** on shaded or stained areas (C172 white-to-grey belly, A320 wing root): review each mask against screenshots; soft edges and a luminance floor avoid halos.
+- **Baked marks** (C172 "Cessna" logo and "SKYHAWK" on the fin) stay as they are in the first version. An optional "cover" region can paint over them later.
+- **Licence and trademarks:** masks and recoloured copies derive from GPL-2.0 art, so they get a dated entry in the `SOURCE.md` change logs. The runtime recolour of an in-memory copy changes no repo file. Shipped sample presets are plain colour schemes only, never airline or manufacturer marks. Pilot pictures stay on their machine.
+- **Out of scope for now:** other aircraft in the scene (parked or AI) wearing a livery, sharing presets as files, free sticker placement, per-surface weathering.
 
-## 9. Decisions (owner, 2026-11-02)
+## 9. Decisions (owner)
 
 1. One livery per aircraft type (`Session.setup.livery` is keyed by aircraft id).
 2. Fixed sticker slots (2 per aircraft to start), each with scale, offset and mirror; no free placement.
 3. Presets stay on the machine (`user://liveries/`); no export or import file.
 4. A320 wings stay unpainted (top and bottom share UV space).
-5. The registration number printed on the wing must be replaced when the call sign / tail number changes: see 10.
+5. The registration on the wing is replaced when the call sign changes (§10).
 
 ## 10. Registration on the wing (done, independent of the livery)
 
-The C172 wing atlas has the baked registration "4X-CHV" on both wing undersides (vertical strips, reading down
-the strip, dark blue). `RegistrationPaint` now handles it from data (`game/aircraft/c172/aircraft.json`
-"registration"), the same way as the fuselage sides, whenever the call sign changes at flight start:
+The C172 wing atlas has the baked registration "4X-CHV" on both wing undersides (vertical strips, dark blue, reading down the strip). `RegistrationPaint` replaces it from data (`game/aircraft/c172/aircraft.json` "registration"), like the fuselage sides, whenever the call sign changes at flight start.
 
-- a target can name its own atlas (`texture`), so the wing atlas is painted next to the fuselage atlas, each
-  cached per (aircraft, text, atlas) and applied to every surface that uses it (12 wing surfaces on the C172);
-- `rotate` takes 90 and 270 as well as 180, `erase_axis: "x"` wipes a vertical number between the clean columns
-  beside it (the wing gradient runs along the strip), and each target now draws with its own italic flag
-  (the fuselage is italic, the wing is upright);
-- the erase rectangles start on the first clean column (the small circle marker next to the lower strip is
-  kept out of the interpolation), and shorter or longer numbers are scaled to the strip and centred;
-- tests: plan fields, the x-axis wipe, turned glyphs, "every target atlas is on the exterior model";
-  `tests/debug_registration.gd` (windowed) saves the repainted regions and counts the overridden surfaces.
+- A target can name its own atlas (`texture`). The wing atlas is painted next to the fuselage atlas, cached per (aircraft, text, atlas), and applied to every surface that uses it (12 wing surfaces on the C172).
+- `rotate` takes 90 and 270 as well as 180. `erase_axis: "x"` wipes a vertical number between the clean columns beside it (the wing gradient runs along the strip). Each target has its own italic flag (fuselage italic, wing upright).
+- The erase rectangles start on the first clean column (the small circle marker next to the lower strip stays out of the interpolation). Shorter or longer numbers are scaled to the strip and centred.
+- Tests: plan fields, the x-axis wipe, turned glyphs, "every target atlas is on the exterior model". `tests/debug_registration.gd` (windowed) saves the repainted regions and counts the overridden surfaces.
 
-Consequence for the livery compositor (section 2): registration text is part of the same pass for every atlas
-of the aircraft, wing atlas included, and the "cover" region idea for baked marks stays limited to the
-manufacturer logo and "SKYHAWK" on the fin; the wing numbers are no longer a baked mark to hide.
+For the livery compositor: registration text is part of the same pass for every atlas of the aircraft, wing atlas included. The "cover" region idea stays limited to the manufacturer logo and "SKYHAWK" on the fin.
