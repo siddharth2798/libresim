@@ -17,12 +17,16 @@ libresim is a local Cessna 172 flight simulator (with an optional A320) for the 
 **From a terminal.** One command installs what is missing, downloads the raw data, builds the game data and starts the game:
 
 ```bash
-./run.sh                              # set up everything (first run: ~1-2 h, mostly downloads), then fly
+./run.sh                              # set up everything (a true first run takes hours), then fly
 ./run.sh --airport=VABB --stand       # game options pass straight through (section 4)
-./run.sh --dry-run                    # show what would run or be skipped, and why
+./run.sh --dry-run                    # show the plan and what would run or be skipped, and why
 ```
 
-A step runs only when its outputs are missing or older than its scripts or inputs (stamps in `data/.stamps/`), so later runs start the game in seconds. Options: `--setup-only`, `--skip-data` (launch without touching data), `--region=mumbai_pune|all` (default `all` also fetches the Konkan-Kerala corridor), `--a320` (also fetch the A320 data and regenerate its json), `--force-step=NN` (re-run one pipeline step), `--yes` (answer yes to prompts), `--help`. Missing system packages (GDAL, python3-venv, curl, git, unzip) are detected for apt, dnf, pacman and Homebrew: the install command is printed and run with `sudo` only after you say yes. If Godot 4.7.2 is missing it offers to download it into `~/.local/bin`. Blender is not needed. Everything is logged to `data/run.log`.
+Before anything is downloaded or built, `run.sh` prints a **plan**: the raw data still to fetch (size of each file and the total in GB; imagery and the corridor are estimates), the pipeline steps that will run with why and the usual time of each (from `data/run.log`, else a built-in table), and the expected total. It then asks `Continue? [y/N]` (`--yes` skips it); when nothing is stale it says "Everything is up to date" and goes straight on.
+
+While it works you see `[3/17] file (84 MB)` and `downloaded 0.62 of 1.22 GB (51 %)` per download, `step 10: buildings, usually about 20 min, overall 35 %` per step, and every 15 s a `... step 10 running 2 min 30 s` line so a long silent step does not look stuck (`RUN_HEARTBEAT=secs` changes it). A true first run downloads about 2.5 GB and builds for hours (imagery 30-60 min, step 15 about 1 h, step 10 about 20 min); a second run starts the game in seconds.
+
+A step runs only when its outputs are missing, an upstream step ran, or an input changed (stamps in `data/.stamps/`). Python scripts are compared by their code (`tools/code_hash.py`, hashes in `data/.stamps/<step>.hashes`), so editing a comment, a docstring or the formatting does not rebuild anything; raw data and json inputs are compared by file time. `tools/test_run_sh.sh` tests all of this in a scratch copy. Options: `--setup-only`, `--skip-data` (launch without touching data), `--region=mumbai_pune|all` (default `all` also fetches the Konkan-Kerala corridor), `--a320` (also fetch the A320 data and regenerate its json), `--force-step=NN` (re-run one pipeline step), `--yes` (answer yes to prompts), `--help`. Missing system packages (GDAL, python3-venv, curl, git, unzip) are detected for apt, dnf, pacman and Homebrew: the install command is printed and run with `sudo` only after you say yes. If Godot 4.7.2 is missing it offers to download it into `~/.local/bin`. Blender is not needed. Everything is logged to `data/run.log`.
 
 **macOS:** `run.sh` needs bash 4+ and Homebrew GDAL: `brew install bash gdal python`. It re-runs itself under Homebrew's bash (`/opt/homebrew/bin/bash` on Apple Silicon, `/usr/local/bin/bash` on Intel) and builds the venv from Homebrew's `python3` (its site-packages hold GDAL's Python bindings).
 

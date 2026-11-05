@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # libresim one-shot setup + launch. Idempotent: each step runs only when needed.
 #   ./run.sh [options] [--] [game args...]      e.g. ./run.sh --airport=VABB --stand
-# See ./run.sh --help. Log: data/run.log. Stamps: data/.stamps/<step>.done
+# See ./run.sh --help. Log: data/run.log. Stamps: data/.stamps/<step>.done (+ .hashes of the scripts)
+# Helpers: tools/run_stale.sh (what is stale), tools/run_progress.sh (plan, progress, heartbeat)
 set -Eeuo pipefail
 if ((BASH_VERSINFO[0] < 4)); then   # macOS ships bash 3.2; this script needs bash 4+ (assoc arrays)
   for b in /opt/homebrew/bin/bash /usr/local/bin/bash; do [[ -x $b ]] && exec "$b" "$0" "$@"; done
@@ -15,6 +16,7 @@ PY=tools/.venv/bin/python
 PIP_PKGS="osmium jsbsim mapbox_earcut shapely matplotlib pillow numpy"
 PY_MODULES="osmium jsbsim mapbox_earcut shapely matplotlib PIL numpy"   # import names, same order
 STAMPS=data/.stamps
+HASHPY=python3   # for tools/code_hash.py; set to $SYS_PY below
 LOG=data/run.log
 
 # ---------------------------------------------------------------- pipeline table
@@ -89,6 +91,11 @@ step_20() { $PY tools/20_roads_rivers.py; }
 step_21() { $PY tools/21_shore.py; }
 step_27() { $PY tools/27_pavement.py --force; }  # ~1.5 min: always rebuild
 
+declare -A NAME=([05]="airports, navaids" [04]="OSM extract" [02]="terrain heights" [03]="imagery tiles"
+  [06]="c172 flight model json" [06a]="A320 flight model json" [09]="runways" [10]="buildings" [11]="land class"
+  [12]="outer terrain" [13]="airport ops, stands" [14]="simulated ILS" [15]="terminal outlines" [16]="terminal models"
+  [17]="airport fixups" [19]="WorldCover classes" [20]="roads and rivers" [21]="shore" [27]="airport pavement")
+
 # Raw data (section 2 of docs/USAGE.md)
 DEM30_TILES="N18_00_E072_00 N18_00_E073_00 N18_00_E074_00 N19_00_E072_00 N19_00_E073_00 N19_00_E074_00"
 DEM90_SEA="N16_00_E070_00 N16_00_E071_00 N16_00_E072_00 N17_00_E070_00 N17_00_E071_00 N17_00_E072_00 N18_00_E070_00 N18_00_E071_00 N19_00_E070_00 N19_00_E071_00"  # open sea: no tile in the bucket
@@ -103,6 +110,18 @@ Builds everything libresim needs (system tools, Python venv, raw data, data
 pipeline, Godot import) and then launches the game. Each step is skipped when
 its outputs are already up to date, so a second run starts the game in seconds.
 
+What you see:
+  - First a PLAN: the raw data still to download (sizes, total GB), the pipeline
+    steps that will run and why, and the expected time. You are asked to continue
+    (--yes skips the question). With nothing to do it says "Everything is up to date".
+  - While it works: "[3/17] file (84 MB)" per download with "downloaded 0.62 of
+    1.22 GB (51 %)", "step 10: buildings, usually about 20 min, overall 35 %" per
+    step, and a "... still running" line every 15 s (RUN_HEARTBEAT=secs).
+  - A true first run takes hours (about 2.5 GB, imagery alone 30-60 min, the
+    pipeline 1.5 h or more). Later runs start in seconds.
+  - Python scripts are compared by code, not by file time: editing a comment or
+    docstring never rebuilds anything (hashes in data/.stamps/<step>.hashes).
+
 Options:
   --setup-only        do everything but don't launch the game
   --skip-data         skip raw downloads and the pipeline; launch even if data is incomplete
@@ -110,13 +129,13 @@ Options:
   --a320              optional: also fetch the FlightGear A320-family data (GPL-2.0-only, ~2.5 MB, tools/22_a320_fetch.sh,
                       pinned commit) and regenerate game/aircraft/a320/{aero,config}.json (step 06a)
   --force-step=NN     re-run pipeline step NN (e.g. 02, 10); may be repeated
-  --dry-run           print which steps would run or be skipped and why; change nothing
-  --yes, -y           answer yes to every prompt (sudo installs, Godot download)
+  --dry-run           print the plan and which steps would run or be skipped and why; change nothing
+  --yes, -y           answer yes to every prompt (the plan, sudo installs, Godot download)
   --help, -h          this help
 Anything else (or everything after --) is passed to the game, e.g.
   ./run.sh --airport=VABB --stand
   ./run.sh --setup-only --region=mumbai_pune
-Log: data/run.log
+Log: data/run.log. Offline test of the plan: RUN_OFFLINE=1 (built-in size estimates).
 EOF
 }
 SETUP_ONLY=0 SKIP_DATA=0 REGION=all DRY=0 YES=0 A320=0
@@ -146,8 +165,12 @@ exec 3>&1 4>&2
 exec > >(tee -a "$LOG") 2>&1
 echo "=== run.sh $(date '+%F %T') args: $*"
 CUR="startup"; T_ALL=$SECONDS
-trap 'echo; echo "ERROR in step: $CUR (line $LINENO, exit $?). Full log: $ROOT/$LOG" >&2' ERR
-NSTEPS=7
+source tools/run_stale.sh
+source tools/run_progress.sh
+trap 'rc=$?; hb_stop; echo; echo "ERROR in step: $CUR (line $LINENO, exit $rc). Full log: $ROOT/$LOG" >&2' ERR
+trap hb_stop EXIT
+trap 'hb_stop; exit 130' INT TERM
+NSTEPS=8
 header() { CUR="$2"; echo; echo "[$1/$NSTEPS] $2"; }
 note() { echo "    $*"; }
 dry() { ((DRY)); }
@@ -160,7 +183,6 @@ ask() {  # ask "question" -> 0 on yes
 timed() {  # timed "label" cmd...
   local label=$1 t=$SECONDS; shift; "$@"; note "($label: $((SECONDS - t)) s)"
 }
-mtime_newer() { [[ $1 -nt $2 ]]; }
 
 # ---------------------------------------------------------------- [1] system tools + Godot
 OS=$(uname -s); ARCH=$(uname -m)
@@ -194,6 +216,7 @@ install_cmd() {
 }
 SYS_PY=python3
 [[ $PM == brew ]] && command -v brew >/dev/null && [[ -x "$(brew --prefix)/bin/python3" ]] && SYS_PY="$(brew --prefix)/bin/python3"
+HASHPY=$SYS_PY
 
 preflight() {
   local missing=()
@@ -248,90 +271,10 @@ check_godot() {
   else note "WARNING: $GODOT reports '$v', expected $GODOT_VERSION.x; it may not open the project correctly."; fi
 }
 
-# ---------------------------------------------------------------- downloads
-fetch() {  # fetch url dest   (resumable; .part until complete)
-  local url=$1 dest=$2; mkdir -p "$(dirname "$dest")"
-  note "GET $url"
-  if command -v curl >/dev/null; then
-    curl -fL --retry 5 --retry-delay 3 -C - --progress-bar -o "$dest.part" "$url"
-  else
-    wget -c --tries=5 --show-progress -q -O "$dest.part" "$url"
-  fi
-  mv -f "$dest.part" "$dest"
-}
-raw_item() {  # raw_item "label" is_done_cmd do_cmd
-  local label=$1 check=$2 action=$3
-  if $check; then note "skip  $label (present)"; return; fi
-  if dry; then note "WOULD fetch $label"; return; fi
-  CUR="raw data: $label"; note "fetch $label"; timed "$label" "$action"
-}
-dem30_done() { local t; for t in $DEM30_TILES; do [[ -f data/raw/dem/Copernicus_DSM_COG_10_${t}_DEM.tif ]] || return 1; done; }
-dem30_get() { local t n; for t in $DEM30_TILES; do n=Copernicus_DSM_COG_10_${t}_DEM
-  [[ -f data/raw/dem/$n.tif ]] || fetch "https://copernicus-dem-30m.s3.amazonaws.com/$n/$n.tif" "data/raw/dem/$n.tif"; done; }
-dem90_list() { local la lo; for la in 16 17 18 19 20 21; do for lo in 70 71 72 73 74 75 76; do
-  local t=N${la}_00_E0${lo}_00; [[ " $DEM90_SEA " == *" $t "* ]] || echo "$t"; done; done; }
-dem90_done() { local t; for t in $(dem90_list); do [[ -f data/raw/dem90/Copernicus_DSM_COG_30_${t}_DEM.tif ]] || return 1; done; }
-dem90_get() { local t n; for t in $(dem90_list); do n=Copernicus_DSM_COG_30_${t}_DEM
-  [[ -f data/raw/dem90/$n.tif ]] || fetch "https://copernicus-dem-90m.s3.amazonaws.com/$n/$n.tif" "data/raw/dem90/$n.tif"; done; }
-osm_done() { [[ -f data/raw/osm/western-zone-latest.osm.pbf ]]; }
-osm_get() { fetch "$OSM_PBF_URL" data/raw/osm/western-zone-latest.osm.pbf; }
-oa_done() { local f; for f in $OURAIRPORTS; do [[ -f data/raw/ourairports/$f.csv ]] || return 1; done; }
-oa_get() { local f; for f in $OURAIRPORTS; do
-  fetch "https://davidmegginson.github.io/ourairports-data/$f.csv" "data/raw/ourairports/$f.csv"; done; }
-# A320 data: done when the clone is at the commit pinned in tools/22_a320_fetch.sh (PIN=...)
-A320_PIN=$(sed -n 's/^PIN=\([0-9a-f]\{40\}\).*/\1/p' tools/22_a320_fetch.sh 2>/dev/null | head -n 1)
-a320_done() { [[ -n $A320_PIN && -d data/raw/fg/a320/.git && -f data/raw/fg/a320/A320-200-CFM-set.xml ]] \
-  && [[ $(git -C data/raw/fg/a320 rev-parse HEAD 2>/dev/null) == "$A320_PIN" ]]; }
-a320_get() { bash tools/22_a320_fetch.sh; }
-jsb_done() { [[ -d data/raw/jsbsim/src/aircraft/c172p && -d data/raw/jsbsim/src/engine ]]; }
-jsb_get() { rm -rf data/raw/jsbsim/src
-  git clone --depth 1 --filter=blob:none --sparse https://github.com/JSBSim-Team/jsbsim.git data/raw/jsbsim/src
-  git -C data/raw/jsbsim/src sparse-checkout set aircraft/c172p engine; }
-# gdalwarp creates the .tif before it finishes, so imagery counts as done only with a stamp
-# or a "done" line in the fetch log the docs tell you to keep.
-img_done() { [[ -f $STAMPS/01b.done ]] || { [[ -f data/raw/imagery/s2.tif ]] && grep -q '^done' data/raw/imagery/fetch.log 2>/dev/null; }; }
-img_get() { tools/01b_fetch_imagery.sh 2>&1 | tee data/raw/imagery/fetch.log; mkdir -p $STAMPS; touch $STAMPS/01b.done; }
-outer_done() { [[ -f $STAMPS/01c.done ]] || { [[ -f data/raw/imagery/s2_outer.tif ]] && grep -q '^done' data/raw/imagery/fetch_outer.log 2>/dev/null; }; }
-outer_get() { tools/01c_fetch_outer_imagery.sh 2>&1 | tee data/raw/imagery/fetch_outer.log; mkdir -p $STAMPS; touch $STAMPS/01c.done; }
-CORRIDOR=""
-for c in tools/01d_fetch_corridor.py tools/01d_fetch_corridor.sh; do [[ -f $c ]] && { CORRIDOR=$c; break; }; done
-# the fetch script logs "all: finished" when every part is downloaded (also true for runs done by hand)
-corridor_done() { [[ -f $STAMPS/01d.done ]] || grep -q 'all: finished' data/raw/fetch_corridor.log 2>/dev/null; }
-corridor_get() {  # resumable; re-running finishes partial downloads
-  if [[ $CORRIDOR == *.py ]]; then $PY "$CORRIDOR"; else bash "$CORRIDOR"; fi
-  mkdir -p $STAMPS; touch $STAMPS/01d.done; }
+# ---------------------------------------------------------------- raw data (downloads)
+source tools/run_raw.sh
 
-# ---------------------------------------------------------------- pipeline staleness
-declare -A RAN=()
-expand() { local p; for p in $1; do compgen -G "$p" || true; done; }
-ref_of() {  # file whose mtime stands for "when step $1 last completed"
-  local s=$1 f
-  [[ -f $STAMPS/$s.done ]] && { echo "$STAMPS/$s.done"; return; }
-  local best="" o
-  for o in ${OUT[$s]}; do   # the newest output file marks when the step last finished
-    if [[ -d $o ]]; then f=$(find "$o" -type f -printf '%T@ %p\n' 2>/dev/null | sort -rn | sed -n 1p | cut -d' ' -f2-); else f=$o; fi
-    if [[ -e $f ]] && { [[ -z $best ]] || [[ $f -nt $best ]]; }; then best=$f; fi
-  done
-  echo "$best"
-}
-why_run() {  # prints a reason if step $1 must run, nothing if up to date
-  local s=$1 o f d ref
-  [[ -n ${FORCE[$s]:-} ]] && { echo "forced (--force-step)"; return; }
-  for o in ${OUT[$s]}; do
-    if [[ -d $o ]]; then [[ -n $(ls -A "$o" 2>/dev/null) ]] || { echo "output $o empty"; return; }
-    else [[ -e $o ]] || { echo "output $o missing"; return; }; fi
-  done
-  [[ $s == 06 ]] && return     # committed outputs: only rebuilt when missing
-  ref=$(ref_of "$s"); [[ -n $ref ]] || { echo "no output files"; return; }
-  for d in ${DEP[$s]:-}; do
-    [[ -n ${RAN[$d]:-} ]] && { echo "upstream $d ran"; return; }
-    [[ -f $STAMPS/$d.done && -f $STAMPS/$s.done ]] && mtime_newer "$STAMPS/$d.done" "$STAMPS/$s.done" && { echo "upstream $d is newer"; return; }
-  done
-  while IFS= read -r f; do
-    [[ -n $f ]] && mtime_newer "$f" "$ref" && { echo "$f is newer than last build"; return; }
-  done < <(expand "${IN[$s]:-}")
-  return 0
-}
+# ---------------------------------------------------------------- pipeline
 run_step() {
   local s=$1 reason
   reason=$(why_run "$s")
@@ -339,8 +282,12 @@ run_step() {
   RAN[$s]=1
   if dry; then note "WOULD run $s: $reason"; return; fi
   CUR="pipeline step $s"; note "run   $s: $reason"
-  timed "step $s" "step_$s"
-  mkdir -p $STAMPS; touch "$STAMPS/$s.done"
+  local exp; exp=$(exp_secs "$s")
+  step_line "step $s" "${NAME[$s]:-}" "$exp"
+  with_heartbeat "step $s" "${exp:-0}" "" timed "step $s" "step_$s"
+  mkdir -p $STAMPS; touch "$STAMPS/$s.done"; record_hashes "$s"
+  DONE_S=$((DONE_S + ${exp:-0}))
+  if [[ $s == 19 && $WC_PLANNED == 1 ]]; then dl_credit "$WC_BYTES"; WC_PLANNED=0; fi   # step 19 fetched the WorldCover tiles
   unset "FORCE[$s]"   # --force-step forces it once (09 appears twice)
 }
 
@@ -351,7 +298,20 @@ header 1 "System tools and Godot"
 preflight
 check_godot
 
-header 2 "Python venv (tools/.venv)"
+header 2 "Plan"
+if ((SKIP_DATA)); then note "skipped (--skip-data)"
+else
+  load_log_secs
+  for s in "${PIPELINE[@]}" 06a; do migrate_hashes "$s"; done   # stamps from before the hash records: record, do not rebuild
+  build_raw_plan; build_step_plan; print_plan
+  if ! plan_has_work; then note "Everything is up to date."
+  elif dry; then note "(dry run: nothing is downloaded or built; the lists below show what each part would do)"
+  elif ((DL_TOTAL > 0 || PLAN_TOTAL_S > 120)); then
+    ask "Continue?" || { echo "Stopped: not confirmed, nothing was changed. (./run.sh --yes skips the question; --skip-data just launches.)"; exit 0; }
+  fi
+fi
+
+header 3 "Python venv (tools/.venv)"
 if ((SKIP_DATA)); then note "skipped (--skip-data)"
 else
   if [[ ! -x $PY ]]; then
@@ -364,49 +324,44 @@ else
     $PY -c 'from osgeo import gdal' 2>/dev/null || note "WARNING: GDAL Python bindings not visible in the venv (install $(pkg_for pygdal))"
     if ((${#need[@]} == 0)); then note "venv OK (all packages importable)"
     elif dry; then note "WOULD pip install ${need[*]}"
-    else timed pip $PY -m pip install "${need[@]}"; fi
+    else with_heartbeat "pip install" 0 "" timed pip $PY -m pip install "${need[@]}"; fi
   fi
 fi
 
-header 3 "Raw data (data/raw)"
+header 4 "Raw data (data/raw)"
 if ((SKIP_DATA)); then note "skipped (--skip-data)"
 else
-  raw_item "DEM GLO-30 (6 tiles)" dem30_done dem30_get
-  raw_item "DEM GLO-90 outer ring" dem90_done dem90_get
-  raw_item "OSM western-zone pbf (~220 MB)" osm_done osm_get
-  raw_item "OurAirports CSVs" oa_done oa_get
-  raw_item "JSBSim c172p + engines" jsb_done jsb_get
-  ((A320)) && raw_item "FlightGear A320-family data (--a320, GPL-2.0-only)" a320_done a320_get
-  raw_item "Sentinel-2 imagery, 01b (20-40 min)" img_done img_get
-  raw_item "Sentinel-2 outer ring, 01c (~15 min)" outer_done outer_get
-  if [[ $REGION == all ]]; then
-    if [[ -n $CORRIDOR ]]; then raw_item "Konkan-Kerala corridor, $CORRIDOR (resumable)" corridor_done corridor_get
-    else note "skip  corridor (tools/01d_fetch_corridor.* not present yet)"; fi
-  else note "skip  corridor (--region=$REGION)"; fi
+  for id in "${RAW_IDS[@]}"; do if raw_active "$id"; then raw_item "$id"; fi; done
+  if [[ $REGION != all ]]; then note "skip  corridor (--region=$REGION)"
+  elif [[ -z $CORRIDOR ]]; then note "skip  corridor (tools/01d_fetch_corridor.* not present yet)"; fi
 fi
 
-header 4 "Data pipeline (tools/NN_*.py)"
+header 5 "Data pipeline (tools/NN_*.py)"
 if ((SKIP_DATA)); then note "skipped (--skip-data)"
 else for s in "${PIPELINE[@]}"; do run_step "$s"; done
   ((A320)) && run_step 06a
 fi
 
-header 5 "Godot first-run import"
+header 6 "Godot first-run import"
 if [[ -z $GODOT ]]; then note "no Godot available"
 elif [[ -d game/.godot/imported ]]; then note "skip  (game/.godot present)"
 elif dry; then note "WOULD run: $GODOT --headless --path game --import"
-else CUR="Godot import"; timed import "$GODOT" --headless --path game --import; fi
+else
+  CUR="Godot import"; step_line "Godot import" "" "${TYPICAL[import]}"
+  with_heartbeat "Godot import" "${TYPICAL[import]}" "" timed import "$GODOT" --headless --path game --import
+  DONE_S=$((DONE_S + ${TYPICAL[import]}))
+fi
 
-header 6 "Summary"
+header 7 "Summary"
 missing_data=""
 for f in data/processed/terrain/meta.json data/processed/runways.json data/processed/airports.json; do
   [[ -f $f ]] || missing_data+=" $f"
 done
 [[ -n $missing_data ]] && note "WARNING: data incomplete, missing:$missing_data (the game may not start properly)"
 note "disk used: data/ $(du -sh data 2>/dev/null | cut -f1)  (raw $(du -sh data/raw 2>/dev/null | cut -f1), processed $(du -sh data/processed 2>/dev/null | cut -f1))"
-note "setup time: $((SECONDS - T_ALL)) s; log: $LOG"
+note "Setup finished in $(fmt_dur $((SECONDS - T_ALL))); log: $LOG"
 
-header 7 "Launch"
+header 8 "Launch"
 # macOS: SDL3 in Godot lists no Thrustmaster (HID) pad unless its GameController driver is off, and
 # joystick events only reach the active app unless background events are on. Keep SDL's HIDAPI driver ON. (docs/USAGE.md)
 if [[ $(uname) == Darwin ]]; then export SDL_JOYSTICK_MFI=0 SDL_JOYSTICK_ALLOW_BACKGROUND_EVENTS=1; fi
@@ -416,6 +371,7 @@ if ((SETUP_ONLY)); then note "skipped (--setup-only)"; exit 0; fi
 [[ -n $GODOT ]] || { echo "Godot not found; install it (docs/USAGE.md section 1)."; exit 1; }
 if [[ -n $missing_data && $SKIP_DATA -eq 0 ]]; then echo "Data is incomplete; re-run, or pass --skip-data to launch anyway."; exit 1; fi
 note "$GODOT --path game -- ${GAME_ARGS[*]:-}"
-trap - ERR
+term_line "    Starting libresim ... the game window opens in a few seconds."
+trap - ERR EXIT
 exec 1>&3 2>&4
 exec "$GODOT" --path game -- "${GAME_ARGS[@]}"
