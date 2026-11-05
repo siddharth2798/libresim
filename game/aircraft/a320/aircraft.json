@@ -128,12 +128,12 @@
  "start": {
   "pitch_trim": 0.0,
   "air": {
-   "alt_ft": 3500,
-   "dist_nm": 11.0,
-   "kias": 205,
-   "gear": "up",
-   "flaps": 0,
-   "limits": {"alt_ft": [1000, 15000], "dist_nm": [3, 40]}
+   "alt_ft": 2200,
+   "dist_nm": 7.0,
+   "kias": 160,
+   "gear": "down",
+   "flaps": 3,
+   "limits": {"alt_ft": [1000, 12000], "dist_nm": [3, 30]}
   }
  },
  "fcs": {

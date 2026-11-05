@@ -53,7 +53,7 @@
       "summary": "Level flight, cruise power, trim, a standard turn, and climbs and descents.",
       "learn": ["Holding altitude with small pitch changes", "Setting cruise power and trimming hands-off", "Turning without losing height", "Climbing and descending by a set amount"],
       "minutes": 8,
-      "setup": {"airport": "VAPO", "runway": "28", "start": "air", "air_ft": 2500.0, "air_nm": 6.0, "cold": false, "time_h": 10.0, "weather": "Clear",
+      "setup": {"airport": "VAPO", "runway": "28", "start": "air", "air_ft": 2500.0, "air_nm": 6.0, "air_kt": 90.0, "cold": false, "time_h": 10.0, "weather": "Clear",
                 "wind_dir_deg": 280.0, "wind_kt": 4.0, "gust_kt": 0.0, "turbulence": 0.05, "convection": 0.0, "storms": 0.0, "fuel_gal": 17.0, "copilot_kg": 0.0, "rear_kg": 0.0, "baggage_kg": 0.0},
       "markers": [],
       "incomplete": "Cruise lesson not completed",

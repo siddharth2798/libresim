@@ -72,13 +72,13 @@ func test_menu_order_airport_page_follows_the_aircraft_chosen_on_step_1() -> Str
 		f.on_primary()  # Next: the airport page, with no other step in between
 		if f.cur != 1 or not air.visible:
 			err = "Next from the aircraft page should show the airport page (cur %d)" % f.cur
-		elif [air._alt.value, air._dist.value] != [3500.0, 11.0] or not air._air_note.text.contains("3,500 ft"):
+		elif [air._alt.value, air._dist.value] != [2200.0, 7.0] or not air._air_note.text.contains("2,200 ft"):
 			err = "A320 air start: %s ft, %s nm, note '%s'" % [air._alt.value, air._dist.value, air._air_note.text]
 	if err == "":
 		f.go_back()
 		_pick(f.pages[0], "c172")
 		f.on_primary()
-		if [air._alt.value, air._dist.value] != [1500.0, 5.0] or not air._air_note.text.contains("1,500 ft"):
+		if [air._alt.value, air._dist.value] != [900.0, 3.0] or not air._air_note.text.contains("900 ft"):
 			err = "C172 air start after switching back: %s ft, %s nm, note '%s'" % [air._alt.value, air._dist.value, air._air_note.text]
 	_close(s)
 	return err

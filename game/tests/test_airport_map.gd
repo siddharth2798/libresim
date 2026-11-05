@@ -268,8 +268,8 @@ func test_glide_layout_marker_and_path_line() -> String:
 	var a2 := GlideMath.layout(size, 1500.0, 5.5)
 	if [a1.span_nm, a1.span_ft] != [a2.span_nm, a2.span_ft] or a1.path_end != a2.path_end:
 		return "the scale must not change with the distance: %s vs %s" % [a1.span_nm, a2.span_nm]
-	var a320 := GlideMath.layout(size, 3500.0, 11.0, 40.0, 15000.0)
-	return "" if a320.span_nm == 40.0 and a320.span_ft == 6750.0 else "an aircraft's own limits set the range: %s" % [a320]
+	var a320 := GlideMath.layout(size, 2200.0, 7.0, 30.0, 12000.0)
+	return "" if a320.span_nm == 30.0 and a320.span_ft == 5400.0 else "an aircraft's own limits set the range: %s" % [a320]
 
 
 func test_glide_profile_reads_the_setup() -> String:

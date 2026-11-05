@@ -13,11 +13,15 @@ extends RefCounted
 ## Units stay ft / nm / KIAS (what the start screen shows); flight.gd converts.
 ## A pilot who sets another speed (--air-kt, a lesson) gets gear by that speed (up at 200 kt or more) and flaps 0
 ## (AirStart.spawn). Every start is clamped to [1.2 x vs1, 0.9 x vne] (kias_range): above it the airframe fails, below it
-## the aircraft is stalled. A limit the aircraft does not give is skipped.
+## the aircraft is stalled. With flaps out the lower end is 1.2 x vs0 (the aircraft's own start with flaps). A limit the
+## aircraft does not give is skipped.
+## The defaults are a stabilised-approach picture (sources: docs/USAGE.md "In the air"): level a little under the 3 degree
+## path, landing configuration or near it, about 1.5 minutes before the 500 / 1000 ft stabilisation point.
 
 const FT_PER_NM_3DEG := 318.0  # 1 nm x tan(3 deg), in ft
 const LIMITS := {"alt_ft": [300.0, 12000.0], "dist_nm": [1.0, 25.0]}
 const FALLBACK_KIAS := 90.0
+const LEGACY_A320_KIAS := 205.0  # the A320's start speed before the stabilised-approach defaults (old saves hold it)
 
 
 ## The merged start of `def` (an AircraftDef; null = the default aircraft): {alt_ft, dist_nm, kias, gear, flaps, limits}.
@@ -61,17 +65,20 @@ static func setup_values(def: AircraftDef) -> Dictionary:
 	return {"air_ft": a.alt_ft, "air_nm": a.dist_nm, "air_kt": a.kias}
 
 
-## The safe IAS range of an airborne start: Vector2(1.2 x limits.vs1_kias, 0.9 x limits.vne_kias). A limit the aircraft
-## does not give leaves that side open (0 / INF).
-static func kias_range(def: AircraftDef) -> Vector2:
+## The safe IAS range of an airborne start: Vector2(1.2 x limits.vs1_kias, 0.9 x limits.vne_kias); with `flaps` > 0 the
+## lower end is 1.2 x limits.vs0_kias (stall with flaps out), when the aircraft gives one. A limit the aircraft does
+## not give leaves that side open (0 / INF).
+static func kias_range(def: AircraftDef, flaps := 0) -> Vector2:
 	var lim: Dictionary = def.section("limits") if def != null else {}
-	var vs1 := float(lim.get("vs1_kias", 0.0))
+	var vs := float(lim.get("vs0_kias", 0.0)) if flaps > 0 else 0.0
+	if vs <= 0.0:
+		vs = float(lim.get("vs1_kias", 0.0))
 	var vne := float(lim.get("vne_kias", 0.0))
-	return Vector2(1.2 * vs1 if vs1 > 0.0 else 0.0, 0.9 * vne if vne > 0.0 else INF)
+	return Vector2(1.2 * vs if vs > 0.0 else 0.0, 0.9 * vne if vne > 0.0 else INF)
 
 
-static func clamp_kias(def: AircraftDef, kias: float) -> float:
-	var r := kias_range(def)
+static func clamp_kias(def: AircraftDef, kias: float, flaps := 0) -> float:
+	var r := kias_range(def, flaps)
 	return clampf(kias, r.x, r.y)
 
 
@@ -79,7 +86,9 @@ static func clamp_kias(def: AircraftDef, kias: float) -> float:
 ## that is the own air-start speed of some installed aircraft (what the speed was when the aircraft was switched) or
 ## outside the safe range of `def`.
 static func stale_kias(def: AircraftDef, kias: float) -> bool:
-	if clamp_kias(def, kias) != kias:
+	if clamp_kias(def, kias, int(of(def).flaps) if is_equal_approx(kias, of(def).kias) else 0) != kias:
+		return true
+	if is_equal_approx(kias, LEGACY_A320_KIAS):
 		return true
 	for id in AircraftDef.list_ids():
 		if is_equal_approx(of(AircraftDef.load_def(id)).kias, kias):
@@ -96,7 +105,7 @@ static func spawn(def: AircraftDef, s: Dictionary) -> Dictionary:
 	# a setup built in code that left the speed at the C172's default gets the aircraft's own speed
 	if not bool(s.get("air_custom", false)) and not bool(s.get("air_kt_given", false)) and is_equal_approx(kt, FALLBACK_KIAS):
 		kt = own.kias
-	var safe := clamp_kias(def, kt)
+	var safe := clamp_kias(def, kt, int(own.flaps) if is_equal_approx(kt, own.kias) else 0)
 	var own_speed := is_equal_approx(safe, own.kias)
 	return {"kias": safe, "asked": kt if safe != kt else -1.0,
 		"gear_up": own.gear == "up" if own_speed else safe >= 200.0, "flaps": int(own.flaps) if own_speed else 0}

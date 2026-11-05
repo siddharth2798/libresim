@@ -29,26 +29,26 @@ func _bare(start: Dictionary, limits := {}) -> AircraftDef:  # an aircraft built
 	return AircraftDef.make("x", {"start": start, "limits": limits}, "res://aircraft/c172")
 
 
-func test_air_start_c172_defaults_are_unchanged() -> String:
+func test_air_start_c172_defaults_come_from_its_data() -> String:
 	var a := AircraftDef.load_def("c172").air_start()
-	if [a.alt_ft, a.dist_nm, a.kias, a.gear, a.flaps] != [1500.0, 5.0, 90.0, "down", 0]:
+	if [a.alt_ft, a.dist_nm, a.kias, a.gear, a.flaps] != [900.0, 3.0, 70.0, "down", 3]:
 		return "c172 start %s" % [a]
 	if a.limits != {"alt_ft": [300.0, 12000.0], "dist_nm": [1.0, 25.0]}:
 		return "c172 limits %s" % [a.limits]
 	if [Session.DEFAULT.air_ft, Session.DEFAULT.air_nm, Session.DEFAULT.air_kt] != [1500.0, 5.0, 90.0] or Session.DEFAULT.air_custom or Session.DEFAULT.air_kt_given:
-		return "Session.DEFAULT must stay 1500 / 5 / 90, not custom, speed not given"
+		return "Session.DEFAULT keeps the old 1500 / 5 / 90 (the marker of an old save), not custom, speed not given"
 	return ""
 
 
 func test_air_start_a320_defaults_come_from_its_data() -> String:
 	var a := AircraftDef.load_def("a320").air_start()
-	if [a.alt_ft, a.dist_nm, a.kias, a.gear, a.flaps] != [3500.0, 11.0, 205.0, "up", 0]:
+	if [a.alt_ft, a.dist_nm, a.kias, a.gear, a.flaps] != [2200.0, 7.0, 160.0, "down", 3]:
 		return "a320 start %s" % [a]
-	if a.limits != {"alt_ft": [1000.0, 15000.0], "dist_nm": [3.0, 40.0]}:
+	if a.limits != {"alt_ft": [1000.0, 12000.0], "dist_nm": [3.0, 30.0]}:
 		return "a320 limits %s" % [a.limits]
 	var path := rad_to_deg(atan(Units.ft_to_m(a.alt_ft) / (a.dist_nm * 1852.0)))
-	if absf(path - 3.0) > 0.25:
-		return "the A320 start should be on a 3 degree path, it is %.2f" % path
+	if path > 3.0 or path < 2.75:
+		return "the A320 start should be on or a little under the 3 degree path, it is %.2f" % path
 	return ""
 
 
@@ -90,24 +90,24 @@ func test_air_start_session_follows_the_aircraft_until_the_pilot_chooses() -> St
 	_fresh("a320")
 	Session.apply_air_defaults()
 	var err := ""
-	if _vals() != [3500.0, 11.0, 205.0, false]:
+	if _vals() != [2200.0, 7.0, 160.0, false]:
 		err = "a320 chosen: %s" % [_vals()]
 	Session.setup.aircraft = "c172"
 	Session.apply_air_defaults()
-	if err == "" and _vals() != [1500.0, 5.0, 90.0, false]:
+	if err == "" and _vals() != [900.0, 3.0, 70.0, false]:
 		err = "back to the c172: %s" % [_vals()]
 	Session.setup.air_custom = true  # the pilot sets 2,000 ft, 7 nm
 	Session.setup.air_ft = 2000.0
 	Session.setup.air_nm = 7.0
 	Session.setup.aircraft = "a320"
 	Session.apply_air_defaults()
-	# (adapted: air_custom now covers height and distance only; the speed always follows the aircraft, here the A320's 205)
-	if err == "" and _vals() != [2000.0, 7.0, 205.0, true]:
+	# (adapted: air_custom now covers height and distance only; the speed always follows the aircraft, here the A320's 160)
+	if err == "" and _vals() != [2000.0, 7.0, 160.0, true]:
 		err = "custom height and distance must stay when valid, the speed follows the aircraft: %s" % [_vals()]
 	Session.setup.air_ft = 500.0
 	Session.setup.air_nm = 1.0
 	Session.apply_air_defaults()
-	if err == "" and _vals() != [1000.0, 3.0, 205.0, true]:
+	if err == "" and _vals() != [1000.0, 3.0, 160.0, true]:
 		err = "custom numbers are clamped into the a320 limits: %s" % [_vals()]
 	_restore(k)
 	return err
@@ -131,14 +131,14 @@ func test_air_start_command_line() -> String:
 	var k := _keep()
 	var err := ""
 	var cases := [
-		[["--air=2000"], [2000.0, 5.0, 90.0, true]],
-		[["--air"], [1500.0, 5.0, 90.0, false]],
-		[["--aircraft=a320", "--air"], [3500.0, 11.0, 205.0, false]],
-		[["--air", "--aircraft=a320"], [3500.0, 11.0, 205.0, false]],
-		[["--aircraft=a320", "--air=8000"], [8000.0, 11.0, 205.0, true]],
+		[["--air=2000"], [2000.0, 3.0, 70.0, true]],
+		[["--air"], [900.0, 3.0, 70.0, false]],
+		[["--aircraft=a320", "--air"], [2200.0, 7.0, 160.0, false]],
+		[["--air", "--aircraft=a320"], [2200.0, 7.0, 160.0, false]],
+		[["--aircraft=a320", "--air=8000"], [8000.0, 7.0, 160.0, true]],
 		[["--aircraft=a320", "--air=250", "--air-nm=1.3", "--air-kt=140"], [250.0, 1.3, 140.0, true]],
-		[["--aircraft=a320", "--air-kt=90"], [3500.0, 11.0, 90.0, true]],
-		[["--aircraft=c172", "--air=950", "--air-nm=3"], [950.0, 3.0, 90.0, true]],
+		[["--aircraft=a320", "--air-kt=90"], [2200.0, 7.0, 90.0, true]],
+		[["--aircraft=c172", "--air=950", "--air-nm=3"], [950.0, 3.0, 70.0, true]],
 	]
 	for c in cases:
 		Session._parse_args(PackedStringArray(c[0]))
@@ -159,7 +159,8 @@ func test_air_start_lessons_keep_their_numbers() -> String:
 		TrainingLogic.begin(lesson, "full")
 		var s: Dictionary = Session.setup
 		for key in ["air_ft", "air_nm", "air_kt"]:
-			var expect: float = float(want[key]) if want.has(key) else float(Session.DEFAULT[key])
+			var own := AircraftDef.load_def("c172").air_start()  # a number the lesson does not give: the C172's own start
+			var expect: float = float(want[key]) if want.has(key) else float({"air_ft": own.alt_ft, "air_nm": own.dist_nm, "air_kt": own.kias}[key])
 			if not is_equal_approx(float(s[key]), expect):
 				err = "lesson %s: %s is %s, expected %s" % [lesson.id, key, s[key], expect]
 		if err == "" and s.aircraft != "c172":
@@ -167,7 +168,7 @@ func test_air_start_lessons_keep_their_numbers() -> String:
 		if err == "" and bool(s.air_custom) != (want.has("air_ft") or want.has("air_nm") or want.has("air_kt")):
 			err = "lesson %s: air_custom %s" % [lesson.id, s.air_custom]
 		Session.end_lesson()
-		if err == "" and (Session.setup.aircraft != "a320" or _vals() != [3500.0, 11.0, 205.0, false]):
+		if err == "" and (Session.setup.aircraft != "a320" or _vals() != [2200.0, 7.0, 160.0, false]):
 			err = "lesson %s: ending it must give back the free-flight setup, got %s %s" % [lesson.id, Session.setup.aircraft, _vals()]
 		if err != "":
 			break
@@ -181,11 +182,11 @@ func test_air_start_summary_text() -> String:
 	Session.setup.start = "air"
 	Session.apply_air_defaults()
 	var err := ""
-	if not Session.summary().contains("1500 ft, 5 nm final"):
+	if not Session.summary().contains("900 ft, 3 nm final"):
 		err = "c172: " + Session.summary()
 	Session.setup.aircraft = "a320"
 	Session.apply_air_defaults()
-	if err == "" and not Session.summary().contains("3500 ft, 11 nm final"):
+	if err == "" and not Session.summary().contains("2200 ft, 7 nm final"):
 		err = "a320: " + Session.summary()
 	Session.setup.air_nm = 1.5
 	if err == "" and not Session.summary().contains("1.5 nm final"):
@@ -201,7 +202,7 @@ func test_air_start_controls_show_the_aircraft_defaults() -> String:
 	var page: Control = load("res://ui/menu/airport_page.gd").new()
 	add_child(page)
 	var err := ""
-	if [page._alt.value, page._dist.value, page._alt.max_value, page._dist.max_value] != [1500.0, 5.0, 12000.0, 25.0]:
+	if [page._alt.value, page._dist.value, page._alt.max_value, page._dist.max_value] != [900.0, 3.0, 12000.0, 25.0]:
 		err = "c172 controls: %s" % [[page._alt.value, page._dist.value, page._alt.max_value, page._dist.max_value]]
 	# the aircraft page changes the aircraft; the airport page shows again
 	var ap: Control = load("res://ui/menu/aircraft_page.gd").new()
@@ -209,13 +210,13 @@ func test_air_start_controls_show_the_aircraft_defaults() -> String:
 	ap.choose_id("a320")
 	if err == "" and Session.setup.aircraft != "a320":
 		err = "the aircraft page did not select the a320"
-	if err == "" and _vals() != [3500.0, 11.0, 205.0, false]:
+	if err == "" and _vals() != [2200.0, 7.0, 160.0, false]:
 		err = "the aircraft page must apply the air defaults: %s" % [_vals()]
 	page.hide()
 	page.show()
-	if err == "" and [page._alt.value, page._dist.value, page._alt.min_value, page._alt.max_value, page._dist.min_value, page._dist.max_value] != [3500.0, 11.0, 1000.0, 15000.0, 3.0, 40.0]:
+	if err == "" and [page._alt.value, page._dist.value, page._alt.min_value, page._alt.max_value, page._dist.min_value, page._dist.max_value] != [2200.0, 7.0, 1000.0, 12000.0, 3.0, 30.0]:
 		err = "a320 controls: %s" % [[page._alt.value, page._dist.value, page._alt.min_value, page._alt.max_value]]
-	if err == "" and (Session.setup.air_custom or not page._air_note.text.contains("3,500 ft, 11 nm")):
+	if err == "" and (Session.setup.air_custom or not page._air_note.text.contains("2,200 ft, 7 nm")):
 		err = "showing the defaults is not an edit; note '%s', custom %s" % [page._air_note.text, Session.setup.air_custom]
 	page._alt.value = 4000.0  # an edit by the pilot
 	if err == "" and (not Session.setup.air_custom or Session.setup.air_ft != 4000.0):
@@ -223,7 +224,7 @@ func test_air_start_controls_show_the_aircraft_defaults() -> String:
 	Session.setup.aircraft = "c172"
 	page.hide()
 	page.show()
-	if err == "" and (page._alt.value != 4000.0 or page._alt.max_value != 12000.0 or page._dist.value != 11.0):
+	if err == "" and (page._alt.value != 4000.0 or page._alt.max_value != 12000.0 or page._dist.value != 7.0):
 		err = "the pilot's numbers stay when the aircraft changes: %s" % [_vals()]
 	page.free()
 	ap.free()
@@ -258,15 +259,15 @@ func test_air_start_edit_then_switch_aircraft_keeps_height_and_gets_the_own_spee
 	page._alt.value = 1000.0
 	page._dist.value = 3.0
 	var err := ""
-	if _vals() != [1000.0, 3.0, 205.0, true]:
+	if _vals() != [1000.0, 3.0, 160.0, true]:
 		err = "a320 after the edit: %s" % [_vals()]
 	Session.setup.aircraft = "c172"
 	Session.apply_air_defaults()
 	page.hide()
 	page.show()
-	if err == "" and (_vals() != [1000.0, 3.0, 90.0, true] or Session.setup.air_kt_given):
-		err = "the C172 needs its own 90 KIAS and keeps the edited height and distance: %s" % [_vals()]
-	if err == "" and not page._air_note.text.contains("90 kt"):
+	if err == "" and (_vals() != [1000.0, 3.0, 70.0, true] or Session.setup.air_kt_given):
+		err = "the C172 needs its own 70 KIAS and keeps the edited height and distance: %s" % [_vals()]
+	if err == "" and not page._air_note.text.contains("70 kt"):
 		err = "the note shows the C172's speed: " + page._air_note.text
 	page.free()
 	_restore(k)
@@ -301,12 +302,13 @@ func test_air_start_stale_old_save_is_repaired_on_load() -> String:
 	var err := ""
 	# [saved fields, expected air_kt after the load, expected air_kt_given]
 	var cases := [
-		[{"aircraft": "c172", "start": "air", "air_ft": 1000.0, "air_nm": 3.0, "air_kt": 205.0, "air_custom": true}, 90.0, false],  # the reported save
-		[{"aircraft": "a320", "start": "air", "air_ft": 3500.0, "air_nm": 11.0, "air_kt": 90.0, "air_custom": true}, 205.0, false],  # the C172's speed on the A320
+		[{"aircraft": "c172", "start": "air", "air_ft": 1000.0, "air_nm": 3.0, "air_kt": 205.0, "air_custom": true}, 70.0, false],  # the reported save
+		[{"aircraft": "a320", "start": "air", "air_ft": 3500.0, "air_nm": 11.0, "air_kt": 90.0, "air_custom": true}, 160.0, false],  # the C172's speed on the A320
+		[{"aircraft": "a320", "start": "air", "air_ft": 3500.0, "air_nm": 11.0, "air_kt": 205.0, "air_custom": false}, 160.0, false],  # the A320's old default
 		[{"aircraft": "c172", "air_ft": 1500.0, "air_nm": 5.0, "air_kt": 120.0, "air_custom": true}, 120.0, true],  # a real choice in the safe range
-		[{"aircraft": "c172", "air_ft": 1500.0, "air_nm": 5.0, "air_kt": 170.0, "air_custom": true}, 90.0, false],  # above 0.9 Vne
+		[{"aircraft": "c172", "air_ft": 1500.0, "air_nm": 5.0, "air_kt": 170.0, "air_custom": true}, 70.0, false],  # above 0.9 Vne
 		[{"aircraft": "c172", "air_ft": 1500.0, "air_nm": 5.0, "air_kt": 150.0, "air_kt_given": true}, 150.0, true],  # a new save: as written
-		[{"aircraft": "c172", "air_ft": 1500.0, "air_nm": 5.0, "air_kt": 205.0, "air_kt_given": false}, 90.0, false],
+		[{"aircraft": "c172", "air_ft": 1500.0, "air_nm": 5.0, "air_kt": 205.0, "air_kt_given": false}, 70.0, false],
 	]
 	for c in cases:
 		var f := FileAccess.open(path, FileAccess.WRITE)
@@ -337,15 +339,21 @@ func test_air_start_spawn_clamps_into_the_safe_range() -> String:
 	var sp := AirStart.spawn(c172, s)
 	if sp.kias > 0.9 * 163.0 + 0.001 or sp.asked != 205.0 or sp.gear_up or sp.flaps != 0:
 		return "a c172 asked for 205 KIAS: %s" % [sp]
-	sp = AirStart.spawn(c172, {"air_kt": 90.0, "air_custom": false})
-	if sp.kias != 90.0 or sp.asked >= 0.0:
+	sp = AirStart.spawn(c172, {"air_kt": 70.0, "air_custom": false})  # its own: gear down, flaps 30
+	if sp.kias != 70.0 or sp.asked >= 0.0 or sp.gear_up or sp.flaps != 3:
 		return "the c172's own speed is not changed: %s" % [sp]
-	sp = AirStart.spawn(a320, {"air_kt": 205.0, "air_custom": false})  # the A320 start is unchanged: 205, gear up
-	if sp.kias != 205.0 or sp.asked >= 0.0 or not sp.gear_up:
+	sp = AirStart.spawn(a320, {"air_kt": 160.0, "air_custom": false})  # its own: 160, gear down, CONF 2 (below 1.2 vs1 but above 1.2 vs0)
+	if sp.kias != 160.0 or sp.asked >= 0.0 or sp.gear_up or sp.flaps != 3:
 		return "a320 own start: %s" % [sp]
 	sp = AirStart.spawn(a320, {"air_kt": 90.0, "air_custom": false})  # a setup built in code with the C172 default
-	if sp.kias != 205.0 or not sp.gear_up:
+	if sp.kias != 160.0 or sp.gear_up or sp.flaps != 3:
 		return "a320 with the default speed of the setup: %s" % [sp]
+	sp = AirStart.spawn(a320, {"air_kt": 205.0, "air_custom": true, "air_kt_given": true})  # another speed: gear up at 200 kt, flaps 0
+	if sp.kias != 205.0 or not sp.gear_up or sp.flaps != 0:
+		return "a320 at 205 kt: %s" % [sp]
+	var r320 := AirStart.kias_range(a320, 3)
+	if not is_equal_approx(r320.x, 126.0) or not is_equal_approx(AirStart.kias_range(a320).x, 160.8):
+		return "a320 range with flaps / clean: %s %s" % [r320, AirStart.kias_range(a320)]
 	sp = AirStart.spawn(a320, {"air_kt": 90.0, "air_custom": true, "air_kt_given": true})  # too slow for the A320: stalled
 	if not is_equal_approx(sp.kias, 1.2 * 134.0) or sp.gear_up:
 		return "a320 at 90 KIAS: %s" % [sp]
@@ -370,10 +378,10 @@ func test_air_start_lesson_speed_is_given_and_survives_end_lesson() -> String:
 	if err == "" and Session.setup.air_kt != 75.0:
 		err = "a given speed is not refreshed: %s" % Session.setup.air_kt
 	Session.end_lesson()
-	if err == "" and (Session.setup.air_kt_given or Session.setup.air_kt != 205.0 or Session.setup.aircraft != "a320"):
+	if err == "" and (Session.setup.air_kt_given or Session.setup.air_kt != 160.0 or Session.setup.aircraft != "a320"):
 		err = "ending the lesson restores the free-flight speed and flag: %s %s" % [Session.setup.air_kt, Session.setup.air_kt_given]
 	Session.begin_lesson("y", {"aircraft": "c172", "air_ft": 800.0}, "full")  # no speed in the lesson: the aircraft's own
-	if err == "" and (Session.setup.air_kt_given or Session.setup.air_kt != 90.0):
+	if err == "" and (Session.setup.air_kt_given or Session.setup.air_kt != 70.0):
 		err = "a lesson without a speed: the aircraft's own: %s %s" % [Session.setup.air_kt, Session.setup.air_kt_given]
 	_restore(k)
 	return err
