@@ -9,8 +9,8 @@ A free, offline flight simulator for the Mumbai–Pune region (with a corridor d
 
 - **Terrain:** Copernicus 30 m elevation, Sentinel-2 satellite imagery, ESA WorldCover land cover as procedural ground detail, runways and taxiways from OpenStreetMap.
 - **Flight model:** a JSBSim-derived 6-DOF model, checked against the C172S POH by headless test cards. The A320 uses the FlightGear A320-family JSBSim data (converted to JSON) with a fly-by-wire control law written for libresim. It is not validated against real-aircraft data.
-- **Cessna 172:** the FlightGear c172p 3D model and cockpit with live, physically modelled instruments. Your call sign is painted on the fuselage as the tail number (`--callsign=VT-LBR`, or set it in the options).
-- **A320-family twin-jet:** fly-by-wire, FADEC turbofans, airliner systems (electrical, hydraulics, fuel, warnings), autopilot and glass cockpit displays (PFD, ND, engine and system pages). Fly it from a gate or a runway. The gate's jetway extends to the door. Wing and engine anti-ice work in icing. It is the newer, cruder aircraft: no FMGC flight plan or managed profile, a lite MCDU, no bleed or pack model, untuned turbojet recording as engine sound, a generic white livery, and some gates (right-side ones, very long jetways) do not dock. See [docs/A320-STATUS.md](docs/A320-STATUS.md).
+- **Cessna 172:** the FlightGear c172p 3D model and cockpit with live, physically modelled instruments. Your call sign is painted on the fuselage as the tail number (`--callsign=VT-LBR`, or set it in the options). On the start screen you can recolour the paint and put a small picture on the side and the fin.
+- **A320-family twin-jet:** fly-by-wire, FADEC turbofans, airliner systems (electrical, hydraulics, fuel, warnings), autopilot and glass cockpit displays (PFD, ND, engine and system pages). Fly it from a gate or a runway. The gate's jetway extends to the door. Wing and engine anti-ice work in icing. It is the newer, cruder aircraft: no FMGC flight plan or managed profile, a lite MCDU, no bleed or pack model, untuned turbojet recording as engine sound, a generic white livery you can recolour (fuselage, fin, cheat line and engines; the wings stay white), and some gates (right-side ones, very long jetways) do not dock. See [docs/A320-STATUS.md](docs/A320-STATUS.md).
 - **Per-aircraft data:** an aircraft is a folder of JSON (`game/aircraft/<id>/`), not code. See "Adding an aircraft" in [docs/USAGE.md](docs/USAGE.md).
 - **Simulation:** systems, failures, weather with ridge lift off the Western Ghats, time of day, night lighting.
 
@@ -52,6 +52,9 @@ Real in-game captures, 1920x1080, Ultra preset, not edited. Regenerate them with
   <tr>
     <td width="50%"><img src="docs/screenshots/15-a320-aircraft-page.jpg" alt="Start screen, aircraft step: A320 key figures, fuel and payload sliders, and the weight and balance envelope (approximate)." width="100%"><br><sub>Start screen, aircraft step: A320 key figures, fuel and payload sliders, and the weight and balance envelope (approximate).</sub></td>
     <td width="50%"><img src="docs/screenshots/16-callsign-tail-number.jpg" alt="Cessna 172 at Pune (VAPO) wearing the call sign you choose as its tail number (VT-LBR here)." width="100%"><br><sub>Cessna 172 at Pune (VAPO) wearing the call sign you choose as its tail number (VT-LBR here).</sub></td>
+  </tr>
+  <tr>
+    <td colspan="2"><img src="docs/screenshots/17-livery-step.jpg" alt="Free-flight Livery step: a turntable of the A320 and colour rows for fuselage, fin, cheat line and engines, plus picture slots." width="100%"><br><sub>Free flight, Livery step: turntable of the A320, colour rows for the fuselage, fin, cheat line and engines, and picture slots. Wings stay white.</sub></td>
   </tr>
 </table>
 

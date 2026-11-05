@@ -75,6 +75,19 @@
   ],
   "orbit_m": 48.0
  },
+ "livery": {
+  "atlases": [
+   {"id": "fuselage", "texture": "models/exterior_fuselage.png"},
+   {"id": "engine", "texture": "models/exterior_engine.png"}],
+  "regions": [
+   {"key": "body", "label": "Fuselage paint", "default": [0.925, 0.925, 0.925], "masks": [{"atlas": "fuselage", "mask": "livery/fuselage_body.png", "luma": 0.925}]},
+   {"key": "fin", "label": "Fin", "default": [0.09, 0.173, 0.365], "masks": [{"atlas": "fuselage", "mask": "livery/fuselage_fin.png", "luma": 0.168}]},
+   {"key": "cheat", "label": "Cheat line", "default": [0.259, 0.322, 0.408], "masks": [{"atlas": "fuselage", "mask": "livery/fuselage_cheat.png", "luma": 0.315}]},
+   {"key": "engines", "label": "Engines", "default": [1.0, 1.0, 1.0], "masks": [{"atlas": "engine", "mask": "livery/engine_engines.png", "luma": 0.974}]}],
+  "stickers": [
+   {"key": "side", "label": "Fuselage side", "atlas": "fuselage", "box": [400, 60, 160, 100], "mirror_box": [2560, 60, 160, 100]},
+   {"key": "fin", "label": "Fin", "atlas": "fuselage", "box": [3300, 1800, 140, 100]}]
+ },
  "registration": {
   "source": "callsign",
   "texture": "models/exterior_fuselage.png",

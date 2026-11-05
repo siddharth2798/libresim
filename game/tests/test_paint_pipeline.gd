@@ -113,7 +113,7 @@ func test_pipeline_plan_nothing_to_do_for_the_factory_look() -> String:
 	if not PaintPipeline.plan(_def, "4x-chv", {"colors": {"body": default_hex}}).is_empty():
 		return "a stored default colour is the factory look"
 	if not PaintPipeline.plan(AircraftDef.load_def("a320"), "", {}).is_empty():
-		return "an aircraft without a livery and without a registration section plans nothing"
+		return "factory colours and no number to stamp must plan nothing"
 	return ""
 
 

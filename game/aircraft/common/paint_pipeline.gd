@@ -2,7 +2,8 @@ class_name PaintPipeline
 extends RefCounted
 ## One pass over every atlas of the player's aircraft at flight start: the livery colours and the tail number.
 ## Per atlas, in this order: base atlas -> livery recolour (LiveryPaint.compose, async GPU one-shot; factory livery or a
-## renderer without pixels gives null = the original) -> registration (wipe the old number, stamp the new one) ->
+## renderer without pixels gives null = the original) -> stickers (LiveryStickers.stamp, on the recoloured copy, or on
+## a copy of the atlas when the colours are factory) -> registration (wipe the old number, stamp the new one) ->
 ## generate_mipmaps -> cached ImageTexture set as a surface override on every glb surface whose albedo is that atlas.
 ## One pass because a surface with an override no longer shows its atlas path. This order because the registration boxes
 ## are outside every livery mask and the wipe reads the recoloured rows; mipmaps last so no level shows the old paint.
@@ -29,9 +30,8 @@ static func clear_cache() -> void:
 	_cache.clear()
 
 
-## What to paint: [{rel, path, atlas (livery atlas id or ""), steps (registration steps), colors ({key: Color} of this atlas),
-## livery (bool: some region differs from factory), key}], one per atlas with something to do. Pure: `text` is the
-## registration ("" = none), `stored` the pilot's {key: "#rrggbb"} (or the setup entry); nothing is rendered.
+## What to paint: [{rel, path, atlas, steps, colors, stickers, livery, key}], one per atlas with something to do.
+## Pure: `text` is the registration ("" = none), `stored` the setup entry ({colors, stickers} or a bare colour map).
 static func plan(def: AircraftDef, text: String, stored: Variant) -> Array:
 	var out := []
 	var lv := Livery.of(def)
@@ -46,15 +46,24 @@ static func plan(def: AircraftDef, text: String, stored: Variant) -> Array:
 	for st in steps_all:
 		if st.texture != "" and not rels.has(st.texture):
 			rels.append(st.texture)
+	var placed := LiveryStickers.placed(lv, stored)
 	for rel in rels:
 		var id: String = ids.get(rel, "")
 		var on := Livery.colors_on(lv, id, colors) if id != "" else {}
 		var changed := id != "" and not Livery.is_identity(lv, on)
 		var steps := steps_all.filter(func(s): return s.texture == rel)
-		if not changed and steps.is_empty():
+		var mine := placed.filter(func(s): return s.atlas == id)
+		if not changed and steps.is_empty() and mine.is_empty():
 			continue
-		out.append({"rel": rel, "path": def.dir + "/" + rel, "atlas": id, "steps": steps, "colors": on, "livery": changed,
-			"key": cache_key(def.id, text if not steps.is_empty() else "", rel, Livery.cache_key(def.id, on) if changed else "factory")})
+		var sticker_key := {}
+		for s in mine:
+			sticker_key[s.key] = {"image": s.image, "scale": s.scale, "dx": s.dx, "dy": s.dy, "mirror": s.mirror}
+		var lkey := "factory"
+		if changed or not mine.is_empty():
+			lkey = Livery.cache_key(def.id, on, sticker_key)
+		out.append({"rel": rel, "path": def.dir + "/" + rel, "atlas": id, "steps": steps, "colors": on,
+			"stickers": mine, "livery": changed,
+			"key": cache_key(def.id, text if not steps.is_empty() else "", rel, lkey)})
 	return out
 
 
@@ -114,22 +123,56 @@ static func build(host: Node, def: AircraftDef, a: Dictionary, text: String, gly
 			img = await test_compose.call(a.atlas, atlas, a.colors)
 		else:
 			img = await LiveryPaint.compose(host, def, a.atlas, atlas, a.colors)
+	var stickers: Array = a.get("stickers", [])
+	if not stickers.is_empty() and img == null:
+		img = _rgba(atlas)
+	if img != null and not stickers.is_empty():
+		LiveryStickers.stamp(img, stickers)
 	var drawn := false
 	if not a.steps.is_empty():
 		drawn = await _glyphs(host, text, a.steps, glyphs)
 	if img == null and not drawn:
 		return null
 	if img == null:
-		img = atlas.get_image()
-		if img == null or img.is_empty():
+		img = _rgba(atlas)
+		if img == null:
 			return null
-		if img.is_compressed():
-			img.decompress()
-		img.convert(Image.FORMAT_RGBA8)
 	if drawn:
 		RegistrationPaint.stamp_steps(img, a.steps, glyphs)
 	img.generate_mipmaps()
 	return ImageTexture.create_from_image(img)
+
+
+## The start-screen turntable. Same paint as a flight, but the model stays visible and the registration is
+## left as the atlas carries it (the flight pass stamps the call sign). Does nothing headless.
+static func preview(host: Node, glb_root: Node, def: AircraftDef, stored: Variant) -> void:
+	if DisplayServer.get_name() == "headless" or not is_instance_valid(glb_root):
+		return
+	_clear_overrides(glb_root)
+	var glyphs := {}
+	for a in plan(def, "", stored):
+		var tex: Texture2D = await build(host, def, a, "", glyphs)
+		if tex != null and is_instance_valid(glb_root):
+			override(glb_root, a.path, tex)
+
+
+static func _rgba(atlas: Texture2D) -> Image:
+	var img := atlas.get_image()
+	if img == null or img.is_empty():
+		return null
+	if img.is_compressed():
+		img.decompress()
+	img.convert(Image.FORMAT_RGBA8)
+	return img
+
+
+static func _clear_overrides(glb_root: Node) -> void:
+	for mi in glb_root.find_children("*", "MeshInstance3D", true, false):
+		var m := mi as MeshInstance3D
+		if m.mesh == null:
+			continue
+		for i in m.mesh.get_surface_count():
+			m.set_surface_override_material(i, null)
 
 
 static func _glyphs(host: Node, text: String, steps: Array, glyphs: Dictionary) -> bool:

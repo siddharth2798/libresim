@@ -96,7 +96,12 @@ func test_livery_cache_key_stable_and_sensitive() -> String:
 	if k == Livery.cache_key("c172", {"body": Color.RED}):
 		return "a missing region must change the key"
 	if Livery.cache_key("c172", {"body": Color(1, 0, 0, 0.5)}) != Livery.cache_key("c172", {"body": Color.RED}):
-		return "alpha is not part of the paint"
+		return "alpha is not part of the key"
+	if k != Livery.cache_key("c172", a, {}):
+		return "an empty sticker map must leave the key unchanged"
+	var with_sticker := Livery.cache_key("c172", a, {"side": {"image": "abc.png", "scale": 1.0, "dx": 0.0, "dy": 0.0, "mirror": true}})
+	if with_sticker == k or not with_sticker.contains("abc.png"):
+		return "a sticker must change the key: " + with_sticker
 	return ""
 
 

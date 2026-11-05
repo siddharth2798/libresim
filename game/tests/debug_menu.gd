@@ -1,5 +1,5 @@
 extends Node
-## Debug: open the start screen and save a screenshot of every screen (home, the five
+## Debug: open the start screen and save a screenshot of every screen (home, the six
 ## free-flight steps, Training, Saved flights, Controls, Options) to
 ## $FREESIM_SHOTS/menu_<name>.png (default user://), then quit. Needs a display.
 ##   FREESIM_SIZE=1920x1080  window size (default 1280x720)
@@ -9,7 +9,7 @@ extends Node
 ##   FREESIM_OPEN=1          open 'More weather' and the aircraft 'Details' first
 ##   FREESIM_FLY=1           also launch a flight from VABB and grab it
 ##   FREESIM_OVERWEIGHT=1    load the chosen aircraft over its maximum takeoff weight (amber Fly anyway)
-##   FREESIM_FLOW_ONLY=1     only the five free-flight steps (skip home, Training, Saved flights, Controls, Options)
+##   FREESIM_FLOW_ONLY=1     only the six free-flight steps (skip home, Training, Saved flights, Controls, Options)
 ##   FREESIM_CALLSIGN=VT-SID  type that call sign (Session.setup.callsign) first
 ##   FREESIM_WIND=360/25     wind direction / speed (deg / kt) in the setup (a crosswind on runway 27 of VABB: reasons list)
 ##   FREESIM_STAND="Terminal 1 Gate 12A ..."  a long stand name in the setup after the pages are built (footer chip width)
@@ -66,10 +66,10 @@ func _ready() -> void:
 	_s.go("flight")
 	if OS.get_environment("FREESIM_OPEN") != "":
 		_s.screen("flight").pages[0]._show_details(true)  # the aircraft page
-		_s.screen("flight").pages[2]._show_more(true)
+		_s.screen("flight").pages[3]._show_more(true)
 	for i in _s.screen("flight").STEPS.size():
 		_s.screen("flight").show_step(i)
-		if i == 2 and OS.get_environment("FREESIM_STAND") != "":  # after the Airport step: it replaces a stand it does not know
+		if i == 3 and OS.get_environment("FREESIM_STAND") != "":  # after the Airport step: it replaces a stand it does not know
 			Session.setup.stand = OS.get_environment("FREESIM_STAND")
 		await _shot("flight_%d" % (i + 1))
 	for id in ([] if OS.get_environment("FREESIM_FLOW_ONLY") != "" else ["training", "saves", "controls", "options"]):

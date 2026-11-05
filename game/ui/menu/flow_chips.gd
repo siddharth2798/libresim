@@ -2,7 +2,7 @@ class_name FlowChips
 extends Container
 ## The setup as clickable chips in the Free-flight footer: one small flat pill per key setting
 ## (aircraft, airport / start, weather, failures, recording), each with a status mark, and each
-## jumps to its step (signal chip_pressed). The five chips always stay on ONE row (the footer never grows
+## jumps to its step (signal chip_pressed). The chips always stay on ONE row (the footer never grows
 ## taller): each takes its natural width while they all fit, otherwise the widest are shortened first and
 ## their text ends in an ellipsis (the tooltip has the whole text). Layout in fit_widths() (pure).
 ## Texts and levels come from FlowValues; the chips hold no state of their own.

@@ -82,7 +82,7 @@ func test_rail_reasons_use_the_setup_checks_texts_and_jump_to_their_step() -> St
 	for b in r.reason_btns:
 		b.pressed.emit()
 	var steps := FlowRail.reason_items(list).map(func(c): return FlowValues.KEYS.find(c.step))
-	if jumped != steps or not (0 in jumped and 2 in jumped):
+	if jumped != steps or not (0 in jumped and FlowValues.KEYS.find("weather") in jumped):
 		return "jumps %s, steps %s" % [jumped, steps]
 	return ""
 
@@ -109,7 +109,7 @@ func test_rail_reasons_sit_below_the_steps_and_the_rail_scrolls() -> String:
 	if not (col.get_parent() is ScrollContainer):
 		return "the rail column should be inside a ScrollContainer (a 720 px window)"
 	if r.reason_box.get_index() <= r.entries[-1].get_index():
-		return "reasons come after the five steps"
+		return "reasons come after the steps"
 	return ""
 
 
@@ -162,12 +162,7 @@ func test_chips_fit_at_1280_in_the_usual_states() -> String:
 	}
 	for k in cases:
 		var c := _chips(cases[k], CHIPS_AT_1280)
-		var nat := 0.0
-		for w in c._natural:
-			nat += w
-		if nat + FlowChips.GAP * 4 > CHIPS_AT_1280:
-			return "%s: the natural widths need %.0f px, room %.0f (a chip would be cut): %s %s" % [k, nat + FlowChips.GAP * 4, CHIPS_AT_1280, c._natural, c.chips.map(func(b): return b.text)]
-		var err := _one_row(c, CHIPS_AT_1280)
+		var err := _one_row(c, CHIPS_AT_1280)  # six chips: the widest may be shortened, the row does not wrap
 		if err != "":
 			return "%s: %s" % [k, err]
 	return ""
@@ -191,9 +186,10 @@ func test_chips_stay_on_one_row_with_the_worst_texts() -> String:
 		if c2.size.y > 56.0:
 			return "%s: the chip row is %.0f px tall, the footer buttons are 56" % [k, c2.size.y]
 	var cs := _chips(worst["stand, long name"], CHIPS_AT_1280)
-	var b: Button = cs.chips[1]
-	if b.size.x >= cs._natural[1] - 1.0 or not b.clip_text or b.text_overrun_behavior != TextServer.OVERRUN_TRIM_ELLIPSIS:
-		return "the long stand chip should be shortened with an ellipsis (width %.0f of %.0f)" % [b.size.x, cs._natural[1]]
+	var stand := FlowValues.KEYS.find("airport")
+	var b: Button = cs.chips[stand]
+	if b.size.x >= cs._natural[stand] - 1.0 or not b.clip_text or b.text_overrun_behavior != TextServer.OVERRUN_TRIM_ELLIPSIS:
+		return "the long stand chip should be shortened with an ellipsis (width %.0f of %.0f)" % [b.size.x, cs._natural[stand]]
 	if not b.tooltip_text.contains(long_stand.strip_edges()) and not b.tooltip_text.contains("Terminal 1 Gate 12A"):
 		return "the tooltip has the whole name: " + b.tooltip_text
 	return ""

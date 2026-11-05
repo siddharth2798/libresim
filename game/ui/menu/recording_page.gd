@@ -1,5 +1,5 @@
 extends HBoxContainer
-## Start screen step 5 (optional): session recording. Records the whole flight (picture + sound) to a folder you
+## Start screen step 6 (optional): session recording. Records the whole flight (picture + sound) to a folder you
 ## choose (default: recordings/ in the game folder). F8 in flight starts / stops it at any time. Left: the "Record
 ## this flight" switch, the folder, resolution and frame rate (segmented), the MP4 switch and a size line; right: a
 ## "What you get" card. The options stay usable while recording is off (F8 can still start it in flight), they are

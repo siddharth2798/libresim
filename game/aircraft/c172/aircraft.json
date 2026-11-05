@@ -39,7 +39,10 @@
 			{"key": "body", "label": "Body paint", "default": [0.925, 0.925, 0.925], "masks": [{"atlas": "fuselage", "mask": "livery/fuselage_body.png", "luma": 0.934}, {"atlas": "wing", "mask": "livery/wing_body.png", "luma": 0.936}, {"atlas": "tail", "mask": "livery/tail_body.png", "luma": 0.839}]},
 			{"key": "accent", "label": "Main accent", "default": [0.0, 0.122, 0.353], "masks": [{"atlas": "fuselage", "mask": "livery/fuselage_accent.png", "luma": 0.114}, {"atlas": "wing", "mask": "livery/wing_accent.png", "luma": 0.121}, {"atlas": "tail", "mask": "livery/tail_accent.png", "luma": 0.101}]},
 			{"key": "stripe", "label": "Pin stripe", "default": [0.541, 0.545, 0.525], "masks": [{"atlas": "fuselage", "mask": "livery/fuselage_stripe.png", "luma": 0.513}, {"atlas": "tail", "mask": "livery/tail_stripe.png", "luma": 0.545}]},
-			{"key": "struts", "label": "Struts and gear legs", "default": [0.882, 0.882, 0.882], "masks": [{"atlas": "fuselage", "mask": "livery/fuselage_struts.png", "luma": 0.812}]}]
+			{"key": "struts", "label": "Struts and gear legs", "default": [0.882, 0.882, 0.882], "masks": [{"atlas": "fuselage", "mask": "livery/fuselage_struts.png", "luma": 0.812}]}],
+		"stickers": [
+			{"key": "side", "label": "Fuselage side", "atlas": "fuselage", "box": [1680, 200, 160, 100], "mirror_box": [1680, 1280, 160, 100]},
+			{"key": "fin", "label": "Fin", "atlas": "tail", "box": [900, 330, 180, 120], "mirror_box": [180, 1160, 180, 120]}]
 	},
 	"start": {"pitch_trim": -0.05,
 		"air": {"alt_ft": 900, "dist_nm": 3.0, "kias": 70, "gear": "down", "flaps": 3,

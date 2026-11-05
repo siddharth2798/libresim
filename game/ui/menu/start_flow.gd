@@ -1,10 +1,11 @@
 extends "res://ui/menu/page_frame.gd"
-## Free flight: the guided setup. A left rail (FlowRail: the five steps with live value and status mark) beside one page at a time;
+## Free flight: the guided setup. A left rail (FlowRail: one step per entry, with live value and status mark) beside one page at a time;
 ## a footer with Back, the setup as clickable chips (FlowChips), Next (names the next step, hidden on the last) and the one filled
 ## Fly button. Fly is never disabled: normal accent when the setup is ready (or has only warnings), amber "Fly anyway" when
 ## SetupChecks finds a "bad" problem (start_screen.gd then asks first). Back on the first step leaves for home (back_pressed).
 ## Choices go into Session.setup. Aircraft comes first because the airport page depends on it (air-start height and distance,
-## runways long enough, stands that suit it). Keys: 1-5 jump to a step, Page Up / Down step, Ctrl+Enter flies, Esc goes back.
+## runways long enough, stands that suit it). Livery is the optional step right after it. Keys 1 through the last step jump,
+## Page Up / Down step, Ctrl+Enter flies, Esc goes back.
 ## Texts: flow_values.gd.
 
 signal fly_requested
@@ -12,6 +13,7 @@ signal fly_requested
 ## [title, page script, prompt]
 const STEPS := [
 	["Aircraft", "res://ui/menu/aircraft_page.gd", "Which aircraft, and how loaded?"],
+	["Livery (optional)", "res://ui/menu/livery_page.gd", "Paint the aircraft, or skip this."],
 	["Airport & start", "res://ui/menu/airport_page.gd", "Where do you want to start?"],
 	["Weather & time", "res://ui/menu/conditions_page.gd", "What are the conditions?"],
 	["Failures (optional)", "res://ui/menu/failures_page.gd", "Practise an emergency, or skip this."],

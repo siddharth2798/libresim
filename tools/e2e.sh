@@ -25,9 +25,11 @@ git -C "$ROOT" status --short >> "$OUT/git.txt"
 # keep the player's own setup and quick-save: the sweep changes them
 cp -a "$USERDIR/last_flight.json" "$USERDIR/graphics.cfg" "$USERDIR/options.cfg" "$OUT/backup/" 2>/dev/null
 [ -d "$USERDIR/saves" ] && cp -a "$USERDIR/saves" "$OUT/backup/saves"
+[ -d "$USERDIR/liveries" ] && cp -a "$USERDIR/liveries" "$OUT/backup/liveries"
 restore() {
 	cp -a "$OUT/backup/last_flight.json" "$OUT/backup/graphics.cfg" "$OUT/backup/options.cfg" "$USERDIR/" 2>/dev/null
 	if [ -d "$OUT/backup/saves" ]; then rm -rf "$USERDIR/saves"; cp -a "$OUT/backup/saves" "$USERDIR/saves"; fi
+	if [ -d "$OUT/backup/liveries" ]; then rm -rf "$USERDIR/liveries"; cp -a "$OUT/backup/liveries" "$USERDIR/liveries"; fi
 }
 trap restore EXIT
 

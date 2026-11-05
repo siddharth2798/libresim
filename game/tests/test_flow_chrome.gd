@@ -76,7 +76,7 @@ func test_flow_values_for_the_c172() -> String:
 	var got := {}
 	for k in FlowValues.KEYS:
 		got[k] = FlowValues.rail_value(k, s)
-	var want := {"aircraft": "Cessna 172S · 34 gal fuel", "airport": "VABB 27", "weather": "Clear · 12:30 · wind 270/0", "failures": "0 armed", "recording": "Off"}
+	var want := {"aircraft": "Cessna 172S · 34 gal fuel", "livery": "Factory", "airport": "VABB 27", "weather": "Clear · 12:30 · wind 270/0", "failures": "0 armed", "recording": "Off"}
 	if got != want:
 		return "rail values %s" % [got]
 	s.merge({"start": "stand", "stand": "12", "cold": true}, true)
@@ -112,7 +112,7 @@ func test_flow_levels_come_from_the_setup_checks() -> String:
 	var s := _setup("a320", _over_weight())
 	var list := SetupChecks.checks(s)
 	var got := FlowValues.KEYS.map(func(k): return FlowValues.level(k, s, list))
-	if got != ["bad", "ok", "ok", "none", "none"]:
+	if got != ["bad", "none", "ok", "ok", "none", "none"]:
 		return "over-weight levels %s" % [got]
 	if not FlowValues.tooltip("aircraft", s, list, 0).contains("Over maximum takeoff weight"):
 		return "tooltip lacks the reason: " + FlowValues.tooltip("aircraft", s, list, 0)
@@ -123,7 +123,7 @@ func test_flow_levels_come_from_the_setup_checks() -> String:
 	s = _setup("c172", {"visibility_m": 800.0, "failures": {"x": [2, 5.0]}, "record": true})
 	list = SetupChecks.checks(s)
 	got = FlowValues.KEYS.map(func(k): return FlowValues.level(k, s, list))
-	if got != ["ok", "ok", "warn", "ok", "ok"] or FlowValues.fly_label(list) != "Fly now  ▶":
+	if got != ["ok", "none", "ok", "warn", "ok", "ok"] or FlowValues.fly_label(list) != "Fly now  ▶":
 		return "warn levels %s, label %s" % [got, FlowValues.fly_label(list)]
 	return ""
 
@@ -132,14 +132,14 @@ func test_flow_levels_come_from_the_setup_checks() -> String:
 
 func test_flow_rail_entries_and_chips_each_jump_to_their_step() -> String:
 	var f: Control = _open(_setup()).screen("flight")
-	if f.rail.entries.size() != 5 or f.chips.chips.size() != 5:
+	if f.rail.entries.size() != 6 or f.chips.chips.size() != 6:
 		return "rail %d entries, %d chips" % [f.rail.entries.size(), f.chips.chips.size()]
-	for i in 5:
-		f.show_step((i + 2) % 5)  # start somewhere else, then jump
+	for i in 6:
+		f.show_step((i + 2) % 6)  # start somewhere else, then jump
 		f.rail.entries[i].pressed.emit()
 		if f.cur != i or f.rail.current != i or not f.pages[i].visible:
 			return "rail entry %d: step %d, highlighted %d" % [i + 1, f.cur + 1, f.rail.current + 1]
-		f.show_step((i + 3) % 5)
+		f.show_step((i + 3) % 6)
 		f.chips.chips[i].pressed.emit()
 		if f.cur != i or f.rail.current != i:
 			return "chip %d: step %d" % [i + 1, f.cur + 1]
@@ -150,8 +150,8 @@ func test_flow_rail_shows_the_live_value_status_and_current_step() -> String:
 	var f: Control = _open(_setup("a320", _over_weight())).screen("flight")
 	f.refresh_chrome()
 	var r: Control = f.rail
-	if r._values[0].text != "A320-family · 19400 kg fuel" or r._dots[0].level != "bad" or r._dots[1].level != "ok" or r._dots[3].level != "none":
-		return "rail: %s, dots %s %s %s" % [r._values[0].text, r._dots[0].level, r._dots[1].level, r._dots[3].level]
+	if r._values[0].text != "A320-family · 19400 kg fuel" or r._dots[0].level != "bad" or r._dots[1].level != "none" or r._dots[2].level != "ok" or r._dots[4].level != "none":
+		return "rail: %s, dots %s %s %s %s" % [r._values[0].text, r._dots[0].level, r._dots[1].level, r._dots[2].level, r._dots[4].level]
 	if r.ready_title.text != "Check before flying":
 		return "ready box: " + r.ready_title.text
 	if not r.entries[0].tooltip_text.contains("Over maximum takeoff weight") or not f.chips.chips[0].tooltip_text.contains("Over maximum takeoff weight"):
@@ -166,12 +166,12 @@ func test_flow_rail_shows_the_live_value_status_and_current_step() -> String:
 
 func test_flow_next_names_the_next_step_and_is_hidden_on_the_last() -> String:
 	var f: Control = _open(_setup()).screen("flight")
-	var want := ["Airport & start", "Weather & time", "Failures", "Recording"]
-	for i in 4:
+	var want := ["Livery", "Airport & start", "Weather & time", "Failures", "Recording"]
+	for i in 5:
 		f.show_step(i)
 		if not f.primary_btn.visible or not f.primary_btn.text.contains(want[i]) or f.primary_btn.text.contains("optional"):
 			return "step %d: Next is '%s' (visible %s)" % [i + 1, f.primary_btn.text, f.primary_btn.visible]
-	f.show_step(4)
+	f.show_step(5)
 	if f.primary_btn.visible or not f.fly_btn.visible:
 		return "on the last step Next is hidden and Fly stays (Next %s, Fly %s)" % [f.primary_btn.visible, f.fly_btn.visible]
 	return ""
@@ -189,7 +189,7 @@ func test_flow_fly_is_amber_anyway_when_bad_and_normal_once_fixed() -> String:
 	f.pages[0].changed.emit()
 	if not f.fly_btn.text.begins_with("Fly now") or _fill(f.fly_btn) != MenuTheme.ACCENT:
 		return "fixed setup: Fly '%s' fill %s" % [f.fly_btn.text, _fill(f.fly_btn)]
-	for i in 5:
+	for i in 6:
 		f.show_step(i)
 		if not f.fly_btn.visible:
 			return "Fly should show on step %d" % [i + 1]
@@ -201,13 +201,13 @@ func test_flow_chips_and_rail_follow_a_page_change() -> String:
 	f.refresh_chrome()
 	Session.setup.wind_kt = 12.0
 	Session.setup.gust_kt = 20.0
-	f.pages[2].changed.emit()
-	if f.chips.chips[2].text != "Clear · 12:30 · 270/12G20" or f.rail._values[2].text != "Clear · 12:30 · wind 270/12G20":
-		return "weather after a change: '%s' / '%s'" % [f.chips.chips[2].text, f.rail._values[2].text]
+	f.pages[3].changed.emit()
+	if f.chips.chips[3].text != "Clear · 12:30 · 270/12G20" or f.rail._values[3].text != "Clear · 12:30 · wind 270/12G20":
+		return "weather after a change: '%s' / '%s'" % [f.chips.chips[3].text, f.rail._values[3].text]
 	Session.setup.record = true
-	f.pages[4].changed.emit()
-	if f.chips.chips[4].text.find("REC") < 0 or f.rail._dots[4].level != "ok":
-		return "recording after a change: '%s' / %s" % [f.chips.chips[4].text, f.rail._dots[4].level]
+	f.pages[5].changed.emit()
+	if f.chips.chips[5].text.find("REC") < 0 or f.rail._dots[5].level != "ok":
+		return "recording after a change: '%s' / %s" % [f.chips.chips[5].text, f.rail._dots[5].level]
 	Session.setup.fuel_gal = 5.0  # a change nobody announced: the frame loop notices it
 	f._process(0.0)
 	if f.rail._values[0].text != "Cessna 172S · 10 gal fuel":
@@ -225,18 +225,19 @@ func test_flow_keys_step_and_fly() -> String:
 	_key(KEY_4)
 	if f.cur != 3 or f.rail.current != 3:
 		return "key 4: step %d" % [f.cur + 1]
+	var last: int = f.STEPS.size() - 1
 	_key(KEY_PAGEDOWN)
-	_key(KEY_PAGEDOWN)  # already on the last step: stays
-	if f.cur != 4:
-		return "Page Down twice from step 4 should end on 5, at %d" % [f.cur + 1]
+	_key(KEY_PAGEDOWN)  # from step 4, two steps land on the last step and stay there
+	if f.cur != last:
+		return "Page Down twice from step 4 should end on the last step, at %d" % [f.cur + 1]
 	_key(KEY_PAGEUP)
-	if f.cur != 3:
+	if f.cur != last - 1:
 		return "Page Up should step back, at %d" % [f.cur + 1]
 	_key(KEY_ENTER, true)
 	if flown[0] != 1:
 		return "Ctrl+Enter should fly (%d)" % flown[0]
 	_key(KEY_ESCAPE)
-	if f.cur != 2:
+	if f.cur != last - 2:
 		return "Esc should step back, at %d" % [f.cur + 1]
 	f.show_step(0)
 	_key(KEY_ESCAPE)
@@ -278,7 +279,8 @@ func test_flow_focus_ring_and_order_are_kept() -> String:
 	if not (order[0] < order[1] and order[1] < order[2] and order[2] < order[3]) or f.summary.visible:  # (the hidden summary label sits between)
 		return "footer order Back, chips, Next, Fly: %s" % [order]
 	var r: FlowRail = f.rail
-	if r.entries[0].focus_neighbor_top != r.entries[0].get_path() or r.entries[4].focus_neighbor_bottom != r.entries[4].get_path() \
+	var tail := r.entries.size() - 1
+	if r.entries[0].focus_neighbor_top != r.entries[0].get_path() or r.entries[tail].focus_neighbor_bottom != r.entries[tail].get_path() \
 			or r.entries[2].focus_neighbor_top != r.entries[1].get_path() or r.entries[2].focus_neighbor_bottom != r.entries[3].get_path():
 		return "Up / Down should stay inside the rail"
 	return ""

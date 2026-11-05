@@ -93,9 +93,9 @@ func test_menu_free_flight_is_a_linear_stepper() -> String:
 	var err := ""
 	if s.cur != "flight" or _visible_ids(s) != ["flight"] or not s._brand.visible:
 		err = "only the flight flow should show: %s" % [_visible_ids(s)]
-	elif f.pages.size() != f.STEPS.size() or f.STEPS.size() != 5:
-		err = "expected 5 pages for Aircraft, Airport, Weather, Failures, Recording"
-	elif f.primary_btn.text.find("Airport") < 0:
+	elif f.pages.size() != f.STEPS.size() or f.STEPS.size() != 6:
+		err = "expected 6 pages for Aircraft, Livery, Airport, Weather, Failures, Recording"
+	elif f.primary_btn.text.find("Livery") < 0:
 		err = "Next should name the next step: %s" % f.primary_btn.text
 	for i in f.STEPS.size():
 		f.show_step(i)
@@ -193,7 +193,7 @@ func test_menu_other_pages_return_home() -> String:
 func test_menu_cold_and_dark_exists_only_where_it_is_a_choice() -> String:
 	var s := _open()
 	s.go("flight")
-	var p: Control = s.screen("flight").pages[1]  # the airport page (step 2: the aircraft comes first)
+	var p: Control = s.screen("flight").pages[2]  # the airport page (after Aircraft and Livery)
 	var setup: Dictionary = Session.setup
 	var keep := setup.duplicate(true)
 	p._cur = {"stands": [{"ref": "A1"}], "runways": []}  # headless: no airport data may be loaded
@@ -227,7 +227,7 @@ func test_menu_cold_and_dark_exists_only_where_it_is_a_choice() -> String:
 func test_menu_conditions_highlight_follows_the_values() -> String:
 	var s := _open()
 	s.go("flight")
-	var page: Control = s.screen("flight").pages[2]
+	var page: Control = s.screen("flight").pages[3]
 	var setup: Dictionary = Session.setup
 	var keep := setup.duplicate(true)
 	var err := ""
@@ -252,8 +252,8 @@ func test_menu_conditions_highlight_follows_the_values() -> String:
 		page._time_row.select("")
 		page._wind_row.select("")
 		setup.merge({"time_h": 9.0, "wind_kt": 6.0, "gust_kt": 0.0, "turbulence": 0.1}, true)
-		s.screen("flight").show_step(3)  # leave the page, then come back to it
-		s.screen("flight").show_step(2)
+		s.screen("flight").show_step(4)  # leave the page, then come back to it
+		s.screen("flight").show_step(3)
 		if page._time_row.selected() != "Morning" or page._wind_row.selected() != "Light":
 			err = "re-entering should restore Morning / Light, got %s / %s" % [page._time_row.selected(), page._wind_row.selected()]
 	Session.setup = keep
@@ -274,8 +274,8 @@ func test_menu_fly_now_everywhere_and_optional_steps_are_named() -> String:
 		f.show_step(i)
 		if err == "" and not f.fly_btn.visible:
 			err = "step %d: the footer's one Fly button should show on every step" % [i + 1]
-	if err == "" and (not str(f.STEPS[3][0]).contains("optional") or not str(f.STEPS[4][0]).contains("optional")):
-		err = "Failures and Recording should be named optional: %s / %s" % [f.STEPS[3][0], f.STEPS[4][0]]
+	if err == "" and (not str(f.STEPS[1][0]).contains("optional") or not str(f.STEPS[4][0]).contains("optional") or not str(f.STEPS[5][0]).contains("optional")):
+		err = "Livery, Failures and Recording should be named optional: %s / %s / %s" % [f.STEPS[1][0], f.STEPS[4][0], f.STEPS[5][0]]
 	f.show_step(0)
 	f.fly_btn.pressed.emit()
 	if err == "" and flown[0] != 1:
@@ -287,7 +287,7 @@ func test_menu_fly_now_everywhere_and_optional_steps_are_named() -> String:
 func test_menu_more_weather_is_collapsed_and_remembered() -> String:
 	var s := _open()
 	s.go("flight")
-	var page: Control = s.screen("flight").pages[2]
+	var page: Control = s.screen("flight").pages[3]
 	var err := ""
 	if page._more.visible or page._more_btn.text.find("More") < 0:
 		err = "'More weather' should start collapsed"

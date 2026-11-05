@@ -7,7 +7,8 @@ extends RefCounted
 ##            atlases; mask = 8-bit grey PNG (0 untouched, 255 recoloured), luma = mean luminance of the
 ##            atlas under the mask at full strength (>= 242), the shading reference
 ## The pilot's choice is {region key: "#rrggbb"} in Session.setup.livery; a missing or invalid entry is the
-## factory colour. Nothing here knows a specific aircraft. paint_pipeline.gd applies it.
+## factory colour. "stickers" on the section are the fixed picture slots (box, optional mirror_box).
+## Nothing here knows a specific aircraft. paint_pipeline.gd applies it.
 ## Recolour rule (sRGB values as stored, Rec.709 luma): out = lerp(orig, colour * clamp(luma(orig) / luma_base, 0, 1.3), mask).
 ## sRGB, not linear: the baked shading (AO, dirt) darkens the paint in display space, so the same ratio keeps its
 ## look on any colour; in linear space dark colours would lose their shading.
@@ -22,7 +23,7 @@ const KEY_VERSION := 1  # bump when masks or the rule change: old cached texture
 ## The tolerant parse of the "livery" section: {"atlases": {id: texture}, "regions": [{key, label, default: Color,
 ## masks: [{atlas, mask, luma}]}]}. Anything malformed is dropped; unknown or missing = an empty livery.
 static func parse(section: Variant) -> Dictionary:
-	var out := {"atlases": {}, "regions": []}
+	var out := {"atlases": {}, "regions": [], "stickers": []}
 	if not section is Dictionary:
 		return out
 	var raw_atlases = section.get("atlases")
@@ -32,30 +33,67 @@ static func parse(section: Variant) -> Dictionary:
 				out.atlases[a.id] = a.texture
 	var seen := {}
 	var raw_regions = section.get("regions")
-	if not raw_regions is Array:
-		return out
-	for r in raw_regions:
-		if not r is Dictionary or not r.get("key") is String or r.key == "" or seen.has(r.key):
-			continue
-		var d = r.get("default")
-		if not d is Array or d.size() != 3:
-			continue
-		var ok := true
-		for v in d:
-			ok = ok and (v is float or v is int) and v >= 0.0 and v <= 1.0
-		if not ok:
-			continue
-		var masks := []
-		var raw_masks = r.get("masks")
-		for m in (raw_masks if raw_masks is Array else []):
-			if m is Dictionary and m.get("atlas") is String and out.atlases.has(m.atlas) and m.get("mask") is String \
-					and m.mask != "" and (m.get("luma") is float or m.get("luma") is int) and m.luma > 0.0:
-				masks.append({"atlas": m.atlas, "mask": m.mask, "luma": float(m.luma)})
-		if masks.is_empty():
-			continue
-		seen[r.key] = true
-		out.regions.append({"key": r.key, "label": str(r.get("label", r.key)), "default": Color(d[0], d[1], d[2]), "masks": masks})
+	if raw_regions is Array:
+		for r in raw_regions:
+			_region(out, seen, r)
+	out.stickers = _slots(section, out.atlases)
 	return out
+
+
+static func _region(out: Dictionary, seen: Dictionary, r: Variant) -> void:
+	if not r is Dictionary or not r.get("key") is String or r.key == "" or seen.has(r.key):
+		return
+	var d = r.get("default")
+	if not d is Array or d.size() != 3:
+		return
+	for v in d:
+		if not (v is float or v is int) or v < 0.0 or v > 1.0:
+			return
+	var masks := []
+	var raw_masks = r.get("masks")
+	for m in (raw_masks if raw_masks is Array else []):
+		if m is Dictionary and m.get("atlas") is String and out.atlases.has(m.atlas) and m.get("mask") is String \
+				and m.mask != "" and (m.get("luma") is float or m.get("luma") is int) and m.luma > 0.0:
+			masks.append({"atlas": m.atlas, "mask": m.mask, "luma": float(m.luma)})
+	if masks.is_empty():
+		return
+	seen[r.key] = true
+	out.regions.append({"key": r.key, "label": str(r.get("label", r.key)), "default": Color(d[0], d[1], d[2]), "masks": masks})
+
+
+## Fixed picture slots: [{key, label, atlas, box [x,y,w,h], mirror_box?}]. A bad box or an unknown atlas is dropped.
+static func _slots(section: Dictionary, atlases: Dictionary) -> Array:
+	var raw = section.get("stickers")
+	if not raw is Array:
+		return []
+	var out := []
+	var seen := {}
+	for s in raw:
+		if not s is Dictionary or not s.get("key") is String or s.key == "" or seen.has(s.key):
+			continue
+		if not s.get("atlas") is String or not atlases.has(s.atlas):
+			continue
+		var box := _box(s.get("box"))
+		if box.is_empty():
+			continue
+		var slot := {"key": s.key, "label": str(s.get("label", s.key)), "atlas": s.atlas, "box": box}
+		var mirror := _box(s.get("mirror_box"))
+		if not mirror.is_empty():
+			slot["mirror_box"] = mirror
+		seen[s.key] = true
+		out.append(slot)
+	return out
+
+
+static func _box(v: Variant) -> Array:
+	if not v is Array or v.size() != 4:
+		return []
+	var b := []
+	for n in v:
+		if not (n is float or n is int) or n < 0:
+			return []
+		b.append(int(n))
+	return [] if b[2] < 1 or b[3] < 1 else b
 
 
 ## The parsed livery of an aircraft (empty when it has none).
@@ -121,7 +159,8 @@ static func entry(all: Variant, aircraft_id: String) -> Dictionary:
 
 ## `all` as it may be stored or loaded, made safe: not a dictionary gives {}, an unknown aircraft or one without a livery is dropped,
 ## unknown regions and bad hex are dropped, colours are written as lowercase "#rrggbb", an entry left with nothing is dropped.
-## Other keys of an entry (the stickers of L3) are kept as they are for their own validation. Never raises.
+## A stickers dictionary is kept when it still has a usable field after LiveryStickers.sanitize (image names
+## lose any directory; a slot with only a scale is kept). Never raises.
 static func repair_setup(all: Variant) -> Dictionary:
 	var out := {}
 	if not all is Dictionary:
@@ -141,8 +180,9 @@ static func repair_setup(all: Variant) -> Dictionary:
 		var e := {}
 		if not colors.is_empty():
 			e["colors"] = colors
-		if all[id].get("stickers") is Dictionary and not all[id].stickers.is_empty():
-			e["stickers"] = all[id].stickers.duplicate(true)
+		var stickers := LiveryStickers.sanitize(all[id].get("stickers"))
+		if not stickers.is_empty():
+			e["stickers"] = stickers
 		if not e.is_empty():
 			out[id] = e
 	return out
@@ -178,16 +218,29 @@ static func is_identity(lv: Dictionary, colors: Dictionary) -> bool:
 	return true
 
 
-## A stable text key of (aircraft, colours) for texture caches: the same colours give the same key whatever the order of
-## the dictionary, any other colour or aircraft gives another one.
-static func cache_key(aircraft_id: String, colors: Dictionary) -> String:
+## A stable text key of (aircraft, colours, stickers) for texture caches. The same colours give the same key
+## whatever the order of the dictionary. An empty sticker map leaves the key exactly as it was before stickers
+## existed, so a factory paint stays a cache hit. Any real sticker changes the key.
+static func cache_key(aircraft_id: String, colors: Dictionary, stickers: Dictionary = {}) -> String:
 	var keys := colors.keys()
 	keys.sort()
 	var parts := PackedStringArray()
 	for k in keys:
 		var c = colors[k]
 		parts.append("%s=%s" % [k, to_hex(c) if c is Color else "?"])
-	return "livery%d|%s|%s" % [KEY_VERSION, aircraft_id, ";".join(parts)]
+	var base := "livery%d|%s|%s" % [KEY_VERSION, aircraft_id, ";".join(parts)]
+	if stickers.is_empty():
+		return base
+	var sk := stickers.keys()
+	sk.sort()
+	var bits := PackedStringArray()
+	for k in sk:
+		var st = stickers[k]
+		if st is Dictionary:
+			bits.append("%s:%s:%.2f:%.2f:%.2f:%d" % [k, str(st.get("image", "")).get_file(),
+				float(st.get("scale", 1.0)), float(st.get("dx", 0.0)), float(st.get("dy", 0.0)),
+				1 if st.get("mirror", true) else 0])
+	return base + "|" + ";".join(bits)
 
 
 ## The regions with a mask on this atlas, at most MAX_SLOTS: [{key, mask (path relative to the aircraft folder), luma, default}].

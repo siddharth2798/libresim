@@ -2,7 +2,7 @@
 
 Goal: the pilot picks colours for the main areas of the aircraft and adds a few small images (a logo on the fin, a badge on the fuselage), sees a live 3D preview on the start screen, saves it as a named preset, and flies with it. Everything is local; nothing the pilot adds enters the repository.
 
-Status: L0 and L1 done (colours in flight, no UI yet). L2 to L5 not started. The wing-underside registration (§10) is done and shipped on its own.
+Status: L0 to L5 done. Colours, the Livery step, sticker slots, presets, the A320 masks and the docs are in. The wing-underside registration (§10) is done. The turntable preview is windowed only; headless shows a note.
 
 ## 1. What the models give us
 
@@ -88,10 +88,9 @@ Details and how to run: `docs/USAGE.md` "Aircraft data: livery".
 - Tests: `test_livery.gd`, `test_livery_struts.gd`, `test_paint_pipeline.gd`, `test_livery_session.gd`, `test_registration.gd`. Probes: `tests/debug_livery.tscn` (GPU result equals the CPU rule within 0.5 level), `tests/debug_livery_flight.tscn` (real flight scene, parked and `--air`). The probe window must be in front on macOS.
 
 ### Open
-- The livery step UI (until then colours come only from `--livery` or a hand-edited `last_flight.json`), the live turntable preview (uses `LiveryPaint.compose` + `RegistrationPaint` on its own glb, not `PaintPipeline.apply`), presets in `user://liveries/`.
 - Not checked: whether F11 quick-saves and replays carry `Session.setup.livery`.
 - The baked grey tip of the pin stripe near the door glows slightly with dark colours.
-- The nose leg stays silver. The A320 has no livery section yet (L4).
+- The nose leg stays silver. The A320 tailplane stays the factory white, with the wings.
 
 ## 7. Tests (planned)
 

@@ -18,7 +18,7 @@ func _ready() -> void:
 	await get_tree().create_timer(1.0).timeout
 	s.go("flight")
 	var flow: Control = s.screen("flight")
-	var page: Control = flow.pages[1]
+	var page: Control = flow.pages[2]
 	var wind := OS.get_environment("FREESIM_WIND") if OS.get_environment("FREESIM_WIND") != "" else "270/12"
 	Session.setup.wind_dir_deg = float(wind.get_slice("/", 0))
 	Session.setup.wind_kt = float(wind.get_slice("/", 1))

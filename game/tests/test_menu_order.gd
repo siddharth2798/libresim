@@ -1,7 +1,7 @@
 extends Node
-## Free flight step order (ui/menu/start_flow.gd): the aircraft comes first, so the airport page
-## (air-start height and distance, runways long enough, stands that suit it) always shows what the
-## chosen aircraft needs, with no extra step in between.
+## Free flight step order (ui/menu/start_flow.gd): the aircraft comes first, then the optional livery
+## step. The airport page (air-start height and distance, runways long enough, stands that suit it)
+## still shows what the chosen aircraft needs once Next is pressed past the livery step.
 
 var _was_skip := false
 var _keep := {}
@@ -36,13 +36,15 @@ func test_menu_order_aircraft_then_airport_then_conditions() -> String:
 	var f: Control = s.screen("flight")
 	var names: Array = f.STEPS.map(func(st): return str(st[0]).get_slice(" (", 0))
 	var err := ""
-	if names != ["Aircraft", "Airport & start", "Weather & time", "Failures", "Recording"]:
+	if names != ["Aircraft", "Livery", "Airport & start", "Weather & time", "Failures", "Recording"]:
 		err = "step order: %s" % [names]
 	elif f.cur != 0 or f.pages[0].get_script().resource_path != "res://ui/menu/aircraft_page.gd" or not f.pages[0].visible:
 		err = "Free flight should open on the aircraft page (cur %d)" % f.cur
-	elif f.pages[1].get_script().resource_path != "res://ui/menu/airport_page.gd":
-		err = "step 2 should be the airport page"
-	elif f.primary_btn.text.find("Airport") < 0 or not f.prompt.text.contains("Which aircraft"):
+	elif f.pages[1].get_script().resource_path != "res://ui/menu/livery_page.gd":
+		err = "step 2 should be the livery page"
+	elif f.pages[2].get_script().resource_path != "res://ui/menu/airport_page.gd":
+		err = "step 3 should be the airport page"
+	elif f.primary_btn.text.find("Livery") < 0 or not f.prompt.text.contains("Which aircraft"):
 		err = "step 1: prompt '%s', next '%s'" % [f.prompt.text, f.primary_btn.text]
 	_close(s)
 	return err
@@ -64,19 +66,22 @@ func test_menu_order_aircraft_is_chosen_when_the_airport_page_shows() -> String:
 func test_menu_order_airport_page_follows_the_aircraft_chosen_on_step_1() -> String:
 	var s := _open()
 	var f: Control = s.screen("flight")
-	var air: Control = f.pages[1]
+	var air: Control = f.pages[2]
 	var err := ""
 	if not _pick(f.pages[0], "a320"):
 		err = "no a320 in the aircraft list"
 	else:
-		f.on_primary()  # Next: the airport page, with no other step in between
-		if f.cur != 1 or not air.visible:
-			err = "Next from the aircraft page should show the airport page (cur %d)" % f.cur
+		f.on_primary()  # Livery, optional
+		f.on_primary()  # the airport page, which reads the aircraft chosen on step 1
+		if f.cur != 2 or not air.visible:
+			err = "Next twice from the aircraft page should show the airport page (cur %d)" % f.cur
 		elif [air._alt.value, air._dist.value] != [2200.0, 7.0] or not air._air_note.text.contains("2,200 ft"):
 			err = "A320 air start: %s ft, %s nm, note '%s'" % [air._alt.value, air._dist.value, air._air_note.text]
 	if err == "":
 		f.go_back()
+		f.go_back()
 		_pick(f.pages[0], "c172")
+		f.on_primary()
 		f.on_primary()
 		if [air._alt.value, air._dist.value] != [900.0, 3.0] or not air._air_note.text.contains("900 ft"):
 			err = "C172 air start after switching back: %s ft, %s nm, note '%s'" % [air._alt.value, air._dist.value, air._air_note.text]
