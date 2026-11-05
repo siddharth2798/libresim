@@ -213,7 +213,10 @@ func _publish() -> void:
 	Props.set_v("fdm/load_factor", f.load_factor)
 	Props.set_v("fdm/accel_body", f.accel_b)
 	Props.set_v("fdm/wow", f.gear.wow)
-	Props.set_v("fdm/stall_warning", f.alpha > f.aero.alpha_max * 0.85 and not f.gear.wow)
+	var warn_alpha: float = f.aero.alpha_max * 0.85
+	if f.fcs.law != null and "prot" in f.fcs.law:  # a law with alpha limits per configuration (A320): its own warning angle
+		warn_alpha = f.fcs.law.prot.a_warn
+	Props.set_v("fdm/stall_warning", f.alpha > warn_alpha and not f.gear.wow)
 	Props.set_v("fdm/flap_deg", f.fcs.flap_deg)
 	Props.set_v("fdm/flap_detents", f.fcs.flap_detents())
 	if "stabilizer_deg" in f.fcs:  # the airliner's trim wheel follows this (cockpit.levers pitch_trim)

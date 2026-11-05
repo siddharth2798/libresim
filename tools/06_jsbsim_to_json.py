@@ -64,6 +64,22 @@ SPECS = {
         # ... with that arm JSBSim's rudder (Cndr 0.042 / rad) cannot hold an engine failure at V2, so the
         # three rudder terms (fin force: CYdr, Cldr, Cndr) are scaled x3: V2 needs ~70 % pedal (V2 ~ 1.2 VMCA).
         "rudder_k": 3.0,
+        # Deviation (docs/A320-STATUS.md "stall (CLmax)"): the upstream lift tables stall 10-12 % early (1 g speed at
+        # alpha-max 173.7 kt clean / 119.7 kt FULL at 64 t, FMGC table 155.4 / 109.2). tools/jsb_clmax.py adds a lift
+        # term that moves the peak of CL(alpha) `shift_deg` higher in alpha and raises its height
+        # (`clmax_k` x the old CLmax of that detent; detents are slat / flap in deg). Below
+        # alpha_on_deg (the approach alphas) nothing changes. FBW alpha limits for it: fdm/fbw_params.gd alpha_deg.
+        "clmax": {
+            "alpha_on_deg": 8.0,
+            "detents": {
+                "0": {"slat": 0.0, "flap": 0.0, "shift_deg": 2.0, "clmax_k": 1.195},
+                "1": {"slat": 18.0, "flap": 0.0, "shift_deg": 3.5, "clmax_k": 1.365},
+                "1+F": {"slat": 18.0, "flap": 10.0, "shift_deg": 3.5, "clmax_k": 1.42},
+                "2": {"slat": 22.0, "flap": 15.0, "shift_deg": 3.5, "clmax_k": 1.425},
+                "3": {"slat": 22.0, "flap": 20.0, "shift_deg": 3.5, "clmax_k": 1.42},
+                "FULL": {"slat": 27.0, "flap": 35.0, "shift_deg": 3.5, "clmax_k": 1.263},
+            },
+        },
         "derived_from": {
             "upstream": "https://github.com/legoboyvdlp/A320-family", "commit": "fec1ecba767c8fffd145337b27012e89c01e3ade",
             "files": ["FDE/A320-200-CFM.xml", "FDE/Config/*.xml", "Engines/cfm56-5b4_*.xml", "Engines/APS3200.xml",

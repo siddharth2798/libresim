@@ -68,7 +68,7 @@ func test_fbw_protection_props_published() -> String:
 		if not Props.has(k):
 			return "Prop %s not published" % k
 	var p: float = Props.get_f("fcs/alpha_prot_deg")
-	return "" if absf(p - 8.6) < 0.2 and Props.get_f("fcs/alpha_max_deg") > p else "clean alpha prot %.2f deg (JSBSim 8.6)" % p
+	return "" if absf(p - 9.8) < 0.2 and Props.get_f("fcs/alpha_max_deg") > p else "clean alpha prot %.2f deg (9.8 after the CLmax change, JSBSim 8.6)" % p
 
 
 func test_fbw_high_speed_protection() -> String:

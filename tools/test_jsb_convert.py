@@ -86,6 +86,11 @@ def test_a320():
     assert "fcs/spoiler-left-deg" in a["aero_inputs"]["from_systems"]
     assert any("layers" in str(f) for ax in a["axes"].values() for f in ax), "3-D slat tables expected"
     assert all(u["why"] for u in cfg["unconverted"])
+    fix = next(f for f in a["axes"]["LIFT"] if f["name"] == "aero/coefficient/CLmaxfix")  # CLmax deviation (tools/jsb_clmax.py)
+    tab = fix["f"]["args"][3]["table"]
+    assert tab["layers"] == [0.0, 18.0, 22.0, 27.0] and all(v == 0.0 for lay in tab["data"] for row, al in zip(lay, tab["rows"]) if al <= 8.0 for v in row), \
+        "no CLmax boost at or below the approach alphas"
+    assert max(v for lay in tab["data"] for row in lay for v in row) > 0.3, "a boost near the peak"
 
 
 if __name__ == "__main__":

@@ -34,8 +34,21 @@ Keys: J shows the A320 control set; F1 help card. Icing switches: Ctrl+W wing, A
 - **FDM:**
   - **Deliberate deviation from the JSBSim data: thrust line and rudder.** The upstream FDE puts the thrusters at y ±2.8775 m, z -1.048 m. The model's fans (`models/exterior_pivots.json` fan_L / fan_R) are at y ±5.63, z -2.269 (real A320 about ±5.75 m). So `config.json` engines `pos_m` are [-5.349, ±5.630, -2.269] (x kept: mid-nacelle). That doubles the engine-out yaw moment, and with JSBSim's rudder (Cndr 0.042 / rad, CYdr -0.145, Cldr 0.008) the aircraft could not hold an engine failure: at V2 (70 t, 1+F, 150 kt) full pedal gave 10 deg sideslip and 24 deg off heading in 30 s (`tests/test_a320_engine_out.gd`). So the three rudder terms are x3 (Cndr 0.126, CYdr -0.435, Cldr 0.024). Now an engine failure at V2 needs 70 % pedal (18.6 deg rudder, sideslip 0, 4.7 deg bank toward the live engine), and a one-engine TOGA go-around from CONF FULL 140 kt needs 76 %. V2 is about 1.2 x the full-rudder speed, as certification asks (V2 >= 1.1 VMCA). The factor is a calibration, not a measured derivative. Both are set in `tools/06_jsbsim_to_json.py` (`thrust_pos_m`, `rudder_k`), so a re-conversion keeps them.
   - Effects: takeoff liftoff at 70 t with direct control 958 -> 913 m, with the law 1,245 / 1,515 m -> 1,079 / 1,349 m to liftoff / 35 ft (JSBSim 1,125 / 1,393 m; the lower thrust line adds about 280 kN m of nose-up moment at TOGA); THS at 250 kt FL100 -1.37 -> -1.24 deg (JSBSim -1.43), at M0.5 FL100 -0.97 -> -0.86; roll, turn, bank-hold and damper results unchanged. Differential thrust and an asymmetric reverser turn the aircraft about twice as hard (not separately tested). The JSBSim oracle (`tools/23_a320_reference.py`) still runs the upstream data, so its engine-out and trim numbers are the upstream ones.
+  - **Deliberate deviation from the JSBSim data: stall (CLmax).** The upstream lift tables stall 11-21 % early against the FMGC Vs1g table that the same data holds (`Systems/a320-fmgc.xml`; CONF FULL needs CLmax about 2.65 at 64 t, the tables give 2.1-2.2). So `tools/jsb_clmax.py` adds one lift term, `aero/coefficient/CLmaxfix`, that moves the peak of CL(alpha) up in alpha and in height per flap / slat detent. Nothing changes below 8 deg (the approach alphas; the linear slope 0.083 per deg is kept); above it the lift slope rises to about 0.10-0.11 per deg up to the new peak. It fades out between Mach 0.40 and 0.55. Set in `tools/06_jsbsim_to_json.py` (`SPECS["a320"]["clmax"]`: `alpha_on_deg` and per detent `shift_deg` and `clmax_k`, the new CLmax over the old one), so a re-conversion keeps it. `clmax_k` is a calibration to the table, not a measured derivative. The FBW alpha limits follow (`fdm/fbw_params.gd` `alpha_deg`: max / stall = old + `shift_deg`, protection where the 1 g speed is 1.12 x Vs1g), the PFD Vls table is the FMGC table (`aircraft.json` `limits.speeds.vs1g_kt`, with `vs0_kias` 109, `vs1_kias` 155), and the stall warning of a law with alpha limits uses its own warning angle (`fdm_node.gd`).
+    Detent (slat/flap deg), `shift_deg`, `clmax_k`; 1 g speed at alpha-max, scaled to 64 t, upstream -> now, against the table (`tests/test_fdm_a320_stall.gd`, idle, full aft stick, 40 s, the oracle's method):
+
+    | Detent | shift / k | Before | Now | Table | Alpha prot / max (deg) |
+    |---|---|---|---|---|---|
+    | clean (0/0) | 2.0 / 1.195 | 172.4 | 155.4 | 155.4 | 9.8 / 13.56 (was 8.6 / 11.56) |
+    | CONF 1 (18/0) | 3.5 / 1.365 | 153.3 | 128.8 | 129.1 | 11.5 / 17.24 (11.5 / 13.74) |
+    | 1+F (18/10) | 3.5 / 1.42 | 147.5 | 121.9 | 122.0 | 11.6 / 17.3 (11.3 / 13.8) |
+    | CONF 2 (22/15) | 3.5 / 1.425 | 138.5 | 114.7 | 114.6 | 12.0 / 17.39 (11.0 / 13.89) |
+    | CONF 3 (22/20) | 3.5 / 1.42 | 135.3 | 112.7 | 112.7 | 12.0 / 17.57 (11.0 / 14.07) |
+    | FULL (27/35) | 3.5 / 1.263 | 123.4 | 109.4 | 109.3 | 11.5 / 17.58 (10.5 / 14.08) |
+
+    The alpha-protection speed is 1.12-1.13 x Vs1g in every detent (before 1.06-1.19). Real alpha floor is 9.5 / 15 / 14 / 13 deg (CONF 0 / 1-2 / 3 / FULL, FCOM figures quoted on [PPRuNe](https://www.pprune.org/tech-log/print-528034-habsheim-12.html) and the [FlyByWire docs](https://docs.flybywiresim.com/pilots-corner/a32nx/a32nx-advanced-guides/protections/overview/); forum level, alpha max 15-17.5 deg is unconfirmed); ours are 11.7 / 14.4-14.7 / 14.8 / 14.5 deg (`floor_frac` 0.5). The oracle (`tools/23_a320_reference.py`) still runs the upstream data and keeps its 173.7 / 119.7 kt. The takeoff changes little (scripted, 1+F: liftoff after 985 m at 152 kt, was 1,018 m at 155 kt). Landing numbers: "Landing check".
   - The takeoff roll matches JSBSim (70 t, TOGA, flaps 1+F: liftoff after 1,125 m at 153 kt, 35 ft at 1,393 m) but is about 30 % shorter than the public 1,800-2,200 m figure.
-  - JSBSim stall speed is about 10-12 % above the FMGC table (aerodynamic 1 g speed at alpha-max 173.7 kt clean / 119.7 kt FULL at 64 t, against table Vs1g 155.4 / 109.2 kt). Vref (1.23 x table Vs1g) is 134.3 kt, close to the public ~135 kt.
+
   - FBW pitch is faster than the reference (63 % of a load-factor step in about 1 s against 1.9 s; the reference g-law PI is a stand-in). Landing, flare and the protections are tested but little hand-flown. The protections keep their clean alpha limits when the airframe is iced.
   - Engine feed from the pipe tanks, bleed, oil and fire systems are not modelled (`fuel.gd` feeds all main tanks equally).
 - **Other:** ATC has no SID/STAR, speed instructions or wake separation. No neo or IAE variants.
@@ -87,6 +100,34 @@ Measured (VABB, 64 t, normal law): hands-off from 250 KIAS at 4,000 ft for 60 s 
 
 Start-screen screenshots: `FREESIM_AIRCRAFT=a320 FREESIM_SHOTS=$PWD/data/scratch/shots/f_a320 ~/.local/bin/godot --path game --audio-driver Dummy res://tests/debug_menu.tscn` (add `FREESIM_OPEN=1` to open "More weather" and "Details", `FREESIM_SIZE=1920x1080` for full HD). One windowed run at a time; `pkill -f debug_menu.tscn` before a new one. The start-screen e2e is `tools/e2e.sh <run> menu`; it needs a `timeout` command, so put a pass-through `timeout` script on PATH on macOS.
 
+## Landing check
+
+`probe_a320_landing.tscn` flies the default air start (VABB 27, 3,470 m, 63.7 t, calm) with a scripted pilot that writes the same Props as the controls: level, 3 deg path, CONF 3 then FULL, Vapp = Vls + 5, flare at 30 ft, idle at 20 ft, auto spoilers, reverse, autobrake, rudder. It prints START CHECK, `LANDING RESULT PASS|FAIL ...` and a table. Options `--autobrake=lo|med|max|off --reverse=0|1|2 --wind=DIR/KT --seed=N --idle` (idle-thrust descent). One run takes 3 to 4 minutes headless (about real time):
+
+```
+~/.local/bin/godot --headless --audio-driver Dummy --fixed-fps 120 --path game res://tests/probe_a320_landing.tscn -- --autobrake=lo --wind=270/10
+```
+
+Calm, MED, idle reverse (after the CLmax change; before in brackets, from the first version of this check): final 139 KIAS (Vapp = Vls 134.1 + 5) / 145 kt ground speed, -740 fpm on 2.9 deg, N1 55 % (56), 30 kN per engine (31), lever 0.27 (0.28), pitch 4.5 deg at 1,000 ft (5.9), alpha 7.4 deg (8.9; protection 11.5, max 17.6). Touchdown 134.4 KIAS (132.6), 175 fpm (340), pitch 3.9 deg (9.4), 503 m past the threshold (350), no hop (one 2 to 3 ft hop). Rollout 946 m to a stop (1,067; LO 1,529, MAX 884, 10 kt headwind 831). Deceleration 80 to 20 kt: LO 1.68, MED 3.00, MAX 3.32 (peak 3.47) m/s2. Crosswind from the north (runway 27) 8 kt and 15 kt: both PASS, no damage, touchdown 7.4 and 8.1 m left of the centreline, 11.5 m at most (before: gear damaged / folded). The start itself is level and trimmed (2 ft and 0.6 kt in 8 s, +8 ft and +2 kt in 30 s; lever 0.366, N1 64 %, 41 kN per engine at 160 kt CONF 2). The scripted pilot's constants are unchanged.
+
+| Item | Sim | Real A320 (64 t) | |
+|---|---|---|---|
+| Vls CONF FULL on the PFD | 134.1 kt (was 129) | about 134 (1.23 x Vs1g) | ok |
+| 1 g speed at alpha-max, FULL | 109.4 kt (was 123.4, CLmax 2.64; oracle 119.7) | Vs1g about 109 (CLmax about 2.65) | ok |
+| Alpha-protection speed over Vs1g | 1.12 (was 1.06) | about 1.1 to 1.13 | ok |
+| Pitch on final | 4.5 deg (was 5.9) | 2.5 to 5 | ok |
+| N1 / V/S on 3 deg | 55 % / 740 fpm | 55 to 60 % / 730 | ok |
+| Thrust per engine on 3 deg | 30 kN | about 22 to 27 | a bit high |
+| Idle in flight at FULL | 28 % N1, 5.5 kN | approach idle about 8 to 12 kN | low |
+| Idle descent at Vapp FULL | -8.1 deg (not re-run) | about -6.5 to -7.5 | steep |
+| Touchdown pitch / flare change | 3.9 / +0.4 deg (was 9.4 / +4.5) | 5 to 6 / +2 to 3 | a bit low |
+| Hop after first contact | none (was 2 to 3 ft) | none | ok |
+| Autobrake LO / MED / MAX | 1.7 / 3.0 / 3.3 | 1.7 to 2 / 3.0 / about 3.3 to 4 | ok |
+| Reverse under MED | 3 to 4 % shorter | little with autobrake | ok |
+| Crosswind 8 / 15 kt | pass / pass | 15 kt is normal | ok |
+
+What is off: touchdown pitch is now 1 to 2 deg below the real 5 to 6. Approach alpha is unchanged below 8 deg and the JSBSim ground-effect factor (kCLge, 1.2 at the ground) lowers the alpha the flare needs, so the nose hardly rises in the flare; the pilot's flare (sink 150 to 240 fpm at touchdown) is not the cause. Thrust on final and the idle values are the engine model's. Hard-landing limit in the data is 512 fpm (real check: 600 fpm or 2.6 g).
+
 ## 5. Reference numbers (JSBSim A320-200 CFM, `tools/a320_reference.json`)
 
 - Wing 122.6 m2, span 35.74 m, chord 7.68 m; empty 43.28 t; ground footprint 37.6 x 34.1 x 11.8 m; engine thrust 120.1 kN (JSBSim milthrust; static TOGA at sea level 113.6-116.8 kN); idle N1 18.9 %, N2 59.4 %.
@@ -94,7 +135,7 @@ Start-screen screenshots: `FREESIM_AIRCRAFT=a320 FREESIM_SHOTS=$PWD/data/scratch
 - Cruise fuel flow M0.78 FL350 64 t: 1,188 kg/h per engine (public 1,200-1,300). Initial climb 70 t, TOGA, CONF 1: 3,207 fpm; one engine out 584 fpm (3.67 %).
 - Rejected takeoff from 140 kt, brakes only, no reversers: 923 m after the reject.
 - Flaps (slat / flap deg): 0 0/0, 1 18/0, 1+F 18/10, 2 22/15, 3 22/20, FULL 27/35. Stabiliser clip -13.5..+4 deg at 0.25 deg/s; spoilers 50 deg.
-- FBW tuning (`tests/test_fbw_a320*.gd`): roll rate 7.4 / 15.3 deg/s for half / full stick (reference 7.35 / 15.0); alpha limits from the JSBSim tables (alpha-prot 8.6, alpha-max 11.56 clean); pitch loop faster than the reference.
+- FBW tuning (`tests/test_fbw_a320*.gd`): roll rate 7.4 / 15.3 deg/s for half / full stick (reference 7.35 / 15.0); alpha limits from `fdm/fbw_params.gd` (JSBSim values moved up with the CLmax change: alpha-prot 9.8, alpha-max 13.56 clean; JSBSim 8.6 / 11.56); pitch loop faster than the reference.
 - Ground values (`aircraft.json` `ground`): `cg_to_door_m` 11.3 (door L1 centre x -13.78, y -1.95, sill z -0.58 vs CG x -2.5), `door_height_m` 3.65, `nose_gear_m` 11.1, `tow_ahead_m` 16.3, `taxi_half_m` 22, `min_runway_m` 1,800. Static gear deflection 0.30 m mains / 0.13 m nose at 64 t; tyre radii 0.40 / 0.57 m; the glb wheels are at y ±3.87 m, the FDE gear contacts at ±4.326 m (upstream data, kept).
 
 ## 6. Data pipeline

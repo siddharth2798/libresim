@@ -281,8 +281,8 @@ func test_air_start_air_kt_is_honoured_in_the_safe_range_and_clamped_outside() -
 		[["--aircraft=c172", "--air-kt=120"], 120.0, 120.0],
 		[["--aircraft=c172", "--air-kt=205"], 205.0, 0.9 * 163.0],
 		[["--aircraft=c172", "--air-kt=40"], 40.0, 1.2 * 48.0],
-		[["--aircraft=a320", "--air-kt=170"], 170.0, 170.0],
-		[["--aircraft=a320", "--air-kt=140"], 140.0, 1.2 * 134.0],  # below 1.2 vs1 (the vs1 of the data): raised
+		[["--aircraft=a320", "--air-kt=200"], 200.0, 200.0],  # clean: 170 is now below 1.2 vs1 (155 after the CLmax change)
+		[["--aircraft=a320", "--air-kt=140"], 140.0, 1.2 * 155.0],  # below 1.2 vs1 (the vs1 of the data): raised
 		[["--aircraft=a320", "--air-kt=400"], 400.0, 0.9 * 350.0],
 	]
 	for c in cases:
@@ -352,10 +352,10 @@ func test_air_start_spawn_clamps_into_the_safe_range() -> String:
 	if sp.kias != 205.0 or not sp.gear_up or sp.flaps != 0:
 		return "a320 at 205 kt: %s" % [sp]
 	var r320 := AirStart.kias_range(a320, 3)
-	if not is_equal_approx(r320.x, 126.0) or not is_equal_approx(AirStart.kias_range(a320).x, 160.8):
+	if not is_equal_approx(r320.x, 130.8) or not is_equal_approx(AirStart.kias_range(a320).x, 186.0):
 		return "a320 range with flaps / clean: %s %s" % [r320, AirStart.kias_range(a320)]
 	sp = AirStart.spawn(a320, {"air_kt": 90.0, "air_custom": true, "air_kt_given": true})  # too slow for the A320: stalled
-	if not is_equal_approx(sp.kias, 1.2 * 134.0) or sp.gear_up:
+	if not is_equal_approx(sp.kias, 1.2 * 155.0) or sp.gear_up:
 		return "a320 at 90 KIAS: %s" % [sp]
 	# an aircraft that gives no vne / vs1: that side is skipped
 	var bare := _bare({}, {"vne_kias": 100.0})

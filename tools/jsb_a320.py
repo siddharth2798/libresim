@@ -12,6 +12,7 @@ Extra tank keys: "name", "density_kg_per_l", "unusable_l", "priority" ("feed_for
 import re
 from pathlib import Path
 
+import jsb_clmax
 import jsb_expr as x
 import jsb_turbine as jt
 
@@ -187,6 +188,9 @@ def build(spec, src: Path):
     parts = {t: resolve(root.find(t), base, "") for t in ("aerodynamics", "external_reactions", "ground_reactions", "metrics")}
     unc = []
     a = x.aero(parts["aerodynamics"])
+    if "clmax" in spec:  # deliberate deviation: CLmax raised to the FMGC Vs1g table (tools/jsb_clmax.py)
+        for r in jsb_clmax.apply(a, spec):
+            print("clmax", r)
     used = collect_inputs(a)
     a["aero_inputs"] = {"jsbsim_builtin": [p for p in used if p.startswith(BUILTIN)],
                         "from_systems": [p for p in used if not p.startswith(BUILTIN)]}

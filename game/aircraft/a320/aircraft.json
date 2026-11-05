@@ -1796,9 +1796,13 @@
   ],
   "g_pos": 2.5,
   "g_neg": -1.0,
-  "vs0_kias": 105.0,
+  "vs0_kias": 109.0,
   "vr_kias": 140.0,
-  "vs1_kias": 134.0,
+  "vs1_kias": 155.0,
+  "speeds": {
+   "ref_mass_kg": 64000.0,
+   "vs1g_kt": [[0.0, 155.4], [18.0, 129.1], [28.0, 122.0], [37.0, 114.6], [42.0, 112.7], [62.0, 109.3]]
+  },
   "vno_kias": 350.0,
   "asi_min_kias": 60.0,
   "asi_max_kias": 400.0
@@ -1808,8 +1812,8 @@
   "collapse_ms": 4.5,
   "nose_collapse_ms": 2.5,
   "collapse_drop_m": 0.8,
-  "side_damage_ms": 2.0,
-  "side_collapse_ms": 4.0,
+  "side_damage_ms": 4.0,
+  "side_collapse_ms": 7.0,
   "main_load_w": 2.8,
   "nose_load_w": 1.6,
   "prop_hubs_m": []

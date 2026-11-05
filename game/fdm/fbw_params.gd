@@ -23,9 +23,11 @@ const DEFAULTS := {
 	"roll": {"rate_dps": 15.0, "kp": 55.0, "ki": 60.0, "kff": 40.0, "k_bank": 1.6, "hold_deg": 33.0, "limit_deg": 67.0,
 		"limit_prot_deg": 45.0, "taper_deg": 5.0, "level_deg": 2.5, "spoiler_start": 0.3, "spoiler_max_deg": 35.0},
 	"yaw": {"k_r": 25.0, "k_beta": 40.0, "limit_deg": 8.0, "travel_kt": [[0.0, 25.0], [160.0, 25.0], [380.0, 3.4]]},
-	"alpha_deg": {  # per configuration (slat, flap deg): protection, max and stall angle of attack, JSBSim A320
-		"rows": [[0.0, 0.0, 8.6, 11.56, 13.84], [18.0, 0.0, 11.5, 13.74, 14.24], [18.0, 10.0, 11.3, 13.8, 14.4],
-			[22.0, 15.0, 11.0, 13.89, 14.79], [22.0, 20.0, 11.0, 14.07, 15.0], [27.0, 35.0, 10.5, 14.08, 15.01]],
+	"alpha_deg": {  # per configuration (slat, flap deg): protection, max and stall angle of attack; the A320 after the CLmax change
+		# (peak of CL(alpha) moved up, tools/jsb_clmax.py / docs/A320-STATUS.md "stall (CLmax)"): max / stall = the JSBSim values + shift_deg,
+		# protection where the 1 g speed is about 1.12 x the FMGC Vs1g
+		"rows": [[0.0, 0.0, 9.8, 13.56, 15.84], [18.0, 0.0, 11.5, 17.24, 17.74], [18.0, 10.0, 11.6, 17.3, 17.9],
+			[22.0, 15.0, 12.0, 17.39, 18.29], [22.0, 20.0, 12.0, 17.57, 18.5], [27.0, 35.0, 11.5, 17.58, 18.51]],
 		"floor_frac": 0.5, "warn_frac": 0.35, "lag_s": 1.0},
 	"speed_prot": {"above_vmo_kt": 6.0, "above_mmo": 0.01, "mach_kt": 600.0, "bias_g_per_kt": 0.05, "bias_max_g": 0.5, "fade_kt": 12.0},
 }
