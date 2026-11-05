@@ -196,3 +196,17 @@ func test_unreported_lever_2_does_not_copy_lever_1() -> String:
 	j.fake_axes = {"throttle": -1.0}
 	j._levers(c)
 	return "" if _near(c.levers.pos(0), 1.0) and _near(c.levers.pos(1), 1.0) else "unbound lever 2 did not follow lever 1"
+
+
+## The sidestick's three front buttons (measured 2026-11-05): change view = 19 is the next camera, menu = 21 pauses,
+## Xbox = 20 is left unbound. The camera action is called a camera on the Controls page.
+func test_sidestick_front_buttons() -> String:
+	var t := FX.table()
+	if int(t["view_next"].button) != 19 or str(t["view_next"].name) != "sidestick":
+		return "next camera is not on sidestick button 19: %s" % [t["view_next"]]
+	if int(t["pause"].button) != 21:
+		return "pause is not on button 21"
+	for a in t:
+		if a != "view_next" and not InputBindings.is_axis(a) and str(t[a].get("name", "")) == "sidestick" and int(t[a].button) in [19, 20]:
+			return "%s shares a front button (%d)" % [a, int(t[a].button)]
+	return "" if str(InputBindings.LABELS["view_next"]).begins_with("Next camera") else "label is not 'Next camera'"

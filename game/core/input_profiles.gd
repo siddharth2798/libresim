@@ -32,6 +32,8 @@ extends RefCounted
 ##   ENG 1 / 2 master = buttons 2 / 3 (latching, pressed = ON); engine mode CRANK = button 6 held, IGN/START =
 ##     button 7 held, NORM = none; gear lever = button 20 (pressed = DOWN); park brake switch = 19; auto brake
 ##     dial one-hot buttons 21 BTV, 22 LOW, 23 "2", 24 "3", 25 HI, DISARM = none.
+##   sidestick front buttons (measured 2026-11-05): change view = button 19 (next camera), Xbox = 20 (unbound),
+##     menu (three lines) = 21 (pause).
 ## Unused by design: sidestick base wheel (axis 3), left base keys (buttons 11-14, the numbers of the hat),
 ## pushbuttons (4, 5), rudder trim (16-18), and the quadrant's virtual lever-zone buttons (lever 1: 8-11,
 ## lever 2: 12-15, speed brake: 26-30): they overlap, the axes are better.
@@ -47,7 +49,7 @@ const PROFILES := {
 				"pitch": {"axis": 1, "deadzone": 0.03, "expo": 0.3},
 				"yaw": {"axis": 2, "deadzone": 0.1, "expo": 0.25},
 			},
-			"buttons": {"brakes": 0, "view_next": 2, "view_cockpit": 3, "flaps_up": 4,
+			"buttons": {"brakes": 0, "view_next": 19, "view_cockpit": 3, "flaps_up": 4,
 				"toggle_map": 5, "flaps_down": 8, "parking_brake": 9, "pause": 21,
 				"trim_down": 11, "trim_up": 12},  # hat up = nose down, hat down = nose up
 		},

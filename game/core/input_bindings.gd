@@ -46,7 +46,7 @@ const LABELS := {
 	"brake_right": "Right toe brake", "pitch_trim_axis": "Pitch trim (axis)",
 	"flaps_up": "Flaps up (retract)", "flaps_down": "Flaps down (extend)", "brakes": "Brakes (hold)",
 	"parking_brake": "Parking brake toggle", "trim_up": "Trim nose up", "trim_down": "Trim nose down",
-	"view_next": "Next view (C)", "view_cockpit": "Cockpit view (1)", "starter": "Starter (hold)",
+	"view_next": "Next camera (C)", "view_cockpit": "Cockpit camera (1)", "starter": "Starter (hold)",
 	"magnetos_next": "Magnetos cycle", "toggle_map": "Moving map (N)", "pause": "Pause (Esc)",
 	"throttle_2": "Thrust lever 2 (lever 1 = Throttle)", "speedbrake": "Speedbrake", "rudder_trim_axis": "Rudder trim (axis)",
 	"tiller": "Nosewheel tiller", "gear_toggle": "Landing gear up / down", "autobrake_next": "Autobrake cycle",
