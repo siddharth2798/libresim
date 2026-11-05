@@ -52,7 +52,7 @@ func test_a320_gear_lever_and_start_sync() -> String:
 	var c := FX.a320()
 	var j := FX.joystick(c, ["gear_switch"])
 	Props.set_v("controls/gear", 0)
-	j._buttons(c)  # first seen pressed = DOWN: the sim follows the hardware
+	j._buttons(c)  # first seen pressed = UP (the pack's lever reads inverted): the sim follows the hardware
 	var first := int(Props.get_v("controls/gear"))
 	j.fake_buttons = FX.held(c, [])
 	j._buttons(c)
@@ -61,7 +61,7 @@ func test_a320_gear_lever_and_start_sync() -> String:
 	j._buttons(c)
 	var down := int(Props.get_v("controls/gear"))
 	j.fake_buttons = FX.held(c, [])
-	j.resync()  # a restart: seen again, released = UP
+	j.resync()  # a restart: seen again, released = DOWN
 	Props.set_v("controls/gear", 1)
 	j._buttons(c)
 	var again := int(Props.get_v("controls/gear"))
@@ -74,8 +74,8 @@ func test_a320_gear_lever_and_start_sync() -> String:
 	var untouched := int(Props.get_v("controls/gear"))
 	absent.free()
 	Props.set_v("controls/gear", 1)
-	if [first, up, down, again] != [1, 0, 1, 0]:
-		return "gear lever: start %d, released %d, pressed %d, restart %d, want 1 0 1 0" % [first, up, down, again]
+	if [first, up, down, again] != [0, 1, 0, 1]:
+		return "gear lever: start %d, released %d, pressed %d, restart %d, want 0 1 0 1" % [first, up, down, again]
 	return "" if untouched == 0 else "an unbound gear lever changed the gear"
 
 
@@ -128,3 +128,51 @@ func test_controls_page_macos_pad_hint() -> String:
 	if not mac.contains("./run.sh") or lin.contains("run.sh") or not mac.begins_with(lin):
 		return "the no-pad hint should point to ./run.sh on macOS only: %s | %s" % [mac, lin]
 	return ""
+
+
+## `invert` swaps pressed and released for a switch binding (the gear lever of the pack reads inverted by default),
+## and the Invert toggle of a switch row on the Controls page sets it; a momentary button row has no such toggle.
+func test_switch_invert_and_its_toggle() -> String:
+	var c := FX.a320()
+	var t := FX.table()
+	if not bool(t["gear_switch"].get("invert", false)) or bool(t["parking_brake_switch"].get("invert", false)):
+		return "default: gear must be inverted and the park brake not"
+	var j := FX.joystick(c, ["parking_brake_switch"])
+	if not j.button_down("parking_brake_switch"):
+		return "an ordinary switch must read pressed = on"
+	j.table["parking_brake_switch"]["invert"] = true
+	var inverted := j.button_down("parking_brake_switch")
+	j.fake_buttons = FX.held(c, [])
+	var released := j.button_down("parking_brake_switch")
+	j.free()
+	if inverted or not released:
+		return "invert did not swap pressed and released (%s, %s)" % [inverted, released]
+	var b := {"button": 20, "device": 0, "guid": "", "name": "q-eng"}
+	var row := VBoxContainer.new()
+	row.set_script(load("res://ui/menu/controls_row.gd"))
+	row.setup("gear_switch", b)
+	var tog: Button = _find_button(row, "Invert")
+	var plain := VBoxContainer.new()
+	plain.set_script(load("res://ui/menu/controls_row.gd"))
+	plain.setup("view_next", {"button": 19, "device": 0, "guid": "", "name": "sidestick"})
+	var none := _find_button(plain, "Invert") == null
+	if tog == null:
+		return "no Invert toggle on the gear switch row"
+	tog.button_pressed = true
+	tog.pressed.emit()
+	var set := bool(b.get("invert", false))
+	row._clear()
+	var cleared := not b.has("invert")
+	row.free()
+	plain.free()
+	return "" if set and none and cleared else "toggle sets invert %s, momentary row has none %s, clear drops it %s" % [set, none, cleared]
+
+
+func _find_button(n: Node, text: String) -> Button:
+	if n is Button and (n as Button).text == text:
+		return n
+	for ch in n.get_children():
+		var f := _find_button(ch, text)
+		if f != null:
+			return f
+	return null

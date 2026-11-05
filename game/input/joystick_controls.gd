@@ -94,13 +94,14 @@ func _reported(dev: int, axis: int, raw: float) -> bool:
 
 
 func button_down(action: String) -> bool:
-	if not fake_buttons.is_empty():
-		return fake_buttons.get(action, false)
 	var b: Dictionary = table.get(action, {})
+	var inv := bool(b.get("invert", false))  # a switch wired the other way round
+	if not fake_buttons.is_empty():
+		return fake_buttons.has(action) and fake_buttons[action] != inv
 	if int(b.get("button", -1)) < 0:
 		return false
 	var dev := InputBindings.resolve_device(b)
-	return dev >= 0 and Input.is_joy_button_pressed(dev, int(b.button))
+	return dev >= 0 and Input.is_joy_button_pressed(dev, int(b.button)) != inv
 
 
 func _own(name: String, on: bool) -> void:

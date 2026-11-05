@@ -2,6 +2,7 @@ class_name InputBindings
 extends RefCounted
 ## Joystick / gamepad binding table: action -> binding dictionary, plus the axis
 ## shaping maths (invert, deadzone, expo) and load/save (user://input_bindings.json).
+## Button binding: {button, device, guid, name, invert}: invert swaps pressed and released (a switch wired the other way round).
 ## Axis binding:   {axis, device, guid, name, invert, deadzone, expo, range, lo, hi}
 ##   range "full" -1..1 -> -1..1 (stick), "half" -1..1 -> 0..1 (throttle lever),
 ##   "trigger" 0..1 -> 0..1 (gamepad trigger at rest = 0).

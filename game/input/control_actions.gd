@@ -90,7 +90,7 @@ const LEVELS := {
 	"magnetos_switch": ["controls/magnetos", 0, 3, ""],  # OFF / BOTH
 	"engine_master_1_switch": ["controls/engine_master_1", false, true, "on"],
 	"engine_master_2_switch": ["controls/engine_master_2", false, true, "on"],
-	"gear_switch": ["controls/gear", 0, 1, "both"],  # pressed = DOWN
+	"gear_switch": ["controls/gear", 0, 1, "both"],  # on = DOWN (the pack's lever is inverted in its profile)
 }
 ## Selector switches, one button per position (held while the selector is there); no button held = `rest`.
 ## The prop follows the position at first sight and on change: name -> {prop, rest, positions}.

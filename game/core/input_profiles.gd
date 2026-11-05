@@ -30,7 +30,7 @@ extends RefCounted
 ##   flaps lever (axis 2): notches -1.0, -0.456, -0.051, +0.47, +1.0.
 ##   speed brake lever (axis 5): stops -1.0 (retracted), -0.523, -0.031, +0.465, +1.0 (no ARM position).
 ##   ENG 1 / 2 master = buttons 2 / 3 (latching, pressed = ON); engine mode CRANK = button 6 held, IGN/START =
-##     button 7 held, NORM = none; gear lever = button 20 (pressed = DOWN); park brake switch = 19; auto brake
+##     button 7 held, NORM = none; gear lever = button 20 (pressed = UP: it reads inverted, `invert`); park brake switch = 19; auto brake
 ##     dial one-hot buttons 21 BTV, 22 LOW, 23 "2", 24 "3", 25 HI, DISARM = none.
 ##   sidestick front buttons (measured 2026-11-05): change view = button 19 (next camera), Xbox = 20 (unbound),
 ##     menu (three lines) = 21 (pause).
@@ -65,6 +65,7 @@ const PROFILES := {
 					"detents": [-1.0, -0.523, -0.031, 0.465, 1.0], "values": [0.0, 0.25, 0.5, 0.75, 1.0]},
 				"flaps_lever": {"axis": 2, "detents": [-1.0, -0.456, -0.051, 0.47, 1.0]},
 			},
+			"inverted": ["gear_switch"],  # switches that read the other way round: pressed = lever UP
 			"buttons": {"starter": 7, "parking_brake_switch": 19, "magnetos_switch": 2,
 				"engine_master_1_switch": 2, "engine_master_2_switch": 3, "gear_switch": 20,
 				"engine_mode_crank": 6, "engine_mode_ign": 7, "autobrake_btv": 21, "autobrake_low": 22,
@@ -98,6 +99,8 @@ static func captain_pack(os_name: String, overrides := OS_OVERRIDES) -> Dictiona
 			var b := InputBindings.unbound(a)
 			b.button = dev_over.get("buttons", {}).get(a, spec.buttons[a])
 			b.name = spec.name
+			if a in spec.get("inverted", []):
+				b.invert = true
 			out[a] = b
 	return out
 

@@ -18,6 +18,7 @@ var _bind_lbl: Label
 var _bind_btn: Button
 var _tune_btn: Button
 var _inv: CheckButton
+var _sw_inv: Button  # switch rows: swap on and off
 var _range: OptionButton
 var _dz: SpinBox
 var _expo: SpinBox
@@ -49,6 +50,10 @@ func setup(a: String, binding: Dictionary) -> void:
 	line.add_child(_bind_lbl)
 	_bind_btn = _button(line, "Bind", 64, func(): bind_requested.emit(action))
 	_button(line, "✕", 36, _clear).tooltip_text = "Clear binding"
+	if ControlActions.LEVELS.has(a):  # a latching switch can be wired the other way round
+		_sw_inv = _button(line, "Invert", 70, func(): _edit("invert", _sw_inv.button_pressed))
+		_sw_inv.toggle_mode = true
+		_sw_inv.tooltip_text = "Swap on and off for this switch"
 	if InputBindings.is_axis(a):
 		_tune_btn = _button(line, "⚙ Tune", 84, func(): _show_tune(not tune.visible))
 		_tune_btn.toggle_mode = true
@@ -154,6 +159,8 @@ func _clear() -> void:
 	b.name = ""
 	for k in InputBindings.CAL_KEYS:
 		b.erase(k)
+	if not InputBindings.is_axis(action):
+		b.erase("invert")  # a new button is a new switch
 	refresh()
 	edited.emit()
 
@@ -168,6 +175,8 @@ func refresh() -> void:
 	_bind_lbl.tooltip_text = _bind_lbl.text
 	_bind_lbl.add_theme_color_override("font_color",
 		MenuTheme.TEXT if InputBindings.describe(b) != "—" else MenuTheme.DIM)
+	if _sw_inv:
+		_sw_inv.set_pressed_no_signal(bool(b.get("invert", false)))
 	if _inv:
 		_inv.set_pressed_no_signal(bool(b.get("invert", false)))
 		_range.select(maxi(InputBindings.RANGES.find(str(b.get("range", "full"))), 0))
