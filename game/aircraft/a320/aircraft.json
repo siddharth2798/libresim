@@ -193,6 +193,10 @@
     ]
    }
   },
+  "flaps_lever": {
+   "settings": [0, 1, 3, 4, 5],
+   "on_ground": {"1": 2}
+  },
   "defaults": {
    "controls/gear": 1
   }

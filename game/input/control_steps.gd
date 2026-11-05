@@ -34,6 +34,26 @@ static func press(action: String) -> bool:
 	return true
 
 
+## A latching switch changed: set its prop to the "on" or "off" value (ControlActions.LEVELS).
+static func level(action: String, on: bool) -> void:
+	var l: Array = ControlActions.LEVELS[action]
+	Props.set_v(l[0], l[2] if on else l[1])
+
+
+## The flap setting for a flaps-lever notch. With the aircraft's notch table (aircraft.json controls.flaps_lever
+## "settings", AircraftControls.flap_notches) the notch picks that sim setting; "on_ground" {"<notch>": setting}
+## overrides it while the aircraft is on its wheels (A320: lever 1 = CONF 1+F for take-off, CONF 1 in the air).
+## Without a table the notch is the setting, and notches beyond the aircraft's last detent stay on it.
+static func flap_setting(notch: int, ctl: AircraftControls = null) -> int:
+	var top := int(Props.get_v("fdm/flap_detents", 4)) - 1
+	if ctl != null and not ctl.flap_notches.is_empty():
+		var s := int(ctl.flap_notches[clampi(notch, 0, ctl.flap_notches.size() - 1)])
+		if Props.get_b("fdm/wow") and ctl.flap_ground.has(str(notch)):
+			s = int(ctl.flap_ground[str(notch)])
+		return clampi(s, 0, top)
+	return clampi(notch, 0, top)
+
+
 ## One FCU knob step (the first press) or a repeat while held; `state` keeps the hold timer per
 ## action. Returns true when the set-point changed.
 static func knob(action: String, down: bool, dt: float, state: Dictionary) -> bool:

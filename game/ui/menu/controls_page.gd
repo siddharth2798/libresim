@@ -2,8 +2,8 @@ extends HBoxContainer
 ## Controls page (start screen, pause screen, and in flight via ui/controls_overlay.gd), in tabs
 ## (ui/menu/menu_tabs.gd): Keyboard (rebindable flight keys, key_bindings_section.gd), Joystick & gamepad
 ## (connected devices, one row per action with Bind (capture the next axis moved > 0.5 or button pressed),
-## clear, a live bar and, for axes, Tune: invert / range / deadzone / curve; reset to gamepad or joystick
-## defaults; controls_row.gd) and Other keys (the fixed hotkeys, keyboard_reference.gd). Saves on every change. Only the actions the
+## clear, a live bar and, for axes, Tune: invert / range / deadzone / curve / Lo and Hi calibration; reset to
+## gamepad, joystick or Airbus Captain Pack defaults; controls_row.gd) and Other keys (the fixed hotkeys, keyboard_reference.gd). Saves on every change. Only the actions the
 ## aircraft offers (aircraft_controls.gd) are listed; the rest stay in the saved profile.
 ## The tab bar is sticky (the rows scroll under it) and carries two extras: "Controls for" (the aircraft whose action list is
 ## shown, show_aircraft(); it only changes the list, never the flight setup or a binding) and a search box that hides the
@@ -136,7 +136,8 @@ func _joystick_tab() -> Control:
 	_devices = Label.new()
 	_devices.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	dev.add_child(_devices)
-	for p in [["Reset: gamepad defaults", "gamepad"], ["Reset: joystick defaults", "joystick"]]:
+	for p in [["Reset: gamepad defaults", "gamepad"], ["Reset: joystick defaults", "joystick"],
+			["Reset: Airbus Captain Pack", InputProfiles.CAPTAIN_PACK]]:
 		var b := Button.new()
 		b.text = p[0]
 		b.size_flags_vertical = SIZE_SHRINK_CENTER
@@ -180,10 +181,16 @@ func _add_row(parent: Control, a: String) -> void:
 	_rows[a] = r
 
 
+## Joystick tab text with no pad; on macOS it points to ./run.sh (sets SDL_JOYSTICK_MFI=0, see docs/USAGE.md).
+static func no_pad_text(os_name: String) -> String:
+	return "None connected. Plug one in; it shows up here (hot-plug works)." \
+		+ (" On macOS start libresim with ./run.sh if a pad is plugged in but missing." if os_name == "macOS" else "")
+
+
 func _list_devices() -> void:
 	var pads := Input.get_connected_joypads()
 	if pads.is_empty():
-		_devices.text = "None connected. Plug one in; it shows up here (hot-plug works)."
+		_devices.text = no_pad_text(OS.get_name())
 		return
 	var lines := []
 	for d in pads:
@@ -199,7 +206,8 @@ func _reset(profile: String) -> void:
 		table[a].merge(d[a])  # keep the row's dictionary reference
 		if _rows.has(a):
 			_rows[a].refresh()
-	_status.text = "Reset to %s defaults." % profile
+	_status.text = "Reset to %s defaults." % profile + (" Move each quadrant lever once. Linux numbering is unchecked: press Bind to fix a row."
+		if profile == InputProfiles.CAPTAIN_PACK else "")
 	_save()
 
 
@@ -271,6 +279,9 @@ func _finish(device: int, key: String, idx: int) -> void:
 	b[key] = idx
 	b.device = device
 	b.guid = Input.get_joy_guid(device)
+	b.name = ""  # now tied to this pad, not a profile's name match
+	for k in InputBindings.CAL_KEYS:  # a new axis has its own travel
+		b.erase(k)
 	_rows[_capture].set_waiting(false)
 	_rows[_capture].refresh()
 	_status.text = "%s -> %s" % [InputBindings.LABELS[_capture], InputBindings.describe(b)]

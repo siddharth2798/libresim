@@ -2,11 +2,22 @@ class_name InputBindings
 extends RefCounted
 ## Joystick / gamepad binding table: action -> binding dictionary, plus the axis
 ## shaping maths (invert, deadzone, expo) and load/save (user://input_bindings.json).
-## Axis binding:   {axis, device, guid, invert, deadzone, expo, range}
+## Axis binding:   {axis, device, guid, name, invert, deadzone, expo, range, lo, hi}
 ##   range "full" -1..1 -> -1..1 (stick), "half" -1..1 -> 0..1 (throttle lever),
 ##   "trigger" 0..1 -> 0..1 (gamepad trigger at rest = 0).
-## Button binding: {button, device, guid}. axis / button == -1 means unbound.
-## device is the joypad index; guid (when set) wins if that pad is connected elsewhere.
+##   lo / hi (optional) calibrate the lever: the raw values at the low end (idle, closed)
+##   and the high end (full) of its travel (lo may be above hi: a lever that reads falling when pushed
+##   forward). Raw beyond lo or hi clamps, so a reverse zone behind idle reads as idle. Absent = the
+##   range's natural ends (-1..1, trigger 0..1).
+##   rev / clicks (thrust levers on an aircraft with detents and a reverse range): rev = raw at full
+##   reverse, clicks = [{raw, detent (a sim detent name), play}] the lever's physical clicks (lever_detents.gd).
+##   detents + values (speed brake lever): the raw value of each stop and the control value it gives.
+## "flaps_lever" is a notched lever: its binding also has detents, the raw value of each notch
+##   in order (0, 1, 2, ...); the nearest notch picks the flap setting (input/joystick_controls.gd).
+## Buttons in ControlActions.LEVELS follow the held state of a latching switch (on / off).
+## Button binding: {button, device, guid, name}. axis / button == -1 means unbound.
+## A binding finds its pad by guid, else by name (case-insensitive substring of the pad's
+## name, set by profiles for pads that are not plugged in yet), else by device index.
 
 const PATH := "user://input_bindings.json"
 const VERSION := 1
@@ -16,7 +27,7 @@ const AXES := {
 	"pitch": "controls/pitch", "roll": "controls/roll", "yaw": "controls/yaw",
 	"throttle": "controls/throttle", "mixture": "controls/mixture",
 	"brake_left": "controls/brake_left", "brake_right": "controls/brake_right",
-	"pitch_trim_axis": "controls/pitch_trim",
+	"pitch_trim_axis": "controls/pitch_trim", "flaps_lever": "controls/flaps",
 	# airliner axes (offered per aircraft, input/control_actions.gd)
 	"throttle_2": "controls/throttle_2", "speedbrake": "controls/speedbrake",
 	"rudder_trim_axis": "controls/rudder_trim", "tiller": "controls/tiller",
@@ -25,7 +36,10 @@ const BUTTONS := ["flaps_up", "flaps_down", "brakes", "parking_brake", "trim_up"
 	"view_next", "view_cockpit", "starter", "magnetos_next", "toggle_map", "pause",
 	"gear_toggle", "autobrake_next", "reverse", "speedbrake_out", "speedbrake_in", "throttle_detent_up",
 	"throttle_detent_down", "engine_master_1", "engine_master_2", "engine_mode_next", "apu_master", "apu_start",
-	"fcu_ap1", "fcu_ap2", "fcu_athr", "fcu_loc", "fcu_appr"]
+	"fcu_ap1", "fcu_ap2", "fcu_athr", "fcu_loc", "fcu_appr",
+	"parking_brake_switch", "magnetos_switch", "engine_master_1_switch", "engine_master_2_switch",
+	"gear_switch", "engine_mode_crank", "engine_mode_ign", "autobrake_btv", "autobrake_low", "autobrake_2",
+	"autobrake_3", "autobrake_hi"]
 const LABELS := {
 	"pitch": "Pitch (elevator)", "roll": "Roll (ailerons)", "yaw": "Yaw (rudder)",
 	"throttle": "Throttle", "mixture": "Mixture", "brake_left": "Left toe brake",
@@ -41,7 +55,15 @@ const LABELS := {
 	"engine_master_1": "Engine 1 master", "engine_master_2": "Engine 2 master", "engine_mode_next": "Engine mode cycle",
 	"apu_master": "APU master", "apu_start": "APU start (hold)", "fcu_ap1": "Autopilot 1", "fcu_ap2": "Autopilot 2",
 	"fcu_athr": "Autothrust", "fcu_loc": "FCU LOC", "fcu_appr": "FCU APPR",
+	"flaps_lever": "Flaps lever (notches)", "parking_brake_switch": "Parking brake (switch)",
+	"magnetos_switch": "Magnetos OFF / BOTH (switch)", "engine_master_1_switch": "Engine 1 master (switch)",
+	"engine_master_2_switch": "Engine 2 master (switch)", "gear_switch": "Landing gear lever (switch, pressed = down)",
+	"engine_mode_crank": "Engine mode CRANK (held)", "engine_mode_ign": "Engine mode IGN/START (held)",
+	"autobrake_btv": "Auto brake BTV", "autobrake_low": "Auto brake LOW", "autobrake_2": "Auto brake 2",
+	"autobrake_3": "Auto brake 3", "autobrake_hi": "Auto brake HI",
 }
+## Binding keys that belong to one physical axis (calibration, notches): dropped when the axis is rebound.
+const CAL_KEYS := ["lo", "hi", "rev", "clicks", "detents", "values"]
 const RANGES := ["full", "half", "trigger"]
 ## Actions whose output is 0..1 (default range "half").
 const HALF := ["throttle", "mixture", "brake_left", "brake_right", "throttle_2", "speedbrake"]
@@ -71,13 +93,18 @@ static func _bt(t: Dictionary, action: String, button: int) -> void:
 	t[action] = b
 
 
-## profile "gamepad" (SDL standard layout) or "joystick" (stick + twist + throttle lever).
-static func defaults(profile := "gamepad") -> Dictionary:
+## profile "gamepad" (SDL standard layout), "joystick" (stick + twist + throttle lever) or
+## "captain_pack" (Thrustmaster TCA sidestick + quadrant, see input_profiles.gd; os_name
+## picks the per-OS axis numbering, default the running OS).
+static func defaults(profile := "gamepad", os_name := "") -> Dictionary:
 	var t := {}
 	for a in AXES:
 		t[a] = unbound(a)
 	for a in BUTTONS:
 		t[a] = unbound(a)
+	if profile == InputProfiles.CAPTAIN_PACK:
+		t.merge(InputProfiles.captain_pack(os_name if os_name != "" else OS.get_name()), true)
+		return t
 	if profile == "joystick":
 		# Stick forward = -1 on axis 1 = push = nose down, matching controls/pitch (+1 = aft).
 		_ax(t, "roll", 0, {"deadzone": 0.03, "expo": 0.2})
@@ -123,24 +150,29 @@ static func defaults(profile := "gamepad") -> Dictionary:
 	return t
 
 
-## Raw joypad axis value -> control value, per the binding's invert/deadzone/expo/range.
+## Raw joypad axis value -> control value, per the binding's calibration, invert, deadzone,
+## expo and range.
 static func shape(raw: float, b: Dictionary) -> float:
 	var dz := clampf(float(b.get("deadzone", 0.0)), 0.0, 0.95)
 	var e := clampf(float(b.get("expo", 0.0)), 0.0, 1.0)
-	var v := clampf(raw, -1.0, 1.0)
-	match str(b.get("range", "full")):
-		"half":
-			if b.get("invert", false):
-				v = -v
-			return _curve(_dead((v + 1.0) * 0.5, dz), e)
-		"trigger":
-			v = clampf(v, 0.0, 1.0)
-			if b.get("invert", false):
-				v = 1.0 - v
-			return _curve(_dead(v, dz), e)
-	if b.get("invert", false):
-		v = -v
-	return signf(v) * _curve(_dead(absf(v), dz), e)
+	var inv: bool = b.get("invert", false)
+	var u := position(raw, b)  # 0..1 along the calibrated travel
+	if str(b.get("range", "full")) == "full":
+		var v := u * 2.0 - 1.0
+		if inv:
+			v = -v
+		return signf(v) * _curve(_dead(absf(v), dz), e)
+	return _curve(_dead(1.0 - u if inv else u, dz), e)
+
+
+## Where the raw value sits along the binding's travel, 0 at lo and 1 at hi, clamped.
+static func position(raw: float, b: Dictionary) -> float:
+	var lo := float(b.get("lo", 0.0 if str(b.get("range", "full")) == "trigger" else -1.0))
+	var hi := float(b.get("hi", 1.0))
+	if absf(hi - lo) < 0.05:  # a collapsed calibration would divide by ~0: ignore it
+		lo = 0.0 if str(b.get("range", "full")) == "trigger" else -1.0
+		hi = 1.0
+	return clampf((raw - lo) / (hi - lo), 0.0, 1.0)
 
 
 ## 0..1 magnitude with the bottom dz removed and the rest rescaled to 0..1.
@@ -153,16 +185,60 @@ static func _curve(m: float, e: float) -> float:
 	return (1.0 - e) * m + e * m * m * m
 
 
+## Index of the detent nearest to raw (0 for an empty list).
+static func detent_index(raw: float, detents: Array) -> int:
+	var best := 0
+	for i in detents.size():
+		if absf(raw - float(detents[i])) < absf(raw - float(detents[best])):
+			best = i
+	return best
+
+
+## Value of the nearest notch of an axis with "detents" (raw per notch) and "values" (output per notch);
+## `shaped` when the binding has no such pair.
+static func notched(b: Dictionary, raw: float, shaped: float) -> float:
+	var d = b.get("detents")
+	var v = b.get("values")
+	if not (d is Array and v is Array) or d.is_empty() or d.size() != v.size():
+		return shaped
+	return float(v[detent_index(raw, d)])
+
+
+## The raw axis value of a bound axis on a connected pad, else null.
+static func raw_value(b: Dictionary) -> Variant:
+	var dev := resolve_device(b)
+	if dev < 0 or int(b.get("axis", -1)) < 0:
+		return null
+	return Input.get_joy_axis(dev, int(b.axis))
+
+
 ## The joypad index this binding reads from, or -1 if that pad is not connected.
 static func resolve_device(b: Dictionary) -> int:
-	var pads := Input.get_connected_joypads()
+	var pads := []
+	for d in Input.get_connected_joypads():
+		pads.append({"id": d, "name": Input.get_joy_name(d), "guid": Input.get_joy_guid(d)})
+	return pick_device(b, pads)
+
+
+## resolve_device over a list of {id, name, guid} pads (separate so tests need no hardware).
+## guid wins, then name (no match = -1, never falls back to the index), then device index.
+static func pick_device(b: Dictionary, pads: Array) -> int:
 	var guid := str(b.get("guid", ""))
 	if guid != "":
-		for d in pads:
-			if Input.get_joy_guid(d) == guid:
-				return d
+		for p in pads:
+			if p.guid == guid:
+				return p.id
+	var want := str(b.get("name", "")).to_lower()
+	if want != "":
+		for p in pads:
+			if str(p.name).to_lower().contains(want):
+				return p.id
+		return -1
 	var dev := int(b.get("device", 0))
-	return dev if dev in pads else -1
+	for p in pads:
+		if p.id == dev:
+			return dev
+	return -1
 
 
 static func describe(b: Dictionary) -> String:

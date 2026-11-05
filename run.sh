@@ -408,6 +408,9 @@ note "disk used: data/ $(du -sh data 2>/dev/null | cut -f1)  (raw $(du -sh data/
 note "setup time: $((SECONDS - T_ALL)) s; log: $LOG"
 
 header 7 "Launch"
+# macOS: SDL3 inside Godot lists no Thrustmaster (HID) pad unless its GameController-framework driver is off, and
+# joystick events only reach the active app unless background events are on. Keep SDL's HIDAPI driver ON. (docs/USAGE.md)
+if [[ $(uname) == Darwin ]]; then export SDL_JOYSTICK_MFI=0 SDL_JOYSTICK_ALLOW_BACKGROUND_EVENTS=1; fi
 if dry; then note "WOULD run: ${GODOT:-godot} --path game -- ${GAME_ARGS[*]:-}"; exit 0; fi
 [[ -x launch.sh ]] && ./launch.sh --register-only 2>/dev/null   # applications-menu entry + "Start libresim" file
 if ((SETUP_ONLY)); then note "skipped (--setup-only)"; exit 0; fi

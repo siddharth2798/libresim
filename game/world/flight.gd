@@ -205,6 +205,9 @@ func _cold_and_dark() -> void:
 	Props.set_v("instruments/altimeter/kollsman_inhg", 29.92)
 	$Instruments/Gyros._ai_spin = 0.0
 	$Instruments/Gyros._hi_spin = 0.0
+	var joy := get_node_or_null("JoystickControls")  # latching switches / selectors set the new start from the hardware
+	if joy != null and joy.has_method("resync"):
+		joy.resync()
 
 
 func _unhandled_key_input(e: InputEvent) -> void:

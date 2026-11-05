@@ -91,6 +91,9 @@ if [[ ${1:-} == --register-only ]]; then register; exit 0; fi
 if ready; then
   register
   GODOT=$(godot_bin)
+  # macOS: SDL3 inside Godot lists no Thrustmaster (HID) pad unless its GameController-framework driver is off, and
+  # joystick events only reach the active app unless background events are on. Keep SDL's HIDAPI driver ON. (docs/USAGE.md)
+  if [[ $(uname) == Darwin ]]; then export SDL_JOYSTICK_MFI=0 SDL_JOYSTICK_ALLOW_BACKGROUND_EVENTS=1; fi
   if [[ $(uname) == Darwin ]]; then
     exec "$GODOT" --path game -- "$@" >> data/run.log 2>&1
   fi

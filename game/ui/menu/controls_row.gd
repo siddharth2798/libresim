@@ -1,7 +1,7 @@
 extends VBoxContainer
 ## One row of the Controls page, Joystick tab: action name (takes the spare width, ellipsis plus tooltip for
 ## long names), current binding, Bind / clear and a live value bar; for axes also a Tune button that opens a
-## second line with invert, range, deadzone and curve (expo). Edits the binding dictionary in place and
+## second line with invert, range, deadzone, curve (expo) and Lo / Hi calibration. Edits the binding dictionary in place and
 ## emits `edited`; the page saves. Tune opens by itself for an inverted axis; its tooltip gives the current values.
 
 signal edited
@@ -21,6 +21,8 @@ var _inv: CheckButton
 var _range: OptionButton
 var _dz: SpinBox
 var _expo: SpinBox
+var _lo: Button
+var _hi: Button
 var _bar: Control
 
 
@@ -87,6 +89,8 @@ func _build_tune() -> void:
 	_dz = _spin(t, 0.0, 0.5, 0.01, "Deadzone", "deadzone")
 	t.add_child(_field("Curve"))
 	_expo = _spin(t, 0.0, 1.0, 0.05, "Curve (expo): 0 linear, 1 fully cubic", "expo")
+	_lo = _button(t, "Lo", 40, _calibrate.bind("lo"))
+	_hi = _button(t, "Hi", 40, _calibrate.bind("hi"))
 
 
 func _field(text: String) -> Label:
@@ -137,9 +141,19 @@ func _edit(key: String, v: Variant) -> void:
 	edited.emit()
 
 
+## Take the axis's current position as the low (idle, closed) or high (full) end of its travel.
+func _calibrate(key: String) -> void:
+	var raw = InputBindings.raw_value(b)
+	if raw != null:
+		_edit(key, snappedf(raw, 0.001))
+
+
 func _clear() -> void:
 	b["axis" if InputBindings.is_axis(action) else "button"] = -1
 	b.guid = ""
+	b.name = ""
+	for k in InputBindings.CAL_KEYS:
+		b.erase(k)
 	refresh()
 	edited.emit()
 
@@ -159,6 +173,11 @@ func refresh() -> void:
 		_range.select(maxi(InputBindings.RANGES.find(str(b.get("range", "full"))), 0))
 		_dz.set_value_no_signal(float(b.get("deadzone", 0.0)))
 		_expo.set_value_no_signal(float(b.get("expo", 0.0)))
+		for k in [[_lo, "lo", "Lo"], [_hi, "hi", "Hi"]]:
+			k[0].tooltip_text = "Set %s end of travel from the lever's current position%s" % [
+				"the low (idle)" if k[1] == "lo" else "the high (full)",
+				" (now %.2f)" % float(b[k[1]]) if b.has(k[1]) else " (not set)"]
+			k[0].text = k[2] + ("*" if b.has(k[1]) else "")
 		_tune_btn.tooltip_text = _summary()
 
 

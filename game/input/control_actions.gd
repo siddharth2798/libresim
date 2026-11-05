@@ -8,6 +8,7 @@ extends RefCounted
 ##
 ## Props published (written by input/*, consumed by fdm/ and systems/):
 ##   controls/speedbrake 0..1            controls/gear 0 (up) / 1 (down)
+##   controls/flaps 0..fdm/flap_detents-1 (a notched flaps lever sets it, joystick_controls.gd)
 ##   controls/autobrake 0..3 (off, LO, MED, MAX)
 ##   controls/engine_master_<n> bool     controls/engine_mode 0 NORM / 1 CRANK / 2 IGN-START
 ##   controls/apu_master bool            controls/apu_start bool (held)
@@ -26,21 +27,21 @@ const GROUPS := {
 	"throttle": ["throttle_up", "throttle_down", "throttle"],
 	"mixture": ["mixture_rich", "mixture_lean", "mixture"],
 	"trim": ["trim_up", "trim_down", "pitch_trim_axis"],
-	"flaps": ["flaps_up", "flaps_down"],
+	"flaps": ["flaps_up", "flaps_down", "flaps_lever"],
 	"brakes": ["brakes", "brake_left", "brake_right"],
-	"parking_brake": ["parking_brake"],
-	"magnetos": ["magnetos_next"],
+	"parking_brake": ["parking_brake", "parking_brake_switch"],
+	"magnetos": ["magnetos_next", "magnetos_switch"],
 	"starter": ["starter"],
 	"fuel_selector": ["fuel_selector"],
 	"fuel_shutoff": ["fuel_shutoff"],
 	"thrust_levers": ["throttle_1_up", "throttle_1_down", "throttle_2_up", "throttle_2_down",
-		"throttle_detent_up", "throttle_detent_down", "throttle_2"],
+		"throttle_detent_up", "throttle_detent_down", "throttle", "throttle_2"],  # lever 1 axis = "throttle" (also in group throttle)
 	"reverse": ["reverse"],
 	"speedbrake": ["speedbrake_out", "speedbrake_in", "speedbrake"],
-	"gear": ["gear_toggle"],
-	"autobrake": ["autobrake_next"],
-	"engine_master": ["engine_master_1", "engine_master_2"],
-	"engine_mode": ["engine_mode_next"],
+	"gear": ["gear_toggle", "gear_switch"],
+	"autobrake": ["autobrake_next", "autobrake_btv", "autobrake_low", "autobrake_2", "autobrake_3", "autobrake_hi"],
+	"engine_master": ["engine_master_1", "engine_master_2", "engine_master_1_switch", "engine_master_2_switch"],
+	"engine_mode": ["engine_mode_next", "engine_mode_crank", "engine_mode_ign"],
 	"apu": ["apu_master", "apu_start"],
 	"rudder_trim": ["rudder_trim_left", "rudder_trim_right", "rudder_trim_axis"],
 	"tiller": ["tiller"],
@@ -82,6 +83,26 @@ const KNOBS := {
 	"fcu_alt_up": ["controls/fcu/alt_ft", 100.0, 100.0, 39000.0, false], "fcu_alt_down": ["controls/fcu/alt_ft", -100.0, 100.0, 39000.0, false],
 	"fcu_vs_up": ["controls/fcu/vs_fpm", 100.0, -6000.0, 6000.0, false], "fcu_vs_down": ["controls/fcu/vs_fpm", -100.0, -6000.0, 6000.0, false],
 }
+## Latching switches (a joystick button that stays down): action -> [prop, value when off, value when on, sync].
+## They act when the switch changes, on both edges. `sync` says what the hardware position does when the
+## switch is first seen (flight start, pad plugged in): "both" sets the prop from it, "on" only when it is on
+## (never switches a running engine off at start), "" nothing (a magneto switch must not stop a running engine).
+const LEVELS := {
+	"parking_brake_switch": ["controls/parking_brake", false, true, "both"],
+	"magnetos_switch": ["controls/magnetos", 0, 3, ""],  # OFF / BOTH
+	"engine_master_1_switch": ["controls/engine_master_1", false, true, "on"],
+	"engine_master_2_switch": ["controls/engine_master_2", false, true, "on"],
+	"gear_switch": ["controls/gear", 0, 1, "both"],  # pressed = DOWN
+}
+## Selector switches, one button per position (held while the selector is there); no button held = `rest`.
+## The prop follows the position at first sight and whenever it changes: name -> {prop, rest, positions}.
+## Engine mode: NORM = rest 0, CRANK 1, IGN/START 2. Auto brake dial (DISARM BTV LOW 2 3 HI) onto the sim's
+## 0 off / 1 LO / 2 MED / 3 MAX: BTV and LOW = LO, 2 and 3 = MED, HI = MAX (the sim has no brake-to-vacate).
+const SELECTORS := {
+	"engine_mode": {"prop": "controls/engine_mode", "rest": 0, "positions": {"engine_mode_crank": 1, "engine_mode_ign": 2}},
+	"autobrake": {"prop": "controls/autobrake", "rest": 0, "positions": {"autobrake_btv": 1, "autobrake_low": 1,
+		"autobrake_2": 2, "autobrake_3": 2, "autobrake_hi": 3}},
+}
 ## Initial Props of a group (only set when the prop does not exist yet); aircraft.json "defaults" wins.
 const SEEDS := {
 	"speedbrake": {"controls/speedbrake": 0.0}, "gear": {"controls/gear": 1}, "autobrake": {"controls/autobrake": 0},
@@ -107,3 +128,8 @@ static func group_of(action: String) -> String:
 			for a in GROUPS[g]:
 				_owner[a] = g
 	return _owner.get(action, "")
+
+
+## Is this button action one position of a selector switch (SELECTORS)?
+static func in_selector(action: String) -> bool:
+	return SELECTORS.values().any(func(s): return s.positions.has(action))
