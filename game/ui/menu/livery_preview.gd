@@ -1,6 +1,7 @@
 extends SubViewportContainer
-## A turntable of the exterior. Drag to yaw. Repaints from the livery entry, debounced, without
-## hiding the model (PaintPipeline.preview, not apply). Headless: a note, no scene load.
+## A turntable of the exterior. Drag to yaw. Scroll, or the + and − buttons, to zoom.
+## Repaints from the livery entry, debounced, without hiding the model (PaintPipeline.preview, not apply).
+## Headless: a note, no scene load.
 
 var _note: Label
 var _view: SubViewport
@@ -13,6 +14,10 @@ var _stored: Variant = {}
 var _busy := false
 var _dirty := false
 var _built := ""
+var _zoom := 1.0
+var _base := Vector3.ZERO
+const _ZOOM_MIN := 0.55
+const _ZOOM_MAX := 3.4
 
 
 func _ready() -> void:
@@ -79,12 +84,56 @@ func set_paint(stored: Variant) -> void:
 		_run()
 
 
+## Buttons drawn over the turntable. The page parents them; this viewport would lay them out as a second child.
+func zoom_controls() -> Control:
+	var row := HBoxContainer.new()
+	row.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+	row.offset_left = -88.0
+	row.offset_top = 8.0
+	row.offset_right = -8.0
+	row.offset_bottom = 40.0
+	row.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+	row.mouse_filter = Control.MOUSE_FILTER_STOP
+	row.add_theme_constant_override("separation", 4)
+	row.add_child(_zoom_button("−", "Zoom out", 1.0 / 1.18))
+	row.add_child(_zoom_button("+", "Zoom in", 1.18))
+	return row
+
+
+func _zoom_button(text: String, tip: String, factor: float) -> Button:
+	var b := Button.new()
+	b.text = text
+	b.tooltip_text = tip
+	b.focus_mode = Control.FOCUS_NONE
+	b.custom_minimum_size = Vector2(36, 28)
+	b.pressed.connect(_nudge_zoom.bind(factor))
+	return b
+
+
+func _nudge_zoom(factor: float) -> void:
+	_set_zoom(_zoom * factor)
+
+
 func _gui_input(event: InputEvent) -> void:
+	if event is InputEventMouseButton:
+		var button := event as InputEventMouseButton
+		if button.pressed and (button.button_index == MOUSE_BUTTON_WHEEL_UP or button.button_index == MOUSE_BUTTON_WHEEL_DOWN):
+			_set_zoom(_zoom * (1.12 if button.button_index == MOUSE_BUTTON_WHEEL_UP else 1.0 / 1.12))
+			accept_event()
+			return
 	if _pivot == null or not event is InputEventMouseMotion:
 		return
 	var motion := event as InputEventMouseMotion
 	if motion.button_mask & MOUSE_BUTTON_MASK_LEFT:
 		_pivot.rotate_y(-motion.relative.x * 0.01)
+
+
+func _set_zoom(zoom: float) -> void:
+	_zoom = clampf(zoom, _ZOOM_MIN, _ZOOM_MAX)
+	if _cam == null or _base.length_squared() < 0.01:
+		return
+	_cam.position = _base / _zoom
+	_cam.look_at(Vector3.ZERO)
 
 
 func _run() -> void:
@@ -113,5 +162,6 @@ func _frame() -> void:
 	var c := aabb.get_center()
 	_holder.position = -c
 	var r := maxf(aabb.size.length() * 0.55, 2.0)
-	_cam.position = Vector3(r * 0.15, r * 0.32, r)
-	_cam.look_at(Vector3.ZERO)
+	_base = Vector3(r * 0.15, r * 0.32, r)
+	_zoom = 1.0
+	_set_zoom(_zoom)

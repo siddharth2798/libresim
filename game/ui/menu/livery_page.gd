@@ -21,8 +21,16 @@ var _slot := ""
 
 func _ready() -> void:
 	add_theme_constant_override("separation", 16)
-	_preview = preload("res://ui/menu/livery_preview.gd").new()
-	add_child(_preview)
+	var stage := Control.new()
+	stage.custom_minimum_size = Vector2(340, 300)
+	stage.size_flags_vertical = SIZE_EXPAND_FILL
+	stage.mouse_filter = MOUSE_FILTER_IGNORE
+	add_child(stage)
+	var view := preload("res://ui/menu/livery_preview.gd").new()
+	_preview = view
+	view.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	stage.add_child(view)
+	stage.add_child(view.zoom_controls())
 	var right := VBoxContainer.new()
 	right.size_flags_horizontal = SIZE_EXPAND_FILL
 	right.add_theme_constant_override("separation", 10)
