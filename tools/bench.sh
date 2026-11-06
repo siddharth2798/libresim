@@ -6,6 +6,8 @@
 #   tools/bench.sh                         default matrix (below)
 #   PRESETS="high max" RENDERERS=forward_plus SCENES=ghats_chase tools/bench.sh
 #   DRIVER=vulkan tools/bench.sh           macOS: through MoltenVK, which has GPU timestamps (Metal shows n/a)
+#   METALFX=1 SCENES=ghats_chase PRESETS=medium tools/bench.sh
+#       Forward+ on Metal, 3D scale at most 0.67, MetalFX temporal. Time it against a mobile run of the same scene.
 # Env: FREESIM_BENCH=/tmp/libresim-bench (logs, PNGs, bench.md), BENCH_S=10, SIZE=1920x1080, GODOT, DRIVER.
 # Vsync: --disable-vsync, and bench_probe.gd switches it off at run time too (the flag alone does not
 # always stick on macOS 4.7.2); columns: game/tests/bench_probe.gd.
@@ -18,8 +20,14 @@ PRESETS="${PRESETS:-low medium high ultra}"
 RENDERERS="${RENDERERS:-mobile forward_plus}"
 BENCH_S="${BENCH_S:-10}"
 SIZE="${SIZE:-1920x1080}"
+if [ "${METALFX:-}" = 1 ]; then
+	RENDERERS=forward_plus
+	[ -n "${DRIVER:-}" ] || DRIVER=metal
+fi
 DRIVER_ARGS=()
 [ -n "${DRIVER:-}" ] && DRIVER_ARGS=(--rendering-driver "$DRIVER")
+MFX_ARGS=()
+[ "${METALFX:-}" = 1 ] && MFX_ARGS=(--metalfx)
 if [ "$(uname)" = Darwin ]; then USERDIR="$HOME/Library/Application Support/Godot/app_userdata/libresim"
 else USERDIR="${XDG_DATA_HOME:-$HOME/.local/share}/godot/app_userdata/libresim"; fi
 mkdir -p "$OUT/.backup"
@@ -34,7 +42,7 @@ for r in $RENDERERS; do
 			echo "bench: $s $p $r"
 			"$GODOT" --path "$ROOT/game" --rendering-method "$r" ${DRIVER_ARGS[@]+"${DRIVER_ARGS[@]}"} --disable-vsync \
 				--resolution "$SIZE" --windowed res://tests/debug_showcase.tscn \
-				-- --scene="$s" --quality="$p" --bench="$BENCH_S" > "$OUT/${s}_${p}_${r}.log" 2>&1
+				-- --scene="$s" --quality="$p" --bench="$BENCH_S" ${MFX_ARGS[@]+"${MFX_ARGS[@]}"} > "$OUT/${s}_${p}_${r}.log" 2>&1
 			grep -h "^BENCH" "$OUT/${s}_${p}_${r}.log" | tee -a "$OUT/bench.log" || echo "bench: $s $p $r FAILED (see $OUT/${s}_${p}_${r}.log)"
 		done
 	done

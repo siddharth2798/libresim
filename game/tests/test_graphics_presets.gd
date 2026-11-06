@@ -99,6 +99,24 @@ func test_steps_grow_with_quality() -> String:
 	return ""
 
 
+func test_metalfx_temporal_scale() -> String:
+	if Graphics.scaling_mode(true, 0.67, false, true, true) != Viewport.SCALING_3D_MODE_METALFX_TEMPORAL:
+		return "Forward+ on Metal should upscale with MetalFX temporal"
+	if Graphics.scaling_mode(false, 0.67, true, true, true) != Viewport.SCALING_3D_MODE_BILINEAR:
+		return "the mobile renderer has no motion vectors, so MetalFX temporal stays off"
+	if Graphics.scaling_mode(true, 0.67, true, true, false) != Viewport.SCALING_3D_MODE_FSR2:
+		return "without Metal, a scaled Forward+ view stays on FSR2"
+	if Graphics.scaling_mode(true, 0.85, true, false, true) != Viewport.SCALING_3D_MODE_FSR2:
+		return "FSR2 when MetalFX was not asked for"
+	if not is_equal_approx(Graphics.metalfx_scale(0.85, 0.0), 0.67) or not is_equal_approx(Graphics.metalfx_scale(1.25, 0.0), 0.67):
+		return "MetalFX should draw at 67% when the preset is finer"
+	if not is_equal_approx(Graphics.metalfx_scale(0.5, 0.0), 0.5):
+		return "a coarser budget scale should stay"
+	if not is_equal_approx(Graphics.metalfx_scale(0.5, 0.6), 0.6):
+		return "the scale should not go under the driver's minimum"
+	return ""
+
+
 func test_apple_silicon_budget_keeps_the_preset_table() -> String:
 	var med: Dictionary = Graphics.PRESETS.medium
 	var air := RenderBudget.clamp_preset(med, Vector2i(2560, 1664), true)

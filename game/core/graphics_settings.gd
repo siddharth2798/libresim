@@ -42,6 +42,9 @@ var preset := "high"
 var _pending_renderer := ""
 ## --quality=<preset> is a one-off for this run: it never saves a renderer (pass --rendering-method for one).
 var _quality_cli := false
+## --metalfx: this run upscales with MetalFX temporal. Forward+ on the Metal driver only.
+var _metalfx := false
+var _metalfx_said := false
 ## Tests only: the folder of override.cfg ("" = next to the project / the executable) and a pretend running renderer.
 var override_dir := ""
 var running_override := ""
@@ -59,6 +62,8 @@ func _ready() -> void:
 		if a.begins_with("--quality="):
 			preset = a.substr(10).to_lower()
 			_quality_cli = true
+		elif a == "--metalfx":
+			_metalfx = true
 	if not PRESETS.has(preset):
 		preset = "high"
 	_match_renderer_once.call_deferred()  # deferred: Session (autoloaded after us) decides interactive()
@@ -145,6 +150,7 @@ func apply_to_scene(root: Node) -> void:
 	if DisplayServer.get_name() != "headless":
 		s = RenderBudget.clamp_preset(s, RenderBudget.frame_pixels(root.get_viewport()), RenderBudget.apple_silicon())
 	var forward_plus := renderer() == "forward_plus"
+	s = _prepare_metalfx(s, forward_plus)
 	_apply_shadow_atlas(s)
 	var vp := root.get_viewport()
 	_apply_viewport(vp, s, forward_plus)
@@ -191,19 +197,60 @@ func apply_to_scene(root: Node) -> void:
 	PostFx.apply(root, preset)  # bloom, motion blur and the other post effects (user options x this preset)
 
 
+## --metalfx asks for MetalFX temporal. That pass needs motion vectors, which only Forward+ builds,
+## and it only exists on the Metal driver. The 3D image is drawn at 67% or whatever is already
+## coarser, and MetalFX rebuilds the frame. MSAA and TAA stay off: the temporal pass is the antialiasing.
+func _prepare_metalfx(s: Dictionary, forward_plus: bool) -> Dictionary:
+	if not _metalfx:
+		return s
+	var metal := RenderingServer.get_current_rendering_driver_name() == "metal"
+	if not forward_plus or not metal:
+		if not _metalfx_said:
+			_metalfx_said = true
+			print("libresim: MetalFX temporal needs Forward+ on Metal (running %s / %s). Launch with --rendering-method forward_plus --rendering-driver metal -- --metalfx" % [renderer(), RenderingServer.get_current_rendering_driver_name()])
+		return s
+	s = s.duplicate()
+	var floor_scale := 0.0
+	var rd := RenderingServer.get_rendering_device()
+	if rd:
+		floor_scale = float(rd.limit_get(RenderingDevice.LIMIT_METALFX_TEMPORAL_SCALER_MIN_SCALE))
+	s.scale = metalfx_scale(float(s.scale), floor_scale)
+	s.msaa = 0
+	s.fxaa = false
+	s.taa = false
+	if not _metalfx_said:
+		_metalfx_said = true
+		print("libresim: Forward+ MetalFX temporal, 3D scale %.2f" % s.scale)
+	return s
+
+
+## Draw scale for a MetalFX temporal run: 67% unless the frame is already coarser, and never under the driver's minimum.
+static func metalfx_scale(scale: float, min_scale: float) -> float:
+	var out := minf(scale, 0.67)
+	return maxf(out, min_scale) if min_scale > 0.0 else out
+
+
+## 3D scaling mode. MetalFX temporal is Forward+ on Metal; anywhere else the request falls back.
+static func scaling_mode(forward_plus: bool, scale: float, fsr: bool, metalfx: bool, metal: bool) -> int:
+	if metalfx and forward_plus and metal and scale > 0.0 and scale <= 1.0:
+		return Viewport.SCALING_3D_MODE_METALFX_TEMPORAL
+	if fsr and forward_plus and scale < 1.0:
+		return Viewport.SCALING_3D_MODE_FSR2
+	return Viewport.SCALING_3D_MODE_BILINEAR
+
+
 ## Supersampling above 1 is a plain bilinear downscale. Below 1, Forward+ uses FSR2, which
 ## antialiases itself, so TAA is off. The mobile renderer has no FSR, so it stays bilinear.
+## --metalfx on Metal replaces that upscaler with MetalFX temporal.
 func _apply_viewport(vp: Viewport, s: Dictionary, forward_plus: bool) -> void:
-	var up: bool = s.fsr and s.scale < 1.0 and forward_plus
-	if up:
-		vp.scaling_3d_mode = Viewport.SCALING_3D_MODE_FSR2
-	else:
-		vp.scaling_3d_mode = Viewport.SCALING_3D_MODE_BILINEAR
+	var mode := scaling_mode(forward_plus, float(s.scale), bool(s.fsr), _metalfx, RenderingServer.get_current_rendering_driver_name() == "metal")
+	vp.scaling_3d_mode = mode as Viewport.Scaling3DMode
 	vp.scaling_3d_scale = s.scale
 	vp.msaa_3d = [Viewport.MSAA_DISABLED, Viewport.MSAA_2X, Viewport.MSAA_4X][s.msaa]
 	vp.screen_space_aa = Viewport.SCREEN_SPACE_AA_FXAA if s.fxaa else Viewport.SCREEN_SPACE_AA_DISABLED
 	vp.use_debanding = true  # dither before the 8-bit output: smooth dark sky gradients and fog do not band
-	vp.use_taa = s.taa and forward_plus and not (up and forward_plus)
+	var temporal := mode == Viewport.SCALING_3D_MODE_METALFX_TEMPORAL or mode == Viewport.SCALING_3D_MODE_FSR2
+	vp.use_taa = s.taa and forward_plus and not temporal
 
 
 ## SSAO / SSIL / SSR exist only on Forward+; they are switched off elsewhere so saved scenes behave the same.
