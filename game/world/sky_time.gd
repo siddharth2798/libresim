@@ -84,7 +84,8 @@ func _process(dt: float) -> void:
 	var flash := Props.get_f("environment/lightning")
 	_sun.light_energy = 1.3 * clampf((el_deg + 1.0) / 12.0, 0.0, 1.0) * ls.sun
 	_sun.shadow_opacity = ls.shadow
-	var rain_vis := WeatherVisuals.rain_visibility(maxf(Props.get_f("weather/visibility_m", 20000.0), 200.0), rain)
+	var rain_vis := WeatherVisuals.drawn_visibility(Props.get_f("weather/visibility_m", 20000.0), rain,
+			bool(Props.get_v("weather/visibility_includes_precip", false)))
 	_sun.light_color = Atmosphere.sun_color(el_deg).lerp(Color(1.0, 0.95, 0.88), occl)
 	# clear-sky colours from the analytic atmosphere (zenith, and the horizon towards where the camera
 	# looks): the fog / haze below uses the same horizon colour, so ground and sky agree at every hour
@@ -111,7 +112,8 @@ func _process(dt: float) -> void:
 	_sky.set_shader_parameter("day", day)
 	_sky.set_shader_parameter("dusk", dusk * (1.0 - occl))
 	_sky.set_shader_parameter("sun_vis", 1.0 - smoothstep(0.5, 0.9, occl))
-	_sky.set_shader_parameter("cirrus", 0.6 * (1.0 - smoothstep(0.2, 0.7, occl)) * (1.0 - rain) * (1.0 - 0.4 * Props.get_f("weather/cloud_cover")))
+	var cirrus := Props.get_f("weather/cirrus", 0.6)
+	_sky.set_shader_parameter("cirrus", cirrus * (1.0 - smoothstep(0.2, 0.7, occl)) * (1.0 - rain) * (1.0 - 0.4 * Props.get_f("weather/cloud_cover")))
 	_sky.set_shader_parameter("cirrus_wind", _drift * 0.00004)
 	RenderingServer.global_shader_parameter_set("sky_top_color", top)
 	_sky.set_shader_parameter("horizon_color", hor)

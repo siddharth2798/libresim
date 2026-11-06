@@ -22,7 +22,7 @@ static func build(c: AtcController, w: Dictionary, extra := {}) -> Dictionary:
 		"where": str(w.get("where", "the apron")), "join": "", "opt_via": "",
 		"opt_info": ("information %s, " % c.info_word()) if c.s.info_heard else "",
 		"opt_route": ("via %s, " % routes[w.get("apt", "")]) if routes.get(w.get("apt", ""), "") != "" else "",
-		"opt_wx": _wx(w), "dest": AtcProfile.dest_text(w), "alt_init": AtcProfile.INITIAL_ALT_FT, "alt_next": AtcProfile.GO_AROUND_ALT_FT,
+		"opt_wx": _wx(w), "opt_dew": _dew(w), "dest": AtcProfile.dest_text(w), "alt_init": AtcProfile.INITIAL_ALT_FT, "alt_next": AtcProfile.GO_AROUND_ALT_FT,
 		"fl": AtcProfile.CLIMB_FL, "stand": "the apron", "appr": AtcProfile.approach_kind(w, rwy)}
 	if c.type_name != "":
 		sl["type"] = c.type_name
@@ -35,6 +35,12 @@ static func _clouds(w: Dictionary) -> Array:
 	if cc < 0.1:
 		return ["", 0.0]
 	return ["few" if cc < 0.35 else "scattered" if cc < 0.55 else "broken" if cc < 0.85 else "overcast", float(w.get("cloud_base_ft", 3000.0))]
+
+
+static func _dew(w: Dictionary) -> String:
+	if not w.has("dew"):
+		return ""
+	return ", dew point %d" % int(round(float(w.dew)))
 
 
 static func _wx(w: Dictionary) -> String:

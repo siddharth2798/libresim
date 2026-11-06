@@ -1,0 +1,29 @@
+{
+  "elevation": 592,
+  "current": {
+    "temperature_2m": 31.1,
+    "dew_point_2m": 20.0,
+    "surface_pressure": 945.76,
+    "wind_speed_10m": 3.0,
+    "wind_direction_10m": 270,
+    "wind_gusts_10m": 4.0,
+    "visibility": 8000,
+    "rain": 0.0,
+    "weather_code": 1,
+    "cape": 50
+  },
+  "hourly": {
+    "wind_speed_80m": [4.0],
+    "wind_direction_80m": [280],
+    "wind_speed_180m": [6.0],
+    "wind_direction_180m": [300],
+    "geopotential_height_850hPa": [1500],
+    "wind_speed_850hPa": [8.0],
+    "wind_direction_850hPa": [320],
+    "temperature_850hPa": [12.0],
+    "relative_humidity_850hPa": [40],
+    "cloud_cover_low": [40],
+    "cloud_cover_high": [20],
+    "boundary_layer_height": [1615]
+  }
+}

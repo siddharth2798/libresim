@@ -15,6 +15,20 @@ func _first_cell(storms: float) -> Vector2i:
 	return Vector2i(99, 99)
 
 
+func test_live_thunderstorm_sets_storms_and_a_core() -> String:
+	var raw = JSON.parse_string(FileAccess.get_file_as_string("res://tests/fixtures/live_weather/ts.json"))
+	var w := LiveMap.map(LiveMetar.parse(raw), {"cape": 1500.0})
+	if absf(float(w.storms) - 0.7) > 0.01:
+		return "live TS storms %.2f" % float(w.storms)
+	var ij := _first_cell(0.7)
+	if ij.x == 99:
+		return "no cell at storms 0.7"
+	var cl := CloudStorm.cell(ij.x, ij.y, 0.7, 7)
+	var ctr: Vector2 = CloudStorm.center_at(cl, 0.0, Vector2.ZERO)
+	var core := CloudStorm.sample(Vector3(ctr.x, ctr.y, 300.0), 300.0, 0.0, Vector2.ZERO, 0.7, 400.0)
+	return "" if core.core else "live TS did not put a core on the cell"
+
+
 func test_storm_cell_shape() -> String:
 	var ij := _first_cell(0.9)
 	var cl := CloudStorm.cell(ij.x, ij.y, 0.9, 7)
@@ -245,3 +259,30 @@ func test_hands_off_c172_gains_altitude_in_a_thermal() -> String:
 	if best_mean < 1.0:
 		return "no thermal track found (mean %.2f m/s)" % best_mean
 	return "" if gain > still + 15.0 else "thermal gave %+.0f m vs %+.0f m in still air" % [gain, still]
+
+
+func test_radar_paints_clouds_and_storms_and_stays_blank_when_clear() -> String:
+	var saved := [Props.get_f("weather/storms"), Props.get_f("weather/precip"), Props.get_f("weather/cloud_cover"), Props.get_f("weather/cloud_base_ft")]
+	Props.set_v("weather/storms", 0.0)
+	Props.set_v("weather/precip", 0.0)
+	Props.set_v("weather/cloud_cover", 0.0)
+	var clear := WxRadar.blobs(Vector2.ZERO, 40000.0)
+	Props.set_v("weather/cloud_cover", 0.9)
+	Props.set_v("weather/cloud_base_ft", 3000.0)
+	var cloud := WxRadar.blobs(Vector2.ZERO, 40000.0)
+	Props.set_v("weather/storms", 0.7)
+	Props.set_v("weather/precip", 0.6)
+	var storm := WxRadar.blobs(Vector2.ZERO, 40000.0)
+	var hot := 0
+	for b in storm:
+		if int(b.level) >= 2 and float(b.r) < 20000.0:
+			hot += 1
+	Props.set_v("weather/storms", saved[0])
+	Props.set_v("weather/precip", saved[1])
+	Props.set_v("weather/cloud_cover", saved[2])
+	Props.set_v("weather/cloud_base_ft", saved[3])
+	if not clear.is_empty():
+		return "clear air drew %d returns" % clear.size()
+	if cloud.is_empty():
+		return "overcast drew nothing"
+	return "" if hot >= 1 else "no storm cell on the radar"

@@ -1,5 +1,5 @@
 extends Control
-## Moving map (N): a large overlay with satellite imagery, airports, VOR / NDB, ILS feathers, the
+## Moving map (N): a large overlay with satellite imagery, weather radar, airports, VOR / NDB, ILS feathers, the
 ## aircraft, its track and the magenta GPS route line. Opens centred on the aircraft, about 20 nm
 ## across (wider if a route is set, so the route fits). Wheel zooms around the cursor, +/- keys
 ## and buttons too; drag pans; Space follows the aircraft again; O toggles north up / heading up.
@@ -310,6 +310,7 @@ func _draw() -> void:
 	draw_rect(Rect2(Vector2.ZERO, size), Color(0.08, 0.1, 0.12))
 	var level := MapView.level_for(view.physical_m_per_px(UiScale.factor), tiles.cache.levels.size())
 	tiles.draw(self, view, level, Color(0.88, 0.88, 0.88))
+	MapWx.draw(self, view, _here())
 	var legs := _plan.legs(_here())
 	var taken: Array = []  # label rects placed so far: the route's names win, then airports, navaids, ILS
 	MapRouteLayer.reserve(view, legs, font, taken)

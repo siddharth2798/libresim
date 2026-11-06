@@ -2,7 +2,8 @@ class_name Weather
 extends Node
 ## Offline weather. Settings live in Props "weather/*" (UI edits them):
 ##   wind_dir_deg (from, true), wind_kt (surface, 10 m), aloft_dir_deg, aloft_kt (blended in from ~50 m AGL,
-##   and allowed to be lighter than the surface wind). The mean wind the pilot sets eases in over ~3 s;
+##   and allowed to be lighter than the surface wind). weather/wind_table, when it has rows
+##   [height AGL m, from deg, kt], replaces that blend above 10 m. The mean wind eases in over ~3 s;
 ##   gusts, thermals and storm cells are applied the same tick.
 ##   gust_kt (peak), turbulence (0..1), visibility_m, cloud_base_ft (AMSL), cloud_cover (0..1),
 ##   qnh_hpa, temp_c (sea level), precip (rain 0..1; drawn by WeatherFx),
@@ -18,7 +19,7 @@ const DEFAULTS := {
 	"convection": 0.0, "storms": 0.0,  # off unless set (old setups and saves behave as before)
 }
 const Z0 := 0.15  # surface roughness (m)
-const TURB_L := 250.0  # turbulence length scale (m)
+const TURB_L := 250.0  # kept for callers; the scale used in flight grows with height (turb_length)
 
 var terrain: TerrainQuadtree
 var cloud := CloudPhysics.new()  # clouds as physics at the aircraft (thermals, cloud / storm turbulence, microbursts)
@@ -44,6 +45,13 @@ static func _from_dir_to_ned(from_deg: float, speed: float) -> Vector3:
 
 
 func wind_at(agl: float) -> Vector3:
+	var table := _wind_table()
+	if table.is_empty():
+		return _two_point(agl)
+	return _from_table(agl, table)
+
+
+func _two_point(agl: float) -> Vector3:
 	var w := Props.get_f("weather/wind_kt") * Units.KT
 	var wa := Props.get_f("weather/aloft_kt") * Units.KT
 	var h := maxf(agl, 1.0)
@@ -51,6 +59,49 @@ func wind_at(agl: float) -> Vector3:
 	var t := clampf((agl - 50.0) / 1450.0, 0.0, 1.0)  # surface at 50 m, the aloft wind by ~1500 m, either way
 	var d := lerp_angle(deg_to_rad(Props.get_f("weather/wind_dir_deg")), deg_to_rad(Props.get_f("weather/aloft_dir_deg")), t)
 	return _from_dir_to_ned(rad_to_deg(d), lerpf(surf, wa, t))
+
+
+func _wind_table() -> Array:
+	var raw = Props.get_v("weather/wind_table", [])
+	if typeof(raw) != TYPE_ARRAY or (raw as Array).is_empty():
+		return []
+	var rows: Array = []
+	for item in raw:
+		if item is Array and (item as Array).size() >= 3:
+			rows.append(item)
+	rows.sort_custom(func(a, b): return float(a[0]) < float(b[0]))
+	return rows
+
+
+## 10 m is the surface wind (the log law). Above that, blend to the next sample and hold the last one.
+func _from_table(agl: float, table: Array) -> Vector3:
+	var h := maxf(agl, 1.0)
+	var dir0 := Props.get_f("weather/wind_dir_deg")
+	var spd0 := Props.get_f("weather/wind_kt")
+	var logk := clampf(log(h / Z0) / log(10.0 / Z0), 0.0, 1.6)
+	if h <= 10.0:
+		return _from_dir_to_ned(dir0, spd0 * logk * Units.KT)
+	var prev_h := 10.0
+	var prev_dir := dir0
+	var prev_spd := spd0
+	for row in table:
+		var hh := float(row[0])
+		var dd := float(row[1])
+		var kk := float(row[2])
+		if h <= hh:
+			var t := clampf((h - prev_h) / maxf(hh - prev_h, 1.0), 0.0, 1.0)
+			var spd_a := spd0 * logk if prev_h <= 10.0 else prev_spd
+			var d := lerp_angle(deg_to_rad(prev_dir), deg_to_rad(dd), t)
+			return _from_dir_to_ned(rad_to_deg(d), lerpf(spd_a, kk, t) * Units.KT)
+		prev_h = hh
+		prev_dir = dd
+		prev_spd = kk
+	return _from_dir_to_ned(prev_dir, prev_spd * Units.KT)
+
+
+## Dryden vertical length: about the height itself near the ground, 530 m (1750 ft) once well up.
+static func turb_length(agl: float) -> float:
+	return clampf(agl, 15.0, 530.0)
 
 
 ## The mean wind eases toward `target` over about 3 s. The first sample is the setting itself.
@@ -90,16 +141,16 @@ func _physics_process(dt: float) -> void:
 		var decay := exp(-maxf(agl, 0.0) / 400.0)
 		lift = clampf(w_en.dot(Vector2(gx, gy)) * 0.5 * decay, -4.0, 6.0)  # m/s, windward up / lee down
 		mech = absf(lift) * 0.5 + w_en.length() * Vector2(gx, gy).length() * decay * 0.6
-	# Dryden-like turbulence: first-order filtered noise, scale grows near the ground
+	# Dryden-like turbulence: first-order filtered noise. The length grows with height.
 	var intensity := Props.get_f("weather/turbulence")
 	var cx := cloud.update(dt, pos, agl, terrain)
 	var sigma: float = intensity * cx.turb_scale * (1.0 + wind.length() * 0.15) * (1.4 if agl < 300.0 else 1.0) + mech * 0.3
 	sigma = maxf(sigma, cx.turb_floor)  # a storm core shakes whatever the slider says
-	var tau := TURB_L / tas
+	var tau := turb_length(agl) / tas
 	var k := sqrt(2.0 * dt / tau)
 	_turb.x += -_turb.x * dt / tau + sigma * k * _rng.randfn()
 	_turb.y += -_turb.y * dt / tau + sigma * k * _rng.randfn()
-	_turb.z += -_turb.z * dt / tau + sigma * 0.7 * k * _rng.randfn()
+	_turb.z += -_turb.z * dt / tau + sigma * k * _rng.randfn()  # vertical sigma is the mapped target
 	var w: Vector3 = wind + _turb + Vector3(0.0, 0.0, -lift) + cx.wind  # + thermal / storm outflow and downdraft
 	if agl < 2.0:
 		w.z = 0.0

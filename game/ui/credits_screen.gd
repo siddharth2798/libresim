@@ -3,6 +3,13 @@ extends Control
 ## plus the always-visible map data attribution line required by the data licences.
 
 const ATTRIBUTION := "Imagery: EOxCloudless (Sentinel-2) cloudless.eox.at by EOX IT Services GmbH (Contains modified Copernicus Sentinel data 2024) CC BY-NC-SA  ·  Elevation: Copernicus DEM © DLR/Airbus  ·  Land cover: ESA WorldCover 2021 CC BY 4.0  ·  Map data © OpenStreetMap contributors (ODbL)  ·  F12 credits"
+const WEATHER_CREDIT := "  ·  Weather: aviationweather.gov, Open-Meteo.com"
+
+
+## The bottom line. The weather credit is added only while live weather is on.
+static func attribution_line() -> String:
+	var live := bool(Session.setup.get("live_weather", false)) and str(Session.training) == ""
+	return ATTRIBUTION + (WEATHER_CREDIT if live else "")
 
 ## Fira Sans is the UI font and ships inside the game: its licence (OFL 1.1) asks for this credit.
 const FONT_CREDIT := "Fira Sans, Copyright The Mozilla Foundation and Telefonica S.A., SIL Open Font License 1.1 (https://github.com/mozilla/Fira); shipped unmodified.\nSymbols (arrows, stars, check marks): libresim Symbols, a 12-glyph subset of DejaVu Sans renamed as its licence asks, Copyright Bitstream, Inc. 2003 and Tavmjong Bah 2006, DejaVu changes public domain (https://dejavu-fonts.github.io/)."
@@ -22,7 +29,7 @@ func _ready() -> void:
 	set_anchors_and_offsets_preset(PRESET_FULL_RECT)  # offsets too: a zero-size control put the line off-screen
 	mouse_filter = MOUSE_FILTER_IGNORE
 	var attr := Label.new()
-	attr.text = ATTRIBUTION
+	attr.text = attribution_line()
 	attr.add_theme_font_size_override("font_size", 10)
 	attr.add_theme_color_override("font_color", Color(1, 1, 1, 0.75))
 	attr.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.8))

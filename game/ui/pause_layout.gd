@@ -158,7 +158,7 @@ static func footer() -> Dictionary:
 		if h[0] == "Esc":
 			esc = what
 	var attr := Label.new()
-	attr.text = Credits.ATTRIBUTION
+	attr.text = Credits.attribution_line()
 	attr.add_theme_font_size_override("font_size", 10)
 	attr.add_theme_color_override("font_color", Color(1, 1, 1, 0.6))
 	attr.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART

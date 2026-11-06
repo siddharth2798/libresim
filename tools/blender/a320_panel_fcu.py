@@ -10,8 +10,9 @@ Measured from data/raw/fg/a320/Models/FlightDeck/res/fd_complete.ac via tools/bl
 of `<object>.axis` (4 decimals); `axis` is normalized (last vertex - first). The four hinge objects
 agree at 4 decimals. None of these knobs has a `<object>.mark` sibling. Pushbutton `at` is the
 primary-mesh centroid. Press direction is the normalized translate <axis> (x2-x1, y2-y1, z2-z1);
-all five blocks share (-0.00962, 0, -0.00279), length 0.010016 m. Lit overlays whose names end in
-_led (ap1_led, ap2_led, a-thr_led, loc_led, appr_led) are left on the static mesh. vs-sel.000 sits
+all five blocks share (-0.00962, 0, -0.00279), length 0.010016 m. The ON overlays (ap1_led, ap2_led,
+a-thr_led, loc_led, appr_led) are `lamps` on that button: parented, renamed lamp_<pivot>, material
+a320_fd_lamp_<pivot>. vs-sel.000 sits
 about 0.35 m from the VS knob and is not part of it.
 
 No row was skipped: hdg_sel, spd-sel, alt-sel, vs-sel, ap1, ap2, a-thr, loc and appr all exist.
@@ -39,19 +40,19 @@ def rows():
         dict(name="vs_sel", objs=["vs-sel"], at=(-16.8348, 0.0958, 0.3785), axis=KNOB_AXIS, kind="rotate",
              drive="controls/fcu/vs_fpm", map=[[-6000.0, 675.0], [6000.0, -675.0]], rate=400.0,
              note="vertical speed knob; -11.25 deg of knob per 100 fpm"),
-        dict(name="ap1", objs=["ap1"], at=(-16.8433, -0.0106, 0.3727), axis=BTN_AXIS, kind="translate",
+        dict(name="ap1", objs=["ap1"], lamps=["ap1_led"], at=(-16.8433, -0.0106, 0.3727), axis=BTN_AXIS, kind="translate",
              drive="controls/fcu/ap1", map=PRESS, rate=0.05,
              note="AP1 pushbutton; 1 = pressed in along the FCU face"),
-        dict(name="ap2", objs=["ap2"], at=(-16.8433, 0.0101, 0.3727), axis=BTN_AXIS, kind="translate",
+        dict(name="ap2", objs=["ap2"], lamps=["ap2_led"], at=(-16.8433, 0.0101, 0.3727), axis=BTN_AXIS, kind="translate",
              drive="controls/fcu/ap2", map=PRESS, rate=0.05,
              note="AP2 pushbutton; 1 = pressed in along the FCU face"),
-        dict(name="athr", objs=["a-thr"], at=(-16.8369, -0.0003, 0.3522), axis=BTN_AXIS, kind="translate",
+        dict(name="athr", objs=["a-thr"], lamps=["a-thr_led"], at=(-16.8369, -0.0003, 0.3522), axis=BTN_AXIS, kind="translate",
              drive="controls/fcu/athr", map=PRESS, rate=0.05,
              note="A/THR pushbutton; 1 = pressed in along the FCU face"),
-        dict(name="loc", objs=["loc"], at=(-16.8347, -0.0492, 0.3500), axis=BTN_AXIS, kind="translate",
+        dict(name="loc", objs=["loc"], lamps=["loc_led"], at=(-16.8347, -0.0492, 0.3500), axis=BTN_AXIS, kind="translate",
              drive="controls/fcu/loc", map=PRESS, rate=0.05,
              note="LOC pushbutton; 1 = pressed in along the FCU face"),
-        dict(name="appr", objs=["appr"], at=(-16.8347, 0.0959, 0.3500), axis=BTN_AXIS, kind="translate",
+        dict(name="appr", objs=["appr"], lamps=["appr_led"], at=(-16.8347, 0.0959, 0.3500), axis=BTN_AXIS, kind="translate",
              drive="controls/fcu/appr", map=PRESS, rate=0.05,
              note="APPR pushbutton; 1 = pressed in along the FCU face"),
     ]

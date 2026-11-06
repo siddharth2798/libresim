@@ -1,0 +1,15 @@
+{
+  "elevation": 8,
+  "current": {
+    "temperature_2m": 30.0,
+    "dew_point_2m": 24.0,
+    "wind_speed_10m": 20.0,
+    "wind_direction_10m": 90,
+    "visibility": 9000
+  },
+  "hourly": {
+    "wind_speed_80m": [12.0],
+    "wind_direction_80m": [100],
+    "cloud_cover_high": [30]
+  }
+}

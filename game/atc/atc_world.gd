@@ -51,6 +51,8 @@ static func snapshot(env: Dictionary, t: float) -> Dictionary:
 			["qnh", "qnh_hpa", 1013.0], ["vis", "visibility_m", 20000.0], ["temp", "temp_c", 15.0],
 			["cloud_cover", "cloud_cover", 0.0], ["cloud_base_ft", "cloud_base_ft", 5000.0], ["precip", "precip", 0.0]]:
 		w[k[0]] = Props.get_f("weather/" + k[1], k[2])
+	if Props.get_b("weather/use_humidity", false):
+		w["dew"] = Props.get_f("weather/dewpoint_c")
 	w.rwy_free = not Props.get_b("atc/rwy_busy")
 	w.taxi_route = str(Props.get_v("ops/taxi_route", ""))
 	var ap := nearest_airport(env, w.pos, GROUND_RANGE if w.wow else AIR_RANGE)

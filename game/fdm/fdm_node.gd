@@ -178,6 +178,12 @@ func _read_controls(dt: float) -> void:
 	if Props.has("environment/qnh_pa"):
 		fdm.atmo.qnh_pa = Props.get_f("environment/qnh_pa")
 		fdm.atmo.delta_t = Props.get_f("environment/delta_t")
+		fdm.atmo.humidity_k = 0.0
+		if Props.get_b("weather/use_humidity", false):
+			var h := maxf(Props.get_f("fdm/alt_m", 0.0), 0.0)
+			var t_c := Props.get_f("weather/temp_c", 15.0) - AtmosphereISA.L * h
+			var p_hpa := Props.get_f("weather/qnh_hpa", 1013.25) * pow(maxf(1.0 - AtmosphereISA.L * h / AtmosphereISA.T0, 0.2), AtmosphereISA.EXP)
+			fdm.atmo.humidity_k = AtmosphereISA.virtual_extra_k(t_c, Props.get_f("weather/dewpoint_c"), p_hpa)
 
 
 ## Lever of engine i: controls/<name> for engine 1 (and for any engine without its own),

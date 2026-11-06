@@ -18,6 +18,7 @@ const DEFAULT := {
 	"visibility_m": 20000.0, "cloud_cover": 0.3, "cloud_base_ft": 4500.0,
 	"qnh_hpa": 1012.0, "temp_c": 30.0, "precip": 0.0, "icing": 0.0,
 	"convection": 0.5, "storms": 0.0,  # thermals / microburst cells (0 in setups saved before the cloud physics)
+	"live_weather": false, "live_update": false, "live_pack": {},  # opt-in real weather (world/live/); lessons force it off
 	"failures": {},  # id -> [mode index (FailureCatalog.MODES), value]
 	"random": {"enabled": false, "count": 1, "from_min": 2.0, "to_min": 30.0,
 		"categories": ["Engine", "Fuel", "Electrical", "Vacuum & gyros", "Pitot-static", "Flight controls", "Avionics"]},
@@ -126,6 +127,8 @@ func begin_lesson(id: String, lesson_setup: Dictionary, assist_level: String) ->
 	apply_air_defaults(lesson_setup.keys())
 	setup.air_kt_given = lesson_setup.has("air_kt")
 	setup.air_custom = ["air_ft", "air_nm", "air_kt"].any(func(k): return lesson_setup.has(k))
+	setup.live_weather = false  # a lesson repeats: it never reads live weather
+	setup.live_pack = {}
 	setup.failures = {}
 	setup.random = {"enabled": false, "count": 1, "from_min": 2.0, "to_min": 30.0, "categories": []}
 	setup.record = false
@@ -227,12 +230,15 @@ func _parse_args(args: PackedStringArray) -> void:
 			"view": view = v
 			"clean": clean = true
 			"record": setup.record = true
+			"live-weather": setup.live_weather = true  # ignored when --lesson follows (begin_lesson clears it)
 	if livery_cli != "":
 		setup.livery = Livery.repair_setup(Livery.parse_cli(livery_cli, str(setup.aircraft)))
 	apply_air_defaults(air_given)  # what was not given: the aircraft's own height, distance and speed
 	setup.air_custom = not air_given.is_empty()
 	setup.air_kt_given = "air_kt" in air_given
-	if cmd.has("lesson"):  # --lesson=landing[,light]
+	if cmd.has("lesson"):  # --lesson=landing[,light]; live weather stays off so the lesson repeats
+		setup.live_weather = false
+		setup.live_pack = {}
 		var parts: PackedStringArray = str(cmd.lesson).split(",")
 		var lesson := TrainingLogic.find(parts[0])
 		if lesson.is_empty():
@@ -268,11 +274,7 @@ func apply_weather_preset(name: String) -> void:
 ## Push the chosen environment into Props (called by the flight scene before it builds)
 ## and clear leftovers from a previous flight in this session.
 func apply_to_props() -> void:
-	for k in WEATHER_KEYS:
-		Props.set_v("weather/" + k, float(setup[k]))
-	# wind aloft: veers ~10 deg and roughly 1.6x the surface wind, as weather.gd expects
-	Props.set_v("weather/aloft_dir_deg", float(setup.wind_dir_deg) + 10.0)
-	Props.set_v("weather/aloft_kt", float(setup.wind_kt) * 1.6)
+	LiveApply.push(setup)  # preset rules, or the live pack when the switch is on and this is not a lesson
 	FailureCatalog.clear_all()
 	for k in ["ops/stand", "ops/taxi_route", "controls/gps/target"]:
 		Props.set_v(k, "")

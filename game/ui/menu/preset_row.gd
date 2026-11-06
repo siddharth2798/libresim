@@ -29,6 +29,13 @@ func select(key: String) -> void:
 		(_btns[k] as Button).set_pressed_no_signal(k == key)
 
 
+func set_locked(on: bool) -> void:
+	for k in _btns:
+		var b := _btns[k] as Button
+		b.disabled = on
+		b.focus_mode = Control.FOCUS_NONE if on else Control.FOCUS_ALL
+
+
 func selected() -> String:
 	for k in _btns:
 		if (_btns[k] as Button).button_pressed:

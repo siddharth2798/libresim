@@ -35,6 +35,7 @@ func _block(slot: Dictionary, cur: Variant) -> Control:
 	var remove := Button.new()
 	remove.text = "Remove"
 	remove.disabled = not has
+	remove.focus_mode = Control.FOCUS_NONE if not has else Control.FOCUS_ALL
 	remove.pressed.connect(func(): edited.emit(str(slot.key), {}))
 	row.add_child(remove)
 	if not has:

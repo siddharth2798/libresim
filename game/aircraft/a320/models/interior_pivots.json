@@ -923,7 +923,8 @@
    ],
    "kind": "translate",
    "objects": [
-    "ap1"
+    "ap1",
+    "ap1_led"
    ],
    "children": [],
    "min": 0.0,
@@ -943,7 +944,8 @@
    ],
    "kind": "translate",
    "objects": [
-    "ap2"
+    "ap2",
+    "ap2_led"
    ],
    "children": [],
    "min": 0.0,
@@ -963,7 +965,8 @@
    ],
    "kind": "translate",
    "objects": [
-    "a-thr"
+    "a-thr",
+    "a-thr_led"
    ],
    "children": [],
    "min": 0.0,
@@ -983,7 +986,8 @@
    ],
    "kind": "translate",
    "objects": [
-    "loc"
+    "loc",
+    "loc_led"
    ],
    "children": [],
    "min": 0.0,
@@ -1003,7 +1007,8 @@
    ],
    "kind": "translate",
    "objects": [
-    "appr"
+    "appr",
+    "appr_led"
    ],
    "children": [],
    "min": 0.0,
@@ -1293,7 +1298,9 @@
    ],
    "kind": "translate",
    "objects": [
-    "abs_low"
+    "abs_low",
+    "dec_low_on",
+    "abs_low_on"
    ],
    "children": [],
    "min": 0.0,
@@ -1313,7 +1320,9 @@
    ],
    "kind": "translate",
    "objects": [
-    "abs_med"
+    "abs_med",
+    "dec_med_on",
+    "abs_med_on"
    ],
    "children": [],
    "min": 0.0,
@@ -1333,7 +1342,9 @@
    ],
    "kind": "translate",
    "objects": [
-    "abs_max"
+    "abs_max",
+    "dec_max_on",
+    "abs_max_on"
    ],
    "children": [],
    "min": 0.0,

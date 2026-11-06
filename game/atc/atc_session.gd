@@ -19,6 +19,7 @@ var _snap_t := 0.0
 var _stamp := ""
 var _sid := 0
 var _pub_rev := -1
+var _metar := ""
 
 
 static func callsign() -> String:
@@ -82,7 +83,17 @@ func tick(dt: float) -> void:
 		mon.step(w, now)
 		Props.set_v("atc/facility", AtcFacilities.tuned(w).name)
 	c.update(now)
+	_metar = note_metar(c, now, _metar)
 	publish()
+
+
+## One line in the radio history when a live METAR arrives. `seen` is the text already logged.
+static func note_metar(c: AtcController, now: float, seen: String) -> String:
+	var raw := str(Props.get_v("weather/live_metar", ""))
+	if c == null or raw == "" or raw == seen:
+		return seen
+	c.log.append({"kind": "system", "who": "Weather", "text": raw, "spoken": "", "t": now, "ack": false})
+	return raw
 
 
 ## Menu entries for the panel (see AtcController.menu).

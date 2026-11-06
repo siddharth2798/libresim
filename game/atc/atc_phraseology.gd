@@ -14,7 +14,7 @@ const SAMPLE := {
 	"clouds": ["scattered", 3000.0], "alt": 2500.0, "alt_limit": 2000.0, "freq": 118.1, "freq2": 121.9, "freq3": 121.9,
 	"pos": "8 miles south-west of the field", "where": "stand 12", "join": "join left-hand downwind runway 09L",
 	"opt_via": " via A, B", "opt_info": "information Alpha, ", "opt_route": "via the Lonavala route, ",
-	"opt_wx": "light rain, ", "dest": "Delhi", "alt_init": 5000.0, "alt_next": 8000.0, "fl": 120, "stand": "stand 3",
+	"opt_wx": "light rain, ", "opt_dew": ", dew point 19", "dest": "Delhi", "alt_init": 5000.0, "alt_next": 8000.0, "fl": 120, "stand": "stand 3",
 	"appr": "ILS"}
 
 var data := {}

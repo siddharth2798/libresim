@@ -147,3 +147,35 @@ func test_bind_maps_keeps_table_shading() -> String:
 	if glass.ao_enabled or glass.ao_texture != null or glass.normal_texture != null:
 		return "interior glass gained maps"
 	return ""
+
+
+## Daylight keeps a floor; night is brighter; off, a dead bus, and any other lamp are dark.
+func test_annunciator_follows_the_switch_and_the_bus() -> String:
+	var saved := {
+		"controls/fcu/ap1": Props.get_v("controls/fcu/ap1", 0),
+		"controls/fcu/ap2": Props.get_v("controls/fcu/ap2", 0),
+		"controls/autobrake": Props.get_v("controls/autobrake", 0),
+	}
+	Props.set_v("controls/fcu/ap1", 1)
+	Props.set_v("controls/fcu/ap2", 0)
+	Props.set_v("controls/autobrake", 2)
+	var day := CockpitLamps.energy(CockpitLamps.lit("lamp_ap1"), 0.0, 0.7, true)
+	var night := CockpitLamps.energy(CockpitLamps.lit("lamp_ap1"), 1.0, 0.7, true)
+	var dead := CockpitLamps.energy(true, 1.0, 0.7, false)
+	var other := CockpitLamps.energy(CockpitLamps.lit("lamp_ap2"), 1.0, 0.7, true)
+	var unknown := CockpitLamps.energy(CockpitLamps.lit("lamp_fault"), 1.0, 0.7, true)
+	var med := CockpitLamps.lit("lamp_autobrake_med")
+	var lo := CockpitLamps.lit("lamp_autobrake_lo")
+	Props.set_v("controls/fcu/ap1", 0)
+	var off := CockpitLamps.energy(CockpitLamps.lit("lamp_ap1"), 1.0, 0.7, true)
+	for k in saved:
+		Props.set_v(k, saved[k])
+	if day < CockpitLamps.LAMP_DAY:
+		return "day AP1 should sit on the day floor, got %s" % day
+	if night <= day:
+		return "night should be brighter than day, %s vs %s" % [night, day]
+	if dead != 0.0 or off != 0.0 or other != 0.0 or unknown != 0.0:
+		return "dark lamps: dead %s off %s other %s unknown %s" % [dead, off, other, unknown]
+	if not med or lo:
+		return "autobrake MED should be the only lit step (med %s lo %s)" % [med, lo]
+	return ""

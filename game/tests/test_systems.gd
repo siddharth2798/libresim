@@ -12,6 +12,23 @@ func _reset_props() -> void:
 	Props.set_v("controls/fuel/selector", 3)
 
 
+func test_ten_knot_headwind_drops_ground_speed() -> String:
+	var f := FDM.new()
+	f.wind_ned = Vector3.ZERO
+	f.set_airborne(0.0, 0.0, 300.0, 0.0, 90.0 * Units.KT)
+	f.step(0.05)
+	var calm := Vector2(f.velocity_ned().x, f.velocity_ned().y).length() / Units.KT
+	f.wind_ned = Weather._from_dir_to_ned(0.0, 10.0 * Units.KT)
+	f.set_airborne(0.0, 0.0, 300.0, 0.0, 90.0 * Units.KT)
+	f.step(0.05)
+	var gs := Vector2(f.velocity_ned().x, f.velocity_ned().y).length() / Units.KT
+	if absf(f.vt / Units.KT - 90.0) > 2.0:
+		return "airspeed %.1f" % (f.vt / Units.KT)
+	if absf((calm - gs) - 10.0) > 1.5:
+		return "ground speed %.1f kt calm, %.1f kt with 10 kt headwind" % [calm, gs]
+	return ""
+
+
 func test_sys_alternator_failure_drains_battery() -> String:
 	_reset_props()
 	var el := Electrical.new()

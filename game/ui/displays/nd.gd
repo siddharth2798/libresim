@@ -1,8 +1,9 @@
 class_name ND
 extends Display
 ## Navigation display: ARC or ROSE view, heading up, with the compass scale, heading / track /
-## selected-heading marks, range rings, track line, route (magenta) and nearby airports and VORs, ground
-## speed / TAS, wind and the active waypoint. Reads Props only: instruments/adirs/{heading_deg,
+## selected-heading marks, range rings, weather radar (clouds, rain, storm cells), track line, route
+## (magenta) and nearby airports and VORs, ground speed / TAS, wind and the active waypoint.
+## Reads Props only: instruments/adirs/{heading_deg,
 ## track_deg}, instruments/pfd/tas_kt, fdm/{groundspeed_mps, position_enu}, controls/fcu/hdg_deg,
 ## avionics/gps/{valid, ident, dist_nm, ete}, instruments/nd/{route, near, wind_dir_deg, wind_kt}
 ## (instruments/nd_feed.gd). Writes controls/nd/mode (0 ARC, 1 ROSE) and controls/nd/range_nm
@@ -15,6 +16,9 @@ var _r := 0.0
 var _rose := false
 var _range_m := 40.0 * NM
 var _hdg := 0.0
+var _wx_key := ""
+var _wx: Array = []
+var _wx_on := false
 
 
 func _init() -> void:
@@ -41,6 +45,7 @@ func _paint() -> void:
 	_hdg = Props.get_f("instruments/adirs/heading_deg")
 	_c = Vector2(300, 318) if _rose else Vector2(300, 490)
 	_r = 200.0 if _rose else 380.0
+	_weather()
 	_rings()
 	_map()
 	_compass()
@@ -54,6 +59,29 @@ func _ang(deg: float) -> float:
 
 func _vis(p: Vector2) -> bool:
 	return p.distance_to(_c) <= _r and (_rose or p.y <= _c.y + 4.0)
+
+
+## Weather radar under the rings: the same field the aircraft is flying through.
+func _weather() -> void:
+	_wx_on = false
+	if not Props.has("fdm/position_enu"):
+		return
+	var p3: Vector3 = Props.get_v("fdm/position_enu", Vector3.ZERO)
+	var me := Vector2(p3.x, p3.y)
+	var key := "%d|%d|%d|%.2f|%.2f|%.2f|%d" % [int(me.x / 2000.0), int(me.y / 2000.0), int(_range_m / 2000.0), Props.get_f("weather/storms"), Props.get_f("weather/precip"), Props.get_f("weather/cloud_cover"), int(Props.get_f("environment/storm_clock_s") / 20.0)]
+	if key != _wx_key:
+		_wx_key = key
+		_wx = WxRadar.blobs(me, _range_m)
+	var h := deg_to_rad(_hdg)
+	for b in _wx:
+		var s := DispMath.nd_project(Vector2(b.e, b.n) - me, h, _range_m, _c, _r)
+		var px := maxf(float(b.r) / _range_m * _r, 4.0)
+		if s.distance_to(_c) > _r + px:
+			continue
+		if not _rose and s.y > _c.y + px:
+			continue
+		dot(s, px, WxRadar.colour(int(b.level)))
+		_wx_on = true
 
 
 func _rings() -> void:
@@ -170,6 +198,8 @@ func _header() -> void:
 	frame(Rect2(262, 2, 76, 28), GREY, 1.5)
 	txt(Vector2(300, 16), "%03d" % posmod(roundi(_hdg), 360), 22, GREEN, 0)
 	txt(Vector2(8, 50), "ROSE NAV" if _rose else "ARC", 15, CYAN)
+	if _wx_on:
+		txt(Vector2(8, 72), "WX", 14, GREEN)
 	hot(Rect2(4, 38, 120, 24), "mode")
 	txt(Vector2(592, 50), "%d NM" % (_range_m / NM), 15, CYAN, 1)
 	hot(Rect2(480, 38, 116, 24), "range")

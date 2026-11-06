@@ -71,6 +71,7 @@ Ground048 (soil, https://ambientcg.com/view?id=Ground048), Grass004 (grass, http
 - **Land cover:** ESA WorldCover 2021 v200 © ESA WorldCover project / Contains modified Copernicus Sentinel data (2021) processed by ESA WorldCover consortium, https://esa-worldcover.org. Licence: **CC BY 4.0** (https://creativecommons.org/licenses/by/4.0/). libresim's land-class tiles (`terrain/wc/`) are a modified (resampled, re-coded) copy; the ground detail drawn per class is procedural.
 - **Map features** (runways, taxiways, roads, buildings, water): © OpenStreetMap contributors, available under the Open Database Licence (ODbL 1.0), https://www.openstreetmap.org/copyright.
 - **Airports, runways, frequencies and navaids:** OurAirports (https://ourairports.com), public domain.
+- **Live weather** (only while the Weather step switch is on): METAR observations from NOAA's Aviation Weather Center (https://aviationweather.gov). Forecast fields (winds aloft, humidity, cloud layers the METAR does not carry) from [Open-Meteo](https://open-meteo.com), CC BY 4.0. The values are adapted to the sim's weather keys (one cloud layer, clamped ranges). The bottom line of the sim credits both while the switch is on.
 - **ATS routes:** Airports Authority of India eAIP, ENR 3.1 and ENR 3.2 (https://aim-india.aai.aero.in/). Route designator, significant-point order and coordinates only, for simulation, not for navigation. The cycle is recorded in `data/processed/airways.json`.
 
 ### Branding

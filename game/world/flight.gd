@@ -13,6 +13,7 @@ extends Node3D
 ##   --quality=low|medium|high|ultra   graphics preset (saved from the F10 menu otherwise)
 ##   --tod=19.5 --day=45 --wind=270/15G25 --vis=3000 --clouds=0.6@3000 --rain=0.5   time (IST h), day of year, weather
 ##   --weather=clear|fair|scattered|broken|overcast|monsoon   weather preset
+##   --live-weather               read real weather for the airport (ignored with --lesson)
 ##   --fail=engine,vacuum_pump | --fail=engine@5   failures at start / after N min
 ##   --random-failures            random failures (defaults: 1 in 2-30 min, any system)
 ##   --record                     record the session (video + sound, see the start screen)
@@ -104,6 +105,10 @@ func _ready() -> void:
 	$UI/Saves.flight = self
 	if Situation.load_pending(self) != "":
 		$Replay.clear()
+	elif LiveRun.wanted():
+		var live := LiveRun.new()
+		live.name = "LiveWeather"
+		add_child(live)
 
 
 func _reset() -> void:

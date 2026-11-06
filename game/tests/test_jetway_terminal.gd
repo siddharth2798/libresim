@@ -60,4 +60,11 @@ func test_jetway_docked_hood_on_the_door_and_bridges_dock() -> String:
 		var vabb: int = _rows.VABB.filter(func(r): return r.docks > 0).size()
 		if vabb < 28:
 			return "only %d VABB jet bridges dock an A320 (want 28+; 19 gates before)" % vabb
+		var gates: int = int(_rows.VABB[0].get("gates_docked", 0))
+		if gates < 45:
+			return "only %d VABB jet-bridge gates dock an A320 (want 45+)" % gates
+	if _rows.has("VOCL") and int(_rows.VOCL[0].get("gates_docked", 0)) < 4:
+		return "only %d VOCL gates dock an A320 (want 4+)" % int(_rows.VOCL[0].get("gates_docked", 0))
+	if _rows.has("VOGA") and int(_rows.VOGA[0].get("gates_docked", 0)) < 6:
+		return "only %d VOGA gates dock an A320 (want 6)" % int(_rows.VOGA[0].get("gates_docked", 0))
 	return ""

@@ -22,6 +22,14 @@ static func rain_visibility(vis_m: float, rain: float) -> float:
 	return vis_m / (1.0 + 0.8 * clampf(rain, 0.0, 1.0))
 
 
+## What the sky should fade to. A hand-set visibility is the value between showers, so rain
+## cuts it. A METAR or model visibility already includes the rain (includes_precip).
+static func drawn_visibility(vis_m: float, rain: float, includes_precip: bool) -> float:
+	var v := maxf(vis_m, 200.0)
+	v = v if includes_precip else rain_visibility(v, rain)
+	return maxf(v, 800.0)  # fog denser than 800 m is not drawn; ATC still reads weather/visibility_m
+
+
 ## How much of the sun's disc and direct light the cloud deck blocks (0 clear .. 1 overcast).
 ## below: 1 under the layer, 0 above its top (sun is out above the deck).
 static func sun_occlusion(cover: float, below := 1.0) -> float:

@@ -114,6 +114,10 @@ def write_info(path, names):
     for r in rows():
         if r["name"] in names:
             vals = [m[1] for m in r["map"]]
-            info["pivots"][r["name"]] = {"at": list(r["at"]), "axis": list(r["axis"]), "kind": r["kind"], "objects": r["objs"],
+            objs = list(r["objs"])
+            for n in r.get("lamps", []):
+                if n not in objs:
+                    objs.append(n)
+            info["pivots"][r["name"]] = {"at": list(r["at"]), "axis": list(r["axis"]), "kind": r["kind"], "objects": objs,
                                           "children": r.get("children", []), "min": min(vals), "max": max(vals), "note": r["note"]}
     Path(path).write_text(json.dumps(info, indent=1))

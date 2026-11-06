@@ -1,0 +1,17 @@
+{
+  "icaoId": "VABB",
+  "temp": 24,
+  "dewp": 22,
+  "wdir": 180,
+  "wspd": 12,
+  "wgst": 25,
+  "visib": 1.24,
+  "altim": 1008,
+  "wxString": "+TSRA",
+  "elev": 14,
+  "rawOb": "METAR VABB 051200Z 18012G25KT 2000 +TSRA BKN015 FEW030CB 24/22 Q1008",
+  "clouds": [
+    {"cover": "BKN", "base": 1500},
+    {"cover": "FEW", "base": 3000, "type": "CB"}
+  ]
+}

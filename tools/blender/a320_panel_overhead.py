@@ -28,8 +28,8 @@ def _rot(name, objs, at, drive, note, amap=None):
                 map=LIGHT if amap is None else amap, rate=240.0, note=note)
 
 
-def _btn(name, objs, at, drive, note):
-    return dict(name=name, objs=objs, at=at, axis=PRESS, kind="translate", drive=drive,
+def _btn(name, objs, at, drive, note, lamps):
+    return dict(name=name, objs=objs, lamps=lamps, at=at, axis=PRESS, kind="translate", drive=drive,
                 map=PRESS_MAP, rate=0.05, note=note)
 
 
@@ -53,13 +53,16 @@ def rows():
              "controls/lights/nav + controls/lights/logo",
              "0 off, 1 nav or logo, 2 both; upstream factor 35, offset-deg -35", NAV),
         _btn("apu_master", ["APUMasterBtn", "APUMasterBtn1F", "APUMasterBtn2O"], (-16.6124, -0.0001, 0.8145),
-             "controls/apu_master", "APU master; 10 mm along the panel normal"),
+             "controls/apu_master", "APU master; 10 mm along the panel normal", ["APUMasterBtn2O"]),
         _btn("apu_start", ["APUStartBtn", "APUStartBtn1A", "APUStartBtn2O"], (-16.6577, -0.0001, 0.7967),
-             "controls/apu_start", "APU start, held; 10 mm along the panel normal"),
+             "controls/apu_start", "APU start, held; 10 mm along the panel normal", ["APUStartBtn2O"]),
         _btn("wing_anti_ice", ["WingAntiIceBtn", "WingAntiIceBtn1F", "WingAntiIceBtn2O"],
-             (-16.5674, -0.1302, 0.8322), "controls/anti_ice/wing", "wing anti-ice; 10 mm along the panel normal"),
+             (-16.5674, -0.1302, 0.8322), "controls/anti_ice/wing", "wing anti-ice; 10 mm along the panel normal",
+             ["WingAntiIceBtn2O"]),
         _btn("eng1_anti_ice", ["Eng1AntiIceBtn", "Eng1AntiIceBtn1F", "Eng1AntiIceBtn2O"],
-             (-16.5674, -0.0725, 0.8322), "controls/anti_ice/eng_1", "engine 1 anti-ice; 10 mm along the panel normal"),
+             (-16.5674, -0.0725, 0.8322), "controls/anti_ice/eng_1", "engine 1 anti-ice; 10 mm along the panel normal",
+             ["Eng1AntiIceBtn2O"]),
         _btn("eng2_anti_ice", ["Eng2AntiIceBtn", "Eng2AntiIceBtn1F", "Eng2AntiIceBtn2O"],
-             (-16.5674, -0.0398, 0.8322), "controls/anti_ice/eng_2", "engine 2 anti-ice; 10 mm along the panel normal"),
+             (-16.5674, -0.0398, 0.8322), "controls/anti_ice/eng_2", "engine 2 anti-ice; 10 mm along the panel normal",
+             ["Eng2AntiIceBtn2O"]),
     ]

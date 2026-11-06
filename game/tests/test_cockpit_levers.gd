@@ -74,6 +74,23 @@ func test_levers_thrust_lever_detent_angles() -> String:
 	return "" if r < -20.0 and r > -30.0 else "reverse max %.1f deg" % r
 
 
+func test_annunciator_lamps_ride_on_their_buttons() -> String:
+	var glb := _interior()
+	var err := ""
+	for pair in [["lamp_ap1", "pivot_ap1"], ["lamp_athr", "pivot_athr"], ["lamp_apu_master", "pivot_apu_master"],
+			["lamp_wing_anti_ice", "pivot_wing_anti_ice"], ["lamp_autobrake_max", "pivot_autobrake_max"]]:
+		var lamp := glb.find_child(pair[0], true, false)
+		var pv := glb.find_child(pair[1], true, false)
+		if lamp == null or pv == null or lamp.get_parent() != pv:
+			err = "%s should be a child of %s" % [pair[0], pair[1]]
+			break
+	var fault := glb.find_child("APUMasterBtn1F", true, false)
+	if err == "" and (fault == null or fault.get_parent() != glb.find_child("pivot_apu_master", true, false)):
+		err = "APU FAULT face should ride the button and stay unnamed as a lamp"
+	glb.free()
+	return err
+
+
 func test_levers_pivots_exist_in_interior_glb() -> String:
 	var lv := _levers()
 	if lv.size() < 30:

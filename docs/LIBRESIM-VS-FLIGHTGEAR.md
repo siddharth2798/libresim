@@ -44,7 +44,7 @@ A factual comparison, not a ranking. FlightGear is a mature, general-purpose ope
 |---|---|---|
 | Property tree | Yes (SimGear props); generic, telnet and built-in web-server interfaces; Phi web UI | Yes (a flat `Props` autoload); no external network interface |
 | Instrument errors (c172p) | Compass northerly-turning and acceleration errors; vacuum gyros with spin-up/down and drift; pitot, static and vacuum failures; alternate static | Similar set: pendulous compass, vacuum gyros with erection and drift, VSI lag, ASI position error, pitot/static/vacuum failures, alternate static |
-| Weather | Basic Weather (METAR) and Advanced Weather; live METAR fetch; 3D clouds on by default; voxel volumetric clouds only in `next` | Offline settings only (no live weather): wind profile, gusts, turbulence, ridge lift, visibility, volumetric clouds and storms, rain, icing, QNH, temperature |
+| Weather | Basic Weather (METAR) and Advanced Weather; live METAR fetch; 3D clouds on by default; voxel volumetric clouds only in `next` | Offline presets, plus an opt-in live weather switch (NOAA METAR and Open-Meteo, off by default, lessons stay offline): wind profile, gusts, turbulence, ridge lift, visibility, volumetric clouds and storms, rain, icing, QNH, temperature |
 | Rendering | Compositor (always built in since 2024.1); dynamic shadows and lights available but off by default; HDR/PBR pipeline only in `next` | Godot Mobile renderer by default; Forward+ from the High preset; presets from Low to Max |
 | VR | Preliminary OpenXR support (osgXR) in 2024.1, on by default in Windows and Linux builds | None |
 

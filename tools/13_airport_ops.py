@@ -3,7 +3,9 @@
 Per airport (nearest OurAirports airport within 6 km), in world metres (x east, y north):
   stands:     [{ref, x, y, heading_deg, kind: "gate"|"remote", jetbridge: bool, src}]
               src "osm": aeroway=parking_position (a way gives line and heading; the stop point is
-              the end not touching a taxiway; a node is headed toward the nearest terminal);
+              the end not touching a taxiway; a node is headed toward the nearest terminal).
+              stand_aim.py then slides a jetbridge stand along its lead-in, or turns it, when
+              that pose leaves the left door where no bridge can dock.
               jetbridge = a jet_bridge way within 45 m.
               src "bridge" | "gate" | "remote": airliner stands derived for terminals whose jet
               bridges no OSM stand serves (airport_stands.py): cab tip of each bridge, walk-out
@@ -33,6 +35,7 @@ import common as c
 import jetway_footprints as JF
 import jetway_net as JN
 import osm_regions as R
+import stand_aim as SA
 
 KEYS = ("aeroway",)
 LINK_KINDS = {"taxiway", "taxilane", "runway", "parking_position"}
@@ -202,6 +205,7 @@ def finish(out, airports, osm_ways, nearest_airport):
     sites = ST.add_stands(out, osm_ways, aprons_of, nearest_airport, ends_of)
     synth_ga_stands(out, sites, aprons, nearest_airport, had_osm)
     JN.apply(out, JF.polys_of)  # movable bridges vs fixed links of the jet-bridge networks
+    SA.aim(out)  # OSM jetbridge stands whose left door no bridge can reach
     (c.OUT / "airport_ops.json").write_text(json.dumps(out))
     for apt, A in sorted(out.items(), key=lambda kv: -len(kv[1]["stands"])):
         src = defaultdict(int)

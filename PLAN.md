@@ -3,7 +3,7 @@
 ## Goal
 A realistic, lightweight desktop flight simulator in the style of MSFS and Real Flight Simulator, for the Mumbai–Pune region (later a corridor to Kochi).
 
-- Free tools only. Runs locally, offline, no online services.
+- Free tools only. Runs locally and offline. The one exception is an opt-in live weather switch, off by default (`docs/LIVE-WEATHER-PLAN.md`).
 - Light: integrated GPU and keyboard first; dedicated GPU and joystick next.
 - Small map: Mumbai–Pune only (~140 × 110 km), install under 1 GB.
 - Main aircraft: Cessna 172S, as realistic as possible.
@@ -104,7 +104,7 @@ Left:
 - Liveries: [docs/LIVERY-PLAN.md](docs/LIVERY-PLAN.md).
 - KAP 140 autopilot for the C172.
 - iPhone/iPad port (M9b): touch controls, phone preset, reduced textures.
-- Freeze scope: multiplayer and live data stay out.
+- Freeze scope: multiplayer stays out. Live weather is the one opt-in online feature, off by default (`docs/LIVE-WEATHER-PLAN.md`).
 
 ## 8b. Standing requirements
 - **Real sounds for every moving or working part.** No synthesized placeholders in releases. Every engine, propeller, actuator, switch, lever, gear, flap motor, trim wheel, stall horn, gyro, wind, tyre rumble, door, ground vehicle (tug, fuel truck, GPU), ATC radio and airport ambience uses real recordings, layered and pitch/volume-mapped to the simulated state. Sources: FlightGear c172p sounds (CC0/CC-BY, credited per its `Thanks` file), Freesound CC0/CC-BY, own recordings. Every file is listed with its licence in CREDITS.md. The procedural engine sound in `aircraft/c172/engine_sound.gd` is a stand-in until then.

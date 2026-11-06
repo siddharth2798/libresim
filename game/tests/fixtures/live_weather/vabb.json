@@ -1,0 +1,14 @@
+{
+  "icaoId": "VABB",
+  "obsTime": 1762339200,
+  "temp": 36,
+  "dewp": 19,
+  "wdir": 90,
+  "wspd": 6,
+  "visib": 1.86,
+  "altim": 1013,
+  "wxString": "FU",
+  "elev": 11,
+  "rawOb": "METAR VABB 051200Z 09006KT 3000 FU NSC 36/19 Q1013",
+  "clouds": []
+}

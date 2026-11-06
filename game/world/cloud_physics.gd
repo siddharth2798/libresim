@@ -69,6 +69,7 @@ static func evaluate(c: Dictionary, p: Vector3, agl: float, t_s: float) -> Dicti
 ## Called by Weather each physics tick: evaluate at the aircraft, publish, return the result.
 func update(dt: float, pos: Vector3, agl: float, terrain: TerrainQuadtree) -> Dictionary:
 	_t += dt
+	Props.set_v("environment/storm_clock_s", _t)  # the radar paints the same drifting cells
 	var c := conditions()
 	_land_timer -= dt
 	if _land_timer <= 0.0 and float(c.convection) > 0.0 and float(c.heat) > 0.0:

@@ -215,6 +215,16 @@ func test_icing_notifications_once_per_episode() -> String:
 		return "")
 
 
+func test_icing_rate_is_zero_outside_the_temperature_band() -> String:
+	if IcingRates.cloud_rate(1.0, "cumulus", 1.0, 3.0, 40.0) != 0.0:
+		return "ice above +2 C"
+	if IcingRates.cloud_rate(1.0, "cumulus", 1.0, -21.0, 40.0) != 0.0:
+		return "ice below -20 C"
+	if IcingRates.cloud_rate(1.0, "cumulus", 1.0, -10.0, 40.0) <= 0.0:
+		return "no ice inside the band"
+	return ""
+
+
 func test_icing_ewd_memo_ice_detected() -> String:
 	return _guard(func():
 		var w := AirlinerWarnings.new()

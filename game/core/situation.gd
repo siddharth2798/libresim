@@ -138,6 +138,7 @@ static func apply(root: Node, d: Dictionary) -> String:
 	var cam: CameraRig = root.get_node("Camera")
 	cam.set_mode(int(d.camera))
 	cam._chase_pos = Vector3(1e6, 1e6, 1e6)  # snaps behind the aircraft on the next frame
+	Props.set_v("meta/situation", int(Props.get_v("meta/situation", 0)) + 1)  # live weather stops writing over a loaded save
 	return ""
 
 

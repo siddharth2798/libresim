@@ -7,15 +7,18 @@ extends Node3D
 ## The gauge quads are unshaded (Cockpit), so the dimmer scales their colour; in daylight
 ## the multiplier is 1 and the panel looks exactly as before.
 ## A320 (materials from MaterialFinish): leather and glareshield roughness, a small night
-## emission on the legend textures, and no glareshield flood (it would wash the displays).
+## emission on the legend textures, white annunciators on the keyed button faces
+## (CockpitLamps), and no glareshield flood (it would wash the displays).
 
 const FLOOD_COLOR := Color(1.0, 0.86, 0.68)
 
 var _gauges: Array[StandardMaterial3D] = []
 var _displays: Array[StandardMaterial3D] = []
 var _legends: Array[StandardMaterial3D] = []
+var _lamps: Array[Dictionary] = []  # {name: String, mat: StandardMaterial3D}
 var _flood: SpotLight3D
 var _last := -1.0
+var _lamp_mask := -1
 var _deck := false  # A320 legend backlight is on; the glareshield flood stays off
 
 
@@ -50,9 +53,11 @@ func _process(_dt: float) -> void:
 	var dim := Props.get_f("controls/lights/panel", LightLogic.PANEL_NIGHT_DEFAULT)
 	var pw := Props.get_b("systems/electrical/powered", true)
 	var key := night * 10.0 + dim * 1000.0 + (0.5 if pw else 0.0)
-	if is_equal_approx(key, _last):
+	var mask := _mask()
+	if is_equal_approx(key, _last) and mask == _lamp_mask:
 		return
 	_last = key
+	_lamp_mask = mask
 	var g := LightLogic.panel_brightness(dim, night, pw)
 	var d := LightLogic.display_brightness(dim, night, pw)
 	# post lights are slightly warm at night
@@ -66,6 +71,11 @@ func _process(_dt: float) -> void:
 		for m in _legends:
 			m.emission_energy_multiplier = e
 			m.emission_enabled = e > 0.001
+		for row in _lamps:
+			var le := CockpitLamps.energy(CockpitLamps.lit(row["name"]), night, dim, pw)
+			var lm := row["mat"] as StandardMaterial3D
+			lm.emission_energy_multiplier = le
+			lm.emission_enabled = le > 0.001
 		_flood.light_energy = 0.0
 		_flood.visible = false
 	else:
@@ -114,4 +124,37 @@ func _bind_deck(aircraft_id: String) -> void:
 			made[src_name] = d
 			_legends.append(d)
 			inst.set_surface_override_material(i, d)
-	_deck = not _legends.is_empty()
+	_bind_lamps(root)
+	_deck = not _legends.is_empty() or not _lamps.is_empty()
+
+
+func _mask() -> int:
+	var m := 0
+	for i in _lamps.size():
+		if CockpitLamps.lit(_lamps[i]["name"]):
+			m |= 1 << i
+	return m
+
+
+## Each lamp_<pivot> mesh gets its own emission copy. White, driven by CockpitLamps.
+func _bind_lamps(root: Node) -> void:
+	for mi in root.find_children("*", "MeshInstance3D", true, false):
+		var n := str(mi.name)
+		if not n.begins_with("lamp_"):
+			continue
+		var inst := mi as MeshInstance3D
+		if inst.mesh == null or inst.mesh.get_surface_count() < 1:
+			continue
+		var active := inst.get_active_material(0)
+		var base := active as StandardMaterial3D
+		if base == null:
+			base = inst.mesh.surface_get_material(0) as StandardMaterial3D
+		if base == null:
+			continue
+		var d := base.duplicate() as StandardMaterial3D
+		d.emission_enabled = false
+		d.emission = Color(1.0, 1.0, 1.0)
+		d.emission_texture = d.albedo_texture
+		d.emission_energy_multiplier = 0.0
+		inst.set_surface_override_material(0, d)
+		_lamps.append({"name": n, "mat": d})

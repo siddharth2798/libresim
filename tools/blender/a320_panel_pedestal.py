@@ -6,8 +6,9 @@ A translate pivot slides along its +X, so `axis` is the unit press direction and
 Direction is the translate <axis> segment (x2-x1, y2-y1, z2-z1) in a320.flightdeck.xml
 (already FG metres; OFF is not added). Travel is that length when it is between 0.002 and
 0.02 m, otherwise 0.003 m. A segment with no length (the thrust buttons' bare <y>1</y>)
-presses along (0, 0, -1). Lit overlays (*_on, *_led) are left out; other objects in the
-same translate animation stay, as pieces of the button.
+presses along (0, 0, -1). The autobrake ON faces (abs_*_on) are lamps on that button.
+The paired dec_*_on faces ride with the same button and stay dark. Other *_on / *_led
+overlays stay on the static mesh.
 """
 import math
 import sys
@@ -23,6 +24,9 @@ XML = ROOT / "data/raw/fg/a320/Models/FlightDeck/a320.flightdeck.xml"
 OFF = (-16.47411, -0.00015, -0.09483)
 INTO = (0.0, 0.0, -1.0)  # degenerate axis: press into the lever
 RATE = 0.05
+# ON face that lights, and the sibling face that only has to move with the button.
+_LAMPS = {"abs_low": ["abs_low_on"], "abs_med": ["abs_med_on"], "abs_max": ["abs_max_on"]}
+_RIDE = {"abs_low": ["dec_low_on"], "abs_med": ["dec_med_on"], "abs_max": ["dec_max_on"]}
 
 # mesh, pivot, drive, map knots (travel substituted for "T"), note
 _SPECS = (
@@ -111,6 +115,12 @@ def rows():
             raise KeyError("no primary mesh %s in %s" % (mesh, AC.name))
         axis, travel, pieces = moves.get(mesh, (INTO, 0.003, [mesh]))
         objs = [mesh] + [p for p in pieces if p != mesh]
-        out.append(dict(name=name, objs=objs, at=centres[mesh], axis=axis, kind="translate",
-                        drive=drive, map=_map(knots, pressed_at, travel), rate=RATE, note=note))
+        for extra in _RIDE.get(mesh, []):
+            if extra not in objs:
+                objs.append(extra)
+        row = dict(name=name, objs=objs, at=centres[mesh], axis=axis, kind="translate",
+                   drive=drive, map=_map(knots, pressed_at, travel), rate=RATE, note=note)
+        if mesh in _LAMPS:
+            row["lamps"] = list(_LAMPS[mesh])
+        out.append(row)
     return out

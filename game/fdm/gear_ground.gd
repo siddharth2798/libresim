@@ -12,6 +12,11 @@ const DAMP_RAMP := 0.03  # m: damping builds up over the first 3 cm of compressi
                          # first contact is not an instant c*v force step
 const BRAKE_MU := 0.45  # effective max braking friction, dry asphalt (tyre + anti-skid-free brakes)
 
+
+## Braking friction in rain. Heavy rain (precip 1) stretches a stop to about 1.8 times the dry distance.
+static func brake_mu(dry: float, precip: float) -> float:
+	return dry / lerpf(1.0, 1.8, clampf(precip, 0.0, 1.0))
+
 ## Contact roles (config "role", else derived from the contact): nose / main / tail for wheels
 ## (tail = a tailwheel behind the mains), wingtip / tail_skid / skid for structure points.
 ## "brake_group" LEFT / RIGHT / BOTH picks which brake pedal slows a wheel.
@@ -99,7 +104,8 @@ func _brake_input(group: int) -> float:
 
 ## Braking friction coefficient of a wheel at demand b.
 func _mu_braked(c: Dictionary, b: float, _v_long: float) -> float:
-	return lerpf(c.mu_roll, c.mu_brake, b)
+	var mu := brake_mu(c.mu_brake, Props.get_f("weather/precip", 0.0))
+	return lerpf(c.mu_roll, mu, b)
 
 
 ## Returns [force_body, moment_body] about the CG.

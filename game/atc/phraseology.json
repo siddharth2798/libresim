@@ -44,8 +44,8 @@
 	},
 	"controller": {
 		"atis": {
-			"ATIS": "{apt} information {info}. Runway {rwy} in use. Wind {wind}. Visibility {vis}. {opt_wx}{clouds}. Temperature {temp}. QNH {qnh}. Acknowledge information {info} on first contact.",
-			"*": "{callsign}, runway {rwy} in use, wind {wind}, visibility {vis}, {opt_wx}{clouds}, temperature {temp}, QNH {qnh}."
+			"ATIS": "{apt} information {info}. Runway {rwy} in use. Wind {wind}. Visibility {vis}. {opt_wx}{clouds}. Temperature {temp}{opt_dew}. QNH {qnh}. Acknowledge information {info} on first contact.",
+			"*": "{callsign}, runway {rwy} in use, wind {wind}, visibility {vis}, {opt_wx}{clouds}, temperature {temp}{opt_dew}, QNH {qnh}."
 		},
 		"clearance": {"*": "{callsign}, cleared VFR, {opt_route}departure runway {rwy}, climb not above {alt_limit} feet, squawk {squawk}, QNH {qnh}."},
 		"readback_ok": {"*": "{callsign}, readback correct."},

@@ -1,0 +1,17 @@
+{
+  "icaoId": "VOCI",
+  "temp": 33,
+  "dewp": 23,
+  "wdir": 270,
+  "wspd": 4,
+  "visib": 2.8,
+  "altim": 1011,
+  "wxString": "HZ",
+  "elev": 8,
+  "rawOb": "METAR VOCI 051200Z 27004KT 4500 HZ FEW015 SCT020 FEW025CB 33/23 Q1011",
+  "clouds": [
+    {"cover": "FEW", "base": 1500},
+    {"cover": "SCT", "base": 2000},
+    {"cover": "FEW", "base": 2500, "type": "CB"}
+  ]
+}

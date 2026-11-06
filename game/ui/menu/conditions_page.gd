@@ -29,6 +29,7 @@ var _xbtn: Button
 var _month: OptionButton
 var _more: Control
 var _more_btn: Button
+var _live: LiveWeatherBar
 
 
 func _ready() -> void:
@@ -61,6 +62,9 @@ func _ready() -> void:
 
 
 func _build_weather(col: VBoxContainer) -> void:
+	_live = LiveWeatherBar.new()
+	_live.changed.connect(_sync)
+	col.add_child(_live)
 	_weather_row = PresetRow.new().setup(Session.WEATHER.keys(), 2)
 	_weather_row.picked.connect(func(n):
 		Session.apply_weather_preset(n)
@@ -185,6 +189,9 @@ func _slider(parent: Control, key: String) -> void:
 
 
 func _put(key: String, v: float) -> void:
+	if bool(Session.setup.get("live_weather", false)):
+		_sync()
+		return
 	Session.setup[key] = v
 	_sync()
 
@@ -202,10 +209,22 @@ func _sync() -> void:
 		var x := float(s[k])
 		(_sl[k] as HSlider).set_value_no_signal(x)
 		_val[k].text = WeatherChoices.value_text(k, x)
-	var wx := WeatherChoices.weather_match(s)
-	s.weather = wx if wx != "" else "Custom"
+	var live := bool(s.get("live_weather", false))
+	var wx := "" if live else WeatherChoices.weather_match(s)
+	s.weather = "Live" if live else (wx if wx != "" else "Custom")
 	_weather_row.select(wx)
-	_weather_note.text = WeatherChoices.weather_note(wx)
+	if _live:
+		_live.sync()
+	for k in _sl:
+		var sl := _sl[k] as HSlider
+		sl.editable = not live
+		sl.focus_mode = Control.FOCUS_NONE if live else Control.FOCUS_ALL
+	_weather_row.set_locked(live)
+	_time_row.set_locked(live)
+	_wind_row.set_locked(live)
+	_month.disabled = live
+	_month.focus_mode = Control.FOCUS_NONE if live else Control.FOCUS_ALL
+	_weather_note.text = "Read from the station. Use as base to edit it." if live else WeatherChoices.weather_note(wx)
 	_time_row.select(WeatherChoices.time_match(s))
 	_wind_row.select(WeatherChoices.wind_match(s))
 	_month.select(clampi(int((float(s.day_of_year) - 1.0) / 30.4), 0, 11))
@@ -226,6 +245,7 @@ func _sync_wind(s: Dictionary) -> void:
 	_xwind.text = WindMath.line(ident, float(s.wind_dir_deg), float(s.wind_kt), comp, has)
 	var lv := _dial.level()
 	_xwind.add_theme_color_override("font_color", MenuTheme.TEXT if lv == WindMath.Level.OK else WindMath.color(lv))
-	_xbtn.disabled = not has
+	_xbtn.disabled = not has or bool(s.get("live_weather", false))
+	_xbtn.focus_mode = Control.FOCUS_NONE if _xbtn.disabled else Control.FOCUS_ALL
 	SliderRow.tip_on(_xwind, "Wind components on the chosen runway. Amber near, red above this aircraft's crosswind limit (%d kt) or with a tailwind above %d kt." % [roundi(limit), roundi(SetupChecks.TAILWIND_KT)])
 	_xbtn.tooltip_text = "Turn the wind to blow straight across the chosen runway." if has else "A stand start has no runway."

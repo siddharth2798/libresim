@@ -108,11 +108,11 @@ Targets and the test that catches an error. All tests are headless and go in `te
 | Light vs weather | cover and base decide sun occlusion; visibility decides haze | Does it: `sun_occlusion`, `aerosol_for_visibility`; `test_weather_visuals.gd` | OVC008 plus 1,500 m: no sun disc, aircraft above the base sees sun, inside cloud fog ramps in |
 
 **Known gaps to fix before live weather can look right**
-1. Wind table (aloft winds are one number; `apply_to_props` forces x1.6 and +10 deg).
-2. METAR visibility double-reduced by rain (`sky_time.gd` line with `rain_visibility`).
-3. Cloud base is AMSL in the sim, AGL in METARs (a trap at Pune and Bengaluru).
+1. Wind table (aloft winds are one number; `apply_to_props` forces x1.6 and +10 deg). Done: `weather/wind_table`, empty for a preset.
+2. METAR visibility double-reduced by rain (`sky_time.gd` line with `rain_visibility`). Done: `weather/visibility_includes_precip`. A hand-set visibility is still the between-showers value.
+3. Cloud base is AMSL in the sim, AGL in METARs (a trap at Pune and Bengaluru). Done in the mapper.
 4. Wet-runway braking missing (`gear_ground.gd`).
-5. One cloud layer and a constant cirrus.
+5. One cloud layer and a constant cirrus. The one layer stays. `weather/cirrus` replaces the constant 0.6 (a preset still sets 0.6).
 6. Slider limits too narrow for real days (temperature 5-45 C, QNH 990-1035, visibility minimum 800 m): the live path must clamp, and fog under 800 m is not drawn.
 7. Optional: humidity in density, a Dryden length scale that grows with height, mist (`MIST_ENABLED`).
 
@@ -136,4 +136,4 @@ Targets and the test that catches an error. All tests are headless and go in `te
 5. One extra attribution line (bottom bar plus credits): **yes**.
 6. Email Open-Meteo about GPL use: **no**. Use the free tier under its published terms; keep the source swappable (see the Licence paragraph). If Open-Meteo ever objects: NOAA METAR plus a simple wind rule, Open-Meteo off.
 
-Status: planned, nothing built. Start with W0.
+Status: W0–W5 are in. The Weather step has the switch, the fetch, the cache and the in-flight blend. Gaps 4 and 6 are in (wet braking, clamp, fog floor at 800 m). Gap 7: humidity changes density only, and the turbulence length grows with height. Dawn mist stays off (`VfogRules.MIST_ENABLED`): the volumetric fog notes still show a hard edge a few kilometres out. The section 4 numbers are headless tests, and the headless suite passes. `tools/check_live_weather.sh` reads VABB, VOCI and VOGO from a METAR (plus the model) and Pune from the model alone. Before/after pictures need a display, as does `tools/e2e.sh`; neither was run here.
