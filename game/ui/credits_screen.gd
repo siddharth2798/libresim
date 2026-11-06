@@ -47,7 +47,7 @@ func _ready() -> void:
 	attr.mouse_filter = MOUSE_FILTER_IGNORE
 	add_child(attr)
 	_attr = attr
-	attr.resized.connect(func(): attribution_resized.emit(attr.size.y + 4.0))
+	attr.resized.connect(_emit_attribution_height)
 	_panel = PanelContainer.new()
 	_panel.set_anchors_preset(PRESET_FULL_RECT)
 	_panel.offset_left = 60
@@ -61,6 +61,11 @@ func _ready() -> void:
 	_text.scroll_active = true
 	_text.selection_enabled = true
 	_panel.add_child(_text)
+
+
+func _emit_attribution_height() -> void:
+	if is_instance_valid(_attr):
+		attribution_resized.emit(_attr.size.y + 4.0)
 
 
 func _load_text() -> String:

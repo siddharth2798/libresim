@@ -1,7 +1,7 @@
 class_name ND
 extends Display
 ## Navigation display: ARC or ROSE view, heading up, with the compass scale, heading / track /
-## selected-heading marks, range rings, weather radar (clouds, rain, storm cells), track line, route
+## selected-heading marks, range rings, weather radar (rain and storm cells; dry cloud stays black), track line, route
 ## (magenta) and nearby airports and VORs, ground speed / TAS, wind and the active waypoint.
 ## Reads Props only: instruments/adirs/{heading_deg,
 ## track_deg}, instruments/pfd/tas_kt, fdm/{groundspeed_mps, position_enu}, controls/fcu/hdg_deg,
@@ -61,7 +61,7 @@ func _vis(p: Vector2) -> bool:
 	return p.distance_to(_c) <= _r and (_rose or p.y <= _c.y + 4.0)
 
 
-## Weather radar under the rings: the same field the aircraft is flying through.
+## Weather radar under the rings: precip and storm cells, blank when the cloud is dry.
 func _weather() -> void:
 	_wx_on = false
 	if not Props.has("fdm/position_enu"):

@@ -43,8 +43,13 @@ func _ready() -> void:
 	_left.add_child(MenuTheme.note("In flight: Esc → Save flight, or F11 quick-save / Shift+F11 quick-load."))
 	_build_detail()
 	_build_empty()
-	visibility_changed.connect(func(): if is_visible_in_tree(): _refresh())
+	visibility_changed.connect(_when_shown)
 	_refresh()
+
+
+func _when_shown() -> void:
+	if is_visible_in_tree():
+		_refresh()
 
 
 ## The empty state: shown instead of the list and the details when there is no save.

@@ -261,7 +261,7 @@ func test_hands_off_c172_gains_altitude_in_a_thermal() -> String:
 	return "" if gain > still + 15.0 else "thermal gave %+.0f m vs %+.0f m in still air" % [gain, still]
 
 
-func test_radar_paints_clouds_and_storms_and_stays_blank_when_clear() -> String:
+func test_radar_is_blank_in_dry_cloud_and_paints_rain_and_storm_cores() -> String:
 	var saved := [Props.get_f("weather/storms"), Props.get_f("weather/precip"), Props.get_f("weather/cloud_cover"), Props.get_f("weather/cloud_base_ft")]
 	Props.set_v("weather/storms", 0.0)
 	Props.set_v("weather/precip", 0.0)
@@ -269,20 +269,31 @@ func test_radar_paints_clouds_and_storms_and_stays_blank_when_clear() -> String:
 	var clear := WxRadar.blobs(Vector2.ZERO, 40000.0)
 	Props.set_v("weather/cloud_cover", 0.9)
 	Props.set_v("weather/cloud_base_ft", 3000.0)
-	var cloud := WxRadar.blobs(Vector2.ZERO, 40000.0)
+	var dry := WxRadar.blobs(Vector2.ZERO, 40000.0)
+	Props.set_v("weather/precip", 0.35)
+	var rain := WxRadar.blobs(Vector2.ZERO, 40000.0)
+	var wide := 0
+	for b in rain:
+		if float(b.r) > 20000.0:
+			wide += 1
 	Props.set_v("weather/storms", 0.7)
 	Props.set_v("weather/precip", 0.6)
 	var storm := WxRadar.blobs(Vector2.ZERO, 40000.0)
-	var hot := 0
+	var cores := 0
+	var skirts := 0
 	for b in storm:
-		if int(b.level) >= 2 and float(b.r) < 20000.0:
-			hot += 1
+		if int(b.level) >= 3 and float(b.r) < 8000.0:
+			cores += 1
+		elif int(b.level) == 1 and float(b.r) > 2000.0:
+			skirts += 1
 	Props.set_v("weather/storms", saved[0])
 	Props.set_v("weather/precip", saved[1])
 	Props.set_v("weather/cloud_cover", saved[2])
 	Props.set_v("weather/cloud_base_ft", saved[3])
 	if not clear.is_empty():
 		return "clear air drew %d returns" % clear.size()
-	if cloud.is_empty():
-		return "overcast drew nothing"
-	return "" if hot >= 1 else "no storm cell on the radar"
+	if not dry.is_empty():
+		return "dry cloud drew %d returns" % dry.size()
+	if rain.is_empty() or wide > 0:
+		return "rain drew %d returns, %d covering the whole scope" % [rain.size(), wide]
+	return "" if cores >= 1 and skirts >= 1 else "storm cores %d skirts %d" % [cores, skirts]

@@ -72,17 +72,21 @@ func _ready() -> void:
 	_stand_note = _panel.stand_note
 	var s: Dictionary = Session.setup
 	_sync_air()
-	visibility_changed.connect(func():  # the aircraft page may have changed the aircraft
-		if visible:
-			_sync_air()
-			if not _cur.is_empty():
-				_select(_cur, false)  # keeps the runway and stand, re-filters the lists for the aircraft
-			_refresh())  # the diagram marks the distance
+	visibility_changed.connect(_when_shown)
 	_cold.set_on(bool(s.cold))
 	for a in _airports:
 		if a.icao == s.airport:
 			_select(a, false)
 	_refresh()
+
+
+## The aircraft step may have changed the aircraft since this page was last shown.
+func _when_shown() -> void:
+	if visible:
+		_sync_air()
+		if not _cur.is_empty():
+			_select(_cur, false)  # keeps the runway and stand, re-filters the lists for the aircraft
+		_refresh()  # the diagram marks the distance
 
 
 func _legend() -> Control:

@@ -60,8 +60,13 @@ func _ready() -> void:
 	_hint = MenuTheme.note("")
 	_hint.add_theme_font_size_override("font_size", 13)
 	add_child(_hint)
-	visibility_changed.connect(func(): if is_visible_in_tree(): refresh())
+	visibility_changed.connect(_when_shown)
 	refresh()
+
+
+func _when_shown() -> void:
+	if is_visible_in_tree():
+		refresh()
 
 
 func refresh() -> void:

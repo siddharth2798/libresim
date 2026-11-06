@@ -59,8 +59,13 @@ func _ready() -> void:
 	pad.add_child(_armed)
 	rs.add_child(pad)
 	add_child(rs)
-	visibility_changed.connect(func(): if is_visible_in_tree(): refresh())
+	visibility_changed.connect(_when_shown)
 	refresh()
+
+
+func _when_shown() -> void:
+	if is_visible_in_tree():
+		refresh()
 
 
 ## Repaint from Session.setup; rebuild the areas and rows first when the aircraft's catalog is not the one shown.

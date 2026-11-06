@@ -33,6 +33,7 @@ var flights_started := 0
 var lessons_started := 0  # tests: lessons started from the home screen's Continue (dry_run does not load the flight scene)
 var _top_buttons: Array[Control] = []  # Handbook, Credits, Quit
 var _confirm: FlyConfirm  # the open "Fly anyway?" question, or null
+var _page_margin: MarginContainer  # kept above the attribution line; may already be gone when that line resizes on the way out
 var captain_watch: CaptainWatch  # offers the Thrustmaster Captain Pack profile once per launch (captain_watch.gd)
 
 
@@ -64,6 +65,7 @@ func _ready() -> void:
 	m.size_flags_vertical = SIZE_EXPAND_FILL
 	for side in ["left", "right", "top", "bottom"]:
 		m.add_theme_constant_override("margin_" + side, 28)
+	_page_margin = m
 	guard.add_child(m)
 	var root := VBoxContainer.new()
 	root.add_theme_constant_override("separation", 16)
@@ -79,14 +81,20 @@ func _ready() -> void:
 	credits.name = "Credits"
 	credits.set("margin_left", 24.0)  # no instrument stacks here: the line may use the whole width
 	credits.set("margin_right", 24.0)
-	credits.connect("attribution_resized", func(h: float):  # a narrow window wraps it to more lines: keep the page above it
-		m.add_theme_constant_override("margin_bottom", maxi(28, int(h) + 6)))
+	credits.connect("attribution_resized", _fit_credits)
 	add_child(credits)
 	Session.end_lesson()  # coming back from a lesson: restore the free-flight setup
 	go("home")
 	captain_watch = CaptainWatch.new()
 	captain_watch.host = self
 	add_child(captain_watch)
+
+
+## The attribution line wraps on a narrow window. It also resizes while the screen is being
+## freed, after the margin it pushes has already gone.
+func _fit_credits(h: float) -> void:
+	if is_instance_valid(_page_margin):
+		_page_margin.add_theme_constant_override("margin_bottom", maxi(28, int(h) + 6))
 
 
 ## Top bar: the small logo and name on every screen but the home screen (which shows them

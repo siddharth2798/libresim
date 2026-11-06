@@ -2,7 +2,8 @@ class_name LoaderFilm
 extends TextureRect
 ## Scenic frames behind a loading screen, the way a flight sim plays a film while the
 ## world streams in. The clips are short camera moves shot at the Max preset
-## (tests/debug_showcase.gd --film=). One JPEG is decoded at a time.
+## (tests/debug_showcase.gd --film=). Each frame is the imported texture, loaded
+## on its own so an export can play it and only one frame stays in memory.
 
 
 const FPS := 15.0
@@ -17,11 +18,10 @@ var _clip := 0
 var _frame := 0
 var _acc := 0.0
 var _count := 0
-var _tex: ImageTexture
 
 
 static func available() -> bool:
-	return ResourceLoader.exists(CLIPS[0].dir + "/00.jpg") or FileAccess.file_exists(CLIPS[0].dir + "/00.jpg")
+	return ResourceLoader.exists(CLIPS[0].dir + "/00.jpg")
 
 
 func _ready() -> void:
@@ -30,8 +30,6 @@ func _ready() -> void:
 	stretch_mode = STRETCH_KEEP_ASPECT_COVERED
 	mouse_filter = MOUSE_FILTER_IGNORE
 	visible = false
-	_tex = ImageTexture.new()
-	texture = _tex
 
 
 ## Start at a clip (a different one each time the loader appears).
@@ -70,19 +68,16 @@ func _show_frame(i: int) -> void:
 	if _count == 0:
 		return
 	_frame = i % _count
-	var img := Image.new()
-	if img.load("%s/%02d.jpg" % [dir, _frame]) != OK:
+	var res: Resource = ResourceLoader.load("%s/%02d.jpg" % [dir, _frame], "", ResourceLoader.CACHE_MODE_IGNORE)
+	var tex := res as Texture2D
+	if tex == null:
 		return
-	if _tex.get_width() != img.get_width() or _tex.get_height() != img.get_height():
-		_tex.set_image(img)
-	else:
-		_tex.update(img)
+	texture = tex
 	caption = str(CLIPS[_clip].title)
-	texture = _tex
 
 
 func _frames(dir: String) -> int:
 	var n := 0
-	while FileAccess.file_exists("%s/%02d.jpg" % [dir, n]):
+	while ResourceLoader.exists("%s/%02d.jpg" % [dir, n]):
 		n += 1
 	return n

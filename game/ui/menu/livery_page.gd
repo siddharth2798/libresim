@@ -57,9 +57,12 @@ func _ready() -> void:
 	_dialog.filters = PackedStringArray(["*.png, *.jpg, *.jpeg, *.webp ; Pictures"])
 	_dialog.file_selected.connect(_on_file)
 	add_child(_dialog)
-	visibility_changed.connect(func():
-		if is_visible_in_tree():
-			_sync())
+	visibility_changed.connect(_when_shown)
+	if is_visible_in_tree():
+		_sync()
+
+
+func _when_shown() -> void:
 	if is_visible_in_tree():
 		_sync()
 

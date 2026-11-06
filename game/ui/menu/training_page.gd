@@ -41,10 +41,15 @@ func _ready() -> void:
 	_lessons = mine if not mine.is_empty() else TrainingLogic.load_lessons()
 	_build_left()
 	_build_right()
-	visibility_changed.connect(func(): if is_visible_in_tree(): _refresh_stars())
+	visibility_changed.connect(_when_shown)
 	if not _lessons.is_empty():
 		_cards[0].button_pressed = true
 		_select(0)
+
+
+func _when_shown() -> void:
+	if is_visible_in_tree():
+		_refresh_stars()
 
 
 func _build_left() -> void:

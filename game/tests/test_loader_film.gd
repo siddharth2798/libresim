@@ -18,7 +18,7 @@ func test_loader_film_decodes_a_frame() -> String:
 	film.restart()
 	if not TITLES.has(film.caption):
 		return "caption '%s'" % film.caption
-	var tex := film.texture as ImageTexture
+	var tex := film.texture as Texture2D
 	if tex == null or tex.get_width() < 640 or tex.get_height() < 360:
 		return "frame did not decode"
 	return ""

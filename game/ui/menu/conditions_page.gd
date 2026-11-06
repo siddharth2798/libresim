@@ -57,8 +57,13 @@ func _ready() -> void:
 		for k in col[1]:
 			_slider(c, k)
 	_show_more(_more_open)
-	visibility_changed.connect(func(): if visible: _sync())
+	visibility_changed.connect(_when_shown)
 	_sync()
+
+
+func _when_shown() -> void:
+	if visible:
+		_sync()
 
 
 func _build_weather(col: VBoxContainer) -> void:

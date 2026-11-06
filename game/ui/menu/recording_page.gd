@@ -79,8 +79,13 @@ func _ready() -> void:
 		s.record_dir = d
 		_update())
 	add_child(_dialog)
-	visibility_changed.connect(func(): if is_visible_in_tree(): refresh())
+	visibility_changed.connect(_when_shown)
 	refresh()
+
+
+func _when_shown() -> void:
+	if is_visible_in_tree():
+		refresh()
 
 
 ## Repaint from Session.setup (shown again after the setup was replaced, e.g. Fly again).
