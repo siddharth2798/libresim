@@ -73,6 +73,12 @@ EDITS = {
     "hyd_pump_loop.wav": dict(src="pump", t=(4.0, 13.0), loop=1.5, peak=-3),
     "gear_motion_loop.wav": dict(src="hoist", t=(18.0, 30.0), loop=1.5, peak=-3),
     "chime.wav": dict(src="chime", t=(0.0, 2.9), fade=(0.0, 0.05), peak=-3),
+    # Hydraulic actuator while the slats and flaps travel (the steady pump, brighter than the cabin pump loop).
+    "flap_hyd_loop.wav": dict(src="pump", t=(6.0, 16.0), loop=1.2, hp=280.0, peak=-3),
+    # The landing roll of a real airliner, after the reverse-thrust peak: spoiler buffet on the runway.
+    "spoiler_buffet_loop.wav": dict(src="lax", t=(48.0, 60.0), loop=1.5, peak=-3),
+    # The pump starting: a heavy mechanical onset used as the gear-lock clunk.
+    "gear_lock.wav": dict(src="pump", t=(0.45, 1.7), fade=(0.01, 0.25), peak=-3),
 }
 LOOPS = [k for k, v in EDITS.items() if "loop" in v]
 

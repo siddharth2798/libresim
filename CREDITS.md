@@ -52,8 +52,10 @@ All sounds are real recordings, listed file by file in `game/aircraft/c172/sound
 - **Cabin air conditioning:** "air conditioner hum 2" by **Gravity Sound**, CC BY 4.0, https://commons.wikimedia.org/wiki/File:Air_conditioner_hum_2_(Gravity_Sound).wav
 - **Hydraulic pump:** "Pump" by **Work With Sounds / La Fonderie**, CC BY 4.0, https://commons.wikimedia.org/wiki/File:WWS_Pump.ogg
 - **Landing-gear actuation:** "Hoist" by **Work With Sounds / Torsten Nilsson**, CC BY 4.0, https://commons.wikimedia.org/wiki/File:WWS_Hoist.ogg
+- **Gear-lock clunk and the flap / slat hydraulic whine:** "Pump" by **Work With Sounds / La Fonderie**, CC BY 4.0 (the same recording as the hydraulic pump; the lock is the start, the flap whine is a high-passed loop of the steady run).
+- **Spoiler buffet:** the landing roll of "LAX AIRPORT! LANDING SOUND LA CITY SOUNDS" by **freetousesounds** (Marcel), CC BY 4.0 (the same recording as the reverse-thrust roar, a later section).
 - **Seat-belt chime:** "Airplane Chime Sound Effect" by **Sharelk**, CC0, https://commons.wikimedia.org/wiki/File:Airplane_Chime_Sound_Effect.ogg
-- The A320 also reuses C172 sound files (wind, rain, tyres, flap motor, clicks, lever), credited above. No sound from the A320-family upstream project is used.
+- The A320 also reuses C172 sound files (wind, rain, tyres, the flap-lever click, the parking-brake lever), credited above. No sound from the A320-family upstream project is used.
 
 ### Terrain detail textures
 Tiling ground materials from **ambientCG** (https://ambientcg.com), all **CC0 1.0** (public domain), packed into texture arrays by `tools/26_terrain_textures.py` (high-passed albedo modulation, normal / roughness / AO; list with layers in `game/world/textures/terrain/SOURCES.md`):

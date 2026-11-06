@@ -5,9 +5,9 @@ extends RefCounted
 ## (vertically, world space) until the lowest point of its tyre (axle - radius, measured from the meshes in the rest
 ## pose, so a new aircraft needs no data) is on that ground. Per wheel contact (config.json gear, BOGEY):
 ##   leg     a pivot in model.surfaces with "compress": <contact> (retractable legs, A320). The retraction hinge stays
-##           put. The lower tube, torque links and wheels slide up by the spring compression, times gear_pos, so the
-##           oleo compresses and the hinge does not lift off the wing. An optional "lift_m" (metres the tyre hangs
-##           below the contact, extended) replaces the measured tyre: raise = (c + lift_m) * gear_pos
+##           on the wing. The sliding tube and wheels move up the strut by the spring compression. Torque links and
+##           side stays fold about their upper end so the leg shortens instead of the links floating off their mounts.
+##           An optional "lift_m" replaces the measured tyre: raise = (c + lift_m) * gear_pos
 ##   parts   fixed gear (C172): the glb meshes named like a wheel part (WORDS) nearest that contact, or the names in
 ##           model.wheels {<contact>: [node names]}
 ##   model   nothing found: the whole model moves by the largest raise of those contacts, so no tyre sinks
@@ -42,18 +42,19 @@ static func build(root: Node3D, model: Node3D, f: FDM, sec: Dictionary) -> TyreC
 		var s: Dictionary = surfaces[n]
 		var pv := root.find_child("pivot_" + n, true, false) as Node3D
 		if pv and s.has("compress") and contacts.has(str(s.compress)):
-			var movers := _oleo_parts(pv)
-			if movers.is_empty():
-				movers = [pv]
+			var sliders := _named(pv, ["sliding", "wheel", "lower"])
+			if sliders.is_empty():
+				sliders = [pv]
 			var ms: Array = []
-			for mv in movers:
+			for mv in sliders:
 				if mv is MeshInstance3D:
 					ms.append(mv)
 				ms.append_array((mv as Node).find_children("*", "MeshInstance3D", true, false))
 			var ty := _tyres(ms)
 			var lift := float(s.lift_m) if s.has("lift_m") else NAN
 			var cn := str(s.compress)
-			t._groups.append([cn, movers.map(func(nd): return [nd, (nd as Node3D).position]), _axles(ty if not ty.is_empty() else ms, model), lift, true, spos[cn]])
+			var nodes := sliders.map(func(nd): return [nd, (nd as Node3D).position])
+			t._groups.append([cn, nodes, _axles(ty if not ty.is_empty() else ms, model), lift, true, spos[cn], _links(pv)])
 			done[cn] = true
 	var parts := {}  # contact -> [Node3D]
 	var named: Dictionary = sec.get("wheels", {})
@@ -123,6 +124,10 @@ func update(f: FDM, model: Node3D) -> void:
 		for e in g[1]:
 			var nd: Node3D = e[0]
 			nd.position = e[1] + nd.get_parent().global_transform.basis.inverse() * Vector3(0.0, up, 0.0)
+		if g.size() > 6:
+			var stroke := comp * (gp if g[4] else 1.0)
+			for link in g[6]:
+				_fold(link, stroke)
 	if not _whole.is_empty():
 		var up := -INF
 		for w in _whole:
@@ -140,23 +145,72 @@ func modes() -> Dictionary:
 	return out
 
 
-## Direct children of the retraction pivot that are the sliding leg (or contain it). The pivot itself is the hinge.
-static func _oleo_parts(pv: Node3D) -> Array:
+## Nodes under the gear pivot whose name contains one of `words`, the node itself and not its children.
+static func _named(n: Node, words: Array) -> Array:
 	var out: Array = []
-	for ch in pv.get_children():
-		if ch is Node3D and _is_oleo(ch):
+	for ch in n.get_children():
+		if not ch is Node3D:
+			continue
+		var nm := String(ch.name).to_lower()
+		if words.any(func(w): return nm.contains(w)):
 			out.append(ch)
+		else:
+			out.append_array(_named(ch, words))
 	return out
 
 
-static func _is_oleo(n: Node) -> bool:
-	var nm := String(n.name).to_lower()
-	if nm.contains("sliding") or nm.contains("torque") or nm.contains("wheel"):
-		return true
-	for c in n.get_children():
-		if _is_oleo(c):
-			return true
-	return false
+## Torque links and side stays: [node, rest position, rest basis, upper hinge, lower tip, length], mesh space.
+static func _links(pv: Node3D) -> Array:
+	var out: Array = []
+	for nd in _named(pv, ["torque", "slave"]):
+		var mi := nd as MeshInstance3D
+		if mi == null or mi.mesh == null:
+			var found := (nd as Node).find_children("*", "MeshInstance3D", true, false)
+			mi = found[0] if not found.is_empty() else null
+		if mi == null or mi.mesh == null:
+			continue
+		var ends := _ends(mi)
+		var hinge: Vector3 = ends[0]
+		var tip: Vector3 = ends[1]
+		out.append([nd, (nd as Node3D).position, (nd as Node3D).basis, hinge, tip, hinge.distance_to(tip)])
+	return out
+
+
+## The highest and lowest vertices of a link (mesh space): the upper mount and the end that follows the oleo.
+static func _ends(mi: MeshInstance3D) -> Array:
+	var top := Vector3.ZERO
+	var bot := Vector3.ZERO
+	var hi := -INF
+	var lo := INF
+	for si in mi.mesh.get_surface_count():
+		for v in mi.mesh.surface_get_arrays(si)[Mesh.ARRAY_VERTEX]:
+			var p: Vector3 = v
+			if p.y > hi:
+				hi = p.y
+				top = p
+			if p.y < lo:
+				lo = p.y
+				bot = p
+	return [top, bot]
+
+
+## Fold a link about its upper end so the lower end rises `stroke` metres along the strut.
+static func _fold(link: Array, stroke: float) -> void:
+	var nd: Node3D = link[0]
+	var rest_pos: Vector3 = link[1]
+	var rest_basis: Basis = link[2]
+	var hinge: Vector3 = link[3]
+	var tip: Vector3 = link[4]
+	var length: float = link[5]
+	var s := clampf(stroke, 0.0, length * 0.85)
+	var a := tip - hinge
+	var b := a + Vector3(0.0, s, 0.0)
+	if a.length() < 1e-4 or b.length() < 1e-4:
+		nd.position = rest_pos
+		nd.basis = rest_basis
+		return
+	nd.basis = rest_basis * Basis(Quaternion(a.normalized(), b.normalized()))
+	nd.position = rest_pos + rest_basis * hinge - nd.basis * hinge
 
 
 ## Body frame (x nose, y right, z down, from the CG) -> model frame (-Z nose, +X right, +Y up).

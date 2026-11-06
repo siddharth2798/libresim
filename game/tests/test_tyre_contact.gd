@@ -92,16 +92,23 @@ func test_a320_oleo_slides_and_the_hinge_stays() -> String:
 	var tube := ext.find_child("MLGSlidingTubeAxleL", true, false) as Node3D
 	if hinge == null or tube == null:
 		return "A320 gear pivot or sliding tube missing"
+	var link := ext.find_child("MLGTorqueLinkL1", true, false) as Node3D
+	if link == null:
+		return "A320 torque link missing"
 	var hinge0 := hinge.position
 	var tube0 := tube.position
+	var link_basis := link.basis
 	m._process(0.0)
 	var hinge_d := hinge.position.distance_to(hinge0)
 	var tube_d := tube.position.distance_to(tube0)
-	print("    oleo: hinge moved %.4f m, sliding tube %.3f m" % [hinge_d, tube_d])
+	var folded := link.basis.get_rotation_quaternion().angle_to(link_basis.get_rotation_quaternion())
+	print("    oleo: hinge moved %.4f m, sliding tube %.3f m, torque link folded %.1f deg" % [hinge_d, tube_d, rad_to_deg(folded)])
 	if hinge_d > 0.002:
 		return "the retraction hinge moved %.3f m with the oleo" % hinge_d
 	if tube_d < 0.05:
 		return "the sliding tube did not compress (%.3f m)" % tube_d
+	if folded < deg_to_rad(8.0):
+		return "the torque link did not fold with the oleo (%.1f deg)" % rad_to_deg(folded)
 	return ""
 
 

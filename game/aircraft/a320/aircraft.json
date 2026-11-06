@@ -1468,7 +1468,7 @@
    },
    {
     "id": "gear_lock",
-    "file": "res://aircraft/c172/sounds/door-closing.wav",
+    "file": "gear_lock.wav",
     "bus": "Cockpit",
     "loop": false,
     "trigger": {
@@ -1482,12 +1482,12 @@
     "gain": 0.8,
     "view": {
      "cockpit": 1.0,
-     "outside": 0.5
+     "outside": 0.8
     }
    },
    {
     "id": "flap_motor",
-    "file": "res://aircraft/c172/sounds/flaps-motor.wav",
+    "file": "flap_hyd_loop.wav",
     "bus": "Cockpit",
     "loop": true,
     "gate": {
@@ -1502,13 +1502,13 @@
     "pitch": [
      [
       0,
-      0.8
+      0.85
      ]
     ],
-    "gain": 0.4,
+    "gain": 0.55,
     "view": {
      "cockpit": 1.0,
-     "outside": 0.3
+     "outside": 0.7
     }
    },
    {
@@ -1528,7 +1528,7 @@
    },
    {
     "id": "spoiler_rumble",
-    "file": "res://aircraft/c172/sounds/rumble.wav",
+    "file": "spoiler_buffet_loop.wav",
     "bus": "Environment",
     "loop": true,
     "drive": "fdm/speedbrake",
@@ -1539,7 +1539,7 @@
      ],
      [
       0.05,
-      0.2
+      0.25
      ],
      [
       1,
@@ -1549,11 +1549,11 @@
     "pitch": [
      [
       0,
-      0.7
+      0.85
      ],
      [
       1,
-      0.9
+      1.05
      ]
     ],
     "gate": {
@@ -1561,10 +1561,10 @@
       "fdm/tas_mps": 30.0
      }
     },
-    "gain": 0.6,
+    "gain": 0.7,
     "view": {
      "cockpit": 0.8,
-     "outside": 0.8
+     "outside": 1.0
     }
    },
    {

@@ -188,6 +188,55 @@
    "frames": 127890,
    "rate": 44100,
    "loop": false
+  },
+  "flap_hyd_loop.wav": {
+   "src": "pump",
+   "edit": {
+    "t": [
+     6.0,
+     16.0
+    ],
+    "loop": 1.2,
+    "hp": 280.0,
+    "peak": -3
+   },
+   "sha256": "280b4939cf2270366426a9bffdb79b1ed056f8b443fd05af7afb4ce4baa4b674",
+   "frames": 388080,
+   "rate": 44100,
+   "loop": true
+  },
+  "spoiler_buffet_loop.wav": {
+   "src": "lax",
+   "edit": {
+    "t": [
+     48.0,
+     60.0
+    ],
+    "loop": 1.5,
+    "peak": -3
+   },
+   "sha256": "f34a31e4fdafdd62a5157dbcc37344f3f7362661b45e5ff5f4568940ff0cd7eb",
+   "frames": 463050,
+   "rate": 44100,
+   "loop": true
+  },
+  "gear_lock.wav": {
+   "src": "pump",
+   "edit": {
+    "t": [
+     0.45,
+     1.7
+    ],
+    "fade": [
+     0.01,
+     0.25
+    ],
+    "peak": -3
+   },
+   "sha256": "39283655451b9780fc17eea3957fded4744fabddfa02a897e5fb31c1c4cb0d6a",
+   "frames": 55125,
+   "rate": 44100,
+   "loop": false
   }
  }
 }

@@ -20,6 +20,9 @@ and out). Volume balance between files is done by the `gain` / `volume` tables i
 | packs_loop.wav | "air conditioner hum 2" by Gravity Sound (`Air conditioner hum 2 (Gravity Sound).wav`), https://commons.wikimedia.org/wiki/File:Air_conditioner_hum_2_(Gravity_Sound).wav (Gravity Sound's free library, https://www.gravitysound.studio/free-music-sound-effects; copied to Commons by a third party) | CC BY 4.0 | Whole 18 s recording, loop cross-fade. A building air conditioner used for the cabin air-conditioning hiss |
 | hyd_pump_loop.wav | "Pump" (`WWS Pump.ogg`), Work With Sounds / La Fonderie, via Wikimedia Commons, https://commons.wikimedia.org/wiki/File:WWS_Pump.ogg | CC BY 4.0 | 4-13 s (steady part) of an electric liquid pump in a distillery, mono, loop. Used for the hydraulic pump whine |
 | gear_motion_loop.wav | "Hoist" (`WWS Hoist.ogg`), Work With Sounds / Torsten Nilsson, via Wikimedia Commons, https://commons.wikimedia.org/wiki/File:WWS_Hoist.ogg | CC BY 4.0 | 18-30 s (steady part) of a mine hoist winder, mono, loop. Used for the landing-gear actuation noise |
+| gear_lock.wav | "Pump" (`WWS Pump.ogg`), Work With Sounds / La Fonderie, via Wikimedia Commons, https://commons.wikimedia.org/wiki/File:WWS_Pump.ogg | CC BY 4.0 | 0.45-1.7 s, the pump starting, faded. Used as the gear up/down lock clunk |
+| flap_hyd_loop.wav | same Pump recording | CC BY 4.0 | 6-16 s, high-passed above 280 Hz, loop. The hydraulic whine while the slats and flaps travel |
+| spoiler_buffet_loop.wav | "LAX AIRPORT! LANDING SOUND LA CITY SOUNDS" ("LAX Aiport Landing Sound Two.ogg"), freetousesounds (Marcel), OpenGameArt, https://opengameart.org/content/lax-airport-landing-sound-la-city-sounds | CC BY 4.0 | 48-60 s of the landing roll, after the reverse-thrust peak, loop. Spoiler buffet over the runway |
 | chime.wav | "Airplane Chime Sound Effect" (`Airplane Chime Sound Effect.ogg`), Sharelk, https://commons.wikimedia.org/wiki/File:Airplane_Chime_Sound_Effect.ogg | CC0 | Whole 2.9 s file, mono, short fade-out. Cabin seat-belt chime. Commons says "Own work"; whether it is a recording or was made on a computer is not stated |
 
 CC-BY requires the attribution above (author, title, source, licence, "changes were made": trimmed, filtered, resampled).
@@ -31,9 +34,9 @@ Draken, pump and hoist: "Work With Sounds", CC BY 4.0. LAX landing: freetousesou
 |---|---|---|
 | wind1 | airflow | fgdata, GPL-2.0-or-later (fgdata states GPL-2.0) |
 | rain, rain-windshield | rain | fgdata, GPL-2.0 |
-| rumble | spoiler rumble, tyre rumble | fgdata, GPL-2.0 |
+| rumble | tyre rumble | fgdata, GPL-2.0 |
 | tires-rolling-asphalt, tires-screech-asphalt | tyre roll, touchdown squeal | c172p team, GPL-2.0-or-later |
-| flaps-motor, flaps-click, door-closing | slat / flap motor, flap lever detent, gear-lock thunk | c172p team, GPL-2.0-or-later |
+| flaps-click | flap lever detent in the cockpit | c172p team, GPL-2.0-or-later |
 | click2 | gear lever click | c172p team, GPL-2.0-or-later |
 | lever | parking brake lever | "Old Lever Pull" by DrMinky (freesound.org/s/167048), CC0 |
 
