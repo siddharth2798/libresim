@@ -40,6 +40,37 @@ func _key(code: Key) -> InputEventKey:
 	return e
 
 
+func teardown() -> void:
+	AudioSettings.hold_game(false)
+
+
+func _quiet(bus: String) -> bool:
+	return AudioSettings.muted(bus) or AudioSettings.volume(bus) <= 0.0
+
+
+func test_pause_silences_the_flight_until_resume() -> String:
+	var saved := AudioSettings.muted("Engine")
+	var p := _make()
+	p.open()
+	var err := ""
+	for bus in ["Engine", "Environment", "Cockpit", "Radio"]:
+		var i := AudioServer.get_bus_index(bus)
+		if i < 0 or not AudioServer.is_bus_mute(i):
+			err = "%s should be silent on the pause screen" % bus
+			break
+	var ui := AudioServer.get_bus_index("UI")
+	if err == "" and (ui < 0 or AudioServer.is_bus_mute(ui) != _quiet("UI")):
+		err = "menu audio should stay as it was set"
+	elif err == "" and AudioSettings.muted("Engine") != saved:
+		err = "the pause mute must not be saved"
+	p.close()
+	var eng := AudioServer.get_bus_index("Engine")
+	if err == "" and (eng < 0 or AudioServer.is_bus_mute(eng) != _quiet("Engine")):
+		err = "resume should bring the engine back"
+	_free(p)
+	return err
+
+
 func test_open_pauses_and_close_resumes() -> String:
 	var p := _make()
 	var f: Node = p.get("flight")

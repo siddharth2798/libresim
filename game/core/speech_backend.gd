@@ -49,3 +49,7 @@ func voices() -> Array:
 
 func say(text: String, voice: String, pitch: float, rate: float, interrupt: bool) -> void:
 	DisplayServer.tts_speak(text, voice, 70, pitch, rate, 0, interrupt)
+
+
+func stop() -> void:
+	DisplayServer.tts_stop()

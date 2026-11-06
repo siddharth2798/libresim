@@ -19,6 +19,7 @@ static var _status := Status.UNKNOWN
 static var _t0 := 0
 static var _voices: Array = []
 static var _logged := false
+static var _hush := false  # pause screen: drop the line in progress and don't start another
 
 
 ## Forget the cached probe (tests). A fake backend can be passed in.
@@ -28,6 +29,7 @@ static func reset(fake: SpeechBackend = null) -> void:
 	_t0 = 0
 	_voices = []
 	_logged = false
+	_hush = false
 
 
 static func _be() -> SpeechBackend:
@@ -78,15 +80,22 @@ static func voice_for(kind: Kind) -> String:
 	return str(_voices[1]) if kind == Kind.PILOT and _voices.size() > 1 else str(_voices[0])
 
 
-## Say a line. Silent when no voice is ready (also during the first moments of the warm-up).
+## Say a line. Silent when no voice is ready (also during the first moments of the warm-up), and while hushed.
 static func speak(text: String, kind := Kind.CALLOUT, interrupt := false, rate := 1.05) -> void:
-	if text == "":
+	if text == "" or _hush:
 		return
 	request()
 	if not available():
 		return
 	var pitch := 0.88 if kind == Kind.PILOT and _voices.size() < 2 else 1.0  # same voice: pilot a little lower
 	_be().say(text, voice_for(kind), pitch, rate, interrupt)
+
+
+## The pause screen: stop a line already speaking, and ignore new ones until it lifts.
+static func hush(on: bool) -> void:
+	_hush = on
+	if on and _status == Status.READY:
+		_be().stop()
 
 
 static func _load() -> void:

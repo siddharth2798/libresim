@@ -11,12 +11,14 @@ extends RefCounted
 
 const CFG := "user://audio.cfg"
 const BUSES := ["Master", "Engine", "Environment", "Cockpit", "Radio", "UI"]
+const GAME := ["Engine", "Environment", "Cockpit", "Radio"]  # silenced while the pause screen is open; UI is not
 const LABELS := {"Master": "Master", "Engine": "Engine", "Environment": "Wind & environment",
 	"Cockpit": "Cockpit (clicks, horn)", "Radio": "Radio / ATC", "UI": "Menus"}
 
 static var _vol := {}
 static var _mute := {}
 static var _loaded := false
+static var _held := false  # pause screen: game buses stay quiet without writing audio.cfg
 
 
 static func _load() -> void:
@@ -48,7 +50,7 @@ static func apply() -> void:
 	for b in BUSES:
 		var i := AudioServer.get_bus_index(b)
 		AudioServer.set_bus_volume_db(i, linear_to_db(maxf(_vol[b], 0.0001)))
-		AudioServer.set_bus_mute(i, _mute[b] or _vol[b] <= 0.0)
+		AudioServer.set_bus_mute(i, _mute[b] or _vol[b] <= 0.0 or (_held and b in GAME))
 
 
 static func volume(bus: String) -> float:
@@ -66,6 +68,15 @@ static func set_volume(bus: String, v: float) -> void:
 	_vol[bus] = clampf(v, 0.0, 1.0)
 	apply()
 	save()
+
+
+## Quiet the flight (engine, wind, cockpit, radio) while the pause screen is up. Not saved.
+## A volume change on that screen still applies when the flight resumes.
+static func hold_game(on: bool) -> void:
+	_load()
+	_held = on
+	apply()
+	SpeechService.hush(on)
 
 
 static func set_muted(bus: String, m: bool) -> void:

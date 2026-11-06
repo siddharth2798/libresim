@@ -1,7 +1,7 @@
 extends SubViewportContainer
 ## A turntable of the exterior. Drag to yaw. Scroll, or the + and − buttons, to zoom.
-## Repaints from the livery entry, debounced, without hiding the model (PaintPipeline.preview, not apply).
-## Headless: a note, no scene load.
+## A colour change composes the atlas once (a loader covers the model while the GPU draws it). Moving a
+## picture, or its scale and position, restamps that cached atlas on the next frame. Headless: a note, no scene load.
 
 var _note: Label
 var _view: SubViewport
@@ -16,6 +16,11 @@ var _dirty := false
 var _built := ""
 var _zoom := 1.0
 var _base := Vector3.ZERO
+var _bases := {}  # atlas rel -> {key, image}: the recoloured atlas, before stickers
+var _live := {}  # atlas rel -> ImageTexture already on the mesh
+var _shown := {}  # atlas rel -> true once that texture is the surface override
+var _scratch := {}  # atlas rel -> Image stamped into each frame (the cache stays clean)
+var _veil: BusyOverlay
 const _ZOOM_MIN := 0.55
 const _ZOOM_MAX := 3.4
 
@@ -52,6 +57,9 @@ func _ready() -> void:
 	_cam.current = true
 	_view.add_child(_cam)
 	add_child(_view)
+	_veil = BusyOverlay.new()
+	_veil.z_index = 3
+	add_child(_veil)
 
 
 func show_aircraft(def: AircraftDef) -> void:
@@ -61,6 +69,10 @@ func show_aircraft(def: AircraftDef) -> void:
 	if _built == def.id and _root != null:
 		return
 	_built = def.id
+	_bases.clear()
+	_live.clear()
+	_shown.clear()
+	_scratch.clear()
 	if _root != null:
 		_root.queue_free()
 		_root = null
@@ -81,7 +93,7 @@ func set_paint(stored: Variant) -> void:
 		return
 	_dirty = true
 	if not _busy:
-		_run()
+		_pump()
 
 
 ## Buttons drawn over the turntable. The page parents them; this viewport would lay them out as a second child.
@@ -136,15 +148,100 @@ func _set_zoom(zoom: float) -> void:
 	_cam.look_at(Vector3.ZERO)
 
 
-func _run() -> void:
-	_busy = true
-	await get_tree().create_timer(0.3).timeout
-	while _dirty and is_instance_valid(self):
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_RESIZED and _veil != null:
+		_veil.position = Vector2.ZERO
+		_veil.size = size
+
+
+func _pump() -> void:
+	while is_instance_valid(self) and _dirty:
 		_dirty = false
-		var stored = _stored
-		if _root != null and _def != null:
-			await PaintPipeline.preview(self, _root, _def, stored)
-	_busy = false
+		await get_tree().process_frame  # sliders in this frame collapse into one paint
+		if not is_instance_valid(self) or _root == null or _def == null:
+			break
+		_dirty = false
+		await _repaint()
+	if is_instance_valid(self):
+		_busy = false
+
+
+func _repaint() -> void:
+	var jobs: Array = PaintPipeline.plan(_def, "", _stored)
+	var missing := false
+	for a in jobs:
+		var job: Dictionary = a
+		if not _fresh(job):
+			missing = true
+			break
+	if missing and _veil != null:
+		_veil.show_busy("Painting the aircraft…")
+		await get_tree().process_frame  # the veil draws before the compose hitch
+		if not is_instance_valid(self):
+			return
+	for a in jobs:
+		var job: Dictionary = a
+		if _fresh(job):
+			continue
+		var img: Image = await PaintPipeline.preview_base(self, _def, job)
+		if img != null:
+			_bases[job.rel] = {"key": _key(job), "image": img}
+	if _veil != null:
+		_veil.hide_busy()
+	if is_instance_valid(_root):
+		_blit(jobs)
+
+
+func _fresh(job: Dictionary) -> bool:
+	var have: Dictionary = _bases.get(job.rel, {})
+	return str(have.get("key", "")) == _key(job)
+
+
+func _key(job: Dictionary) -> String:
+	return Livery.cache_key(_def.id, job.colors, {})
+
+
+func _blit(jobs: Array) -> void:
+	var rels := {}
+	for a in jobs:
+		rels[(a as Dictionary).rel] = true
+	var same := rels.size() == _shown.size()
+	if same:
+		for r in rels:
+			if not _shown.has(r):
+				same = false
+				break
+	if not same:
+		PaintPipeline.begin_preview(_root, _def)
+		_shown.clear()
+		_live.clear()
+		_scratch.clear()
+	for a in jobs:
+		var job: Dictionary = a
+		var src: Variant = _bases.get(job.rel, {}).get("image", null)
+		if not src is Image:
+			continue
+		var scratch: Image = _scratch.get(job.rel, null)
+		if scratch == null or scratch.get_size() != (src as Image).get_size():
+			scratch = (src as Image).duplicate()
+			_scratch[job.rel] = scratch
+		else:
+			scratch.copy_from(src)
+		var stickers: Array = job.get("stickers", [])
+		if not stickers.is_empty():
+			LiveryStickers.stamp(scratch, stickers)
+		if _shown.has(job.rel):
+			(_live[job.rel] as ImageTexture).update(scratch)
+		else:
+			var tex := ImageTexture.create_from_image(scratch)
+			_live[job.rel] = tex
+			PaintPipeline.override(_root, str(job.path), tex)
+			_shown[job.rel] = true
+	if jobs.is_empty() and not _shown.is_empty():
+		PaintPipeline.begin_preview(_root, _def)
+		_shown.clear()
+		_live.clear()
+		_scratch.clear()
 
 
 func _frame() -> void:

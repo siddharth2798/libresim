@@ -82,12 +82,18 @@ static func _draw(host: Node, mat: ShaderMaterial, size: Vector2i) -> Image:
 	rect.size = Vector2(size)
 	rect.material = mat
 	vp.add_child(rect)
-	host.add_child(vp)
+	# On the scene root, not on host. A SubViewportContainer (the livery mockup) resizes every
+	# SubViewport child down to itself, which clips the atlas and drops the sticker off the model.
+	host.get_tree().root.add_child(vp)
 	# Resumed after the next drawn frame, or at once (ok = false) when the viewport leaves the tree first: see
 	# RegistrationPaint.render_glyphs, a chain of awaits that never resumes would leak at exit.
 	vp.add_user_signal("drawn", [{"name": "ok", "type": TYPE_BOOL}])
 	RenderingServer.frame_post_draw.connect(vp.emit_signal.bind("drawn", true), CONNECT_ONE_SHOT)
 	vp.tree_exiting.connect(vp.emit_signal.bind("drawn", false), CONNECT_ONE_SHOT)
+	var drop := func() -> void:
+		if is_instance_valid(vp):
+			vp.queue_free()
+	host.tree_exiting.connect(drop, CONNECT_ONE_SHOT)
 	var ok: bool = await Signal(vp, "drawn")
 	if not ok:
 		if is_instance_valid(host):

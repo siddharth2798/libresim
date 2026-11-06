@@ -27,7 +27,7 @@ var _screens := {}  # name -> screen, built on first use
 var cur := ""
 var _body: VBoxContainer
 var _brand: Control
-var _loading: Label
+var _loading: BusyOverlay
 var dry_run := false  # tests: count the flight but do not load the flight scene
 var flights_started := 0
 var lessons_started := 0  # tests: lessons started from the home screen's Continue (dry_run does not load the flight scene)
@@ -37,6 +37,7 @@ var captain_watch: CaptainWatch  # offers the Thrustmaster Captain Pack profile 
 
 
 func _ready() -> void:
+	BusyOverlay.dismiss(get_tree())
 	if Session.skip_menu:
 		get_tree().change_scene_to_file.call_deferred(FLIGHT)
 		return
@@ -71,10 +72,7 @@ func _ready() -> void:
 	_body = VBoxContainer.new()
 	_body.size_flags_vertical = SIZE_EXPAND_FILL
 	root.add_child(_body)
-	_loading = Label.new()
-	_loading.add_theme_font_size_override("font_size", 30)
-	_loading.set_anchors_preset(PRESET_CENTER)
-	_loading.visible = false
+	_loading = BusyOverlay.new()
 	add_child(_loading)
 	var credits := Control.new()
 	credits.set_script(load("res://ui/credits_screen.gd"))
@@ -156,9 +154,10 @@ func go(id: String) -> void:
 		_screens[id].enter()
 
 
-## Another modal is up (the "Fly anyway?" question) or a flight is loading: nothing else may open over it.
+## Another modal is up (the "Fly anyway?" question, the live-weather question) or a flight is loading:
+## nothing else may open over it.
 func modal_open() -> bool:
-	return _confirm != null or _loading.visible
+	return _confirm != null or _loading.visible or get_node_or_null("LiveWeatherNotice") != null
 
 
 func screen(id: String) -> Control:
@@ -272,8 +271,8 @@ func _fly_now() -> void:
 
 
 func _load_flight(text: String) -> void:
-	_loading.text = text
-	_loading.visible = true
+	move_child(_loading, -1)
+	_loading.show_busy(text, true)
 	await get_tree().process_frame
 	await get_tree().process_frame
 	get_tree().change_scene_to_file(FLIGHT)

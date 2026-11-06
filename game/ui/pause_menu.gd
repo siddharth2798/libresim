@@ -6,6 +6,8 @@ extends Control
 ## Keys: arrows move (Left / Right also cross into a page), Enter selects, Esc backs out one level (text field, page, resume);
 ## every other key is swallowed so flight hotkeys do nothing. Props ui/pause_open tells the keyboard controls to ignore held keys.
 ## Restart, Quit to main menu and Quit game ask for a second click.
+## While this screen is open the flight audio (engine, wind, cockpit, radio, spoken callouts) is silent. Menu
+## volume is left as set. Resume, or leaving the flight, brings the sound back. The mute is not saved.
 
 const Pages := preload("res://ui/pause_pages.gd")
 const Summary := preload("res://ui/pause_summary.gd")
@@ -101,6 +103,7 @@ func open() -> void:
 			_hidden.append(c)
 	visible = true
 	flight.fdm_node.paused = true
+	AudioSettings.hold_game(true)
 	Props.set_v("ui/pause_open", true)
 	_context.text = Summary.context(flight)
 	show_page("home")
@@ -117,6 +120,7 @@ func close() -> void:
 			c.visible = true
 	_hidden.clear()
 	flight.fdm_node.paused = false
+	AudioSettings.hold_game(false)
 	Props.set_v("ui/pause_open", false)
 	var f := get_viewport().gui_get_focus_owner()
 	if f:
@@ -125,6 +129,7 @@ func close() -> void:
 
 func _exit_tree() -> void:
 	Props.set_v("ui/pause_open", false)
+	AudioSettings.hold_game(false)
 
 
 func show_page(id: String) -> void:
@@ -168,7 +173,7 @@ func _on_nav(id: String) -> void:
 		if not Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT):  # Enter: go into the page
 			_focus_into(_pages[id])
 	else:
-		_act(id)
+		await _act(id)
 
 
 ## First focusable control inside `n` (depth first), so Enter on a menu item lands in its page.
@@ -202,7 +207,7 @@ func _act(id: String) -> void:
 		"menu":
 			close()
 			Session.skip_menu = false
-			get_tree().change_scene_to_file(MENU)
+			await BusyOverlay.load_scene(get_tree(), MENU, "Loading the menu…")
 		"quit": get_tree().quit()
 
 

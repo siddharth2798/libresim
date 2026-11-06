@@ -40,7 +40,7 @@ func setup(f: FdmNode, ab: AirportBuilder, t: TerrainQuadtree) -> void:
 	_hud.setup(_lesson, Session.assist)
 	_hud.retry.connect(retry)
 	_hud.next_lesson.connect(_next_lesson)
-	_hud.to_menu.connect(func(): get_tree().change_scene_to_file("res://ui/menu/start_screen.tscn"))
+	_hud.to_menu.connect(func(): await BusyOverlay.load_scene(get_tree(), "res://ui/menu/start_screen.tscn", "Loading the menu…"))
 	_find_runway()
 	if Session.assist == "full" and not _rw.is_empty():
 		_markers = TrainingMarkers.new()

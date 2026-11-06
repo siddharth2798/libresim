@@ -38,6 +38,8 @@ var st := {}
 var landing_pilot := false
 var _prop_deg := -1.0  # fixed propeller angle (degrees), -1 = let it turn
 var _bench := 0.0  # --bench=<s>: measure frame times this long before the shot (tools/bench.sh)
+var _film := 0.0  # --film=<s>: after the shot settles, save a short camera move as JPEGs (loader clips)
+var _film_fps := 15
 
 
 func _ready() -> void:
@@ -50,6 +52,10 @@ func _ready() -> void:
 			_name = a.substr(8)
 		elif a.begins_with("--bench="):
 			_bench = float(a.substr(8))
+		elif a.begins_with("--film="):
+			_film = float(a.substr(7))
+		elif a.begins_with("--film-fps="):
+			_film_fps = maxi(int(a.substr(11)), 1)
 		elif a == "--list":
 			print("SCENES ", " ".join(_all.keys()))
 			get_tree().quit()
@@ -151,6 +157,9 @@ func _flight(def: Dictionary) -> void:
 		await Views.overlays(self, d)
 		await wait(2.0)  # camera easing, cloud and shader warm-up
 		print("SETTLED after %.1f s (%s)" % [settled, Stream.state(f)])
+		if _film > 0.0:
+			await _roll()
+			break
 		if d.has("taxi_banner"):  # the taxi instruction right after landing: just issued, then after it faded
 			await Views.taxi_banner(self, d.taxi_banner)
 			continue
@@ -159,6 +168,47 @@ func _flight(def: Dictionary) -> void:
 			print(BenchProbe.line(_name, Graphics.preset, Graphics.renderer(), await BenchProbe.measure(self, _bench)))
 			tag += "_%s_%s" % [Graphics.preset, Graphics.renderer()]
 		await save(tag)
+
+
+## A slow orbit of the settled camera, one JPEG per frame. The loader plays these back.
+## The pivot sits ahead along the view, so the move keeps the subject in frame instead of flying through it.
+func _roll() -> void:
+	var credits := f.get_node_or_null("UI/Credits")
+	if credits != null:
+		credits.visible = false  # the loader draws the same attribution line over the film
+	# An occluded window stops presenting, and the next frame grab then waits forever.
+	DisplayServer.window_set_flag(DisplayServer.WINDOW_FLAG_ALWAYS_ON_TOP, true)
+	DisplayServer.window_move_to_foreground()
+	var cam: CameraRig = f.get_node("Camera")
+	var n := maxi(int(_film * _film_fps), 1)
+	var dir := _out.path_join(_name)
+	DirAccess.make_dir_recursive_absolute(dir)
+	var heading := -cam._look.x
+	var fwd := Vector3(sin(heading), cos(heading), 0.0)
+	var pivot := cam._free_enu + fwd * 48.0
+	var arm := cam._free_enu - pivot
+	var height := cam._free_enu.z
+	var pitch := cam._look.y
+	var arc := deg_to_rad(14.0)
+	for i in n:
+		var a := arc * float(i) / float(maxi(n - 1, 1))
+		var c := cos(a)
+		var s := sin(a)
+		var rv := Vector3(arm.x * c - arm.y * s, arm.x * s + arm.y * c, 0.0)
+		cam._free_enu = Vector3(pivot.x + rv.x, pivot.y + rv.y, height)
+		var to := pivot - cam._free_enu
+		cam._look = Vector2(-atan2(to.x, to.y), pitch)
+		cam._look_goal = cam._look
+		await frames(1)
+		await RenderingServer.frame_post_draw
+		var img := get_viewport().get_texture().get_image()
+		if img.get_width() > 1280:
+			img.resize(1280, int(img.get_height() * 1280.0 / img.get_width()), Image.INTERPOLATE_LANCZOS)
+		img.convert(Image.FORMAT_RGB8)
+		var path := dir.path_join("%02d.jpg" % i)
+		img.save_jpg(path, 0.82)
+		print("FRAME %d %s" % [i, path])
+	print("FILM %d %s" % [n, dir])
 
 
 func _pre_draw() -> void:

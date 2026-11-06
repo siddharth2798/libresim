@@ -41,9 +41,13 @@ var _t := 0.0
 var _view := ""
 var _stand_ref := ""  # "" = runway start, "*" = default stand, else a stand ref
 var _cold := false
+var _airfield: BusyOverlay
+var _air_t := 0.0
+var _air_wait := true
 
 
 func _ready() -> void:
+	BusyOverlay.dismiss(get_tree())
 	var s: Dictionary = Session.setup
 	var apt: String = s.airport
 	var rwy: String = s.runway
@@ -224,6 +228,7 @@ func _unhandled_key_input(e: InputEvent) -> void:
 
 func _process(dt: float) -> void:
 	FloatingOrigin.update_focus(fdm_node.position_enu())
+	_airfield_wait(dt)
 	if _shot.is_empty():
 		return
 	_t += dt
@@ -235,3 +240,26 @@ func _process(dt: float) -> void:
 			Units.m_to_ft(p.get_f("fdm/agl_m")), p.get_f("engine/rpm")])
 		print("failures: ", FailureCatalog.all_ids().filter(func(id): return p.get_b("failures/" + id)), "  events: ", p.get_v("damage/events", []).slice(0, 3))
 		get_tree().quit()
+
+
+## The start-screen veil covers the scene load. This one appears only when the ground is still streaming in.
+func _airfield_wait(dt: float) -> void:
+	if not _air_wait:
+		return
+	_air_t += dt
+	if terrain.visible_nodes > 0 or _shot != "" or Session.clean or DisplayServer.get_name() == "headless":
+		_drop_airfield()
+		return
+	if _airfield == null and _air_t >= 0.25:
+		_airfield = BusyOverlay.new()
+		$UI.add_child(_airfield)
+		_airfield.show_busy("Loading the airfield…", true)
+	if _air_t > 8.0:
+		_drop_airfield()
+
+
+func _drop_airfield() -> void:
+	_air_wait = false
+	if _airfield != null:
+		_airfield.queue_free()
+		_airfield = null

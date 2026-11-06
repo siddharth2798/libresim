@@ -144,6 +144,30 @@ static func build(host: Node, def: AircraftDef, a: Dictionary, text: String, gly
 	return ImageTexture.create_from_image(img)
 
 
+## Clears paint overrides and restamps roughness before a turntable pass. The mockup calls this when the
+## set of painted atlases changes; a sticker nudge only updates the texture already on the mesh.
+static func begin_preview(glb_root: Node, def: AircraftDef) -> void:
+	_clear_overrides(glb_root)
+	MaterialFinish.stamp_surfaces(glb_root, def.id, true)
+
+
+## The atlas recoloured, before stickers and before mipmaps. null when the file is missing.
+## Factory colours skip the GPU pass and copy the atlas. The turntable caches this and restamps pictures itself.
+static func preview_base(host: Node, def: AircraftDef, a: Dictionary) -> Image:
+	var atlas := load(a.path) as Texture2D if ResourceLoader.exists(a.path) else null
+	if atlas == null:
+		return null
+	var img: Image = null
+	if a.livery:
+		if test_compose.is_valid():
+			img = await test_compose.call(a.atlas, atlas, a.colors)
+		else:
+			img = await LiveryPaint.compose(host, def, a.atlas, atlas, a.colors)
+	if img == null:
+		img = _rgba(atlas)
+	return img
+
+
 ## The start-screen turntable. Same paint as a flight, but the model stays visible and the registration is
 ## left as the atlas carries it (the flight pass stamps the call sign). Does nothing headless.
 static func preview(host: Node, glb_root: Node, def: AircraftDef, stored: Variant) -> void:

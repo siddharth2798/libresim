@@ -1,12 +1,13 @@
 class_name LiveWeatherBar
 extends VBoxContainer
 ## The Live weather switch on the Weather step: source line, METAR, refresh, and "Use as base".
-## The first time it is turned on, a notice says what is sent. Lessons never reach this with the
+## The first time it is turned on, a panel on the menu says what is sent. Lessons never reach this with the
 ## switch on (Session.begin_lesson clears it).
 
 
 const SEEN := "user://live_weather_notice"
-const NOTICE := "The game asks aviationweather.gov and open-meteo.com for the weather at this airport. It sends only a station id or coordinates rounded to about a kilometre. Those sites see your IP address. There is no account. You can switch this off."
+
+var seen_path := SEEN  # tests point this at a scratch file
 
 signal changed
 
@@ -19,6 +20,7 @@ var _base: Button
 var _src: LiveSources
 var _busy := false
 var _armed := false
+var _spin := 0.0
 
 
 func _ready() -> void:
@@ -67,7 +69,7 @@ func sync() -> void:
 
 
 func _on_live(on: bool) -> void:
-	if on and not FileAccess.file_exists(SEEN):
+	if on and not FileAccess.file_exists(seen_path):
 		_ask()
 		return
 	Session.setup.live_weather = on
@@ -83,33 +85,52 @@ func _on_live(on: bool) -> void:
 
 
 func _ask() -> void:
-	var d := AcceptDialog.new()
-	d.title = "Live weather"
-	d.dialog_text = NOTICE
-	add_child(d)
-	var accepted := {"ok": false}
-	d.confirmed.connect(func():
-		accepted.ok = true
-		var f := FileAccess.open(SEEN, FileAccess.WRITE)
+	var host := _screen()
+	if host.get_node_or_null("LiveWeatherNotice") != null:
+		return
+	var d := LiveWeatherNotice.new()
+	host.add_child(d)
+	d.accepted.connect(func():
+		var f := FileAccess.open(seen_path, FileAccess.WRITE)
 		if f:
 			f.store_string("ok")
 		Session.setup.live_weather = true
 		_fetch()
 		d.queue_free())
-	d.close_requested.connect(func():
-		if not accepted.ok:
-			_live.set_pressed_no_signal(false)
-			Session.setup.live_weather = false
-			changed.emit()
+	d.declined.connect(func():
+		_live.set_pressed_no_signal(false)
+		Session.setup.live_weather = false
+		changed.emit()
 		d.queue_free())
-	d.popup_centered()
+
+
+## The start screen, so the panel covers the menu in UI units. A window dialog would ignore the UI scale.
+func _screen() -> Node:
+	var n: Node = self
+	while n != null:
+		if n.has_method("modal_open"):
+			return n
+		n = n.get_parent()
+	var tree := get_tree()
+	if tree != null and tree.current_scene != null:
+		return tree.current_scene
+	return self
+
+
+func _process(dt: float) -> void:
+	if not _busy:
+		return
+	_spin += dt * 3.0
+	var dots := ".".repeat(1 + int(_spin) % 3)
+	_status.text = "Reading the weather" + dots
 
 
 func _fetch() -> void:
 	if not bool(Session.setup.get("live_weather", false)):
 		return
 	_busy = true
-	_status.text = "Reading the weather..."
+	_spin = 0.0
+	_status.text = "Reading the weather."
 	_lock(_refresh, true)
 	var place := LivePlace.of(str(Session.setup.get("airport", "VAJJ")))
 	var rs := DayMath.sun_times(float(Session.setup.get("day_of_year", 45.0)))

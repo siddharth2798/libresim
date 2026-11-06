@@ -207,11 +207,8 @@ func _fly_save() -> void:
 	Session.setup = setup
 	Situation.pending_load = m.file
 	changed.emit()
-	_fly.text = "Loading scenery…"
 	_fly.disabled = true
-	await get_tree().process_frame
-	await get_tree().process_frame
-	get_tree().change_scene_to_file(FLIGHT)
+	await BusyOverlay.load_scene(get_tree(), FLIGHT, "Loading scenery…")
 
 
 ## Delete: the first press asks, the second (on the "Yes, delete" button) deletes.
