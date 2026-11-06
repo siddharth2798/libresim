@@ -57,7 +57,7 @@ func speed_bias_g(par: FbwParams) -> float:
 	return clampf(speed_excess_kt * float(sp.bias_g_per_kt), 0.0, float(sp.bias_max_g)) if speed_active else 0.0
 
 
-## Forward stick loses authority as the speed protection takes over (fraction of the stick that remains).
+## Forward stick loses authority as the speed protection takes over (none once `fade_kt` past the onset, VMO + 16 kt).
 func forward_authority(par: FbwParams) -> float:
 	return 1.0 - clampf(speed_excess_kt / float(par.d.speed_prot.fade_kt), 0.0, 1.0)
 

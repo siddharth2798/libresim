@@ -96,9 +96,10 @@ func _flight_laws(c: AirlinerControls, ap_on: bool) -> void:
 		e = lerpf(pitch.flight(s, par, prot, nz_c, maxf(sp, 0.0) if not ap_on else 0.0, normal), e_dir, wg)
 	c.cmd["elevator-l"] = e
 	c.cmd["elevator-r"] = e
-	# THS: auto-trim in flight, the wheel on the ground; inhibited in the alpha protection
+	# THS: auto-trim in flight, the wheel on the ground; held in the alpha protection and in flare mode
 	if wg < 0.5:
-		c.cmd["stabilizer"] = c.surface("stabilizer") if (normal and prot.alpha_active) else trim.auto(c, pitch.i_deg, par.d.pitch.trim_k, par.d.pitch.trim_dead_deg)
+		var hold_trim := normal and (prot.alpha_active or pitch.flare)
+		c.cmd["stabilizer"] = c.surface("stabilizer") if hold_trim else trim.auto(c, pitch.i_deg, par.d.pitch.trim_k, par.d.pitch.trim_dead_deg)
 	else:
 		c.cmd["stabilizer"] = trim.manual(c)
 	# roll: rate law in normal law, the direct stick (already in cmd) otherwise

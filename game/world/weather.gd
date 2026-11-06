@@ -1,7 +1,9 @@
 class_name Weather
 extends Node
 ## Offline weather. Settings live in Props "weather/*" (UI edits them):
-##   wind_dir_deg (from, true), wind_kt (surface, 10 m), aloft_dir_deg, aloft_kt (above ~1500 m AGL),
+##   wind_dir_deg (from, true), wind_kt (surface, 10 m), aloft_dir_deg, aloft_kt (blended in from ~50 m AGL,
+##   and allowed to be lighter than the surface wind). The mean wind the pilot sets eases in over ~3 s;
+##   gusts, thermals and storm cells are applied the same tick.
 ##   gust_kt (peak), turbulence (0..1), visibility_m, cloud_base_ft (AMSL), cloud_cover (0..1),
 ##   qnh_hpa, temp_c (sea level), precip (rain 0..1; drawn by WeatherFx),
 ##   convection (thermals 0..1), storms (microburst cells 0..1, monsoon-like weather only).
@@ -24,6 +26,8 @@ var _turb := Vector3.ZERO
 var _gust := 0.0
 var _gust_target := 0.0
 var _gust_timer := 0.0
+var _mean := Vector3.ZERO
+var _mean_set := false
 var _rng := RandomNumberGenerator.new()
 
 
@@ -44,9 +48,19 @@ func wind_at(agl: float) -> Vector3:
 	var wa := Props.get_f("weather/aloft_kt") * Units.KT
 	var h := maxf(agl, 1.0)
 	var surf := w * clampf(log(h / Z0) / log(10.0 / Z0), 0.0, 1.6)
-	var t := clampf((agl - 300.0) / 1200.0, 0.0, 1.0)
+	var t := clampf((agl - 50.0) / 1450.0, 0.0, 1.0)  # surface at 50 m, the aloft wind by ~1500 m, either way
 	var d := lerp_angle(deg_to_rad(Props.get_f("weather/wind_dir_deg")), deg_to_rad(Props.get_f("weather/aloft_dir_deg")), t)
-	return _from_dir_to_ned(rad_to_deg(d), lerpf(surf, maxf(wa, surf), t))
+	return _from_dir_to_ned(rad_to_deg(d), lerpf(surf, wa, t))
+
+
+## The mean wind eases toward `target` over about 3 s. The first sample is the setting itself.
+func _mean_wind(target: Vector3, dt: float) -> Vector3:
+	if not _mean_set:
+		_mean = target
+		_mean_set = true
+		return _mean
+	_mean = _mean.lerp(target, 1.0 - exp(-dt / 3.0))
+	return _mean
 
 
 func _physics_process(dt: float) -> void:
@@ -55,7 +69,7 @@ func _physics_process(dt: float) -> void:
 	var pos: Vector3 = Props.get_v("fdm/position_enu", Vector3.ZERO)
 	var agl := Props.get_f("fdm/agl_m", 100.0)
 	var tas := maxf(Props.get_f("fdm/tas_mps"), 5.0)
-	var wind := wind_at(agl)
+	var wind := _mean_wind(wind_at(agl), dt)
 	# gusts: random ramps toward a gust peak along the mean wind
 	var gust_peak := maxf(Props.get_f("weather/gust_kt") - Props.get_f("weather/wind_kt"), 0.0) * Units.KT
 	_gust_timer -= dt

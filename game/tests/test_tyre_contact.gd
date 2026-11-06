@@ -77,6 +77,34 @@ func _check(def: AircraftDef, ground: Callable, label: String) -> String:
 	return ""
 
 
+func test_a320_oleo_slides_and_the_hinge_stays() -> String:
+	var f := _rest(AircraftDef.load_def("a320"), func(_n: float, _e: float) -> float: return 0.0)
+	var node := FdmNode.new()
+	node.fdm = f
+	_nodes.append(node)
+	var m := AircraftModel.new()
+	add_child(m)
+	_nodes.append(m)
+	m.build(node)
+	node._snap()
+	var ext: Node3D = m._glb
+	var hinge := ext.find_child("pivot_gear_main_L", true, false) as Node3D
+	var tube := ext.find_child("MLGSlidingTubeAxleL", true, false) as Node3D
+	if hinge == null or tube == null:
+		return "A320 gear pivot or sliding tube missing"
+	var hinge0 := hinge.position
+	var tube0 := tube.position
+	m._process(0.0)
+	var hinge_d := hinge.position.distance_to(hinge0)
+	var tube_d := tube.position.distance_to(tube0)
+	print("    oleo: hinge moved %.4f m, sliding tube %.3f m" % [hinge_d, tube_d])
+	if hinge_d > 0.002:
+		return "the retraction hinge moved %.3f m with the oleo" % hinge_d
+	if tube_d < 0.05:
+		return "the sliding tube did not compress (%.3f m)" % tube_d
+	return ""
+
+
 func test_every_aircraft_tyres_on_flat_ground() -> String:
 	var err := ""
 	for id in AircraftDef.list_ids():

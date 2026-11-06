@@ -4,9 +4,10 @@ extends RefCounted
 ## contact point sinks by the spring compression c, so the ground is c above it. Each frame a wheel's parts are raised
 ## (vertically, world space) until the lowest point of its tyre (axle - radius, measured from the meshes in the rest
 ## pose, so a new aircraft needs no data) is on that ground. Per wheel contact (config.json gear, BOGEY):
-##   leg     a pivot in model.surfaces with "compress": <contact> (retractable legs, A320): that pivot moves, times gear_pos;
-##           an optional "lift_m" (metres the tyre hangs below the contact, extended) replaces the measured tyre:
-##           raise = (c + lift_m) * gear_pos
+##   leg     a pivot in model.surfaces with "compress": <contact> (retractable legs, A320). The retraction hinge stays
+##           put. The lower tube, torque links and wheels slide up by the spring compression, times gear_pos, so the
+##           oleo compresses and the hinge does not lift off the wing. An optional "lift_m" (metres the tyre hangs
+##           below the contact, extended) replaces the measured tyre: raise = (c + lift_m) * gear_pos
 ##   parts   fixed gear (C172): the glb meshes named like a wheel part (WORDS) nearest that contact, or the names in
 ##           model.wheels {<contact>: [node names]}
 ##   model   nothing found: the whole model moves by the largest raise of those contacts, so no tyre sinks
@@ -41,11 +42,18 @@ static func build(root: Node3D, model: Node3D, f: FDM, sec: Dictionary) -> TyreC
 		var s: Dictionary = surfaces[n]
 		var pv := root.find_child("pivot_" + n, true, false) as Node3D
 		if pv and s.has("compress") and contacts.has(str(s.compress)):
-			var ms := pv.find_children("*", "MeshInstance3D", true, false)
+			var movers := _oleo_parts(pv)
+			if movers.is_empty():
+				movers = [pv]
+			var ms: Array = []
+			for mv in movers:
+				if mv is MeshInstance3D:
+					ms.append(mv)
+				ms.append_array((mv as Node).find_children("*", "MeshInstance3D", true, false))
 			var ty := _tyres(ms)
 			var lift := float(s.lift_m) if s.has("lift_m") else NAN
 			var cn := str(s.compress)
-			t._groups.append([cn, [[pv, pv.position]], _axles(ty if not ty.is_empty() else ms, model), lift, true, spos[cn]])
+			t._groups.append([cn, movers.map(func(nd): return [nd, (nd as Node3D).position]), _axles(ty if not ty.is_empty() else ms, model), lift, true, spos[cn]])
 			done[cn] = true
 	var parts := {}  # contact -> [Node3D]
 	var named: Dictionary = sec.get("wheels", {})
@@ -130,6 +138,25 @@ func modes() -> Dictionary:
 	for w in _whole:
 		out[w[0]] = "model"
 	return out
+
+
+## Direct children of the retraction pivot that are the sliding leg (or contain it). The pivot itself is the hinge.
+static func _oleo_parts(pv: Node3D) -> Array:
+	var out: Array = []
+	for ch in pv.get_children():
+		if ch is Node3D and _is_oleo(ch):
+			out.append(ch)
+	return out
+
+
+static func _is_oleo(n: Node) -> bool:
+	var nm := String(n.name).to_lower()
+	if nm.contains("sliding") or nm.contains("torque") or nm.contains("wheel"):
+		return true
+	for c in n.get_children():
+		if _is_oleo(c):
+			return true
+	return false
 
 
 ## Body frame (x nose, y right, z down, from the CG) -> model frame (-Z nose, +X right, +Y up).

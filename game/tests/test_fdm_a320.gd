@@ -269,10 +269,14 @@ func test_a320_nose_wheel_steering_fades_with_speed() -> String:
 		out.append(rad_to_deg(f.gear._steer_angle(nose)))
 	f.gear.tiller = 0.0
 	f.gear.steer_cmd = 1.0
-	f.v_b = Vector3(2.0, 0.0, 0.0)
-	f.gear.prepare(DT, f)
-	var pedals := rad_to_deg(f.gear._steer_angle(nose))
-	print("    steering: tiller %s deg at 2 / 23 / 40 m/s, pedals %.1f deg" % [out.map(func(x): return snappedf(x, 0.1)), pedals])
-	if absf(out[0] - 75.0) > 0.5 or out[1] < 25.0 or out[1] > 50.0 or out[2] > 0.5 or absf(pedals - 6.0) > 0.2:
-		return "tiller 75 deg at taxi speed, fading to 0 by 36 m/s, pedals 6 deg"
+	var pedals := []
+	for v in [2.0, 20.0, 70.0]:
+		f.v_b = Vector3(v, 0.0, 0.0)
+		f.gear.prepare(DT, f)
+		pedals.append(rad_to_deg(f.gear._steer_angle(nose)))
+	print("    steering: tiller %s deg at 2 / 23 / 40 m/s, pedals %s deg at 2 / 20 / 70 m/s" % [out.map(func(x): return snappedf(x, 0.1)), pedals.map(func(x): return snappedf(x, 0.1))])
+	if absf(out[0] - 75.0) > 0.5 or out[1] < 25.0 or out[1] > 50.0 or out[2] > 0.5:
+		return "tiller 75 deg at taxi speed, fading to 0 by 36 m/s"
+	if absf(pedals[0] - 6.0) > 0.2 or absf(pedals[1] - 6.0) > 0.3 or pedals[2] > 0.2:
+		return "pedals hold 6 deg through 40 kt and are gone by 130 kt: %s" % [pedals]
 	return ""

@@ -192,17 +192,29 @@ func test_fbw_flare_mode_bias() -> String:
 	var s := l.s
 	s.gear_pos = 1.0
 	s.lever = 0.0
+	s.theta = deg_to_rad(4.5)
+	s.dt = 0.0
 	s.ra_ft = 100.0
 	var hi := l.pitch.demand(s, l.par, l.prot, 0.0)
-	s.ra_ft = 20.0
-	var mid := l.pitch.demand(s, l.par, l.prot, 0.0)
-	s.ra_ft = 5.0
-	var low := l.pitch.demand(s, l.par, l.prot, 0.0)
+	s.ra_ft = 40.0  # below 50 ft: memorise the attitude, no reduction yet
+	l.pitch.demand(s, l.par, l.prot, 0.0)
+	var at40 := rad_to_deg(l.pitch.theta_tgt)
 	var on: bool = l.pitch.flare
+	s.ra_ft = 20.0
+	for i in 160:  # 8 s at 20 Hz from 30 ft: the memorised attitude falls 2 deg
+		s.dt = 0.05
+		l.pitch.demand(s, l.par, l.prot, 0.0)
+	var at8 := rad_to_deg(l.pitch.theta_tgt)
+	l.pitch.i_deg = 1.5
+	s.tas = 70.0
+	l.pitch.flight(s, l.par, l.prot, 1.0, 0.0, true)
+	var frozen := absf(l.pitch.i_deg - 1.5) < 1e-6
 	s.lever = 0.8  # thrust up (go-around): no flare law
 	l.pitch.demand(s, l.par, l.prot, 0.0)
-	print("    flare mode: nz demand %.3f at 100 ft, %.3f at 20 ft, %.3f at 5 ft; go-around lever: flare %s" % [hi, mid, low, l.pitch.flare])
-	return "" if absf(hi - 1.0) < 1e-6 and mid < 0.97 and low < mid and absf(low - 0.9) < 0.01 and on and not l.pitch.flare else "flare bias"
+	print("    flare: nz %.3f at 100 ft, target %.2f deg at 40 ft, %.2f deg after 8 s below 30 ft; trim frozen %s; go-around flare %s" % [hi, at40, at8, frozen, l.pitch.flare])
+	if absf(hi - 1.0) > 1e-4 or not on or absf(at40 - 4.5) > 0.05 or absf(at8 - 2.5) > 0.05 or not frozen or l.pitch.flare:
+		return "flare attitude %.2f -> %.2f, trim frozen %s, go-around %s" % [at40, at8, frozen, l.pitch.flare]
+	return ""
 
 
 # --- roll and yaw ----------------------------------------------------------------
@@ -247,6 +259,21 @@ func test_fbw_bank_hold_when_released() -> String:
 	if absf(b1 - b0) > 2.5 or b0 < 12.0 or absf(f.altitude() - a0) > 30.0 or absf(rad_to_deg(f.beta)) > 1.5:
 		return "bank not held / not coordinated: %.1f -> %.1f, alt %+.0f, beta %.2f" % [b0, b1, f.altitude() - a0, rad_to_deg(f.beta)]
 	return ""
+
+
+func test_fbw_small_bank_is_held() -> String:
+	var f := _cruise(250.0, 10000.0)
+	f.fcs.roll = 0.35
+	while rad_to_deg(f.euler().x) < 1.2:
+		f.step(DT)
+	f.fcs.roll = 0.0
+	f.w_b.x = 0.0
+	_law(f).roll.i_deg = 0.0
+	_law(f).roll.hold = false
+	_run(f, 4.0)
+	var b := rad_to_deg(f.euler().x)
+	print("    released at 1.2 deg with the roll stopped: bank %.2f after 4 s" % b)
+	return "" if b > 0.6 and b < 2.5 else "a small bank was not held (%.2f deg)" % b
 
 
 func test_fbw_30_degree_turn_holds_altitude() -> String:

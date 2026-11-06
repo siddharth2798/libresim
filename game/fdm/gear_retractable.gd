@@ -3,15 +3,17 @@ extends GearGround
 ## GearGround of an aircraft with retractable gear (config gear[].retractable, A320): the lever (fcs.gear_cmd) drives gear_pos
 ## 0 (up) .. 1 (down) over controls.gear_transit {leg: {down_s, up_s}} (one travel for the whole gear, the slowest leg's times);
 ## a retractable wheel has ground contact only when fully down, and the lever is locked down while the wheels are loaded (WOW).
-##   nose wheel: gear[].steer {tiller_deg, pedal_deg, fade_mps: [lo, hi]}; defaults for a wheel that turns 30 deg or more:
-##     tiller = its max_steer_deg, pedals 6 deg, authority fading linearly from full at 10 m/s to none at 36 m/s.
-##     angle = authority * (tiller * tiller_deg + pedal * pedal_deg); `tiller` (-1..1) is set by FdmNode (controls/tiller).
+##   nose wheel: gear[].steer {tiller_deg, pedal_deg, fade_mps: [lo, hi], pedal_fade_mps: [lo, hi]}; a wheel that turns
+##     30 deg or more: tiller = its max_steer_deg, fading from full at 10 m/s to none at 36 m/s; pedals 6 deg, full until
+##     about 40 kt (20.6 m/s) and gone by 130 kt (66.9 m/s). `tiller` (-1..1) is set by FdmNode (controls/tiller).
 ##   brakes: gear[].brake_mu per wheel (base class), anti-skid (`antiskid`: off = hard braking at speed skids, mu x SKID_MU) and
-##     autobrake `autobrake_mode` 0 off / 1 LO / 2 MED / 3 MAX: after touchdown (WOW, ground spoilers out, levers idle) or RTO it
-##     brakes for AUTOBRAKE_DECEL m/s^2 (MAX: full pressure); pedal pressure above PEDAL_DISARM switches it off until reselected.
+##     autobrake `autobrake_mode` 0 off / 1 LO / 2 MED / 3 MAX: after touchdown (WOW, ground spoilers out, levers idle) it
+##     waits AB_DELAY_S (4 s LO, 2 s MED, none for MAX) and then brakes for AUTOBRAKE_DECEL m/s^2 (MAX: full pressure);
+##     pedal pressure above PEDAL_DISARM switches it off until reselected.
 ## State saved with a situation: gear_pos gear_cmd gear_state door_pos.
 
 const AUTOBRAKE_DECEL := [0.0, 1.7, 3.0, 99.0]
+const AB_DELAY_S := [0.0, 4.0, 2.0, 0.0]  # after the ground spoilers are out: LO 4 s, MED 2 s, MAX at once
 const PEDAL_DISARM := 0.3
 const AB_GAIN := 0.3  # brake demand per (m/s^2 of deceleration error) per second
 const SKID_MU := 0.6  # braking friction factor of a skidding tyre (anti-skid off)
@@ -27,10 +29,10 @@ var autobrake_on := false
 var ground_speed := 0.0
 var _down_s := 0.0
 var _up_s := 0.0
-var _auth := 1.0
 var _ab_cmd := 0.0
 var _ab_off := false  # a pedal press switched it off
 var _ab_mode := 0
+var _ab_arm := -1.0  # seconds the spoilers have been out while waiting to brake; -1 not waiting
 var _decel := 0.0
 var _gs_prev := 0.0
 
@@ -54,11 +56,6 @@ func prepare(dt: float, f: Object) -> void:
 	door_pos = clampf(6.0 * minf(gear_pos, 1.0 - gear_pos), 0.0, 1.0)
 	var v: Vector3 = f.velocity_ned()
 	ground_speed = Vector2(v.x, v.y).length()
-	_auth = 1.0
-	for c in contacts:
-		if c.wheel and c.steer >= deg_to_rad(30.0) or c.steer_spec.has("fade_mps"):
-			var fade: Array = c.steer_spec.get("fade_mps", [10.0, 36.0])
-			_auth = clampf((fade[1] - ground_speed) / (fade[1] - fade[0]), 0.0, 1.0)
 	_autobrake(dt, fcs)
 	if "gear_pos" in fcs:
 		fcs.gear_pos = gear_pos
@@ -74,8 +71,15 @@ func _steer_angle(c: Dictionary) -> float:
 	var big: bool = c.steer >= deg_to_rad(30.0)
 	var tiller_max: float = deg_to_rad(sp.get("tiller_deg", rad_to_deg(c.steer)))
 	var pedal_max: float = deg_to_rad(sp.get("pedal_deg", 6.0 if big else rad_to_deg(c.steer)))
-	var a := _auth if (big or sp.has("fade_mps")) else 1.0
-	return clampf(a * (tiller * tiller_max + steer_cmd * pedal_max), -c.steer, c.steer)
+	var tiller_a := _fade(ground_speed, sp.get("fade_mps", [10.0, 36.0])) if (big or sp.has("fade_mps")) else 1.0
+	var pedal_a := _fade(ground_speed, sp.get("pedal_fade_mps", [20.58, 66.88])) if (big or sp.has("pedal_fade_mps")) else 1.0
+	return clampf(tiller_a * tiller * tiller_max + pedal_a * steer_cmd * pedal_max, -c.steer, c.steer)
+
+
+func _fade(speed: float, span: Array) -> float:
+	var lo := float(span[0])
+	var hi := float(span[1])
+	return clampf((hi - speed) / (hi - lo), 0.0, 1.0) if hi > lo else 1.0
 
 
 func _brake_input(group: int) -> float:
@@ -96,20 +100,28 @@ func _autobrake(dt: float, fcs: FlightControls) -> void:
 	if autobrake_mode != _ab_mode:
 		_ab_mode = autobrake_mode
 		_ab_off = false
+		_ab_arm = -1.0
 	var pedal := maxf(brake_left, brake_right)
 	if pedal > PEDAL_DISARM and autobrake_mode > 0:
 		_ab_off = true
 	if autobrake_mode == 0 or _ab_off or not wow or ground_speed < 1.0:
 		autobrake_on = false
 		_ab_cmd = 0.0
+		_ab_arm = -1.0
 		return
 	if not autobrake_on:
 		var sp: Variant = fcs.get("spoiler") if "spoiler" in fcs else []
 		var out: bool = sp is Array and not sp.is_empty() and (sp as Array).max() > 25.0
 		var idle: bool = fcs.get("thrust_idle") if "thrust_idle" in fcs else true
 		if out and idle and ground_speed > 10.0:
-			autobrake_on = true
-			_decel = 0.0
+			if _ab_arm < 0.0:
+				_ab_arm = 0.0
+			_ab_arm += dt
+			if _ab_arm >= AB_DELAY_S[clampi(autobrake_mode, 0, 3)]:
+				autobrake_on = true
+				_decel = 0.0
+		else:
+			_ab_arm = -1.0
 		return
 	var want: float = AUTOBRAKE_DECEL[clampi(autobrake_mode, 0, 3)]
 	_ab_cmd = 1.0 if autobrake_mode == 3 else clampf(_ab_cmd + AB_GAIN * (want - _decel) * dt, 0.0, 1.0)

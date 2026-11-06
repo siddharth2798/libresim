@@ -3,9 +3,11 @@ extends Node3D
 ## Touchdown tyre smoke and rubber marks. Watches each main wheel's first contact after
 ## being airborne (FDM gear.info, no extra Props): the faster the ground speed and the
 ## harder the sink, the bigger the puff and the longer the skid mark left on the runway.
-## Smoke: a small pool of one-shot CPUParticles3D puffs that drift with the wind.
+## Smoke: a small pool of one-shot CPUParticles3D puffs. A landing puff stays low and
+## drifts with the wind, the way tyre smoke does, rather than rising off the runway.
 ## Marks: Decals (project onto whatever surface is below, so they sit on the runway
-## without z-fighting), kept in a ring buffer and repositioned on origin shifts.
+## without z-fighting), a rubber streak several tyre-lengths long, kept in a ring
+## buffer and repositioned on origin shifts.
 
 const MIN_AIR_S := 0.6        # a wheel must have been off the ground this long
 const MIN_GS := 12.0          # m/s (~23 kt): slower contacts are taxiing, not landing
@@ -41,7 +43,7 @@ static func mark_strength(sink: float, ground_speed: float) -> float:
 
 
 static func mark_length(strength: float) -> float:
-	return 0.8 + 7.0 * strength
+	return 2.0 + 22.0 * strength  # a firm jet touchdown lays rubber for many metres, not a short scuff
 
 
 static func mark_alpha(strength: float) -> float:
@@ -110,17 +112,18 @@ func _emit_smoke(enu: Vector3, track: float, k: float) -> void:
 	var slot: Array = _smoke[_smoke_i]
 	_smoke_i = (_smoke_i + 1) % SMOKE_POOL
 	var p: CPUParticles3D = slot[0]
+	enu += Vector3(sin(track), cos(track), 0.0) * (1.2 + 3.0 * k)  # the puff sits on the streak, not only at the contact
 	slot[1] = enu
-	p.global_position = FloatingOrigin.to_render_d(enu.x, enu.y, enu.z + 0.15)
+	p.global_position = FloatingOrigin.to_render_d(enu.x, enu.y, enu.z + 0.2)
 	var wind: Vector3 = Props.get_v("environment/wind_ned", Vector3.ZERO)
-	p.gravity = Vector3(wind.y, 0.25, -wind.x) * 0.35  # drifts downwind, rises slowly
-	p.amount = int(6 + 22.0 * k)
-	p.initial_velocity_max = 1.0 + 2.0 * k
-	p.scale_amount_max = 1.4 + 1.8 * k
-	p.lifetime = 1.6 + 1.4 * k
-	# darker by night so the smoke does not glow
+	p.gravity = Vector3(wind.y, 0.35, -wind.x) * 0.45  # stays low and drifts downwind
+	p.amount = int(24 + 56.0 * k)
+	p.initial_velocity_max = 1.6 + 2.2 * k
+	p.scale_amount_max = 2.8 + 4.0 * k
+	p.lifetime = 3.4 + 2.6 * k
+	# grey-white tyre smoke; darker by night so it does not glow
 	var night := clampf((5.0 - Props.get_f("environment/sun_elev_deg", 30.0)) / 9.0, 0.0, 1.0)
-	(p.material_override as StandardMaterial3D).albedo_color = Color(0.82, 0.82, 0.84).lerp(Color(0.16, 0.16, 0.18), night)
+	(p.material_override as StandardMaterial3D).albedo_color = Color(0.70, 0.70, 0.68).lerp(Color(0.14, 0.14, 0.15), night)
 	p.restart()
 	p.emitting = true
 
@@ -130,9 +133,9 @@ func _add_mark(enu: Vector3, track: float, strength: float) -> void:
 		return  # a butter landing leaves no mark
 	if _marks.size() >= MAX_MARKS:
 		_marks.pop_front()[0].queue_free()
-	var len := mark_length(strength) * _rng.randf_range(0.85, 1.15)
+	var len := mark_length(strength) * _rng.randf_range(0.9, 1.1)
 	var d := Decal.new()
-	d.size = Vector3(0.85 + 0.35 * strength, 1.5, len) * Vector3(_rng.randf_range(0.9, 1.1), 1.0, 1.0)
+	d.size = Vector3(0.42 + 0.16 * strength, 1.5, len)  # about one tyre wide; each wheel lays its own streak
 	d.texture_albedo = _mark_tex[_rng.randi() % _mark_tex.size()]  # a few noise variants: no two marks alike
 	d.cull_mask = 1  # world only: aircraft meshes use their own render layer
 	d.modulate = Color(1, 1, 1, mark_alpha(strength) * _rng.randf_range(0.85, 1.0))
@@ -159,14 +162,14 @@ func _make_smoke() -> CPUParticles3D:
 	var p := CPUParticles3D.new()
 	p.emitting = false
 	p.one_shot = true
-	p.explosiveness = 0.85
+	p.explosiveness = 0.35  # a billow that keeps coming, not one pop
 	p.local_coords = false
 	p.direction = Vector3(0, 1, 0)
-	p.spread = 55.0
-	p.initial_velocity_min = 0.3
-	p.damping_min = 1.5
-	p.damping_max = 2.5
-	p.scale_amount_min = 0.8
+	p.spread = 78.0
+	p.initial_velocity_min = 0.4
+	p.damping_min = 0.35
+	p.damping_max = 0.9
+	p.scale_amount_min = 1.1
 	var q := QuadMesh.new()
 	q.size = Vector2(1.0, 1.0)
 	p.mesh = q
@@ -179,12 +182,12 @@ func _make_smoke() -> CPUParticles3D:
 	m.disable_receive_shadows = true
 	p.material_override = m
 	var ramp := Gradient.new()  # fade in fast, fade out slowly
-	ramp.colors = PackedColorArray([Color(1, 1, 1, 0.0), Color(1, 1, 1, 0.75), Color(1, 1, 1, 0.0)])
-	ramp.offsets = PackedFloat32Array([0.0, 0.12, 1.0])
+	ramp.colors = PackedColorArray([Color(1, 1, 1, 0.0), Color(1, 1, 1, 0.62), Color(1, 1, 1, 0.0)])
+	ramp.offsets = PackedFloat32Array([0.0, 0.18, 1.0])
 	p.color_ramp = ramp
-	var sc := Curve.new()  # puffs grow as they drift
-	sc.add_point(Vector2(0, 0.35))
-	sc.add_point(Vector2(1, 1.0))
+	var sc := Curve.new()  # puffs grow as they drift along the runway
+	sc.add_point(Vector2(0, 0.45))
+	sc.add_point(Vector2(1, 1.35))
 	p.scale_amount_curve = sc
 	return p
 
@@ -211,17 +214,17 @@ static func _make_mark_texture(seed: int) -> ImageTexture:
 	var img := Image.create(w, h, false, Image.FORMAT_RGBA8)
 	for y in h:
 		var d := 1.0 - float(y) / (h - 1)  # 0 at the touch point -> 1 at the far end
-		var spin := exp(-pow(d / 0.17, 2.0))  # the spin-up smudge
-		var trail := exp(-d * 1.7)
-		var fade := smoothstep(0.0, 0.025, d) * (1.0 - smoothstep(0.8, 1.0, d))
-		var half := 0.62 + 0.18 * (_vn(d * 6.0, 4.5, seed + 5) - 0.5)  # width wander
+		var spin := exp(-pow(d / 0.22, 2.0))  # the spin-up smudge, where the tyre first bites
+		var trail := exp(-d * 0.85)  # rubber keeps being laid down along the streak
+		var fade := smoothstep(0.0, 0.02, d) * (1.0 - smoothstep(0.88, 1.0, d))
+		var half := 0.78 + 0.1 * (_vn(d * 6.0, 4.5, seed + 5) - 0.5)  # a tyre-width band, slight wander
 		for x in w:
 			var across := absf(float(x) / (w - 1) * 2.0 - 1.0)
 			var xn := float(x) / (w - 1)
 			# blotchy break-up in 2D (not banded): coarse patches plus fine speckle
 			var n := _vn(d * 8.0, xn * 2.2, seed) * 0.6 + _vn(d * 26.0, xn * 6.0, seed + 3) * 0.4 + 0.14 - d * 0.18
 			var patchy := smoothstep(0.24, 0.5, n)
-			var along := clampf(0.2 * spin + 0.85 * spin * patchy + 0.75 * trail * patchy, 0.0, 1.0) * fade
+			var along := clampf(0.35 * spin + 0.7 * spin * patchy + trail * maxf(patchy, 0.62), 0.0, 1.0) * fade
 			var rag := _vn(float(x) * 0.5, d * 24.0, seed + 9)  # ragged edge
 			var edge := 1.0 - smoothstep(half * 0.45, half * (0.85 + 0.3 * rag), across)
 			var grain := 0.75 + 0.25 * _vn(float(x) * 1.3, float(y) * 0.9, seed + 11)

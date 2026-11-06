@@ -99,6 +99,11 @@ func test_sys_wind_and_ridge_lift() -> String:
 		return "wind from 270 should blow toward the east (+E)"
 	if high.length() <= low.length():
 		return "no wind gradient with height"
+	Props.set_v("weather/aloft_kt", 5.0)
+	var top := w.wind_at(1600.0).length() / 0.514444
+	Props.set_v("weather/aloft_kt", 15.0)
+	if top > 8.0:
+		return "wind aloft should be allowed to be lighter than the surface (%.1f kt)" % top
 	# ridge lift: a westerly onto the Western Ghats escarpment (rises to the east)
 	var cache := TerrainTileCache.new()
 	var tq := TerrainQuadtree.new()
@@ -111,10 +116,19 @@ func test_sys_wind_and_ridge_lift() -> String:
 		w._physics_process(DT)
 		best = maxf(best, Props.get_f("environment/ridge_lift_mps"))
 	print("    strongest ridge lift on the Ghats escarpment: %.1f m/s (%.0f fpm)" % [best, best * 196.85])
+	if best < 1.0 or best > 6.5:
+		tq.free()
+		w.free()
+		return "ridge lift %.1f m/s not in a plausible 1-6 m/s range" % best
+	var before := Vector2(Props.get_v("environment/wind_ned").x, Props.get_v("environment/wind_ned").y).length()
+	Props.set_v("weather/wind_kt", 0.0)
+	Props.set_v("weather/aloft_kt", 0.0)
+	w._physics_process(DT)
+	var after := Vector2(Props.get_v("environment/wind_ned").x, Props.get_v("environment/wind_ned").y).length()
 	tq.free()
 	w.free()
-	if best < 1.0 or best > 6.5:
-		return "ridge lift %.1f m/s not in a plausible 1-6 m/s range" % best
+	if before > 2.0 and after < before * 0.5:
+		return "a wind change arrived in one tick (%.1f -> %.1f m/s)" % [before, after]
 	return ""
 
 

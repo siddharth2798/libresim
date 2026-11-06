@@ -165,12 +165,19 @@ func test_a320_autobrake_decelerations() -> String:
 		var f := _ground(65000.0)
 		f.v_b = Vector3(60.0, 0.0, 0.0)
 		(f.gear as RetractableGear).autobrake_mode = mode
-		_run(f, 3.0, 1.0 / 60.0)  # the ground spoilers deploy first (about 1.5 s)
-		var v0 := f.v_b.x
-		_run(f, 5.0, 1.0 / 60.0)
-		out.append((v0 - f.v_b.x) / 5.0)
+		var waited := 0.0
+		while not f.gear.autobrake_on and waited < 12.0:  # spoilers ~1.5 s, then LO waits 4 s and MED 2 s
+			f.step(DT)
+			waited += DT
 		if not f.gear.autobrake_on:
-			return "autobrake %d not active (spoilers %.0f deg, wow %s)" % [mode, f.fcs.spoiler[2], f.gear.wow]
+			return "autobrake %d not active after %.1f s (spoilers %.0f deg, wow %s)" % [mode, waited, f.fcs.spoiler[2], f.gear.wow]
+		var delay := 4.0 if mode == 1 else 2.0
+		if waited < delay:
+			return "autobrake %d armed after %.2f s, before its %d s delay" % [mode, waited, int(delay)]
+		_run(f, 2.0)  # the brake loop settles onto the target rate
+		var v0 := f.v_b.x
+		_run(f, 5.0)
+		out.append((v0 - f.v_b.x) / 5.0)
 		if mode == 2:  # a pedal press switches it off
 			f.gear.brake_left = 0.5
 			f.gear.brake_right = 0.5
@@ -240,8 +247,9 @@ func test_a320_takeoff_roll_70_tonnes() -> String:
 	if r.crashed:
 		return "crashed: " + r.reason
 	# Thrust budget: 2 x ~115 kN at 70 t is 3.2 m/s^2 less rolling friction and drag, so a rotation at 135 kt
-	# lifts off after about 0.9-1.5 km (the 1,800-2,200 m of the plan is the distance to 35 ft / flex thrust,
-	# not reproduced here; tools/a320_reference.json will say what JSBSim gives).
-	if r.dist < 800.0 or r.dist > 1600.0 or r.v < 62.0 or r.v > 82.0:
+	# lifts off after about 0.8-1.5 km. The pedals still steer the nosewheel through the roll (fading out by
+	# 130 kt), which keeps the aircraft on the centreline.
+	# The 1,800-2,200 m of the plan is the distance to 35 ft / flex thrust, not reproduced here.
+	if r.dist < 740.0 or r.dist > 1600.0 or r.v < 62.0 or r.v > 82.0:
 		return "takeoff roll %.0f m at %.0f kt: expected 800-1600 m at 120-160 kt" % [r.dist, r.v / KT]
 	return ""

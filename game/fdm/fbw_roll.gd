@@ -1,7 +1,7 @@
 class_name FbwRoll
 extends RefCounted
-## Roll law (flight mode): the sidestick commands a roll RATE (full stick = `rate_dps`), released it holds the
-## bank angle (wings level below `level_deg`; above `hold_deg` it rolls back to `hold_deg`). The bank limit is
+## Roll law (flight mode): the sidestick commands a roll RATE (full stick = `rate_dps`). Released, it holds the bank,
+## including a small one when `level_deg` is 0; above `hold_deg` it rolls back to `hold_deg`. The bank limit is
 ## `limit_deg` (`limit_prot_deg` while the high angle of attack or high speed protection acts): the rate demand
 ## tapers to zero toward it. Autopilot: the demand is Props ap/cmd/roll_rate_dps and nothing else (no bank hold).
 ## Aileron-l command in degrees (+ = roll right); the right aileron is its mirror. Roll spoilers follow the
