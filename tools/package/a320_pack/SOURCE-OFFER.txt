@@ -1,0 +1,28 @@
+libresim A320 pack — corresponding source (GPL-2.0-only)
+
+This pack is free software under the GNU General Public License, version 2
+only. It is not "version 2 or any later version". It is derived from the
+FlightGear A320-family (https://github.com/legoboyvdlp/A320-family), which
+is published under GPL version 2 only.
+
+GPL-2.0 section 3 asks that a distribution be accompanied by the complete
+corresponding source, the preferred form for modifying the work. For this
+pack that source is both of the following:
+
+  1. This archive. It holds game/aircraft/a320/ (the derived aircraft
+     definition, flight-model data, models, sounds and livery), the upstream
+     licence and provenance files under third_party/a320-family/, and these
+     pack notices (LICENSE, README.copyright.md, NOTICE, SOURCE-OFFER.txt).
+  2. The libresim source repository that produced the pack, including the
+     program and the scripts that derive the aircraft from the upstream
+     A320-family files:
+     https://github.com/siddharth2798/libresim
+     What was taken, what changed, the pinned upstream commit, and how to
+     rebuild are written in third_party/a320-family/SOURCE.md in this archive.
+
+Those two together are the corresponding source. Anyone who distributes this
+pack, on its own or combined with libresim, distributes a GPL-2.0-only work.
+The libresim base game shipped without this pack remains GPL-2.0-or-later.
+
+Copyright (c) 2026 libresim contributors.
+Upstream aircraft copyright is stated in third_party/a320-family/README.copyright.md.

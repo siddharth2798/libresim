@@ -26,13 +26,16 @@ LOG=data/run.log
 # 19 (WorldCover class tiles, needs network the first time) follows the lc writers (11, 12).
 # 20 (road / river tiles) and 21 (shore tiles) read the final land-class water mask, so follow 17.
 # 27 (airport pavement masks) reads the final runways.json (second 09) and the stands (13 / 17).
-PIPELINE=(05 04 02 03 06 09 11 12 19 13 15 17 20 21 09 27 14 16 10)
+# 28 (AAI eAIP airways) needs the network the first time; later runs reuse data/raw/aai.
+PIPELINE=(05 28 04 02 03 06 09 11 12 19 13 15 17 20 21 09 27 14 16 10)
 # OUT: first entry is the sentinel used when no stamp exists yet (a dir means "a file in it").
 # IN : files/globs whose change makes the step stale (script + raw data + helper modules).
 # DEP: upstream steps; if one ran this session (or its stamp is newer), this step re-runs.
 declare -A OUT IN DEP
 OUT[05]="data/processed/airports.json data/processed/navaids.json"
 IN[05]="tools/05_airports_navaids.py data/raw/ourairports/*.csv"
+OUT[28]="data/processed/airways.json"
+IN[28]="tools/28_airways.py"
 OUT[04]="data/processed/osm/aeroways.json data/processed/osm/roads.json data/processed/osm/water.json data/processed/osm/buildings"
 IN[04]="tools/04_osm_extract.py data/raw/osm/western-zone-latest.osm.pbf"
 OUT[02]="data/processed/terrain/h/0 data/processed/terrain/meta.json"
@@ -72,6 +75,7 @@ IN[16]="tools/16_terminal_models.py tools/terminal_styles.py tools/terminal_styl
 
 # One function per step: adjust args here when a script grows a CLI.
 step_05() { $PY tools/05_airports_navaids.py; }
+step_28() { $PY tools/28_airways.py; }
 step_04() { $PY tools/04_osm_extract.py; }
 step_02() { $PY tools/02_dem_tiles.py; }
 step_03() { $PY tools/03_imagery_tiles.py; }
@@ -91,7 +95,7 @@ step_20() { $PY tools/20_roads_rivers.py; }
 step_21() { $PY tools/21_shore.py; }
 step_27() { $PY tools/27_pavement.py --force; }  # ~1.5 min: always rebuild
 
-declare -A NAME=([05]="airports, navaids" [04]="OSM extract" [02]="terrain heights" [03]="imagery tiles"
+declare -A NAME=([05]="airports, navaids" [28]="ATS airways" [04]="OSM extract" [02]="terrain heights" [03]="imagery tiles"
   [06]="c172 flight model json" [06a]="A320 flight model json" [09]="runways" [10]="buildings" [11]="land class"
   [12]="outer terrain" [13]="airport ops, stands" [14]="simulated ILS" [15]="terminal outlines" [16]="terminal models"
   [17]="airport fixups" [19]="WorldCover classes" [20]="roads and rivers" [21]="shore" [27]="airport pavement")
@@ -127,7 +131,8 @@ Options:
   --skip-data         skip raw downloads and the pipeline; launch even if data is incomplete
   --region=R          mumbai_pune | all (default all = also fetch the Konkan-Kerala corridor)
   --a320              optional: also fetch the FlightGear A320-family data (GPL-2.0-only, ~2.5 MB, tools/22_a320_fetch.sh,
-                      pinned commit) and regenerate game/aircraft/a320/{aero,config}.json (step 06a)
+                      pinned commit) and regenerate game/aircraft/a320/{aero,config}.json (step 06a).
+                      This does not download the aircraft pack. Build that archive with tools/package/make_pack.sh
   --force-step=NN     re-run pipeline step NN (e.g. 02, 10); may be repeated
   --dry-run           print the plan and which steps would run or be skipped and why; change nothing
   --yes, -y           answer yes to every prompt (the plan, sudo installs, Godot download)

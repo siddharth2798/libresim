@@ -7,12 +7,13 @@ extends RefCounted
 ##  - disconnects: button / instinctive (voluntary: 1.5 s warning), sidestick takeover, power or AP failure, landing
 ##    auto-disconnect at 50 ft in LAND (limits.autoflight.land_disconnect_ft; 0 = off); `disc_pulse` is true for 0.5 s,
 ##    `disconnect_count` counts them, `warning` stays on after an involuntary one until the button is pressed again
-##  - vertical mode from the FCU: a changed vs_fpm selects V/S, a changed alt_ft in ALT hold selects OP CLB / OP DES (CLB / DES
-##    when vs_managed), vs_managed toggles managed / V/S, controls/fcu/vert_select = "OPEN" | "MANAGED" | "VS" (consumed)
+##  - vertical mode from the FCU: a changed vs_fpm selects V/S, a changed alt_ft selects OP CLB / OP DES (CLB / DES
+##    when vs_managed, including while the mode is not yet ALT), vs_managed toggles managed / V/S,
+##    controls/fcu/vert_select = "OPEN" | "MANAGED" | "VS" (consumed). At the selected altitude, managed engages ALT.
 ##  - takeoff: on the ground with FD on and levers at FLX or TOGA, SRS + RWY; SRS ends at the acceleration altitude (1500 ft
 ##    above the field) into OP CLB; TOGA with flaps out on the glide slope is a go-around (SRS, heading hold)
-##  - defaults when guidance starts in flight: HDG on the present heading and ALT (within 100 ft of the FCU altitude) or V/S
-##    at the present vertical speed (FCU written)
+##  - defaults when guidance starts in flight: HDG on the present heading and ALT (within 100 ft of the FCU altitude),
+##    managed CLB/DES when vs_managed, or V/S at the present vertical speed (FCU written)
 ## Outputs: nz_g, roll_rate (rad/s), fd_pitch / fd_roll (rad), lever_cmd, athr_active, FMA strings, `writes` = FCU set-points
 ## in SI to give back to the FCU ({hdg (true rad), vs (m/s)}).
 
@@ -187,6 +188,8 @@ func _modes(i: AfInputs) -> String:
 			writes["hdg"] = i.heading
 		if absf(alt_err) < 30.0:
 			vert.set_mode("ALT")
+		elif f.vs_mgd:
+			vert.set_mode("CLB" if alt_err > 0.0 else "DES")
 		else:
 			vert.set_mode("V/S")
 			writes["vs"] = i.vs_mps
@@ -197,11 +200,11 @@ func _modes(i: AfInputs) -> String:
 	if f.select == "OPEN":
 		pick = "OP CLB" if up else "OP DES"
 	elif f.select == "MANAGED" or (f.vs_mgd and not _last.vs_mgd):
-		pick = "CLB" if up else "DES"
+		pick = "ALT" if absf(alt_err) < 30.0 else ("CLB" if up else "DES")
 	elif f.select == "VS" or (not f.vs_mgd and (absf(f.vs - _last.vs) > 0.01 or _last.vs_mgd)):
 		pick = "V/S"
-	elif absf(f.alt - _last.alt) > 1.0 and (vert.mode == "ALT" or vert.mode == "ALT*"):
-		pick = ("CLB" if up else "DES") if f.vs_mgd else ("OP CLB" if up else "OP DES")
+	elif absf(f.alt - _last.alt) > 1.0 and (f.vs_mgd or vert.mode == "ALT" or vert.mode == "ALT*"):
+		pick = "ALT" if absf(alt_err) < 30.0 else (("CLB" if up else "DES") if f.vs_mgd else ("OP CLB" if up else "OP DES"))
 	if pick != "":
 		vert.set_mode(pick)
 	return pick

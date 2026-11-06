@@ -99,6 +99,9 @@ func _forward(e: InputEvent, tr: TextureRect, reg: Rect2) -> void:
 
 
 func _unhandled_key_input(e: InputEvent) -> void:
+	if visible and MCDU.wants_key(e) and _type_on_mcdu(e):
+		get_viewport().set_input_as_handled()
+		return
 	if e.pressed and not e.echo and e.keycode == KEY_TAB:
 		layout = posmod(layout + (-1 if e.shift_pressed else 1), LAYOUTS.size())
 		if Session.interactive():
@@ -108,6 +111,26 @@ func _unhandled_key_input(e: InputEvent) -> void:
 		Props.set_v("view/panel_layout", LAYOUTS[layout])
 		_build()
 		get_viewport().set_input_as_handled()
+
+
+## The outside-view MCDU card takes scratchpad keys while the pointer is over it.
+func _type_on_mcdu(e: InputEvent) -> bool:
+	var rects := InstrumentPanel.rects()
+	if cockpit == null or not rects.has("mcdu"):
+		return false
+	var mouse := get_viewport().get_mouse_position()
+	var mcdu: Rect2 = rects.mcdu
+	for piece in _pieces:
+		var tr: TextureRect = piece[0]
+		var reg: Rect2 = piece[1]
+		if not tr.get_global_rect().has_point(mouse) or not reg.intersects(mcdu):
+			continue
+		var at := reg.position + (mouse - tr.global_position) / tr.size * reg.size
+		if not mcdu.has_point(at):
+			continue
+		var unit := cockpit.panel_ui.get_node_or_null("mcdu")
+		return unit != null and unit.has_method("type_key") and unit.type_key(e)
+	return false
 
 
 func _process(_dt: float) -> void:

@@ -4,12 +4,15 @@ extends RefCounted
 ## real), ILS from ils.json (geometry real, frequencies SIMULATED, see tools/14_ils.py),
 ## and COM frequencies per airport (OurAirports airport-frequencies, real).
 ## Positions in world ENU metres. Station elevation used for line-of-sight.
+## airways.json (AAI eAIP ENR 3, optional) adds published routes and their fixes.
 
 var vors: Array = []  # {ident, name, mhz, x, y, h, var_deg, dme}
 var ndbs: Array = []  # {ident, name, khz, x, y, h}
 var ils: Array = []   # {ident, airport, runway, mhz, course_true, loc{x,y,h}, gs{x,y,h}, gs_deg, threshold}
 var coms: Dictionary = {}  # airport icao -> [{type, desc, mhz}]
 var airports: Array = []
+var airways: Dictionary = {}  # designator -> {fixes, direction}
+var fixes: Dictionary = {}    # ident -> Vector2, when no airport or navaid has it
 
 
 func _init() -> void:
@@ -31,9 +34,19 @@ func _init() -> void:
 	airports = ap if ap else []
 	for a in airports:
 		coms[a.icao if a.icao != "" else a.ident] = a.get("freqs", [])
+	_load_airways()
 
 
-## Position (Vector2, ENU metres) of an airport (ICAO or ident), VOR or NDB by ident; null if unknown.
+## Airport dict (ident, icao, x, y, elev_m, runways) or {}.
+func airport(ident: String) -> Dictionary:
+	for a in airports:
+		if a.ident == ident or a.icao == ident:
+			return a
+	return {}
+
+
+## Position (Vector2, ENU metres) of an airport (ICAO or ident), VOR, NDB, or synthetic
+## runway fix (ICAO + runway + D/F); null if unknown.
 func position_of(ident: String) -> Variant:
 	for a in airports:
 		if a.ident == ident or a.icao == ident:
@@ -44,7 +57,21 @@ func position_of(ident: String) -> Variant:
 	for n in ndbs:
 		if n.ident == ident:
 			return Vector2(n.x, n.y)
-	return null
+	if fixes.has(ident):
+		return fixes[ident]
+	return RunwayWaypoints.position(ident, airports)
+
+
+func _load_airways() -> void:
+	if not FileAccess.file_exists(Paths.data("airways.json")):
+		return
+	var aw = Paths.load_json("airways.json")
+	if typeof(aw) != TYPE_DICTIONARY:
+		return
+	airways = aw.get("airways", {})
+	var pts: Dictionary = aw.get("fixes", {})
+	for id in pts:
+		fixes[id] = Vector2(float(pts[id].x), float(pts[id].y))
 
 
 ## Station on a NAV frequency (VOR or ILS localizer), nearest if several share it.

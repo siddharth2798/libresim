@@ -106,6 +106,9 @@ func _unhandled_input(e: InputEvent) -> void:
 		if aircraft.cockpit.forward_mouse(e, self):
 			get_viewport().set_input_as_handled()
 			return
+	if mode == Mode.COCKPIT and e is InputEventKey and aircraft.cockpit.forward_key(e, self):
+		get_viewport().set_input_as_handled()
+		return
 	if e is InputEventKey and e.pressed and not e.echo:
 		if e.keycode == KEY_C:
 			set_mode(mode + (-1 if e.shift_pressed else 1))

@@ -70,6 +70,7 @@ static func plan(def: AircraftDef, text: String, stored: Variant) -> Array:
 ## Called from AircraftModel.build() once the exterior glb is in the tree. Cached atlases are swapped in at once (this returns
 ## without waiting); otherwise it awaits the GPU frames, with the exterior hidden meanwhile.
 static func apply(host: Node, glb_root: Node, def: AircraftDef) -> void:
+	MaterialFinish.stamp_surfaces(glb_root, def.id, true)  # roughness / metal before the albedo copy (restamp repeats it on the copy)
 	var text := RegistrationPaint.text_for(def.section("registration"))
 	var todo := []
 	for a in plan(def, text, Livery.entry(Session.setup.get("livery"), def.id)):
@@ -149,6 +150,7 @@ static func preview(host: Node, glb_root: Node, def: AircraftDef, stored: Varian
 	if DisplayServer.get_name() == "headless" or not is_instance_valid(glb_root):
 		return
 	_clear_overrides(glb_root)
+	MaterialFinish.stamp_surfaces(glb_root, def.id, true)
 	var glyphs := {}
 	for a in plan(def, "", stored):
 		var tex: Texture2D = await build(host, def, a, "", glyphs)
@@ -198,4 +200,6 @@ static func override(glb_root: Node, tex_path: String, tex: Texture2D) -> void:
 			if mat != null and mat.albedo_texture != null and mat.albedo_texture.resource_path == tex_path:
 				var d := mat.duplicate() as BaseMaterial3D
 				d.albedo_texture = tex
+				d.next_pass = mat.next_pass  # stain / rain stay; a deep duplicate would otherwise drop the shared pass
+				MaterialFinish.restamp(d)  # roughness, metal, clearcoat survive the albedo swap
 				m.set_surface_override_material(i, d)

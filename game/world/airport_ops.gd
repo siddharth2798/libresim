@@ -117,6 +117,7 @@ func _build(icao: String) -> void:
 	JetwayBuild.build(root, a, _h, _cur, _scene("jetway"))  # movable bridges + fixed links (world/jetway_build.gd)
 	for ws in a.windsocks:
 		_windsock(root, ws.x, ws.y)
+	ControlTower.place_all(root, _cur, a.towers, _h)
 	for tw in a.towers.slice(0, 1):
 		_place(root, "fire_truck", Vector2(tw.x + 40.0, tw.y + 25.0), 0.0, FG_YAW)
 	_lamps.attach(root)

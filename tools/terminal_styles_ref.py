@@ -6,11 +6,15 @@ heights, glazing and colours come from the researched entry (or its "model" esti
            departures kerb, on white columns, with a laterite-red beam and piers along the frontage;
            blue-grey glass and cladding, white metal roofs. OSM tags the whole footprint height=30
            (the ATC tower), which drew a 30 m box.
-  generic  any airport whose reference terminal has model.recipe = "generic" (today VOGO): each linked
-           OSM footprint as a glazed block (glass to glass_share x eaves, cladding above) under a roof
+  VANM     Navi Mumbai T1: glazed hall under an undulating shell (alternating vaults along the
+           footprint) on a grid of mega-columns. The published roof is a lotus-petal shell on 17
+           columns; the vaults are that silhouette, not a measured petal.
+  generic  any airport whose reference terminal has model.recipe = "generic" (VOGO, VOGA, VOML, VOSH):
+           each linked OSM footprint as a glazed block (glass to glass_share x eaves, cladding above) under a roof
            of the reference form (model.roof: flat | curved | pitched), in the reference colours.
 """
 import numpy as np
+from shapely.geometry import Point
 from shapely.ops import unary_union
 
 import terminal_geom as tg
@@ -93,6 +97,34 @@ def vokn(g, ctx):
     return [body], signs
 
 
+def vanm(g, ctx):
+    """Navi Mumbai T1: glass under a deep overhang, a shell of alternating vaults, columns beneath."""
+    osm = "way/1413816601"
+    body = ctx["by_osm"].get(osm)
+    if body is None:
+        return [], []
+    t = ref.terminal("VANM", osm)
+    eaves, top = ref.ref_heights(t, 22.0, 32.0)
+    glass = ref.rgb(t, "glass_hex", ts.GLASS_GREY)
+    facade = ref.rgb(t, "facade_colour_hex", ts.WHITE)
+    roof = ref.rgb(t, "roof_colour_hex", WHITE)
+    share = ref.value(t, "glass_share", 0.6)
+    deck = eaves + 1.2
+    ts.glazed_block(g, body, round(eaves * share, 1), eaves, deck, glass, facade, roof, 8.0, 2.2)
+    rise = max(top - deck, 4.0)
+    for i, (c, ax, L, W) in enumerate(roof_pieces(body, 80.0)):
+        tg.vault(g, "roof_metal", c, ax, L + 4.0, W + 6.0, deck, rise * (1.0 if i % 2 == 0 else 0.55), roof)
+    c, ax, L, W = tg.mrr(body)
+    pe = np.array([-ax[1], ax[0]])
+    for i in range(6):
+        for j in range(3):
+            p = c + ax * (-L / 2 + L * (i + 0.5) / 6) + pe * (-W / 2 + W * (j + 0.5) / 3)
+            if body.contains(Point(p)):
+                tg.column(g, "column", p[0], p[1], 0.0, deck, 1.8, 1.3, WHITE)
+    d = ts.landside_dir(body, ctx)
+    return [body], [ts.facing_sign(body, d, "NAVI MUMBAI", eaves - 2.0, 2.4)]
+
+
 def roof_pieces(p, piece=50.0):
     """Oriented rectangles (centre, axis, length, width) covering footprint p: its minimum rectangle
     when p fills 85 % of it, else ~piece-long slices along the long axis, as wide as the footprint there."""
@@ -141,6 +173,6 @@ def generic(icao):
     return recipe
 
 
-RECIPES = {"VOKN": vokn}
+RECIPES = {"VOKN": vokn, "VANM": vanm}
 RECIPES.update({i: generic(i) for i in ref.load() if i not in RECIPES
                 and any(t.get("model", {}).get("recipe") == "generic" for t in ref.terminals(i))})

@@ -1,29 +1,38 @@
 class_name MCDU
 extends Display
-## MCDU-lite: a 24-character text screen with line keys, a scratchpad and a keypad. Pages INIT
-## (from / to, flight number, cruise level, cost index), F-PLN (the GPS route: line keys with a typed
-## ident replace / append a waypoint) and PERF (V1 / VR / V2, FLEX temperature, flaps, trim). A line key
-## with the scratchpad empty copies the field into it, with text it stores it (checked), the way the
-## real unit works. Stores to Props mcdu/{page, scratch, init/*, perf/*}; F-PLN writes
-## controls/gps/{target, route_next} (read by avionics/gps.gd). Reads those and avionics/gps/*.
-## TODO (not modelled): DIR, PROG, RAD NAV, FUEL PRED, SEC F-PLN, airways / SID / STAR, VNAV
-## predictions, keyboard input, multiple pages per list, the second unit.
+## MCDU-lite. Pages: INIT (FROM/TO, flight number, cost index, cruise level, DEP/ARR runway),
+## F-PLN, DIR, PROG, PERF. A line key copies a field into the scratchpad, or stores typed text.
+## Props: mcdu/{page, scratch, init/*, perf/*}. F-PLN and DIR write controls/gps/{target, route_next}
+## and select NAV. INIT FROM/TO files the route (origin in controls/fms/origin) and expands an
+## airway designator between two fixes (airway.gd). DEP/ARR RWY insert synthetic fixes and re-file.
+## CRZ FL copies to the FCU altitude and selects managed vertical. PROG reads distance, bearing,
+## phase and top of descent. F-PLN draws avionics/fms/legs. No published SID or STAR.
+## Keyboard: this control, or Cockpit.forward_key / the outside card while the pointer is over it.
+## TODO: RAD NAV, FUEL PRED, SEC F-PLN, SID/STAR, VNAV predictions, multi-page lists, the second unit.
 
-const PAGE_IDS := ["INIT", "FPLN", "PERF"]
-const TITLES := {"INIT": "INIT A", "FPLN": "F-PLN", "PERF": "TAKE OFF"}
+const PAGE_IDS := ["INIT", "FPLN", "DIR", "PROG", "PERF"]
+const TITLES := {"INIT": "INIT A", "FPLN": "F-PLN", "DIR": "DIR TO", "PROG": "PROGRESS", "PERF": "TAKE OFF"}
+const DASH := "---"
 const FIELDS := {  # page -> [[side, row 1..6, label, prop, kind "text" | "num", unit]]
 	"INIT": [["l", 1, "FROM/TO", "mcdu/init/from_to", "text", ""], ["l", 2, "FLT NBR", "mcdu/init/flt_no", "text", ""],
-		["l", 4, "COST INDEX", "mcdu/init/cost_index", "num", ""], ["r", 3, "CRZ FL", "mcdu/init/cruise_fl", "num", ""]],
+		["l", 4, "COST INDEX", "mcdu/init/cost_index", "num", ""], ["l", 5, "DEP RWY", "mcdu/init/dep_rwy", "text", ""],
+		["r", 3, "CRZ FL", "mcdu/init/cruise_fl", "num", ""], ["r", 5, "ARR RWY", "mcdu/init/arr_rwy", "text", ""]],
 	"PERF": [["l", 1, "V1", "mcdu/perf/v1", "num", ""], ["l", 2, "VR", "mcdu/perf/vr", "num", ""], ["l", 3, "V2", "mcdu/perf/v2", "num", ""],
 		["r", 1, "FLEX TEMP", "mcdu/perf/flex_c", "num", "C"], ["r", 2, "FLAPS", "mcdu/perf/flaps", "num", ""], ["r", 3, "THS", "mcdu/perf/ths", "num", ""]],
 }
 const LETTERS := "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+const DIGITS := "0123456789"
 const SCREEN := Rect2(10, 10, 400, 320)
 const MAX_SCRATCH := 22
 
 
 func _init() -> void:
 	design = Vector2(420, 600)
+
+
+func _ready() -> void:
+	super._ready()
+	focus_mode = FOCUS_CLICK
 
 
 func page() -> String:
@@ -47,28 +56,150 @@ static func with_waypoint(wps: Array, i: int, ident: String) -> Array:
 	return out
 
 
+## Direct-to. `known` defaults to "any non-empty ident". See FlightPlan.direct.
+static func direct_to(scratch: String, current: String, next: Array = [], known: Callable = Callable()) -> Dictionary:
+	var k := known if known.is_valid() else (func(id: String) -> bool: return id != "")
+	return FlightPlan.direct(scratch, current, next, k)
+
+
+## PROG text. Missing distance or bearing (not published) is dashes. Pure.
+static func prog_text(target: String, has_dist: bool, dist_nm: float, has_brg: bool, brg_deg: float) -> Dictionary:
+	return {"target": target, "dist": ("%d NM" % roundi(dist_nm)) if has_dist else DASH,
+		"brg": ("%03d" % roundi(brg_deg)) if has_brg else DASH}
+
+
+static func prog_readout() -> Dictionary:
+	var r := prog_text(str(Props.get_v("controls/gps/target", "")), Props.has("avionics/gps/dist_nm"),
+		Props.get_f("avionics/gps/dist_nm"), Props.has("avionics/gps/brg_mag"), Props.get_f("avionics/gps/brg_mag"))
+	var phase := str(Props.get_v("avionics/fms/phase", ""))
+	var tod := float(Props.get_v("avionics/fms/tod_nm", -1.0))
+	r["phase"] = phase if phase != "" else DASH
+	r["tod"] = ("%d NM" % roundi(tod)) if tod >= 0.0 else DASH
+	return r
+
+
+## True for one scratchpad character: letter, digit, space, slash, period, or Backspace. Not flight keys.
+static func wants_key(event: InputEvent) -> bool:
+	if event == null or not (event is InputEventKey):
+		return false
+	var e := event as InputEventKey
+	if not e.pressed or e.echo or e.ctrl_pressed or e.alt_pressed or e.meta_pressed:
+		return false
+	return _glyph(e) != ""
+
+
+## The scratchpad character for `event`, or "" when wants_key is false. "\b" deletes one.
+static func typed_char(event: InputEvent) -> String:
+	return _glyph(event as InputEventKey) if wants_key(event) else ""
+
+
+static func _glyph(e: InputEventKey) -> String:
+	var code := e.keycode
+	if code == KEY_BACKSPACE:
+		return "\b"
+	if code >= KEY_A and code <= KEY_Z:
+		return LETTERS[code - KEY_A]
+	if e.shift_pressed:
+		return ""
+	if code >= KEY_0 and code <= KEY_9:
+		return DIGITS[code - KEY_0]
+	if code >= KEY_KP_0 and code <= KEY_KP_9:
+		return DIGITS[code - KEY_KP_0]
+	if code == KEY_SPACE:
+		return " "
+	if code == KEY_SLASH:
+		return "/"
+	if code == KEY_PERIOD or code == KEY_KP_PERIOD:
+		return "."
+	return ""
+
+
+## Scratchpad after typing `ch` ("\b" deletes one character). Pure; capped at MAX_SCRATCH.
+static func scratch_after(scratch: String, ch: String) -> String:
+	if ch == "\b":
+		return scratch.substr(0, maxi(scratch.length() - 1, 0))
+	if ch == "":
+		return scratch
+	return (scratch + ch).substr(0, MAX_SCRATCH)
+
+
 func _press(id: String, button: int, _p: Vector2) -> void:
 	var s := str(Props.get_v("mcdu/scratch", ""))
 	if id.begins_with("p_"):
 		Props.set_v("mcdu/page", id.substr(2))
 	elif id == "k_CLR":
-		Props.set_v("mcdu/scratch", "" if button != MOUSE_BUTTON_LEFT else s.substr(0, maxi(s.length() - 1, 0)))
+		Props.set_v("mcdu/scratch", "" if button != MOUSE_BUTTON_LEFT else scratch_after(s, "\b"))
 	elif id.begins_with("k_"):
-		if s.length() < MAX_SCRATCH:
-			Props.set_v("mcdu/scratch", s + id.substr(2))
+		Props.set_v("mcdu/scratch", scratch_after(s, id.substr(2)))
 	elif id.begins_with("l") or id.begins_with("r"):
 		_line_key(id[0], int(id.substr(1)), s)
 
 
+func type_key(e: InputEvent) -> bool:
+	if not wants_key(e):
+		return false
+	_type_char(typed_char(e))
+	return true
+
+
+## True when `ident` is an airport, VOR or NDB. With no nav database (unit tests) any ident is accepted.
+func _db() -> Object:
+	if not is_inside_tree():
+		return null
+	var nav := get_tree().root.find_child("Nav", true, false)
+	return nav.get("db") if nav != null else null
+
+
+func _known(ident: String) -> bool:
+	if ident == "":
+		return false
+	var db := _db()
+	if db == null or not db.has_method("position_of"):
+		return true
+	return db.position_of(ident) != null
+
+
+func _airways() -> Dictionary:
+	var db := _db()
+	if db == null:
+		return {}
+	var aw = db.get("airways")
+	return aw if typeof(aw) == TYPE_DICTIONARY else {}
+
+
+func _commit(target: String, next: Array, engage: bool) -> void:
+	Props.set_v("controls/gps/target", target)
+	Props.set_v("controls/gps/route_next", next)
+	Props.set_v("mcdu/scratch", "")
+	if engage:
+		Props.set_v("controls/fcu/hdg_managed", true)
+
+
 func _line_key(side: String, row: int, s: String) -> void:
-	if page() == "FPLN":
-		if side == "l" and s != "" and row >= 1:
-			var wps := with_waypoint(route(), row - 1, s)
-			Props.set_v("controls/gps/target", wps[0])
-			Props.set_v("controls/gps/route_next", wps.slice(1))
-			Props.set_v("mcdu/scratch", "")
+	var p := page()
+	var known := Callable(self, "_known")
+	if p == "FPLN":
+		if side == "l" and row >= 1:
+			var ed := FlightPlan.edit(route(), row - 1, s, known)
+			if ed.error != "":
+				Props.set_v("mcdu/scratch", ed.error)
+			elif s == "":
+				Props.set_v("mcdu/scratch", ed.scratch)
+			elif not ed.wps.is_empty():
+				_commit(str(ed.wps[0]), ed.wps.slice(1), true)
 		return
-	for f in FIELDS.get(page(), []):
+	if p == "DIR":
+		if side == "l" and row == 1:
+			var d := FlightPlan.direct(s, str(Props.get_v("controls/gps/target", "")), Array(Props.get_v("controls/gps/route_next", [])), known)
+			Props.set_v("controls/gps/target", d.target)
+			Props.set_v("controls/gps/route_next", d.next)
+			Props.set_v("mcdu/scratch", d.scratch)
+			if s != "" and d.error == "":
+				Props.set_v("controls/fcu/hdg_managed", true)
+		return
+	if p == "PROG":
+		return
+	for f in FIELDS.get(p, []):
 		if f[0] != side or f[1] != row:
 			continue
 		if s == "":
@@ -78,6 +209,46 @@ func _line_key(side: String, row: int, s: String) -> void:
 		else:
 			Props.set_v(f[3], float(s) if f[4] == "num" else s)
 			Props.set_v("mcdu/scratch", "")
+			_after_field(str(f[3]), s)
+
+
+func _after_field(prop: String, s: String) -> void:
+	if prop == "mcdu/init/from_to":
+		_file_route(s)
+	elif prop == "mcdu/init/dep_rwy" or prop == "mcdu/init/arr_rwy":
+		var ft := str(Props.get_v("mcdu/init/from_to", ""))
+		if ft != "":
+			_file_route(ft)
+	elif prop == "mcdu/init/cruise_fl":
+		Props.set_v("controls/fcu/alt_ft", clampf(float(s), 1.0, 450.0) * 100.0)
+		Props.set_v("controls/fcu/vs_managed", true)
+		Props.set_v("controls/fcu/vert_select", "MANAGED")
+
+
+func _file_route(text: String) -> void:
+	var exp := Airway.expand(FlightPlan.split_from_to(text), _airways())
+	if not exp.ok:
+		Props.set_v("mcdu/scratch", exp.error)
+		return
+	var filed := FlightPlan.file(exp.parts, Callable(self, "_known"))
+	if not filed.ok:
+		Props.set_v("mcdu/scratch", filed.error)
+		return
+	filed = FlightPlan.with_procedures(filed, str(Props.get_v("mcdu/init/dep_rwy", "")), str(Props.get_v("mcdu/init/arr_rwy", "")))
+	if not _route_known(filed):
+		Props.set_v("mcdu/scratch", FlightPlan.NOT_IN_DB)
+		return
+	_commit(str(filed.target), filed.next, true)
+	Props.set_v("controls/fms/origin", filed.origin)
+
+
+func _route_known(filed: Dictionary) -> bool:
+	if not _known(str(filed.target)):
+		return false
+	for id in filed.next:
+		if not _known(str(id)):
+			return false
+	return true
 
 
 static func _shown(f: Array) -> String:
@@ -87,60 +258,39 @@ static func _shown(f: Array) -> String:
 	return str(roundi(float(v))) if f[4] == "num" else str(v)
 
 
+func _gui_input(e: InputEvent) -> void:
+	if wants_key(e):
+		_type_char(typed_char(e))
+		accept_event()
+		return
+	if e is InputEventMouseButton and e.pressed and is_inside_tree():
+		grab_focus()
+	super._gui_input(e)
+
+
+func _unhandled_input(e: InputEvent) -> void:
+	if not wants_key(e) or not _pointer_over():
+		return
+	_type_char(typed_char(e))
+	get_viewport().set_input_as_handled()
+
+
+func _type_char(ch: String) -> void:
+	if ch == "":
+		return
+	Props.set_v("mcdu/scratch", scratch_after(str(Props.get_v("mcdu/scratch", "")), ch))
+	queue_redraw()
+
+
+func _pointer_over() -> bool:
+	if not is_inside_tree():
+		return false
+	return get_global_rect().has_point(get_global_mouse_position())
+
+
+
 func _paint() -> void:
 	fill(SCREEN, Color.BLACK)
 	frame(SCREEN.grow(2), GREY, 2.0)
 	txt(Vector2(210, 26), TITLES[page()], 20, WHITE, 0)
-	if page() == "FPLN":
-		_fpln()
-	else:
-		for f in FIELDS[page()]:
-			_field(f)
-	var s := str(Props.get_v("mcdu/scratch", ""))
-	txt(Vector2(16, 318), s if s != "" else "[    ]", 20, AMBER if s.begins_with("FORMAT") else WHITE)
-	for i in 6:
-		hot(Rect2(8, 44 + i * 44, 56, 42), "l%d" % (i + 1))
-		hot(Rect2(356, 44 + i * 44, 56, 42), "r%d" % (i + 1))
-	_keys()
-
-
-func _field(f: Array) -> void:
-	var y: float = 50.0 + (f[1] - 1) * 44.0
-	var right: bool = f[0] == "r"
-	var x := 400.0 if right else 16.0
-	var al := 1 if right else -1
-	txt(Vector2(x, y), f[2], 12, WHITE, al)
-	var v := _shown(f)
-	txt(Vector2(x, y + 20), (v + f[5]) if v != "" else ("[ ]" if f[4] == "text" else "[  ]"), 20, CYAN if v != "" else Color(0.4, 0.6, 0.7), al)
-
-
-func _fpln() -> void:
-	var wps := route()
-	for i in 6:
-		var y := 50.0 + i * 44.0
-		txt(Vector2(16, y), "FROM" if i == 0 else "", 12, WHITE)
-		if i < wps.size():
-			txt(Vector2(16, y + 20), str(wps[i]), 20, MAGENTA if i == 0 else GREEN)
-		elif i == wps.size():
-			txt(Vector2(16, y + 20), "[    ]", 20, Color(0.4, 0.6, 0.7))
-	if Props.get_b("avionics/gps/valid") and wps.size() > 0:
-		txt(Vector2(400, 50), "DIST", 12, WHITE, 1)
-		txt(Vector2(400, 70), "%d NM" % roundi(Props.get_f("avionics/gps/dist_nm")), 20, GREEN, 1)
-		txt(Vector2(400, 94), "ETE", 12, WHITE, 1)
-		txt(Vector2(400, 114), str(Props.get_v("avionics/gps/ete", "--")), 20, GREEN, 1)
-
-
-func _keys() -> void:
-	for i in PAGE_IDS.size():
-		var r := Rect2(12 + i * 100, 344, 92, 30)
-		button(r, "p_" + PAGE_IDS[i], PAGE_IDS[i].replace("FPLN", "F-PLN"), page() == PAGE_IDS[i], GREEN, 14)
-	for i in 11:
-		var c := "789456123.0"[i]
-		var r := Rect2(12 + (i % 3) * 52, 386 + (i / 3) * 40, 46, 34)
-		button(r, "k_" + c, c, false, GREEN, 18)
-	button(Rect2(12 + 2 * 52, 386 + 3 * 40, 46, 34), "k_/", "/", false, GREEN, 18)
-	button(Rect2(12, 386 + 4 * 40, 98, 30), "k_CLR", "CLR", false, GREEN, 14)
-	button(Rect2(116, 386 + 4 * 40, 46, 30), "k_-", "+/-", false, GREEN, 12)
-	for i in 26:
-		var r := Rect2(176 + (i % 6) * 40, 386 + (i / 6) * 40, 36, 34)
-		button(r, "k_" + LETTERS[i], LETTERS[i], false, GREEN, 16)
+	MCDUDraw.paint(self)

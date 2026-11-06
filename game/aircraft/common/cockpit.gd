@@ -80,7 +80,7 @@ func build(model: AircraftModel, fallback_eye: Vector3) -> void:
 		_build_placeholder(fallback_eye)
 	var lighting := CockpitLighting.new()
 	add_child(lighting)
-	lighting.setup(_quads, [rects["radios"]] if interior != null and not spots.is_empty() and rects.has("radios") else [], eye)
+	lighting.setup(_quads, [rects["radios"]] if interior != null and not spots.is_empty() and rects.has("radios") else [], eye, def.id)
 
 
 ## A model-frame direction (x aft, y right, z up) in the aircraft's local frame (x right, y up, z aft).
@@ -159,8 +159,37 @@ func _process(dt: float) -> void:
 
 ## Forward a mouse event from the main viewport to the panel if it hits a gauge quad.
 func forward_mouse(e: InputEventMouse, cam: Camera3D) -> bool:
-	var from := cam.project_ray_origin(e.position)
-	var dir := cam.project_ray_normal(e.position)
+	var hit = _hit(cam, e.position)
+	if hit == null:
+		return false
+	var ev: InputEventMouse = e.duplicate()
+	ev.position = hit.at
+	ev.global_position = ev.position
+	viewport.push_input(ev)
+	return true
+
+
+## Type into the MCDU when the pointer is over its quad. Letters stay flight keys everywhere else.
+func forward_key(e: InputEventKey, cam: Camera3D) -> bool:
+	if not MCDU.wants_key(e):
+		return false
+	var owner := cam.get_viewport().gui_get_focus_owner()
+	if owner is LineEdit:
+		return false
+	var rects := InstrumentPanel.rects()
+	if not rects.has("mcdu"):
+		return false
+	var hit = _hit(cam, cam.get_viewport().get_mouse_position())
+	if hit == null or not (hit.rect as Rect2).intersects(rects.mcdu):
+		return false
+	var unit := panel_ui.get_node_or_null("mcdu")
+	return unit != null and unit.has_method("type_key") and unit.type_key(e)
+
+
+## The panel rect under `screen`, and the pixel inside it. Null when the ray misses every quad.
+func _hit(cam: Camera3D, screen: Vector2) -> Variant:
+	var from := cam.project_ray_origin(screen)
+	var dir := cam.project_ray_normal(screen)
 	for item in _quads:
 		var mi: MeshInstance3D = item[0]
 		var r: Rect2 = item[1]
@@ -177,9 +206,5 @@ func forward_mouse(e: InputEventMouse, cam: Camera3D) -> bool:
 		var uv := Vector2(local.x / qs.x + 0.5, 0.5 - local.y / qs.y)
 		if uv.x < 0.0 or uv.x > 1.0 or uv.y < 0.0 or uv.y > 1.0:
 			continue
-		var ev: InputEventMouse = e.duplicate()
-		ev.position = r.position + uv * r.size
-		ev.global_position = ev.position
-		viewport.push_input(ev)
-		return true
-	return false
+		return {"rect": r, "at": r.position + uv * r.size}
+	return null

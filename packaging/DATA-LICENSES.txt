@@ -18,3 +18,9 @@ buildings/, runways.json
                  https://opendatacommons.org/licenses/odbl/1-0/  (https://www.openstreetmap.org/copyright)
 airports.json, navaids.json
                  Derived from OurAirports (https://ourairports.com), public domain.
+airways.json     ATS route tracks derived from the Airports Authority of India eAIP
+                 (ENR 3.1 conventional routes and ENR 3.2 area-navigation routes),
+                 https://aim-india.aai.aero.in/ . The HTML is not included.
+                 This file is the designator, the significant-point order and the
+                 coordinates, for simulation only. Not for navigation.
+                 The cycle id is inside the file.

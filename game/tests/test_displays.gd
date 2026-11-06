@@ -303,6 +303,29 @@ func _zone(d: Display, id: String) -> Rect2:
 	return Rect2()
 
 
+func test_disp_mcdu_init_cruise_and_runway() -> String:
+	_begin()
+	var m := MCDU.new()
+	var err := ""
+	Props.set_v("mcdu/page", "INIT")
+	Props.set_v("mcdu/scratch", "350")
+	Props.set_v("controls/fcu/vs_managed", false)
+	m._press("r3", MOUSE_BUTTON_LEFT, Vector2.ZERO)
+	if Props.get_f("mcdu/init/cruise_fl") != 350.0 or Props.get_f("controls/fcu/alt_ft") != 35000.0 or not Props.get_b("controls/fcu/vs_managed") or str(Props.get_v("controls/fcu/vert_select")) != "MANAGED":
+		err = "CRZ FL %s alt %s managed %s select %s" % [Props.get_v("mcdu/init/cruise_fl"), Props.get_f("controls/fcu/alt_ft"), Props.get_b("controls/fcu/vs_managed"), Props.get_v("controls/fcu/vert_select")]
+	Props.set_v("mcdu/scratch", "27")
+	m._press("l5", MOUSE_BUTTON_LEFT, Vector2.ZERO)
+	Props.set_v("mcdu/scratch", "10")
+	m._press("r5", MOUSE_BUTTON_LEFT, Vector2.ZERO)
+	Props.set_v("mcdu/scratch", "VABB/BBB/VAPO")
+	m._press("l1", MOUSE_BUTTON_LEFT, Vector2.ZERO)
+	if err == "" and (Props.get_v("controls/gps/target") != "VABB27D" or Props.get_v("controls/gps/route_next") != ["BBB", "VAPO10F", "VAPO"] or not Props.get_b("controls/fcu/hdg_managed")):
+		err = "filed %s %s" % [Props.get_v("controls/gps/target"), Props.get_v("controls/gps/route_next")]
+	m.free()
+	_end()
+	return err
+
+
 func test_disp_mcdu_entry() -> String:
 	_begin()
 	var m := MCDU.new()
@@ -340,6 +363,95 @@ func test_disp_mcdu_entry() -> String:
 	m.free()
 	_end()
 	return err
+
+
+func test_disp_mcdu_dir_prog() -> String:
+	_begin()
+	var m := MCDU.new()
+	var err := ""
+	var copied := MCDU.direct_to("", "VABB")
+	var jumped := MCDU.direct_to("VAGO", "VABB")
+	if copied["target"] != "VABB" or copied["scratch"] != "VABB" or jumped["target"] != "VAGO" or jumped["scratch"] != "":
+		err = "direct_to"
+	var next := ["VAPO", "VOCL"]
+	var resume := ["VABB", "VAPO", "VOCL"]
+	Props.set_v("mcdu/page", "DIR")
+	Props.set_v("controls/gps/target", "VABB")
+	Props.set_v("controls/gps/route_next", next)
+	Props.set_v("controls/fcu/hdg_managed", false)
+	Props.set_v("mcdu/scratch", "VAGO")
+	m._press("l1", MOUSE_BUTTON_LEFT, Vector2.ZERO)
+	if err == "" and (Props.get_v("controls/gps/target") != "VAGO" or str(Props.get_v("mcdu/scratch")) != "" or Props.get_v("controls/gps/route_next") != resume):
+		err = "DIR direct-to %s %s" % [Props.get_v("controls/gps/target"), Props.get_v("controls/gps/route_next")]
+	if err == "" and not Props.get_b("controls/fcu/hdg_managed"):
+		err = "DIR should select NAV"
+	m._press("l1", MOUSE_BUTTON_LEFT, Vector2.ZERO)
+	if err == "" and (str(Props.get_v("mcdu/scratch")) != "VAGO" or Props.get_v("controls/gps/target") != "VAGO" or Props.get_v("controls/gps/route_next") != resume):
+		err = "DIR copy"
+	Props.set_v("mcdu/scratch", "NOPE")
+	m._press("l2", MOUSE_BUTTON_LEFT, Vector2.ZERO)
+	if err == "" and (Props.get_v("controls/gps/target") != "VAGO" or str(Props.get_v("mcdu/scratch")) != "NOPE"):
+		err = "DIR other line"
+	var miss := MCDU.prog_text("VABB", false, 9.0, false, 1.0)
+	var hit := MCDU.prog_text("VABB", true, 12.4, true, 45.2)
+	if err == "" and (miss["target"] != "VABB" or miss["dist"] != "---" or miss["brg"] != "---" or hit["dist"] != "12 NM" or hit["brg"] != "045"):
+		err = "PROG text %s %s" % [miss, hit]
+	Props.set_v("avionics/gps/dist_nm", 12.4)
+	Props.set_v("avionics/gps/brg_mag", 45.2)
+	var live := MCDU.prog_readout()
+	if err == "" and (live["target"] != "VAGO" or live["dist"] != "12 NM" or live["brg"] != "045"):
+		err = "PROG props %s" % live
+	Props.set_v("mcdu/page", "PROG")
+	Props.set_v("mcdu/scratch", "ZZ")
+	m._press("l1", MOUSE_BUTTON_LEFT, Vector2.ZERO)
+	if err == "" and (str(Props.get_v("mcdu/scratch")) != "ZZ" or Props.get_v("controls/gps/target") != "VAGO" or m.dry_paint() < 20):
+		err = "PROG read-only"
+	Props.set_v("mcdu/page", "DIR")
+	if err == "" and m.dry_paint() < 20:
+		err = "DIR paint"
+	if err == "" and not _mcdu_keys_ok():
+		err = "wants_key"
+	if err == "" and (MCDU.scratch_after("VA", "B") != "VAB" or MCDU.scratch_after("VAB", "\b") != "VA" or MCDU.scratch_after("", "\b") != ""):
+		err = "scratch_after"
+	if err == "" and (MCDU.scratch_after("A", " ") != "A " or MCDU.scratch_after("A", "/") != "A/" or MCDU.scratch_after("A", ".") != "A."):
+		err = "scratch glyphs"
+	if err == "" and MCDU.scratch_after("1234567890123456789012", "Z") != "1234567890123456789012":
+		err = "scratch cap"
+	Props.set_v("mcdu/scratch", "")
+	m._gui_input(_key_ev(KEY_V))
+	m._gui_input(_key_ev(KEY_A))
+	m._gui_input(_key_ev(KEY_LEFT))
+	m._gui_input(_key_ev(KEY_BACKSPACE))
+	if err == "" and str(Props.get_v("mcdu/scratch")) != "V":
+		err = "gui scratch %s" % Props.get_v("mcdu/scratch")
+	m._unhandled_input(_key_ev(KEY_B))
+	if err == "" and str(Props.get_v("mcdu/scratch")) != "V":
+		err = "unhandled off display"
+	m.free()
+	_end()
+	return err
+
+
+func _mcdu_keys_ok() -> bool:
+	var take := MCDU.wants_key(_key_ev(KEY_A)) and MCDU.wants_key(_key_ev(KEY_A, true)) and MCDU.wants_key(_key_ev(KEY_7))
+	take = take and MCDU.wants_key(_key_ev(KEY_SPACE)) and MCDU.wants_key(_key_ev(KEY_SLASH)) and MCDU.wants_key(_key_ev(KEY_PERIOD))
+	take = take and MCDU.wants_key(_key_ev(KEY_BACKSPACE)) and MCDU.typed_char(_key_ev(KEY_B)) == "B"
+	take = take and MCDU.typed_char(_key_ev(KEY_KP_3)) == "3" and MCDU.typed_char(_key_ev(KEY_A, true)) == "A"
+	var skip := MCDU.wants_key(_key_ev(KEY_LEFT)) or MCDU.wants_key(_key_ev(KEY_PAGEUP)) or MCDU.wants_key(_key_ev(KEY_A, false, true))
+	skip = skip or MCDU.wants_key(_key_ev(KEY_A, false, false, true)) or MCDU.wants_key(_key_ev(KEY_1, true))
+	skip = skip or MCDU.wants_key(_key_ev(KEY_A, false, false, false, false)) or MCDU.wants_key(_key_ev(KEY_UP))
+	return take and not skip
+
+
+func _key_ev(code: Key, shift := false, ctrl := false, echo := false, pressed := true) -> InputEventKey:
+	var e := InputEventKey.new()
+	e.pressed = pressed
+	e.echo = echo
+	e.keycode = code
+	e.physical_keycode = code
+	e.shift_pressed = shift
+	e.ctrl_pressed = ctrl
+	return e
 
 
 func test_disp_nd_sd_clicks() -> String:

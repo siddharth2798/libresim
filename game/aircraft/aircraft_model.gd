@@ -84,6 +84,13 @@ func _build_glb(path: String) -> void:
 	lift_tyres(inst)
 	_tyres = TyreContact.build(inst, self, fdm_node.fdm, _model)
 	PaintPipeline.apply(self, inst, def)  # livery colours + tail number from the call sign, one pass per atlas (async the first time, then cached)
+	if def.id == "a320":
+		var finish := MaterialFinish.new()
+		add_child(finish)
+		finish.follow(inst, _cg, def)  # cabin-window glow and the fuselage stain; roughness is stamped inside apply()
+		var blur := FanBlur.new()
+		add_child(blur)
+		blur.follow(inst)  # static fan discs; opacity follows engines/1/n1 and engines/2/n1
 
 
 ## FlightGear glass uses an effect shader; make it a clear, slightly reflective pane. rain: draw drops / streaks on
@@ -116,6 +123,8 @@ static func fix_glass(root: Node, rain := false) -> void:
 		for i in m.get_surface_count():
 			var mat := m.surface_get_material(i)
 			if mat and mat.resource_name.to_lower().contains("glas"):
+				if mat.resource_name == "a320_glass":
+					continue  # stays a StandardMaterial3D: MaterialFinish sets roughness, metal, rain and night glow
 				(mi as MeshInstance3D).set_surface_override_material(i, glass)
 
 

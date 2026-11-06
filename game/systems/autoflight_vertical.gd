@@ -7,7 +7,7 @@ extends RefCounted
 ##   V/S      selected vertical speed (FCU)
 ##   OP CLB   open climb to the FCU altitude: thrust CLB, pitch holds the speed (selected or managed)
 ##   OP DES   open descent: thrust idle, pitch holds the speed
-##   CLB/DES  managed climb / descent: same laws with the managed speed schedule (no vertical profile)
+##   CLB/DES  managed climb / descent: same pitch laws. The FMS moves the FCU altitude at top of descent.
 ##   ALT*     capture of the FCU altitude: constant deceleration profile (A_CAP) ending in a linear approach
 ##   ALT      altitude hold ("ALT CRZ" on the FMA when reached in a managed climb / descent)
 ##   G/S*, G/S  glide slope capture and track (-3 deg path through the glide slope antenna)

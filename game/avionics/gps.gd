@@ -14,6 +14,7 @@ var db: NavDatabase
 var plan := RoutePlan.new()
 var _last_target := ""
 var _last_next: Array = []
+var _tod_key := ""  # cruise|destination once a descent has been commanded
 
 
 func target_position(ident: String) -> Variant:
@@ -47,6 +48,8 @@ func _physics_process(_dt: float) -> void:
 	Props.set_v("avionics/gps/valid", ok)
 	if plan.is_empty() or not ok:
 		Props.set_v("avionics/gps/ident", "")
+		Props.set_v("avionics/fms/legs", [])
+		_profile(p, p3.z, false)
 		return
 	var tp: Vector2 = plan.active().pos
 	var d: Vector2 = tp - p
@@ -61,3 +64,50 @@ func _physics_process(_dt: float) -> void:
 	Props.set_v("avionics/gps/ete", "%d:%02d" % [secs / 60, secs % 60] if gs > 5.0 else "--")
 	Props.set_v("avionics/gps/xtk_nm", ((p - from).cross(leg)) / NM)  # + = right of the leg
 	Props.set_v("avionics/gps/valid", true)
+	_legs(p)
+	_profile(p, p3.z, true)
+
+
+## Course and distance of each leg, from the aircraft to the active waypoint and then waypoint to waypoint.
+## avionics/fms/legs [{ident, course (deg magnetic), dist_nm}], for the MCDU F-PLN page.
+func _legs(p: Vector2) -> void:
+	var legs := []
+	var a := p
+	for w in plan.wps:
+		var b: Vector2 = w.pos
+		legs.append({"ident": w.ident, "course": fposmod(RoutePlan.bearing_deg(a, b) - VAR_DEG, 360.0), "dist_nm": a.distance_to(b) / NM})
+		a = b
+	Props.set_v("avionics/fms/legs", legs)
+
+
+## Managed vertical: publish the phase, and at top of descent set the FCU altitude once.
+func _profile(p: Vector2, alt_m: float, route_ok: bool) -> void:
+	if not route_ok or not Props.get_b("controls/fcu/vs_managed") or Props.get_b("fdm/wow"):
+		_tod_key = ""
+		Props.set_v("avionics/fms/phase", "")
+		Props.set_v("avionics/fms/tod_nm", -1.0)
+		return
+	var cruise := float(Props.get_v("mcdu/init/cruise_fl", 0.0)) * 100.0
+	var dest: Dictionary = plan.wps.back()
+	var ident := str(dest.get("ident", ""))
+	var ap := db.airport(ident)
+	if ap.is_empty():
+		var parsed := RunwayWaypoints.parse(ident)
+		if not parsed.is_empty():
+			ap = db.airport(str(parsed.icao))
+	if cruise <= 0.0 or ap.is_empty():
+		Props.set_v("avionics/fms/phase", "")
+		Props.set_v("avionics/fms/tod_nm", -1.0)
+		return
+	var dist_nm := plan.remaining_m(p) / NM
+	var d := VerticalProfile.decide(cruise, Units.m_to_ft(alt_m), dist_nm, Units.m_to_ft(float(ap.get("elev_m", 0.0))))
+	Props.set_v("avionics/fms/phase", d.phase)
+	Props.set_v("avionics/fms/tod_nm", d.tod_nm)
+	var key := "%d|%s" % [int(cruise), ident]
+	if d.descend and _tod_key != key:
+		_tod_key = key
+		if Props.get_f("controls/fcu/alt_ft") > float(d.approach_ft) + 100.0:
+			Props.set_v("controls/fcu/alt_ft", d.approach_ft)
+			Props.set_v("controls/fcu/vert_select", "MANAGED")
+	elif not d.descend:
+		_tod_key = ""

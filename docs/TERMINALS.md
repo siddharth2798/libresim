@@ -234,9 +234,12 @@ Heights are **low confidence** (photo estimates); the plan and roof form are fro
 - **Reference heights are mostly estimates.** No source publishes a roof height for any terminal except VABB T2
   (SOM 36 m); Kannur's come from photos. Most other heights are `model` values from storeys or guesses.
   Better numbers (architects' sections, AAI tender drawings, measured photos) go into the reference file.
-- **Next promotions** (enough data to model, own shapes needed): VANM (Zaha Hadid lotus shell on 17
-  mega-columns, 3 floors), VOGA (processor + pier roofs with linear skylights, azulejo panels), VOML
-  (3 levels, curved roof), VOSH (lotus petal roof). VAKP and VARG need their OSM outlines checked first.
+- **Promoted** (the published roof, drawn from the reference model heights, not a measured shell):
+  VANM is a glazed hall under alternating vaults on a column grid (the lotus is that silhouette;
+  the 17 columns and the petal profile are not copied). VOGA and VOML are glazed blocks under a
+  curved roof. VOSH is a glazed block under hips, because the lotus-petal profile is not published.
+  Still to do when a source gives the shape: VABB T2's coffered shell, linear skylights at VOGA,
+  azulejo panels. VAKP and VARG need their OSM outlines checked first.
 
 - **No height tags in OSM.** Every height is hand-set from published floor levels or
   quoted roof heights. Add `height`/`roof:shape` tags to OSM where you can verify them,
@@ -307,9 +310,10 @@ storeys × 4.5 m + 1 m; `rgb(t, key, default)`.
 
 **What uses it**
 - **Landmark recipes** (`terminal_styles_ref.py`): `VOKN` takes its heights, glass share and colours
-  from the entry; the `generic` recipe models any terminal whose `model.recipe` is `"generic"` (today
-  **VOGO** Dabolim: a glazed block to the 18 m eaves with a curved metal roof to 24 m, slices following
-  the footprint, 6 m overhang). The hand recipes VABB / VAPO / VOCI keep their own numbers; the
+  from the entry. `VANM` is a glazed hall under alternating vaults on a column grid. The `generic`
+  recipe models any terminal whose `model.recipe` is `"generic"` (**VOGO** Dabolim, **VOGA** Mopa,
+  **VOML** Mangaluru, **VOSH** Shivamogga): a glazed block to the eaves with a curved or hipped roof,
+  slices following the footprint. The hand recipes VABB / VAPO / VOCI keep their own numbers; the
   reference records the same values (as `model`) with their sources.
 - **Generic terminal boxes** (`10_buildings.py`): every other researched terminal with a linked OSM
   footprint is extruded to its reference box height (the eaves when the roof rises above them, else the
@@ -330,10 +334,10 @@ storeys × 4.5 m + 1 m; `rgb(t, key, default)`.
 |---|---|---|---|---|
 | VOKN | Kannur (`way/392012106`) | 30 m box (OSM tag) | landmark: 14 m eaves, 26 m gables | photos (low) |
 | VOGO | Dabolim (`way/889406836`) | 10.6 m (OSM tag) | landmark: 18 m eaves, curved roof 24 m | 4 storeys (medium) + model |
-| VANM | Navi Mumbai T1 (`way/1413816601`) | 14.3 m synthetic | 22 m, white roof | model (3 floors + mezzanines) |
-| VOML | Mangaluru (`relation/20984353`) | 18.8 m synthetic | 14 m | 3 levels (medium) + model |
-| VOGA | Mopa (`way/1180144485`) | 17.9 m synthetic | 16 m | model |
-| VOSH | Shivamogga (`way/1433698918`) | 11.3 m synthetic | 10 m, off-white roof | model |
+| VANM | Navi Mumbai T1 (`way/1413816601`) | 14.3 m synthetic | landmark: 22 m eaves, vaults to 32 m, columns | model (3 floors + mezzanines) |
+| VOML | Mangaluru (`relation/20984353`) | 18.8 m synthetic | landmark: 14 m eaves, curved roof 18 m | 3 levels (medium) + model |
+| VOGA | Mopa (`way/1180144485`) | 17.9 m synthetic | landmark: 16 m eaves, curved roof 22 m | model |
+| VOSH | Shivamogga (`way/1433698918`) | 11.3 m synthetic | landmark: 10 m eaves, hipped roof 16 m | model |
 | VOSR | Sindhudurg (`way/890926927`) | 18.3 m synthetic | 9 m | model |
 | VOBM | Belagavi (`way/555353911`) | 13.9 m synthetic | 9 m | model |
 | VOCL | Karipur (`way/254158852`, all blocks) | synthetic | 10 m | 2 storeys (medium) + model |

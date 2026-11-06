@@ -8,6 +8,7 @@ extends Node
 ## airspeed). One-shots: engine catch / cut, touchdown squeal, switch clicks, levers.
 ## Cockpit view hears everything; outside views hear the engine louder and no clicks.
 ## An aircraft whose "audio" has a "layers" list (A320) uses audio_layers.gd instead (schema in audio_curves.gd).
+## "audio.gpws" adds the stall horn and lite GPWS tones (gpws_player.gd). The C172 leaves that unset.
 
 ## aircraft.json "audio": "engine" and "wind" override these keys one by one.
 const DEFAULTS := {
@@ -51,6 +52,10 @@ func _ready() -> void:
 	_dir = def.path("sounds")
 	if not _dir.ends_with("/"):
 		_dir += "/"
+	if bool(def.section("audio").get("gpws", false)):
+		var gpws := GpwsPlayer.new()
+		add_child(gpws)
+		gpws.setup(_dir)
 	if def.section("audio").has("layers"):  # data-driven layer engine (audio_layers.gd); the c172 code below is not used
 		var layers := AudioLayers.new()
 		add_child(layers)

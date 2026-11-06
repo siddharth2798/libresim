@@ -1,16 +1,18 @@
 #!/usr/bin/env python3
 """A320 pack sounds: fetch the CC0 / CC-BY recordings, cut them into loops / one-shots, audit.
 
-  25_a320_sounds.py          audit (default): every shipped file is in manifest.json and SOURCES.md,
+  25_a320_sounds.py          audit (default): every recording is in manifest.json and SOURCES.md,
                              sha256 matches, loops are seamless, size budget holds. Needs numpy.
+                             tools/a320_tones.py files in the same folder are skipped (original tones).
   25_a320_sounds.py --fetch  download the sources into data/raw/a320_sounds/<id>/ (own folder each,
                              never executed, sha256 pinned below; needs certifi from the venv).
   25_a320_sounds.py --build  cut the sources into game/aircraft/a320/sounds/*.wav + manifest.json
                              (needs numpy, scipy, soundfile: tools/.venv/bin/pip install soundfile).
 Licences: only recordings whose own file page says CC0 or CC-BY, listed file by file in
 game/aircraft/a320/sounds/SOURCES.md, CREDITS.md and docs/LICENSING.md. Nothing from the A320-family
-upstream Sounds/ folder. Nothing is synthesised: every output is a trimmed / filtered / resampled /
-normalised cut of a real recording (EDITS below and SOURCES.md).
+upstream Sounds/ folder. Every output of this script is a trimmed / filtered / resampled /
+normalised cut of a real recording (EDITS below and SOURCES.md). Original stall / GPWS tones
+are written by tools/a320_tones.py and are not part of this recording pack.
 Run with tools/.venv/bin/python (system python lacks certificates).
 """
 import hashlib
@@ -30,6 +32,8 @@ MANIFEST = os.path.join(OUT, "manifest.json")
 SOURCES_MD = os.path.join(OUT, "SOURCES.md")
 RATE = 44100
 MAX_BYTES = 30 * 1024 * 1024
+# Original tones from tools/a320_tones.py. Not recordings, so not in manifest.json.
+GENERATED = {"stall_horn_loop.wav", "gpws_alt.wav", "gpws_sink.wav", "gpws_ap.wav"}
 C = "https://upload.wikimedia.org/wikipedia/commons/"
 
 # id -> where the original comes from. Licence read on the file's own page on 2026-10-28.
@@ -213,6 +217,10 @@ def audit():
     on_disk = sorted(f for f in os.listdir(OUT) if f.endswith((".wav", ".ogg")))
     total = sum(os.path.getsize(os.path.join(OUT, f)) for f in on_disk)
     for f in on_disk:
+        if f in GENERATED:
+            if not re.search(re.escape(f), md):
+                errs.append(f"{f}: generated tone not listed in SOURCES.md")
+            continue
         if f not in man:
             errs.append(f"{f}: on disk but not in manifest.json")
     for f, m in man.items():

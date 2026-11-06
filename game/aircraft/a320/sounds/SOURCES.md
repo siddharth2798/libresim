@@ -2,14 +2,20 @@
 
 Only recordings whose own file page states **CC0 or CC-BY** are used; the licence was read on each file's page
 on **2026-10-28**. Nothing comes from the A320-family upstream `Sounds/` folder (no per-file provenance).
-Nothing is synthesised: every file below is a trimmed / filtered / resampled / normalised cut of a real
-recording (recipes: `tools/25_a320_sounds.py`, table `EDITS`; `--fetch` downloads the originals with pinned
-sha256, `--build` cuts them, running it without options audits files, hashes, loop seams and this list).
-Credits are also in /CREDITS.md and docs/LICENSING.md.
+Nothing in the recording table is synthesised: every file in that table is a trimmed / filtered / resampled /
+normalised cut of a real recording (recipes: `tools/25_a320_sounds.py`, table `EDITS`; `--fetch` downloads the
+originals with pinned sha256, `--build` cuts them, running it without options audits files, hashes, loop seams
+and this list). Credits are also in /CREDITS.md and docs/LICENSING.md.
 
-All files are mono, 44.1 kHz, 16-bit WAV (resampled from the original rate where needed, DC removed, peak
+2026-11-06: `stall_horn_loop.wav`, `gpws_alt.wav`, `gpws_sink.wav` and `gpws_ap.wav` are original tones generated
+by `tools/a320_tones.py` (stdlib `wave` and `math` only). They are libresim's own work: no upstream audio, and
+not a Honeywell or Airbus GPWS voice or the Airbus autopilot cavalry charge. The stall file is a 0.4 s loop of
+two beating tones; the other three are short beeps at different pitches.
+
+The recording cuts are mono, 44.1 kHz, 16-bit WAV (resampled from the original rate where needed, DC removed, peak
 normalised to -3 dBFS; loops are equal-power cross-faded so the end runs into the start; one-shots are faded in
-and out). Volume balance between files is done by the `gain` / `volume` tables in the aircraft's audio section.
+and out). The generated tones are the same format and peak. Volume balance between the recording cuts is done by
+the `gain` / `volume` tables in the aircraft's audio section.
 
 ## Files made for this pack
 
@@ -44,8 +50,9 @@ Draken, pump and hoist: "Work With Sounds", CC BY 4.0. LAX landing: freetousesou
 
 - **APU start / run / shutdown**: no CC0 / CC-BY recording of an airliner APU was found. The audio section reuses the Draken
   start, idle and shutdown cuts above, pitched up and kept quiet, as a stand-in. Remove the three `apu_*` layers to leave it silent.
-- **Stall / overspeed warning, autopilot disconnect ("cavalry charge"), GPWS callouts, cabin announcements**: omitted (no verified
-  recording; nothing is synthesised).
+- **Overspeed warning, cabin announcements**: omitted (no verified recording).
+- **Stall horn, altitude blip, sink-rate beep, autopilot-disconnect beep**: original tones dated 2026-11-06 above
+  (`stall_horn_loop.wav`, `gpws_alt.wav`, `gpws_sink.wav`, `gpws_ap.wav`). Not a GPWS voice and not the cavalry charge.
 - **Takeoff roar**: the high-power loop is the Draken power cut pitched up with N1; a real turbofan takeoff recording needs the
   Freesound route below.
 

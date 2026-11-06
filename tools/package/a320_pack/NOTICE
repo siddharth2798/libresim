@@ -1,0 +1,26 @@
+libresim A320 pack
+Copyright (c) 2026 libresim contributors
+
+This pack is free software; you can redistribute it and/or modify it under
+the terms of the GNU General Public License, version 2, as published by the
+Free Software Foundation. There is no "or later" option: the pack is
+GPL-2.0-only.
+
+This pack is derived from the FlightGear A320-family, which is itself under
+the GNU GPL version 2 only. The corresponding source is this archive plus
+the libresim repository; see SOURCE-OFFER.txt and README.copyright.md.
+
+This pack is distributed in the hope that it will be useful, but WITHOUT ANY
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with
+this pack; see LICENSE. If not, write to the Free Software Foundation, Inc.,
+51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+
+Upstream copyright (c) 2025 Josh Davidson, Jonathan Redpath, merspieler,
+Matthew Maring, Thorsten Herrmann, Semir Gebran. See
+third_party/a320-family/README.copyright.md.
+
+"Airbus" and "A320" are trademarks of Airbus. libresim is not affiliated
+with or endorsed by Airbus, any airline, or any engine maker.

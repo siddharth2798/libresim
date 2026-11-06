@@ -269,7 +269,10 @@
      "model": {
       "eaves_m": 10.0,
       "roof_top_m": 16.0,
-      "basis": "libresim modelling estimate where research is null: single hall under the petal roof"
+      "basis": "libresim modelling estimate where research is null: single hall under the petal roof, drawn as hips because the petal profile is not published",
+      "recipe": "generic",
+      "roof": "pitched",
+      "overhang_m": 3.0
      },
      "confidence": {
       "floor_area_m2": "high",
@@ -1688,7 +1691,10 @@
      "model": {
       "eaves_m": 16.0,
       "roof_top_m": 22.0,
-      "basis": "libresim modelling estimate where research is null: processor + pier, long-span roofs"
+      "basis": "libresim modelling estimate where research is null: processor + pier, long-span roofs",
+      "recipe": "generic",
+      "roof": "curved",
+      "overhang_m": 5.0
      },
      "confidence": {
       "floor_area_m2": "medium",
@@ -2063,7 +2069,10 @@
      "model": {
       "eaves_m": 14.0,
       "roof_top_m": 18.0,
-      "basis": "libresim modelling estimate where research is null: 3 levels under a curved roof"
+      "basis": "libresim modelling estimate where research is null: 3 levels under a curved roof",
+      "recipe": "generic",
+      "roof": "curved",
+      "overhang_m": 4.0
      },
      "confidence": {
       "storeys": "medium",
