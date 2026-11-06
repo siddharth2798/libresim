@@ -1,0 +1,16 @@
+---
+description: Update tests with behaviour changes and run the full suite before every commit
+alwaysApply: true
+---
+
+# Tests before commit
+
+When a change affects behaviour, add or update a test in `game/tests/` that fails on the old behaviour and passes on the new one. A behaviour change without a matching test is unfinished.
+
+Before every commit, run the full suite on the tree being committed and wait for it to finish:
+
+```
+~/.local/bin/godot --headless --path game res://tests/run_tests.tscn
+```
+
+A new failure blocks the commit. Fix it, or adjust the test when the new behaviour is the one the test should lock in, then re-run the full suite. A known unrelated failure may remain only when it is already recorded (the livery step where Tab lands on the Remove button). Docs-only edits need no new test, and still require the suite before a commit that includes them.

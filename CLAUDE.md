@@ -29,5 +29,5 @@ Next: finish the e2e re-run; ATC A2 (circuit traffic) and A3 (Piper voice, real 
 
 Standing reqs: PLAN.md §8b.
 
-Tests: `godot --headless --path game res://tests/run_tests.tscn`.
+Tests: when a change affects behaviour, add or update a test that fails on the old behaviour and passes on the new one. Before every commit, run the full suite on the tree being committed: `~/.local/bin/godot --headless --path game res://tests/run_tests.tscn`. A new failure blocks the commit. A known unrelated failure may remain only when it is already recorded.
 Godot 4.7.2 at ~/.local/bin/godot (not on PATH). Python: tools/.venv. Keep docs/USAGE.md updated each milestone.
