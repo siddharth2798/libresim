@@ -49,6 +49,24 @@ func _rollout(h: FdmHarness) -> float:
 	return (f.pos_n - n0) / FT
 
 
+## A wheel stores the landing in the oleo: extending gives back far less spring than the same
+## compression pushed with, and a skid does not. The compression path itself is unchanged.
+func test_touchdown_oleo_does_not_kick_back() -> String:
+	var down := GearGround.normal_force(true, 80000.0, 4000.0, 0.12, 1.2)
+	var still := GearGround.normal_force(true, 80000.0, 4000.0, 0.12, 0.0)
+	var up := GearGround.normal_force(true, 80000.0, 4000.0, 0.12, -0.4)
+	var skid := GearGround.normal_force(false, 80000.0, 4000.0, 0.12, -0.4)
+	if absf(still - 80000.0 * 0.12) > 1.0:
+		return "a wheel at rest should be the plain spring, got %.0f" % still
+	if up > still * 0.35:
+		return "an extending oleo still pushes %.0f N, the spring at rest is %.0f" % [up, still]
+	if down <= still:
+		return "compressing should push at least as hard as sitting"
+	if absf(skid - (80000.0 * 0.12 + 4000.0 * -0.4)) > 1.0:
+		return "a skid should keep a linear spring, got %.0f" % skid
+	return ""
+
+
 func test_land_normal_and_roll() -> String:
 	var h := _approach(450.0, true)
 	var td: Dictionary = h.f.damage.last_touchdown

@@ -123,6 +123,20 @@ func test_flyby_avoids_cloud() -> String:
 	return "" if r.has("pos") and r.pos.distance_to(Vector3(0, 0, 2000)) > 50.0 else "no position in solid cloud"
 
 
+## The cockpit eye dips when the vertical load rises, and it comes back once the load is 1 g again.
+func test_cockpit_eye_dips_on_a_firm_touchdown() -> String:
+	var s := Vector2.ZERO
+	for i in 20:
+		s = CameraRig.seat_step(s.x, s.y, 1.8, 1.0 / 60.0)
+	if s.x > -0.008 or s.x < -0.045:
+		return "a 1.8 g touchdown should drop the eye a couple of centimetres, got %.3f m" % s.x
+	for i in 180:
+		s = CameraRig.seat_step(s.x, s.y, 1.0, 1.0 / 60.0)
+	if absf(s.x) > 0.004:
+		return "the eye should settle back near the design point, got %.3f m" % s.x
+	return ""
+
+
 ## Chase distance eases with speed. A long frame at constant speed must not change it, and one frame of a speed jump must not either.
 func test_chase_camera_does_not_zoom_on_a_hitch() -> String:
 	var back := Vector3(0, 0, 1)

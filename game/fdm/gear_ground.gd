@@ -1,8 +1,10 @@
 class_name GearGround
 extends RefCounted
-## Spring-damper ground contacts (JSBSim c172p contact points). BOGEY contacts
-## are wheels: rolling friction along the wheel heading (nosewheel steers with
-## the rudder pedals), brakes up to static friction, saturated lateral friction.
+## Spring-damper ground contacts (JSBSim c172p contact points). A wheel's oleo
+## does not give the spring back while the leg extends, so a touchdown sits down
+## instead of skipping. BOGEY contacts are wheels: rolling friction along the
+## wheel heading (nosewheel steers with the rudder pedals), brakes up to static
+## friction, saturated lateral friction.
 ## STRUCTURE contacts (skids, wingtips) scrape with dynamic friction.
 ## Works in NED (x north, y east, z down) with Basis r_bn = body -> NED.
 
@@ -10,7 +12,20 @@ const V_SAT_LONG := 0.25  # m/s, friction ramps linearly below this (avoids jitt
 const V_SAT_LAT := 0.12
 const DAMP_RAMP := 0.03  # m: damping builds up over the first 3 cm of compression (tyre + leg), so
                          # first contact is not an instant c*v force step
+const OLEO_GIVE := 0.82  # share of the spring a wheel does not return while the leg is extending
+const OLEO_V := 0.35  # m/s of extension at which that give is complete; a slow rise (takeoff) keeps the spring
 const BRAKE_MU := 0.45  # effective max braking friction, dry asphalt (tyre + anti-skid-free brakes)
+
+
+## Upward force of one contact. Compression is the published spring and damper (the damper eases in over
+## DAMP_RAMP, so the first touch is not a c·v spike). A wheel that is extending gives only part of the
+## spring back: the oleo oil has already turned the stroke into heat, so the leg sits down instead of
+## throwing the aircraft up while the wing is still lifting. A skid has no oleo.
+static func normal_force(wheel: bool, k: float, c: float, depth: float, vz: float) -> float:
+	var spring := k * depth
+	if wheel:
+		spring *= 1.0 - OLEO_GIVE * clampf(-vz / OLEO_V, 0.0, 1.0)
+	return maxf(spring + c * vz * clampf(depth / DAMP_RAMP, 0.0, 1.0), 0.0)
 
 
 ## Braking friction in rain. Heavy rain (precip 1) stretches a stop to about 1.8 times the dry distance.
@@ -132,7 +147,7 @@ func compute(mb: MassBalance, r_bn: Basis, pos_ned: Vector3, v_b: Vector3, w_b: 
 		if c.wheel:
 			wow = true
 		var v_c := r_bn * (v_b + w_b.cross(r_b))  # contact point velocity, NED
-		var n := maxf(c.k * depth + c.c * v_c.z * minf(depth / DAMP_RAMP, 1.0), 0.0)
+		var n := normal_force(c.wheel, c.k, c.c, depth, v_c.z)
 		info[c.name] = {"depth": depth, "vz": v_c.z, "force": n, "n": p.x, "e": p.y}
 		# wheel heading in the horizontal plane
 		var fwd := r_bn * Vector3(1, 0, 0)

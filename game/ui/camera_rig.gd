@@ -33,6 +33,8 @@ var _flyby_ahead := 0.0  # m ahead of the aircraft the camera was placed (FlybyP
 var _flyby_par := {}  # FlybyPlacement.params of this aircraft
 var _label: Label
 var _label_t := 0.0
+var _seat := 0.0  # cockpit eye, metres up from the design eye: lags the vertical g
+var _seat_v := 0.0
 
 
 func setup(model: AircraftModel) -> void:
@@ -149,7 +151,10 @@ func _process(dt: float) -> void:
 			if not Input.is_mouse_button_pressed(MOUSE_BUTTON_RIGHT):
 				_look = _look.lerp(_look_goal, k)
 			fov = _fov_cockpit
-			global_transform = Transform3D(t.basis * Basis.from_euler(Vector3(_look.y - 0.12, _look.x, 0.0)), t * _eye)
+			var seat := seat_step(_seat, _seat_v, Props.get_f("fdm/load_factor", 1.0), dt)
+			_seat = seat.x
+			_seat_v = seat.y
+			global_transform = Transform3D(t.basis * Basis.from_euler(Vector3(_look.y - 0.12, _look.x, 0.0)), t * (_eye + Vector3.UP * _seat))
 		Mode.CHASE:
 			fov = 60.0
 			var back := t.basis.z
@@ -197,6 +202,16 @@ func _process(dt: float) -> void:
 ## One chase-camera step. `back` is the aircraft's horizontal aft direction; the smoothed copy eases toward it at
 ## `follow` 1/s (cornering lag). The extra distance is ground speed / follow, eased over about a second, so a speed
 ## change or a long frame does not zoom the picture. A zero smoothed direction snaps to `back`.
+## One step of the cockpit eye. It sags a few centimetres when the vertical load rises and eases back,
+## so the touchdown is a dip rather than the picture stopping dead. Returns [offset m, rate m/s].
+static func seat_step(offset: float, vel: float, nz: float, dt: float) -> Vector2:
+	var target := clampf((1.0 - nz) * 0.028, -0.04, 0.015)
+	var acc := (target - offset) * 55.0 - vel * 8.0
+	vel += acc * dt
+	offset = clampf(offset + vel * dt, -0.045, 0.02)
+	return Vector2(offset, vel)
+
+
 static func chase_step(back_s: Vector3, trail: float, back: Vector3, speed: float, follow: float, dt: float) -> Dictionary:
 	var k := 1.0 - exp(-maxf(follow, 0.0) * maxf(dt, 0.0))
 	var b := back

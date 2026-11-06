@@ -103,7 +103,7 @@ Hands-off versus speed (3000 ft, ISA+15, calm, solo; bank / heading change after
 ## Landing gear
 
 - JSBSim's c172p wheels are about twice critically damped (main 23 350 N·s/m), so the damper force jumps to c·v at first contact. Used as is, a 290 fpm touchdown spiked to 3.8–5.5 g and over about 500 fpm tripped the 3×-weight gear overload and collapsed the gear.
-- So wheel damping is 0.2× JSBSim, about 0.4 of critical (`GEAR_DAMPING` in tools/06). Damping builds up over the first 3 cm of compression (`gear_ground.gd` `DAMP_RAMP`). A contact must be clear of the ground for 0.5 s before it counts as a new touchdown or strike (`damage.gd` `REARM_S`).
+- So wheel damping is 0.2× JSBSim, about 0.4 of critical (`GEAR_DAMPING` in tools/06). Damping builds up over the first 3 cm of compression (`gear_ground.gd` `DAMP_RAMP`). While a wheel extends, the oleo returns only a fraction of the spring (`OLEO_GIVE`): the oil has already taken the stroke, so the aircraft sits down instead of being thrown back up with the wing still lifting. A slow extension, such as the takeoff rotation, keeps the spring. A contact must be clear of the ground for 0.5 s before it counts as a new touchdown or strike (`damage.gd` `REARM_S`).
 - Drop tests at an 8° flare attitude, peak g with the wing still lifting (main leg force / weight):
 
 | Touchdown | Peak g (leg force / weight) |

@@ -33,6 +33,6 @@ func test_fx_marks_follow_landing_smoothness() -> String:
 		return "mark strength should rise with sink rate: %.2f %.2f %.2f" % [smooth, firm, hard]
 	if TouchdownFx.mark_length(hard) < 2.0 * TouchdownFx.mark_length(smooth):
 		return "a hard landing's mark should be much longer than a smooth one's"
-	if TouchdownFx.mark_alpha(smooth) > 0.45 or TouchdownFx.mark_alpha(hard) < 0.8:
-		return "smooth marks should be faint, hard ones dark (%.2f / %.2f)" % [TouchdownFx.mark_alpha(smooth), TouchdownFx.mark_alpha(hard)]
+	if TouchdownFx.mark_alpha(smooth) > 0.32 or TouchdownFx.mark_alpha(hard) < 0.35 or TouchdownFx.mark_alpha(hard) > 0.55:
+		return "a smooth mark stays faint and a hard one is a stain, not a black stamp (%.2f / %.2f)" % [TouchdownFx.mark_alpha(smooth), TouchdownFx.mark_alpha(hard)]
 	return ""

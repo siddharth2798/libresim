@@ -3,11 +3,10 @@ extends Node3D
 ## Touchdown tyre smoke and rubber marks. Watches each main wheel's first contact after
 ## being airborne (FDM gear.info, no extra Props): the faster the ground speed and the
 ## harder the sink, the bigger the puff and the longer the skid mark left on the runway.
-## Smoke: a small pool of one-shot CPUParticles3D puffs. A landing puff stays low and
-## drifts with the wind, the way tyre smoke does, rather than rising off the runway.
-## Marks: Decals (project onto whatever surface is below, so they sit on the runway
-## without z-fighting), a rubber streak several tyre-lengths long, kept in a ring
-## buffer and repositioned on origin shifts.
+## Smoke: a small pool of one-shot puffs born on the contact patch. They stream back along
+## the runway and stay low, the way a spinning tyre throws smoke, rather than a white burst.
+## Marks: Decals (project onto the surface below), a thin grey rubber stain a few tyre
+## lengths long, kept in a ring buffer and repositioned on origin shifts.
 
 const MIN_AIR_S := 0.6        # a wheel must have been off the ground this long
 const MIN_GS := 12.0          # m/s (~23 kt): slower contacts are taxiing, not landing
@@ -43,11 +42,11 @@ static func mark_strength(sink: float, ground_speed: float) -> float:
 
 
 static func mark_length(strength: float) -> float:
-	return 2.0 + 22.0 * strength  # a firm jet touchdown lays rubber for many metres, not a short scuff
+	return 1.6 + 9.0 * strength  # a firm touchdown leaves a few metres of rubber, not a painted stripe
 
 
 static func mark_alpha(strength: float) -> float:
-	return clampf(0.08 + 0.9 * strength, 0.0, 1.0)
+	return clampf(0.10 + 0.42 * strength, 0.0, 0.55)  # a stain the asphalt still shows through
 
 
 func setup(f: FdmNode) -> void:
@@ -112,18 +111,21 @@ func _emit_smoke(enu: Vector3, track: float, k: float) -> void:
 	var slot: Array = _smoke[_smoke_i]
 	_smoke_i = (_smoke_i + 1) % SMOKE_POOL
 	var p: CPUParticles3D = slot[0]
-	enu += Vector3(sin(track), cos(track), 0.0) * (1.2 + 3.0 * k)  # the puff sits on the streak, not only at the contact
+	enu += Vector3(-sin(track), -cos(track), 0.0) * 0.35  # just aft of the contact, in ENU
 	slot[1] = enu
-	p.global_position = FloatingOrigin.to_render_d(enu.x, enu.y, enu.z + 0.2)
+	p.global_position = FloatingOrigin.to_render_d(enu.x, enu.y, enu.z + 0.12)
+	p.direction = Vector3(-sin(track), 0.08, cos(track))  # render: back along the roll, a little up
 	var wind: Vector3 = Props.get_v("environment/wind_ned", Vector3.ZERO)
-	p.gravity = Vector3(wind.y, 0.35, -wind.x) * 0.45  # stays low and drifts downwind
-	p.amount = int(24 + 56.0 * k)
-	p.initial_velocity_max = 1.6 + 2.2 * k
-	p.scale_amount_max = 2.8 + 4.0 * k
-	p.lifetime = 3.4 + 2.6 * k
-	# grey-white tyre smoke; darker by night so it does not glow
+	p.gravity = Vector3(wind.y * 0.35, -0.45, -wind.x * 0.35)  # settle onto the runway, drift with the wind
+	p.amount = int(14 + 22.0 * k)
+	p.initial_velocity_min = 1.4 + 1.2 * k
+	p.initial_velocity_max = 3.2 + 2.4 * k
+	p.scale_amount_min = 0.35
+	p.scale_amount_max = 0.9 + 1.1 * k
+	p.lifetime = 1.3 + 1.1 * k
+	# cool grey, not a white glow; darker by night
 	var night := clampf((5.0 - Props.get_f("environment/sun_elev_deg", 30.0)) / 9.0, 0.0, 1.0)
-	(p.material_override as StandardMaterial3D).albedo_color = Color(0.70, 0.70, 0.68).lerp(Color(0.14, 0.14, 0.15), night)
+	(p.material_override as StandardMaterial3D).albedo_color = Color(0.62, 0.66, 0.70).lerp(Color(0.16, 0.17, 0.18), night)
 	p.restart()
 	p.emitting = true
 
@@ -133,14 +135,15 @@ func _add_mark(enu: Vector3, track: float, strength: float) -> void:
 		return  # a butter landing leaves no mark
 	if _marks.size() >= MAX_MARKS:
 		_marks.pop_front()[0].queue_free()
-	var len := mark_length(strength) * _rng.randf_range(0.9, 1.1)
+	var len := mark_length(strength) * _rng.randf_range(0.85, 1.05)
 	var d := Decal.new()
-	d.size = Vector3(0.42 + 0.16 * strength, 1.5, len)  # about one tyre wide; each wheel lays its own streak
+	d.size = Vector3(0.16 + 0.10 * strength, 0.8, len)  # a tread, not a brush; each wheel lays its own
 	d.texture_albedo = _mark_tex[_rng.randi() % _mark_tex.size()]  # a few noise variants: no two marks alike
 	d.cull_mask = 1  # world only: aircraft meshes use their own render layer
-	d.modulate = Color(1, 1, 1, mark_alpha(strength) * _rng.randf_range(0.85, 1.0))
-	d.rotation.y = -track + deg_to_rad(_rng.randf_range(-1.5, 1.5))
-	var ahead := Vector3(sin(track), 0.0, -cos(track)) * (len * 0.5)  # mark starts at the touch point
+	var a := mark_alpha(strength) * _rng.randf_range(0.85, 1.0)
+	d.modulate = Color(0.55, 0.52, 0.48, a)  # grey-brown rubber, not a black sticker
+	d.rotation.y = -track + deg_to_rad(_rng.randf_range(-1.2, 1.2))
+	var ahead := Vector3(sin(track), 0.0, -cos(track)) * (len * 0.5)  # the dark end sits on the tyre; the stain runs along the roll
 	add_child(d)
 	d.set_meta("ahead", ahead)
 	_marks.append([d, enu])
@@ -162,14 +165,14 @@ func _make_smoke() -> CPUParticles3D:
 	var p := CPUParticles3D.new()
 	p.emitting = false
 	p.one_shot = true
-	p.explosiveness = 0.35  # a billow that keeps coming, not one pop
+	p.explosiveness = 0.22  # a short stream off the tyre, not one pop
 	p.local_coords = false
-	p.direction = Vector3(0, 1, 0)
-	p.spread = 78.0
-	p.initial_velocity_min = 0.4
-	p.damping_min = 0.35
-	p.damping_max = 0.9
-	p.scale_amount_min = 1.1
+	p.direction = Vector3(0, 0.08, 1)
+	p.spread = 16.0
+	p.initial_velocity_min = 1.2
+	p.damping_min = 1.1
+	p.damping_max = 2.2
+	p.scale_amount_min = 0.35
 	var q := QuadMesh.new()
 	q.size = Vector2(1.0, 1.0)
 	p.mesh = q
@@ -182,12 +185,12 @@ func _make_smoke() -> CPUParticles3D:
 	m.disable_receive_shadows = true
 	p.material_override = m
 	var ramp := Gradient.new()  # fade in fast, fade out slowly
-	ramp.colors = PackedColorArray([Color(1, 1, 1, 0.0), Color(1, 1, 1, 0.62), Color(1, 1, 1, 0.0)])
-	ramp.offsets = PackedFloat32Array([0.0, 0.18, 1.0])
+	ramp.colors = PackedColorArray([Color(1, 1, 1, 0.0), Color(1, 1, 1, 0.32), Color(1, 1, 1, 0.0)])
+	ramp.offsets = PackedFloat32Array([0.0, 0.12, 1.0])
 	p.color_ramp = ramp
-	var sc := Curve.new()  # puffs grow as they drift along the runway
-	sc.add_point(Vector2(0, 0.45))
-	sc.add_point(Vector2(1, 1.35))
+	var sc := Curve.new()  # a small puff that spreads a little as it drifts back
+	sc.add_point(Vector2(0, 0.55))
+	sc.add_point(Vector2(1, 1.15))
 	p.scale_amount_curve = sc
 	return p
 
@@ -228,5 +231,5 @@ static func _make_mark_texture(seed: int) -> ImageTexture:
 			var rag := _vn(float(x) * 0.5, d * 24.0, seed + 9)  # ragged edge
 			var edge := 1.0 - smoothstep(half * 0.45, half * (0.85 + 0.3 * rag), across)
 			var grain := 0.75 + 0.25 * _vn(float(x) * 1.3, float(y) * 0.9, seed + 11)
-			img.set_pixel(x, y, Color(0.02, 0.02, 0.025, clampf(edge * along * grain, 0.0, 1.0)))
+			img.set_pixel(x, y, Color(0.22, 0.19, 0.16, clampf(edge * along * grain * 0.75, 0.0, 0.8)))
 	return ImageTexture.create_from_image(img)
