@@ -99,6 +99,19 @@ func test_steps_grow_with_quality() -> String:
 	return ""
 
 
+func test_apple_silicon_budget_keeps_the_preset_table() -> String:
+	var med: Dictionary = Graphics.PRESETS.medium
+	var air := RenderBudget.clamp_preset(med, Vector2i(2560, 1664), true)
+	var other := RenderBudget.clamp_preset(med, Vector2i(2560, 1664), false)
+	if air.scale >= float(med.scale) or int(air.msaa) != 0 or int(air.clouds) > 10 or int(air.atlas) > 2048:
+		return "an Air-sized frame should drop scale, MSAA, cloud steps and the shadow atlas"
+	if not is_equal_approx(float(other.scale), float(med.scale)) or int(other.clouds) != int(med.clouds):
+		return "other machines keep the preset"
+	if not is_equal_approx(float(Graphics.PRESETS.medium.scale), 0.85) or int(Graphics.PRESETS.medium.clouds) != 16:
+		return "the budget must not rewrite the preset table"
+	return ""
+
+
 func test_preset_applies_to_a_scene() -> String:
 	# Headless runs neither renderer's screen-space effects, so they must stay off whatever the preset.
 	var root := Node3D.new()

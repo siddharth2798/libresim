@@ -1,7 +1,7 @@
 class_name ND
 extends Display
 ## Navigation display: ARC or ROSE view, heading up, with the compass scale, heading / track /
-## selected-heading marks, range rings, weather radar (rain and storm cells; dry cloud stays black), track line, route
+## selected-heading marks, range rings, weather radar (forward sweep; dry cloud stays black), track line, route
 ## (magenta) and nearby airports and VORs, ground speed / TAS, wind and the active waypoint.
 ## Reads Props only: instruments/adirs/{heading_deg,
 ## track_deg}, instruments/pfd/tas_kt, fdm/{groundspeed_mps, position_enu}, controls/fcu/hdg_deg,
@@ -61,26 +61,30 @@ func _vis(p: Vector2) -> bool:
 	return p.distance_to(_c) <= _r and (_rose or p.y <= _c.y + 4.0)
 
 
-## Weather radar under the rings: precip and storm cells, blank when the cloud is dry.
+## Nose radar under the rings: the forward sweep, blank when the cloud is dry.
 func _weather() -> void:
 	_wx_on = false
 	if not Props.has("fdm/position_enu"):
 		return
 	var p3: Vector3 = Props.get_v("fdm/position_enu", Vector3.ZERO)
 	var me := Vector2(p3.x, p3.y)
-	var key := "%d|%d|%d|%.2f|%.2f|%.2f|%d" % [int(me.x / 2000.0), int(me.y / 2000.0), int(_range_m / 2000.0), Props.get_f("weather/storms"), Props.get_f("weather/precip"), Props.get_f("weather/cloud_cover"), int(Props.get_f("environment/storm_clock_s") / 20.0)]
+	var step := int(roundf(_hdg / WxRadar.BEAM_DEG))
+	var key := "%d|%d|%d|%.2f|%.2f|%.2f|%d|%d" % [int(me.x / 2000.0), int(me.y / 2000.0), int(_range_m / 2000.0), Props.get_f("weather/storms"), Props.get_f("weather/precip"), Props.get_f("weather/cloud_cover"), int(Props.get_f("environment/storm_clock_s") / 20.0), step]
 	if key != _wx_key:
 		_wx_key = key
-		_wx = WxRadar.blobs(me, _range_m)
+		_wx = WxRadar.sweep(me, _hdg, _range_m)
 	var h := deg_to_rad(_hdg)
-	for b in _wx:
-		var s := DispMath.nd_project(Vector2(b.e, b.n) - me, h, _range_m, _c, _r)
-		var px := maxf(float(b.r) / _range_m * _r, 4.0)
-		if s.distance_to(_c) > _r + px:
+	for c in _wx:
+		var pts := PackedVector2Array()
+		var shown := false
+		for rel in WxRadar.corners(float(c.az), float(c.r0), float(c.r1)):
+			var s := DispMath.nd_project(rel, h, _range_m, _c, _r)
+			pts.append(s)
+			if s.distance_to(_c) <= _r and (_rose or s.y <= _c.y + 6.0):
+				shown = true
+		if not shown:
 			continue
-		if not _rose and s.y > _c.y + px:
-			continue
-		dot(s, px, WxRadar.colour(int(b.level)))
+		poly(pts, WxRadar.colour(int(c.level)))
 		_wx_on = true
 
 

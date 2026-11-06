@@ -125,7 +125,7 @@ func _replay() -> void:
 
 func _new_flight() -> void:
 	Session.skip_menu = false
-	await BusyOverlay.load_scene(get_tree(), "res://ui/menu/start_screen.tscn", "Loading the menu…")
+	BusyOverlay.load_scene(get_tree(), "res://ui/menu/start_screen.tscn", "Loading the menu…")
 
 
 static func grade(fpm: float, g: float) -> String:

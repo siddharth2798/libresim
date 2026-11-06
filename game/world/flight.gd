@@ -41,13 +41,11 @@ var _t := 0.0
 var _view := ""
 var _stand_ref := ""  # "" = runway start, "*" = default stand, else a stand ref
 var _cold := false
-var _airfield: BusyOverlay
 var _air_t := 0.0
 var _air_wait := true
 
 
 func _ready() -> void:
-	BusyOverlay.dismiss(get_tree())
 	var s: Dictionary = Session.setup
 	var apt: String = s.airport
 	var rwy: String = s.runway
@@ -242,24 +240,35 @@ func _process(dt: float) -> void:
 		get_tree().quit()
 
 
-## The start-screen veil covers the scene load. This one appears only when the ground is still streaming in.
+## The film goes up before this scene is shown and stays until the ground and the runway meshes are in.
+## Headless, a screenshot and a clean shot never hold it. It cannot hold past 12 s.
+static func loader_holds(terrain_nodes: int, airport_busy: bool, elapsed: float, blocked: bool) -> bool:
+	if blocked or elapsed > 12.0:
+		return false
+	return terrain_nodes <= 0 or airport_busy
+
+
 func _airfield_wait(dt: float) -> void:
 	if not _air_wait:
 		return
 	_air_t += dt
-	if terrain.visible_nodes > 0 or _shot != "" or Session.clean or DisplayServer.get_name() == "headless":
-		_drop_airfield()
+	var blocked := _shot != "" or Session.clean or DisplayServer.get_name() == "headless"
+	if not loader_holds(terrain.visible_nodes, airports.busy(), _air_t, blocked):
+		BusyOverlay.dismiss(get_tree())
+		_air_wait = false
 		return
-	if _airfield == null and _air_t >= 0.25:
-		_airfield = BusyOverlay.new()
-		$UI.add_child(_airfield)
-		_airfield.show_busy("Loading the airfield…", true)
-	if _air_t > 8.0:
-		_drop_airfield()
+	var veil := BusyOverlay.root_veil(get_tree())
+	if veil == null:
+		BusyOverlay.cover(get_tree(), "Loading the airfield…")
+		veil = BusyOverlay.root_veil(get_tree())
+	if veil != null:
+		veil.set_status("Loading the airfield…  %d%%" % _load_percent())
 
 
-func _drop_airfield() -> void:
-	_air_wait = false
-	if _airfield != null:
-		_airfield.queue_free()
-		_airfield = null
+func _load_percent() -> int:
+	var p := airports.progress()
+	if terrain.visible_nodes <= 0:
+		return int(round(minf(p, 0.99) * 70.0))
+	if airports.busy():
+		return int(round(70.0 + minf(p, 0.99) * 29.0))
+	return 100

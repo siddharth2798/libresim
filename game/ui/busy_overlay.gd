@@ -119,6 +119,12 @@ func show_busy(text: String, scenic := false) -> void:
 	mouse_filter = MOUSE_FILTER_STOP
 
 
+## Change the line under the film without starting the clip again.
+func set_status(text: String) -> void:
+	if _label != null:
+		_label.text = text
+
+
 func hide_busy() -> void:
 	visible = false
 	mouse_filter = MOUSE_FILTER_IGNORE
@@ -161,6 +167,18 @@ static func cover(tree: SceneTree, text: String) -> void:
 	veil.show_busy(text, true)
 
 
+## The veil on the window root, or null. A child veil (a page, the turntable) is not this one.
+static func root_veil(tree: SceneTree) -> BusyOverlay:
+	if tree == null:
+		return null
+	for n in tree.get_nodes_in_group(GROUP):
+		if n is BusyOverlay:
+			var layer := n.get_parent()
+			if layer is CanvasLayer and layer.get_parent() == tree.root:
+				return n
+	return null
+
+
 ## Drops a root veil. Child veils (a page, the turntable) are left to their owner.
 static func dismiss(tree: SceneTree) -> void:
 	if tree == null:
@@ -171,10 +189,32 @@ static func dismiss(tree: SceneTree) -> void:
 			layer.queue_free()
 
 
-## Paints the veil for two frames, then changes scene. The last frame stays up while the next scene loads.
+## Paints the veil for two frames, then changes scene. The wait lives on the window root:
+## the screen that asked is freed by the change, so it must not be the thing awaiting.
 static func load_scene(tree: SceneTree, path: String, text: String) -> void:
 	cover(tree, text)
-	await tree.process_frame
-	await tree.process_frame
-	if is_instance_valid(tree.root):
-		tree.change_scene_to_file(path)
+	if tree == null:
+		return
+	var gate := Node.new()
+	gate.name = "SceneGate"
+	gate.process_mode = Node.PROCESS_MODE_ALWAYS
+	gate.set_meta("path", path)
+	gate.set_meta("left", 2)
+	tree.root.add_child(gate)
+	tree.process_frame.connect(BusyOverlay._gate_frame.bind(gate), CONNECT_ONE_SHOT)
+
+
+static func _gate_frame(gate: Node) -> void:
+	if not is_instance_valid(gate):
+		return
+	var left := int(gate.get_meta("left")) - 1
+	gate.set_meta("left", left)
+	var tree := gate.get_tree()
+	if tree == null:
+		return
+	if left > 0:
+		tree.process_frame.connect(BusyOverlay._gate_frame.bind(gate), CONNECT_ONE_SHOT)
+		return
+	var path := str(gate.get_meta("path"))
+	gate.queue_free()
+	tree.change_scene_to_file(path)

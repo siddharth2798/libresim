@@ -43,6 +43,20 @@ func build(t: TerrainQuadtree, wait := false) -> void:
 		_task = WorkerThreadPool.add_task(_work.bind(TerrainTileCache.new()))
 
 
+## True while the runway and taxiway meshes are still being cut.
+func busy() -> bool:
+	return _task >= 0
+
+
+## 0..1 of those meshes on the scene. Stays short of 1 until the worker has finished.
+func progress() -> float:
+	if _task < 0:
+		return 1.0
+	if _jobs.is_empty():
+		return 0.0
+	return clampf(float(_items.size()) / float(_jobs.size()), 0.0, 0.99)
+
+
 func _process(_dt: float) -> void:
 	if _task >= 0:
 		_flush()

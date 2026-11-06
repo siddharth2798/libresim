@@ -11,7 +11,7 @@ extends RefCounted
 const PRESET_RANK := {"low": 0, "medium": 1, "high": 2, "ultra": 3, "max": 4}
 const FX := {
 	"motion_blur": {"min": "high", "renderers": ["forward_plus"]},  # needs the velocity buffer: Forward+ only
-	"sun_shafts": {"min": "medium", "renderers": ["forward_plus", "mobile"]},
+	"sun_shafts": {"min": "medium", "renderers": ["forward_plus"]},  # mobile has no resolved depth or storage colour buffer
 	"sharpen": {"min": "high", "renderers": ["forward_plus", "mobile", "gl_compatibility"]},
 	"color_grading": {"min": "low", "renderers": ["forward_plus", "mobile", "gl_compatibility"]},
 	"heat_shimmer": {"min": "high", "renderers": ["forward_plus"]},  # Mobile stores colour at half range: an unverified copy

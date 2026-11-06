@@ -35,4 +35,7 @@ func test_fx_marks_follow_landing_smoothness() -> String:
 		return "a hard landing's mark should be much longer than a smooth one's"
 	if TouchdownFx.mark_alpha(smooth) > 0.32 or TouchdownFx.mark_alpha(hard) < 0.35 or TouchdownFx.mark_alpha(hard) > 0.55:
 		return "a smooth mark stays faint and a hard one is a stain, not a black stamp (%.2f / %.2f)" % [TouchdownFx.mark_alpha(smooth), TouchdownFx.mark_alpha(hard)]
+	var back := TouchdownFx.mark_shift(PI * 0.5, 8.0)  # heading east: the stain lies west of the tyre
+	if back.x > -3.0 or absf(back.z) > 0.01:
+		return "an eastbound mark should trail west of the contact, got %s" % back
 	return ""

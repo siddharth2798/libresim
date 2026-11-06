@@ -4,7 +4,7 @@ extends Node
 ## (call apply_to_scene once the scene is ready).
 ## Each preset names a renderer: Low / Medium use Mobile, High and up use Forward+. Changing the renderer needs a
 ## restart: set_renderer() writes override.cfg and restart_needed() tells the menus.
-## Preset keys: scale (3D render scale, > 1 supersample, < 1 FSR1 on Mobile / FSR2 on Forward+), msaa (index into
+## Preset keys: scale (3D render scale, > 1 supersample, < 1 bilinear on Mobile / FSR2 on Forward+), msaa (index into
 ## [off, 2x, 4x]), shadow (sun shadow distance, m), pssm (directional_shadow_mode), atlas / soft / pos_soft (shadow
 ## atlas size, soft filter quality of sun and omni / spot lights), ssao / ssil / taa (Forward+ only), ssr (ray steps,
 ## 0 = off, Forward+ only), cloud_light (light samples per cloud step), real_lights (real SpotLights on the nearest
@@ -142,6 +142,8 @@ func apply_to_scene(root: Node) -> void:
 	if root == null:
 		return
 	var s: Dictionary = PRESETS[preset]
+	if DisplayServer.get_name() != "headless":
+		s = RenderBudget.clamp_preset(s, RenderBudget.frame_pixels(root.get_viewport()), RenderBudget.apple_silicon())
 	var forward_plus := renderer() == "forward_plus"
 	_apply_shadow_atlas(s)
 	var vp := root.get_viewport()
@@ -189,14 +191,12 @@ func apply_to_scene(root: Node) -> void:
 	PostFx.apply(root, preset)  # bloom, motion blur and the other post effects (user options x this preset)
 
 
-## Supersampling above 1 is a plain bilinear downscale (FSR only upscales). Below 1, Forward+ uses FSR2, which
-## antialiases itself, so TAA is off.
+## Supersampling above 1 is a plain bilinear downscale. Below 1, Forward+ uses FSR2, which
+## antialiases itself, so TAA is off. The mobile renderer has no FSR, so it stays bilinear.
 func _apply_viewport(vp: Viewport, s: Dictionary, forward_plus: bool) -> void:
-	var up: bool = s.fsr and s.scale < 1.0
-	if up and forward_plus:
+	var up: bool = s.fsr and s.scale < 1.0 and forward_plus
+	if up:
 		vp.scaling_3d_mode = Viewport.SCALING_3D_MODE_FSR2
-	elif up:
-		vp.scaling_3d_mode = Viewport.SCALING_3D_MODE_FSR
 	else:
 		vp.scaling_3d_mode = Viewport.SCALING_3D_MODE_BILINEAR
 	vp.scaling_3d_scale = s.scale

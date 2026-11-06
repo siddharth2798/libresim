@@ -49,6 +49,17 @@ static func mark_alpha(strength: float) -> float:
 	return clampf(0.10 + 0.42 * strength, 0.0, 0.55)  # a stain the asphalt still shows through
 
 
+## Render-space shift of the mark centre from the contact. The dark end stays on the tyre
+## and the stain runs back along the ground already rolled, not out ahead of the nose.
+static func mark_shift(track: float, length: float) -> Vector3:
+	return Vector3(-sin(track), 0.0, cos(track)) * (length * 0.5)
+
+
+## Yaw that points the decal's +Z (the dark end of the texture) forward, at the tyre.
+static func mark_yaw(track: float) -> float:
+	return -track + PI
+
+
 func setup(f: FdmNode) -> void:
 	fdm_node = f
 	_rng.randomize()
@@ -142,8 +153,8 @@ func _add_mark(enu: Vector3, track: float, strength: float) -> void:
 	d.cull_mask = 1  # world only: aircraft meshes use their own render layer
 	var a := mark_alpha(strength) * _rng.randf_range(0.85, 1.0)
 	d.modulate = Color(0.55, 0.52, 0.48, a)  # grey-brown rubber, not a black sticker
-	d.rotation.y = -track + deg_to_rad(_rng.randf_range(-1.2, 1.2))
-	var ahead := Vector3(sin(track), 0.0, -cos(track)) * (len * 0.5)  # the dark end sits on the tyre; the stain runs along the roll
+	d.rotation.y = mark_yaw(track) + deg_to_rad(_rng.randf_range(-1.2, 1.2))
+	var ahead := mark_shift(track, len)
 	add_child(d)
 	d.set_meta("ahead", ahead)
 	_marks.append([d, enu])

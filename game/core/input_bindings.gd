@@ -221,10 +221,7 @@ static func raw_value(b: Dictionary) -> Variant:
 
 ## The joypad index this binding reads from, or -1 if that pad is not connected.
 static func resolve_device(b: Dictionary) -> int:
-	var pads := []
-	for d in Input.get_connected_joypads():
-		pads.append({"id": d, "name": Input.get_joy_name(d), "guid": Input.get_joy_guid(d)})
-	return pick_device(b, pads)
+	return pick_device(b, JoyPads.connected())
 
 
 ## resolve_device over a list of {id, name, guid} pads (separate so tests need no hardware).

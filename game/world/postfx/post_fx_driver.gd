@@ -46,10 +46,13 @@ func configure(root: Node, f: Dictionary) -> void:
 	var comp: Compositor = we.compositor if we else (cam.compositor if cam else null)
 	if comp == null:
 		comp = Compositor.new()
-	var list := comp.compositor_effects
+	var list: Array = comp.compositor_effects
 	for e in [motion_blur, sun_shafts]:  # motion blur first: shafts are a light source, not something that moved
-		if not list.has(e):
+		var i := list.find(e)
+		if e.enabled and i < 0:
 			list.append(e)
+		elif not e.enabled and i >= 0:
+			list.remove_at(i)  # a disabled compute effect still asks the mobile renderer for a depth resolve
 	comp.compositor_effects = list
 	if we:
 		we.compositor = comp

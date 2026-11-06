@@ -10,6 +10,24 @@ func teardown() -> void:
 		n.free()
 
 
+func test_flight_loader_stays_until_the_airfield_is_in() -> String:
+	var flight: GDScript = load("res://world/flight.gd")
+	if not flight.loader_holds(0, true, 0.2, false):
+		return "the film should cover a flight whose airfield is still building"
+	if flight.loader_holds(3, false, 1.0, false):
+		return "the film should lift once the ground and the airfield are in"
+	if flight.loader_holds(0, true, 0.2, true) or flight.loader_holds(0, true, 13.0, false):
+		return "a blocked run, and a wait past 12 s, should not hold the film"
+	return ""
+
+
+func test_ffmpeg_probe_does_not_need_a_working_binary() -> String:
+	var ok := SessionRecorder.ffmpeg_available()
+	if SessionRecorder.ffmpeg_available() != ok:
+		return "the ffmpeg probe should be cached"
+	return ""
+
+
 func test_loader_film_decodes_a_frame() -> String:
 	if not LoaderFilm.available():
 		return "missing res://ui/loader/a320_final/00.jpg"

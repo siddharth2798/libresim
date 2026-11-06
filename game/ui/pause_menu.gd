@@ -207,7 +207,7 @@ func _act(id: String) -> void:
 		"menu":
 			close()
 			Session.skip_menu = false
-			await BusyOverlay.load_scene(get_tree(), MENU, "Loading the menu…")
+			BusyOverlay.load_scene(get_tree(), MENU, "Loading the menu…")
 		"quit": get_tree().quit()
 
 

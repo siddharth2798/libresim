@@ -27,7 +27,6 @@ var _screens := {}  # name -> screen, built on first use
 var cur := ""
 var _body: VBoxContainer
 var _brand: Control
-var _loading: BusyOverlay
 var dry_run := false  # tests: count the flight but do not load the flight scene
 var flights_started := 0
 var lessons_started := 0  # tests: lessons started from the home screen's Continue (dry_run does not load the flight scene)
@@ -38,10 +37,10 @@ var captain_watch: CaptainWatch  # offers the Thrustmaster Captain Pack profile 
 
 
 func _ready() -> void:
-	BusyOverlay.dismiss(get_tree())
 	if Session.skip_menu:
-		get_tree().change_scene_to_file.call_deferred(FLIGHT)
+		_boot_flight()
 		return
+	BusyOverlay.dismiss(get_tree())
 	AudioSettings.apply()
 	set_anchors_preset(PRESET_FULL_RECT)
 	theme = MenuTheme.make()
@@ -74,8 +73,6 @@ func _ready() -> void:
 	_body = VBoxContainer.new()
 	_body.size_flags_vertical = SIZE_EXPAND_FILL
 	root.add_child(_body)
-	_loading = BusyOverlay.new()
-	add_child(_loading)
 	var credits := Control.new()
 	credits.set_script(load("res://ui/credits_screen.gd"))
 	credits.name = "Credits"
@@ -165,7 +162,7 @@ func go(id: String) -> void:
 ## Another modal is up (the "Fly anyway?" question, the live-weather question) or a flight is loading:
 ## nothing else may open over it.
 func modal_open() -> bool:
-	return _confirm != null or _loading.visible or get_node_or_null("LiveWeatherNotice") != null
+	return _confirm != null or BusyOverlay.root_veil(get_tree()) != null or get_node_or_null("LiveWeatherNotice") != null
 
 
 func screen(id: String) -> Control:
@@ -214,7 +211,7 @@ func _press(key: Key) -> void:
 
 ## Training page: the lesson was already written into Session.setup (start_requested).
 func _start_lesson() -> void:
-	await _load_flight("Loading lesson…")
+	_load_flight("Loading lesson…")
 
 
 ## Home "Continue: next lesson": start that lesson with full guidance (the Training page's default help level).
@@ -275,15 +272,18 @@ func _fly_now() -> void:
 	flights_started += 1
 	if dry_run:
 		return
-	await _load_flight("Loading scenery…")
+	_load_flight("Loading scenery…")
+
+
+func _boot_flight() -> void:
+	if DisplayServer.get_name() == "headless":
+		get_tree().change_scene_to_file.call_deferred(FLIGHT)
+		return
+	_load_flight("Loading scenery…")
 
 
 func _load_flight(text: String) -> void:
-	move_child(_loading, -1)
-	_loading.show_busy(text, true)
-	await get_tree().process_frame
-	await get_tree().process_frame
-	get_tree().change_scene_to_file(FLIGHT)
+	BusyOverlay.load_scene(get_tree(), FLIGHT, text)
 
 
 func _unhandled_key_input(e: InputEvent) -> void:

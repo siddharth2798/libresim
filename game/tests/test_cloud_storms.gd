@@ -260,40 +260,40 @@ func test_hands_off_c172_gains_altitude_in_a_thermal() -> String:
 		return "no thermal track found (mean %.2f m/s)" % best_mean
 	return "" if gain > still + 15.0 else "thermal gave %+.0f m vs %+.0f m in still air" % [gain, still]
 
-
 func test_radar_is_blank_in_dry_cloud_and_paints_rain_and_storm_cores() -> String:
-	var saved := [Props.get_f("weather/storms"), Props.get_f("weather/precip"), Props.get_f("weather/cloud_cover"), Props.get_f("weather/cloud_base_ft")]
+	var saved := [Props.get_f("weather/storms"), Props.get_f("weather/precip"), Props.get_f("weather/cloud_cover")]
 	Props.set_v("weather/storms", 0.0)
 	Props.set_v("weather/precip", 0.0)
 	Props.set_v("weather/cloud_cover", 0.0)
-	var clear := WxRadar.blobs(Vector2.ZERO, 40000.0)
+	var clear := WxRadar.sweep(Vector2.ZERO, 0.0, 40000.0)
 	Props.set_v("weather/cloud_cover", 0.9)
-	Props.set_v("weather/cloud_base_ft", 3000.0)
-	var dry := WxRadar.blobs(Vector2.ZERO, 40000.0)
+	var dry := WxRadar.sweep(Vector2.ZERO, 0.0, 40000.0)
 	Props.set_v("weather/precip", 0.35)
-	var rain := WxRadar.blobs(Vector2.ZERO, 40000.0)
-	var wide := 0
-	for b in rain:
-		if float(b.r) > 20000.0:
-			wide += 1
+	var rain := WxRadar.sweep(Vector2.ZERO, 0.0, 40000.0)
+	var beams := {}
+	var bad := ""
+	for c in rain:
+		var depth := float(c.r1) - float(c.r0)
+		var off := absf(wrapf(rad_to_deg(float(c.az)), -180.0, 180.0))
+		if depth > 3000.0 or int(c.level) > 2 or off > WxRadar.SCAN_DEG + 0.1:
+			bad = "cell depth %.0f level %s off %.0f" % [depth, c.level, off]
+		beams[int(round(rad_to_deg(float(c.az)) / WxRadar.BEAM_DEG))] = true
 	Props.set_v("weather/storms", 0.7)
 	Props.set_v("weather/precip", 0.6)
-	var storm := WxRadar.blobs(Vector2.ZERO, 40000.0)
-	var cores := 0
-	var skirts := 0
-	for b in storm:
-		if int(b.level) >= 3 and float(b.r) < 8000.0:
-			cores += 1
-		elif int(b.level) == 1 and float(b.r) > 2000.0:
-			skirts += 1
-	Props.set_v("weather/storms", saved[0])
-	Props.set_v("weather/precip", saved[1])
-	Props.set_v("weather/cloud_cover", saved[2])
-	Props.set_v("weather/cloud_base_ft", saved[3])
-	if not clear.is_empty():
-		return "clear air drew %d returns" % clear.size()
-	if not dry.is_empty():
-		return "dry cloud drew %d returns" % dry.size()
-	if rain.is_empty() or wide > 0:
-		return "rain drew %d returns, %d covering the whole scope" % [rain.size(), wide]
-	return "" if cores >= 1 and skirts >= 1 else "storm cores %d skirts %d" % [cores, skirts]
+	var reds := 0
+	var greens := 0
+	for c in WxRadar.sweep(Vector2.ZERO, 0.0, 40000.0):
+		reds += int(int(c.level) >= 3)
+		greens += int(int(c.level) == 1)
+	var shadow := WxRadar.shade(PackedByteArray([1, 2, 3, 2, 1]))
+	var open := WxRadar.shade(PackedByteArray([1, 2, 2, 1]))
+	var keys := ["weather/storms", "weather/precip", "weather/cloud_cover"]
+	for i in 3:
+		Props.set_v(keys[i], saved[i])
+	if not clear.is_empty() or not dry.is_empty():
+		return "clear %d dry %d" % [clear.size(), dry.size()]
+	if bad != "" or rain.size() < 12 or beams.size() < 4:
+		return bad if bad != "" else "rain %d over %d beams" % [rain.size(), beams.size()]
+	if reds < 1 or greens < 1 or shadow[3] != 0 or shadow[2] != 3 or open[3] != 1:
+		return "storm red %d green %d shadow %s" % [reds, greens, shadow]
+	return ""

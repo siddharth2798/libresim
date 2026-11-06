@@ -44,8 +44,19 @@ static func default_dir() -> String:
 	return OS.get_user_data_dir().path_join("recordings")  # read-only install (AppImage, .app)
 
 
+static var _ff_known := false
+static var _ff_ok := false
+
+
+## True when ffmpeg can run. Probed through Python: Godot runs commands in a shell, and a
+## broken ffmpeg aborts, which makes that shell print "Abort trap" even with stderr discarded.
 static func ffmpeg_available() -> bool:
-	return OS.execute("ffmpeg", ["-version"], [], false) == 0
+	if not _ff_known:
+		var out: Array = []
+		var probe := "import subprocess,sys; r=subprocess.run(['ffmpeg','-version'],stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL); sys.exit(0 if r.returncode==0 else 1)"
+		_ff_ok = OS.execute("python3", ["-c", probe], out, true) == 0
+		_ff_known = true
+	return _ff_ok
 
 
 func start() -> void:

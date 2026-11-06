@@ -40,7 +40,7 @@ func setup(f: FdmNode, ab: AirportBuilder, t: TerrainQuadtree) -> void:
 	_hud.setup(_lesson, Session.assist)
 	_hud.retry.connect(retry)
 	_hud.next_lesson.connect(_next_lesson)
-	_hud.to_menu.connect(func(): await BusyOverlay.load_scene(get_tree(), "res://ui/menu/start_screen.tscn", "Loading the menu…"))
+	_hud.to_menu.connect(_to_menu)
 	_find_runway()
 	if Session.assist == "full" and not _rw.is_empty():
 		_markers = TrainingMarkers.new()
@@ -52,6 +52,10 @@ func setup(f: FdmNode, ab: AirportBuilder, t: TerrainQuadtree) -> void:
 				"hoops": _markers.add_rings()
 				"aimpoint": _markers.add_aimpoint()
 	restart()
+
+
+func _to_menu() -> void:
+	BusyOverlay.load_scene(get_tree(), "res://ui/menu/start_screen.tscn", "Loading the menu…")
 
 
 ## "Try again": put the aircraft back at the lesson start (what F5 does; it calls restart()).

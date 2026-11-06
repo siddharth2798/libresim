@@ -6,8 +6,8 @@ extends RefCounted
 func test_a320_material_table() -> String:
 	var t: Dictionary = MaterialFinish.table("a320")
 	var want := {
-		"a320_fuselage": [0.32, 0.0],
-		"a320_engine": [0.45, 0.35],
+		"a320_fuselage": [0.48, 0.0],
+		"a320_engine": [0.52, 0.04],
 		"a320_gear": [0.55, 0.05],
 		"wheel_mat": [0.9, 0.0],
 		"a320_glass": [0.08, 0.05],
@@ -20,9 +20,9 @@ func test_a320_material_table() -> String:
 		if not is_equal_approx(float(t[k].roughness), float(want[k][0])) or not is_equal_approx(float(t[k].metallic), float(want[k][1])):
 			return "%s roughness %s metallic %s" % [k, t[k].roughness, t[k].metallic]
 	var fuse: Dictionary = t.a320_fuselage
-	if not fuse.has("clearcoat") or not is_equal_approx(float(fuse.clearcoat), 0.75):
+	if not fuse.has("clearcoat") or not is_equal_approx(float(fuse.clearcoat), 0.22):
 		return "fuselage clearcoat %s" % fuse.get("clearcoat", "missing")
-	if not is_equal_approx(float(fuse.clearcoat_roughness), 0.12):
+	if not is_equal_approx(float(fuse.clearcoat_roughness), 0.4):
 		return "fuselage clearcoat roughness %s" % fuse.clearcoat_roughness
 	if not MaterialFinish.table("c172").is_empty():
 		return "c172 must not take the A320 finish table"
@@ -60,16 +60,16 @@ func test_albedo_swap_keeps_shading() -> String:
 	d.albedo_texture = swapped
 	d.next_pass = src.next_pass
 	MaterialFinish.restamp(d)
-	if not is_equal_approx(d.roughness, 0.32) or not is_equal_approx(d.metallic, 0.0):
+	if not is_equal_approx(d.roughness, 0.48) or not is_equal_approx(d.metallic, 0.0):
 		return "fuselage shading lost on albedo swap (rough %s metal %s)" % [d.roughness, d.metallic]
 	if d.albedo_texture != swapped:
 		return "albedo texture was not the swapped one"
-	if not d.clearcoat_enabled or not is_equal_approx(d.clearcoat, 0.75) or not is_equal_approx(d.clearcoat_roughness, 0.12):
+	if not d.clearcoat_enabled or not is_equal_approx(d.clearcoat, 0.22) or not is_equal_approx(d.clearcoat_roughness, 0.4):
 		return "clearcoat lost on albedo swap"
 	var eng := StandardMaterial3D.new()
 	eng.resource_name = "a320_engine"
 	MaterialFinish.restamp(eng)
-	if not is_equal_approx(eng.roughness, 0.45) or not is_equal_approx(eng.metallic, 0.35):
+	if not is_equal_approx(eng.roughness, 0.52) or not is_equal_approx(eng.metallic, 0.04):
 		return "engine shading rough %s metal %s" % [eng.roughness, eng.metallic]
 	var tyre := StandardMaterial3D.new()
 	tyre.resource_name = "wheel_mat"

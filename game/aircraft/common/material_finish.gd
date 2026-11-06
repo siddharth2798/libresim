@@ -23,8 +23,8 @@ static func table(aircraft_id: String) -> Dictionary:
 	if aircraft_id != "a320":
 		return {}
 	return {
-		"a320_fuselage": {"roughness": 0.32, "metallic": 0.0, "clearcoat": 0.75, "clearcoat_roughness": 0.12},
-		"a320_engine": {"roughness": 0.45, "metallic": 0.35},
+		"a320_fuselage": {"roughness": 0.48, "metallic": 0.0, "clearcoat": 0.22, "clearcoat_roughness": 0.4},
+		"a320_engine": {"roughness": 0.52, "metallic": 0.04},
 		"a320_gear": {"roughness": 0.55, "metallic": 0.05},
 		"wheel_mat": {"roughness": 0.9, "metallic": 0.0},
 		# 0.05 metallic: a faint reflection on the shared glass (windscreen and cabin windows).

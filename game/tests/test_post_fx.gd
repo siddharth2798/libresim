@@ -38,7 +38,7 @@ func test_post_fx_gating_by_preset_and_renderer() -> String:
 		["motion_blur", "high", "forward_plus", true, true], ["motion_blur", "ultra", "forward_plus", true, true],
 		["motion_blur", "max", "forward_plus", true, true], ["motion_blur", "medium", "forward_plus", true, false],
 		["motion_blur", "high", "mobile", true, false], ["motion_blur", "high", "forward_plus", false, false],
-		["motion_blur", "nonsense", "forward_plus", true, false], ["sun_shafts", "medium", "mobile", true, true],
+		["motion_blur", "nonsense", "forward_plus", true, false], ["sun_shafts", "medium", "mobile", true, false],
 		["sun_shafts", "low", "forward_plus", true, false], ["heat_shimmer", "high", "mobile", true, false],
 		["heat_shimmer", "high", "forward_plus", true, true], ["lens_rain", "medium", "mobile", true, true],
 		["lens_rain", "low", "mobile", true, false], ["color_grading", "low", "mobile", true, true],
@@ -58,7 +58,7 @@ func test_post_fx_gating_by_preset_and_renderer() -> String:
 	if not f.motion_blur or f.sharpen or f.lens_effects or f.depth_of_field or not f.bloom or not f.sun_shafts:
 		return "ultra defaults without TAA: %s" % f
 	var m := R.flags_for("medium", "mobile", FX_DEFAULTS, false, 0.85)
-	if m.motion_blur or m.heat_shimmer or not m.sun_shafts or not m.lens_rain or m.sharpen:
+	if m.motion_blur or m.heat_shimmer or m.sun_shafts or not m.lens_rain or m.sharpen:
 		return "medium on Mobile: %s" % m
 	var low := R.flags_for("low", "mobile", FX_DEFAULTS, false, 0.7)
 	return "" if not low.bloom and not low.sun_shafts and low.color_grading else "low: %s" % low
@@ -202,8 +202,14 @@ func test_post_fx_apply_headless() -> String:
 	var driver := _scene.get_node_or_null(PostFx.DRIVER) as PostFxDriver
 	if driver == null or _scene.get_children().filter(func(n): return n is PostFxDriver).size() != 1:
 		return "one PostFxDriver under the scene"
-	if we.compositor == null or we.compositor.compositor_effects.size() != 2:
-		return "the compositor effects belong on the WorldEnvironment"
+	var list: Array = we.compositor.compositor_effects if we.compositor else []
+	var want: Array = []
+	if flags.get("motion_blur", false):
+		want.append(driver.motion_blur)
+	if flags.get("sun_shafts", false):
+		want.append(driver.sun_shafts)
+	if we.compositor == null or list != want:
+		return "enabled compositor effects belong on the WorldEnvironment, got %d" % list.size()
 	if we.environment.glow_enabled != flags.bloom:
 		return "glow follows the bloom option"
 	Props.set_v("environment/precip", 1.0)

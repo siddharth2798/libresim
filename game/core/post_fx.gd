@@ -5,7 +5,7 @@ extends RefCounted
 ## It sets Environment glow from the "bloom" option (never on Low) and creates / reconfigures the "PostFxDriver" node under
 ## root (world/postfx/post_fx_driver.gd), which owns the effects:
 ##   motion_blur     CompositorEffect, compute (High+, Forward+)          world/postfx/motion_blur_effect.gd
-##   sun_shafts      CompositorEffect, compute (Medium+, Forward+/Mobile) world/postfx/sun_shafts_effect.gd
+##   sun_shafts      CompositorEffect, compute (Medium+, Forward+)        world/postfx/sun_shafts_effect.gd
 ##   sharpen, lens_effects, lens_rain   one canvas pass after TAA         world/postfx/screen_post.gd
 ##   heat_shimmer    full-screen quad on the camera (High+, Forward+)     world/postfx/heat_shimmer.gd
 ##   color_grading   Environment adjustments + generated LUT              world/postfx/color_grade.gd
