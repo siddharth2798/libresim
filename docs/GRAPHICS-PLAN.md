@@ -70,7 +70,7 @@ Limits:
 
 ### G8. Trees and buildings up close (1–2 weeks, medium-high risk)
 - Trees: octahedral impostors (8–16 baked angles with normals), colour variation per species and season, wind sway in the vertex shader, darker canopy undersides.
-- Buildings: keep window detail at longer range (fade later on Max), a darker band at the base (fake AO), more wall colour variety in dense Mumbai, roof clutter at distance.
+- Buildings (done in `world/building.gdshader`): the window pattern fades with the pixel footprint and the average glass tone stays out to the draw distance, so a 3° final still reads as a city rather than plain blocks. A dark band at the base seats each wall on the ground within about 1.6 km. Wall colours, curtain-wall towers, parapets, stair boxes and water tanks were already there.
 
 ### G9. Terrain geometry (1–2 weeks, high risk)
 - 128×128 cells per node on Max and fractal height detail within ~2 km.

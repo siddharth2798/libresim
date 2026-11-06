@@ -6,8 +6,9 @@ render_mode fog_disabled;  // haze is applied below (aerial perspective, as terr
 //   CUSTOM1 = wall height in cm (rg, 16 bit), parapet band / rooftop kind (b), height fraction (a)
 // Everything else is procedural and seeded by a hash of the building: wall colour, window shape and
 // rhythm, balconies, shopfronts, glass towers, weathering and rain streaks, roof material, tile courses
-// on hip roofs, parapet cap, stairwell boxes and water tanks. Fine detail fades to its average colour
-// with distance (no shimmer); windows light up at night (building_night.gdshaderinc).
+// on hip roofs, parapet cap, stairwell boxes and water tanks. The window pattern fades with the pixel
+// footprint; the average glass tone stays, so a city still reads as glazing on a long final. A dark
+// band at the base seats the wall on the ground. Windows light up at night (building_night.gdshaderinc).
 
 global uniform vec3 fog_color;
 global uniform float haze_density;
@@ -133,8 +134,7 @@ void fragment() {
 		vec3 pal = wall_palette(rb(id, 1.0)) * (0.9 + 0.2 * rb(id, 2.0));
 		bool tower = Hh > 32.0 && rb(id, 3.0) < 0.6;
 		if (rtype > 1.5) {  // passenger terminal (no storey windows, balconies or shops)
-			vec3 favg = terminal_wall(v_c0.rgb, band / 200.0, floor(s / 4.0) / 63.0, u, hg, Hh, id, night, fog_color, col, emit, gloss);
-			col = mix(col, favg * 0.95, smoothstep(800.0, 2500.0, v_dist));
+			terminal_wall(v_c0.rgb, band / 200.0, floor(s / 4.0) / 63.0, u, hg, Hh, id, night, fog_color, col, emit, gloss);
 		} else if (band > 240.0) {  // sides of a rooftop box / tank
 			col = band > 251.0 ? vec3(0.05, 0.055, 0.06) : pal * 0.8 + 0.1;
 			gloss = band > 251.0 ? 0.4 : 0.0;
@@ -228,9 +228,10 @@ void fragment() {
 					emit = window_glow(id, cell, f, lit_win, cov, detail, false, night, vec2(ws, fh), fw);
 				}
 			}
-			// far away: the facade pattern gives way to the building's average colour
-			float far = smoothstep(800.0, 2500.0, v_dist);
-			col = mix(col, mix(pal, roof, 0.2) * 0.9, far);
+		}
+		if (band <= 240.0) {  // contact shadow: the wall meets the ground (not a tank up on the roof)
+			float seat = (1.0 - smoothstep(0.2, 2.2, hg)) * (1.0 - smoothstep(500.0, 1600.0, v_dist));
+			col *= 1.0 - 0.42 * seat;
 		}
 	}
 	col = mix(col, vec3(dot(col, vec3(0.299, 0.587, 0.114))), 0.45 * night);  // scotopic: colour fades at night

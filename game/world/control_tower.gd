@@ -30,7 +30,7 @@ static func _one(root: Node3D, solids: OpsSolids, x: float, y: float, ground: fl
 	var base := Vector3(x, ground, -y)
 	_cyl(root, 2.8, 3.2, 26.0, _shaft(), base + Vector3(0, 13.0, 0))
 	_cyl(root, 5.4, 5.4, 5.4, _cab(), base + Vector3(0, 28.7, 0))
-	_cyl(root, 6.0, 6.0, 0.7, _shaft(), base + Vector3(0, 31.6, 0))
+	_cyl(root, 6.0, 6.0, 0.7, _shaft(), base + Vector3(0, CAB_ROOF - 0.35, 0))
 	_cyl(root, 0.18, 0.28, 8.0, _shaft(), base + Vector3(0, 36.0, 0))
 	OpsSolids.add_pole(solids.group, Vector2(x, y), 3.2, CAB_ROOF, ground, "the control tower")
 
