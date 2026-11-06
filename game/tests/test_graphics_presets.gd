@@ -114,6 +114,9 @@ func test_metalfx_temporal_scale() -> String:
 		return "a coarser budget scale should stay"
 	if not is_equal_approx(Graphics.metalfx_scale(0.5, 0.6), 0.6):
 		return "the scale should not go under the driver's minimum"
+	var reported := Graphics.metalfx_min_scale(333333.0)
+	if not is_equal_approx(reported, 0.333333) or not is_equal_approx(Graphics.metalfx_scale(0.85, reported), 0.67):
+		return "the driver limit is in millionths and must not become the scale"
 	return ""
 
 

@@ -213,7 +213,8 @@ func _prepare_metalfx(s: Dictionary, forward_plus: bool) -> Dictionary:
 	var floor_scale := 0.0
 	var rd := RenderingServer.get_rendering_device()
 	if rd:
-		floor_scale = float(rd.limit_get(RenderingDevice.LIMIT_METALFX_TEMPORAL_SCALER_MIN_SCALE))
+		# The limit is an integer in millionths (333333 means 0.333333).
+		floor_scale = metalfx_min_scale(float(rd.limit_get(RenderingDevice.LIMIT_METALFX_TEMPORAL_SCALER_MIN_SCALE)))
 	s.scale = metalfx_scale(float(s.scale), floor_scale)
 	s.msaa = 0
 	s.fxaa = false
@@ -222,6 +223,11 @@ func _prepare_metalfx(s: Dictionary, forward_plus: bool) -> Dictionary:
 		_metalfx_said = true
 		print("libresim: Forward+ MetalFX temporal, 3D scale %.2f" % s.scale)
 	return s
+
+
+## Godot's MetalFX limit is an integer in millionths. 333333 is a scale of 0.333333.
+static func metalfx_min_scale(limit_millionths: float) -> float:
+	return limit_millionths / 1000000.0
 
 
 ## Draw scale for a MetalFX temporal run: 67% unless the frame is already coarser, and never under the driver's minimum.
