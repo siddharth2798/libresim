@@ -2,13 +2,15 @@ shader_type spatial;
 render_mode cull_disabled, fog_disabled;
 // LOD0 tree mesh (TreeMeshes), instanced by TreeLod within lod_r metres of the camera; it casts and
 // receives sun shadows. COLOR.rgb = base colour with baked occlusion, COLOR.a = part (0 bark, 0.5 leaf
-// lumps, 1 palm frond). INSTANCE_CUSTOM: r = tint, b = tint 2, a = seed (shapes differ per tree through
-// a noise displacement of the crown lumps). Dithers in with the opposite pattern to tree.gdshader.
+// lumps, 1 palm frond). INSTANCE_CUSTOM: r = hue seed, b = value seed, a = seed (shapes differ per tree
+// through a noise displacement of the crown lumps). Same tint as the impostor. Dithers in with the
+// opposite pattern to tree.gdshader.
 
 global uniform vec3 fog_color;
 global uniform float haze_density;
 #include "res://world/curvature.gdshaderinc"  // Earth curvature (G4)
 #include "res://world/haze_sky.gdshaderinc"  // view-dependent haze colour (G4)
+#include "res://world/tree_tint.gdshaderinc"
 global uniform float wetness;
 
 uniform float lod_r = 0.0;
@@ -62,6 +64,7 @@ void fragment() {
 			discard;
 		}
 		col *= 0.85 + 0.3 * vnoise(vec2(UV.y * 40.0, UV.x * 6.0));
+		col = tree_tint(col, v_cust.r, v_cust.b);
 		bl = 0.4;
 	} else if (kind > 0.25) {
 		// leaf clumps: mottle fading to its mean with distance, tinted per tree
@@ -72,8 +75,7 @@ void fragment() {
 		if (vnoise(v_local.xz * 34.0 + v_local.y * 29.0 + v_cust.a * 7.0) < smoothstep(0.5, 1.0, rim) * 0.85 * (1.0 - smoothstep(60.0, 140.0, v_dist))) {
 			discard;
 		}
-		vec3 tint = mix(vec3(0.75 + v_cust.r * 0.6), vec3(1.0, 0.95, 0.55) * (0.8 + v_cust.r * 0.5), v_cust.b * 0.5);
-		col *= tint * m;
+		col = tree_tint(col, v_cust.r, v_cust.b) * m;
 		bl = 0.45;
 	} else {
 		col *= 0.75 + 0.5 * vnoise(v_local.xy * vec2(160.0, 18.0) + v_local.z * 100.0);

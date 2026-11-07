@@ -82,11 +82,10 @@ static func apply(root: Node, d: Dictionary) -> String:
 	d = _migrate(d)
 	var fn: FdmNode = root.get_node("Fdm")
 	var f := fn.fdm
-	var setup: Dictionary = Session.DEFAULT.duplicate(true)
-	setup.merge(d.setup, true)
-	if not d.setup.has("air_custom"):  # saved before the flag existed
-		Session.legacy_air_custom(setup)
-	Session.setup = setup
+	var worn: Variant = Session.setup.get("livery", {})
+	apply_setup(d.setup)
+	if Session.setup.get("livery", {}) != worn:
+		_repaint(root)
 	var enu := Vector3(d.enu[0], d.enu[1], d.enu[2])
 	FloatingOrigin.set_origin(Vector2(enu.x, enu.y))
 	# Props: failure flags are cleared first so ones repaired since the save stay off
@@ -153,6 +152,22 @@ static func _settle_on_terrain(f: FDM, d: Dictionary) -> void:
 	if absf(now - agl) > 0.01:
 		f.pos_d = -(gh + agl)
 	f.agl = agl
+
+
+## The saved flight's setup, including livery, over the current defaults. A save from before `air_custom` is marked.
+static func apply_setup(saved: Dictionary) -> void:
+	var setup: Dictionary = Session.DEFAULT.duplicate(true)
+	setup.merge(saved, true)
+	if not saved.has("air_custom"):
+		Session.legacy_air_custom(setup)
+	Session.setup = setup
+
+
+## The exterior again, with the livery the restored setup carries. Same pass as the flight start.
+static func _repaint(root: Node) -> void:
+	var model := root.get_node_or_null("Aircraft") as AircraftModel
+	if model != null:
+		model.repaint()
 
 
 ## Future format changes: upgrade older dictionaries here.

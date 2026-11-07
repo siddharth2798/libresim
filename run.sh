@@ -179,10 +179,12 @@ NSTEPS=8
 header() { CUR="$2"; echo; echo "[$1/$NSTEPS] $2"; }
 note() { echo "    $*"; }
 dry() { ((DRY)); }
-ask() {  # ask "question" -> 0 on yes
+ask() {  # ask "question" -> 0 on yes. The question is a full line: a read -p prompt has no
+  # newline, and tee (the log pipe) holds it, so the run looks stuck at the plan.
   ((YES)) && { note "$1 [y/N] y (--yes)"; return 0; }
   dry && return 1
-  local a=""; if [[ -r /dev/tty ]]; then read -r -p "    $1 [y/N] " a </dev/tty || true; fi
+  local a=""
+  if [[ -r /dev/tty ]]; then note "$1 [y/N]"; read -r a </dev/tty || true; fi
   [[ $a =~ ^[Yy] ]]
 }
 timed() {  # timed "label" cmd...

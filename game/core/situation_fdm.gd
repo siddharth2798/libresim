@@ -20,7 +20,7 @@ const DAMAGE_KEYS := ["crash_reason", "prop_destroyed", "flaps_jammed", "structu
 ## levers): saved when the object has the field (a scalar or an array), skipped otherwise, so the C172
 ## file is unchanged. Add a name here when FlightControls / GearGround gets a new state field.
 const OPTIONAL_FCS_KEYS := ["slat_deg", "slat_cmd", "spoiler", "spoiler_cmd", "speedbrake", "speedbrake_cmd",
-	"gear_pos", "gear_cmd", "thrust_lever"]
+	"gear_pos", "gear_cmd", "thrust_lever", "ground_spoilers"]
 const OPTIONAL_GEAR_KEYS := ["gear_pos", "gear_cmd", "gear_state", "door_pos"]
 ## Fields that are ints in the scripts (JSON turns every number into a float).
 const INTS := ["magnetos", "flap_cmd", "hard_landings"]

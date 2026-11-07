@@ -154,6 +154,8 @@ func _reset() -> void:
 		Props.set_v("controls/lights/" + k, ls[k])
 	Props.set_v("controls/fuel/selector", 3)
 	Props.set_v("controls/fuel/shutoff", false)
+	if _air_ft > 0.0:
+		_tune_arrival()
 	# altimeter set to the current QNH, as after a pre-flight check
 	Props.set_v("instruments/altimeter/kollsman_inhg", snappedf(Props.get_f("weather/qnh_hpa", 1013.25) * 100.0 / Units.INHG, 0.01))
 	for u in fdm_node.fdm.units:
@@ -189,6 +191,16 @@ func _load_aircraft() -> void:
 	var masses := WeightBalance.station_masses(pl, s)
 	for n in masses:
 		mb.set_payload(n, masses[n])
+
+
+## An airborne start is already on the arrival: COM1 goes to that airport's approach, or its tower.
+func _tune_arrival() -> void:
+	var nav := get_node_or_null("Avionics/Nav") as NavRadios
+	if nav == null or nav.db == null:
+		return
+	var mhz := AtcFacilities.arrival_mhz(nav.db.coms.get(_apt, []))
+	if mhz > 0.0:
+		Props.set_v("controls/com1/freq_mhz", mhz)
 
 
 ## Everything off, parked: the real pre-flight starting state.

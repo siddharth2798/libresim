@@ -82,6 +82,59 @@ func test_tree_shaders_expose_the_lod_handover() -> String:
 	return ""
 
 
+func test_tree_sway_is_zero_at_the_trunk_base() -> String:
+	if TreeLook.sway_amplitude(0.0) != 0.0:
+		return "the trunk base should not sway"
+	if TreeLook.sway_m(0.0, 1.7, 0.4) != 0.0:
+		return "sway offset at the base is %.4f" % TreeLook.sway_m(0.0, 1.7, 0.4)
+	var crown: float = TreeLook.sway_amplitude(1.0)
+	if crown < 0.02 or crown > 0.08:
+		return "crown sway %.3f m is not a few centimetres" % crown
+	if absf(TreeLook.sway_amplitude(0.5) - crown * 0.5) > 1e-6:
+		return "sway should grow from the base to the crown"
+	if TreeLook.SWAY_PERIOD_S < 2.0 or TreeLook.SWAY_PERIOD_S > 8.0:
+		return "the sway period should be a few seconds"
+	var peak: float = TreeLook.sway_m(1.0, TreeLook.SWAY_PERIOD_S * 0.25, 0.0)
+	if absf(peak - crown) > 1e-5:
+		return "a quarter period should reach the crown amplitude, got %.4f" % peak
+	return ""
+
+
+func test_tree_colour_hash_is_stable() -> String:
+	if TreeLook.colour_hash(17) != TreeLook.colour_hash(17):
+		return "colour hash changed between calls"
+	if TreeLook.colour_hash(17) == TreeLook.colour_hash(18):
+		return "adjacent instances share a colour hash"
+	var a: float = TreeLook.colour_unit(4, 11, 0)
+	var again: float = TreeLook.colour_unit(4, 11, 0)
+	if a != again:
+		return "colour unit flickered"
+	if a < 0.0 or a >= 1.0:
+		return "colour unit %.4f is outside 0..1" % a
+	var same_hue: bool = TreeLook.colour_unit(4, 11, 0) == TreeLook.colour_unit(5, 11, 0)
+	var same_value: bool = TreeLook.colour_unit(4, 11, 1) == TreeLook.colour_unit(5, 11, 1)
+	if same_hue and same_value:
+		return "neighbouring trees got the same tint"
+	return ""
+
+
+func test_tree_yaw_columns_and_atlas_pixels() -> String:
+	if TreeLook.yaw_column(0.0, 1.0, TreeAtlas.YAWS) != 0:
+		return "camera on local +Z should be column 0"
+	if TreeLook.yaw_column(1.0, 0.0, TreeAtlas.YAWS) != 2:
+		return "camera on local +X should be column 2, got %d" % TreeLook.yaw_column(1.0, 0.0, TreeAtlas.YAWS)
+	if TreeLook.yaw_column(0.0, -1.0, TreeAtlas.YAWS) != 4:
+		return "camera on local -Z should be column 4"
+	if TreeLook.yaw_column(-1.0, 0.0, TreeAtlas.YAWS) != 6:
+		return "camera on local -X should be column 6, got %d" % TreeLook.yaw_column(-1.0, 0.0, TreeAtlas.YAWS)
+	var old_px: int = 128 * 4 * 256 * 4
+	if TreeAtlas.YAWS != 8 or TreeAtlas.pixel_count() != old_px * 2:
+		return "atlas %d px, %d yaws is not twice the old 4 x 4 (%d)" % [TreeAtlas.pixel_count(), TreeAtlas.YAWS, old_px]
+	if TreeAtlas.GRID != Vector2i(TreeAtlas.YAWS, TreeSpecies.COUNT):
+		return "atlas grid %s" % [TreeAtlas.GRID]
+	return ""
+
+
 func _write_tile(path: String, bld2: bool) -> void:
 	var b := PackedByteArray()
 	b.append_array("BLD2".to_ascii_buffer() if bld2 else "BLD1".to_ascii_buffer())

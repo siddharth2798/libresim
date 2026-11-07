@@ -3,6 +3,7 @@ extends MeshInstance3D
 ## Drives the full-screen volumetric cloud pass (volumetric_clouds.gdshader).
 ## Child of the camera. Noise textures are generated once (FastNoiseLite, seamless).
 ## The CPU copy of the density (for in-cloud fog) lives in SkyTime.cloud_density.
+## High / Max march into a smaller view and upscale (world/cloud_upscale.gd); the mesh here stays the full-resolution path.
 
 var steps := 24  # set by graphics presets
 var light_steps := 1  # samples along the sun ray per march step (graphics presets: 1..4)
@@ -19,12 +20,18 @@ var air_haze := 1.8e-5  # clear-air haze extinction (1/m) for the clouds' aerial
 var mean_d := Vector3.ZERO  # mean density at 20 / 50 / 80 % of the layer height (the far veil, _update_mean)
 var _mean_key := -1
 var shadow := Vector4.ZERO  # last cloud_shadow global: (base m, coverage, strength, 0)
+var _screen: QuadMesh
+var _up: CloudUpscale
 
 
 func _ready() -> void:
-	var q := QuadMesh.new()
-	q.size = Vector2(1, 1)
-	mesh = q
+	_screen = QuadMesh.new()
+	_screen.size = Vector2(1, 1)
+	mesh = _screen
+	_up = CloudUpscale.new()
+	_up.name = "CloudUpscale"
+	_up.bind(self)
+	add_child(_up)
 	_mat.shader = preload("res://world/volumetric_clouds.gdshader")
 	_lo = _noise(256, 0.012, 4, 1)
 	_hi = _noise(256, 0.03, 3, 2)
@@ -74,6 +81,16 @@ func update_layer(cam_world: Vector3, base_m: float, cov: float, dr: Vector2, su
 	_mat.set_shader_parameter("light_steps", clampi(light_steps, 1, 4))
 	_mat.set_shader_parameter("base_dark", base_dark)
 	_publish_shadow(sun_dir, sun_col, base_dark)
+	if _up != null and get_parent() is Camera3D:
+		_up.call_deferred("sync")
+
+
+## Full-resolution march on this mesh. Off while CloudUpscale draws the half / quarter-res path (the node stays visible).
+func set_screen_draw(on: bool) -> void:
+	if on:
+		mesh = _screen
+	else:
+		mesh = null
 
 
 ## Mean density of the layer at three heights (CPU twin of the shader's density over one 9 km noise tile), for

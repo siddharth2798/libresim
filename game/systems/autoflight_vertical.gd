@@ -109,7 +109,7 @@ func _follow_selection(i: AfInputs, alt_err: float) -> void:
 
 ## Level-off starts when the remaining distance equals the deceleration distance (plus the loop lag).
 func _capture_due(i: AfInputs, alt_err: float) -> bool:
-	var vs := i.vs_mps
+	var vs: float = i.f.vs if mode == "V/S" else i.vs_mps
 	if mode == "V/S" and alt_err * vs <= 0.0:
 		return false  # climbing away from the selected altitude: no capture
 	if absf(alt_err) < 15.0:
@@ -161,7 +161,7 @@ func _armed(i: AfInputs, alt_err: float) -> void:
 	match mode:
 		"OP CLB", "CLB": dir = 1.0
 		"OP DES", "DES": dir = -1.0
-		"V/S": dir = signf(i.vs_mps) if absf(i.vs_mps) > 0.3 else 0.0
+		"V/S": dir = signf(i.f.vs) if absf(i.f.vs) > 0.3 else 0.0  # the FCU selection, not this frame's path
 	if dir != 0.0 and alt_err * dir > 0.0:
 		armed.append("ALT")
 	if i.f.appr and mode != "G/S*" and mode != "G/S":

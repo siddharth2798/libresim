@@ -74,6 +74,10 @@ terrain_eye={
 "type": "vec3",
 "value": Vector3(0, 0, 0)
 }
+terrain_bump_amp={
+"type": "float",
+"value": 0.0
+}
 haze_lut={
 "type": "sampler2D",
 "value": ""

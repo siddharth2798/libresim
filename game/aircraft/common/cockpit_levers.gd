@@ -12,7 +12,7 @@ extends Node
 ## Pivots are nested in the glb where one part sits on another (reverser flap on a thrust lever, pitch then roll of a
 ## sidestick): each keeps its own base transform and is turned about its own axis.
 
-var _items: Array = []  # {node, basis, pos, terms, map, move, sign, lag, rate, value}
+var _items: Array = []  # {node, basis, pos, drive, terms, map, move, sign, lag, rate, value}
 var _active := false
 
 
@@ -23,7 +23,8 @@ func build(interior: Node, cfg: Dictionary) -> int:
 		var s = cfg[k]
 		if node == null or not s is Dictionary or not s.get("map") is Array or (s.map as Array).size() < 2:
 			continue
-		_items.append({"node": node, "basis": node.transform.basis, "pos": node.position, "terms": parse_drive(str(s.get("drive", ""))),
+		var drive := str(s.get("drive", ""))
+		_items.append({"node": node, "basis": node.transform.basis, "pos": node.position, "drive": drive, "terms": parse_drive(drive),
 			"map": s.map, "move": str(s.get("move", "rotate")), "sign": float(s.get("sign", 1.0)), "lag": float(s.get("lag", 0.0)),
 			"rate": float(s.get("rate", 0.0)), "value": NAN})
 	set_process(not _items.is_empty())

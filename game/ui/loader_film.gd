@@ -12,12 +12,19 @@ const CLIPS := [
 	{"dir": "res://ui/loader/ghats_chase", "title": "The Western Ghats"},
 	{"dir": "res://ui/loader/coast_juhu", "title": "The Juhu coast"},
 ]
+const CLIP_FINAL: int = 0
+const CLIP_GHATS: int = 1
+const CLIP_COAST: int = 2
+## Mumbai shore in world/airport_cities.json. VAJJ is Juhu. VABB is Mumbai, the field the
+## Juhu film was flown from. Navi Mumbai and the rest of the coast stay on the inland film.
+const COAST_AIRPORTS: Array[String] = ["VAJJ", "VABB"]
 
 var caption := ""
 var _clip := 0
 var _frame := 0
 var _acc := 0.0
 var _count := 0
+var _hold: bool = false  # a flight keeps its clip; a menu load moves on when the clip ends
 
 
 static func available() -> bool:
@@ -32,11 +39,30 @@ func _ready() -> void:
 	visible = false
 
 
-## Start at a clip (a different one each time the loader appears).
+## Which clip a flight opens on. An A320 keeps the evening final, including on the coast.
+static func clip_for(aircraft: String, airport: String) -> int:
+	if aircraft.to_lower().begins_with("a320"):
+		return CLIP_FINAL
+	if COAST_AIRPORTS.has(airport.to_upper()):
+		return CLIP_COAST
+	return CLIP_GHATS
+
+
+## Menu load, or any wait with no flight: a different clip each time, then the next when it ends.
 func restart() -> void:
 	if CLIPS.is_empty():
 		return
+	_hold = false
 	_clip = randi() % CLIPS.size()
+	_show_frame(0)
+
+
+## Flight load: the clip for this aircraft and airport, held for the whole wait.
+func restart_for(aircraft: String, airport: String) -> void:
+	if CLIPS.is_empty():
+		return
+	_hold = true
+	_clip = clip_for(aircraft, airport) % CLIPS.size()
 	_show_frame(0)
 
 
@@ -49,7 +75,8 @@ func _process(dt: float) -> void:
 	_acc = 0.0
 	_frame += 1
 	if _frame >= _count:
-		_clip = (_clip + 1) % CLIPS.size()
+		if not _hold:
+			_clip = (_clip + 1) % CLIPS.size()
 		_show_frame(0)
 	else:
 		_show_frame(_frame)

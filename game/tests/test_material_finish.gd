@@ -7,7 +7,9 @@ func test_a320_material_table() -> String:
 	var t: Dictionary = MaterialFinish.table("a320")
 	var want := {
 		"a320_fuselage": [0.48, 0.0],
-		"a320_engine": [0.52, 0.04],
+		"a320_engine": [0.36, 0.02],
+		"a320_inlet": [0.14, 1.0],
+		"a320_spinner": [0.3, 0.8],
 		"a320_gear": [0.55, 0.05],
 		"wheel_mat": [0.9, 0.0],
 		"a320_glass": [0.08, 0.05],
@@ -24,6 +26,9 @@ func test_a320_material_table() -> String:
 		return "fuselage clearcoat %s" % fuse.get("clearcoat", "missing")
 	if not is_equal_approx(float(fuse.clearcoat_roughness), 0.4):
 		return "fuselage clearcoat roughness %s" % fuse.clearcoat_roughness
+	var eng_row: Dictionary = t.a320_engine
+	if not is_equal_approx(float(eng_row.clearcoat), 0.16) or not is_equal_approx(float(eng_row.clearcoat_roughness), 0.45):
+		return "engine clearcoat %s" % eng_row
 	if not MaterialFinish.table("c172").is_empty():
 		return "c172 must not take the A320 finish table"
 	if MaterialFinish.legend_names().has("a320_screen"):
@@ -69,8 +74,10 @@ func test_albedo_swap_keeps_shading() -> String:
 	var eng := StandardMaterial3D.new()
 	eng.resource_name = "a320_engine"
 	MaterialFinish.restamp(eng)
-	if not is_equal_approx(eng.roughness, 0.52) or not is_equal_approx(eng.metallic, 0.04):
+	if not is_equal_approx(eng.roughness, 0.36) or not is_equal_approx(eng.metallic, 0.02):
 		return "engine shading rough %s metal %s" % [eng.roughness, eng.metallic]
+	if not eng.clearcoat_enabled or not is_equal_approx(eng.clearcoat, 0.16):
+		return "engine clearcoat missing"
 	var tyre := StandardMaterial3D.new()
 	tyre.resource_name = "wheel_mat"
 	tyre.roughness = 0.55
@@ -104,7 +111,7 @@ func test_bind_maps_keeps_table_shading() -> String:
 		return "fuselage ao missing"
 	if not fuse.normal_enabled or fuse.normal_texture != tex:
 		return "fuselage normal missing"
-	if not is_equal_approx(fuse.ao_light_affect, 0.15) or not is_equal_approx(fuse.normal_scale, 0.5):
+	if not is_equal_approx(fuse.ao_light_affect, 0.15) or not is_equal_approx(fuse.normal_scale, 0.65):
 		return "fuselage map strength ao %s scale %s" % [fuse.ao_light_affect, fuse.normal_scale]
 	if not is_equal_approx(fuse.roughness, float(row.roughness)) or not is_equal_approx(fuse.metallic, float(row.metallic)):
 		return "fuselage roughness changed"
@@ -146,6 +153,84 @@ func test_bind_maps_keeps_table_shading() -> String:
 	MaterialFinish.bind_maps(glass, tex, false)
 	if glass.ao_enabled or glass.ao_texture != null or glass.normal_texture != null:
 		return "interior glass gained maps"
+	return ""
+
+
+## The fan mesh wears the cowl atlas. Its stamp is dark metal and does not take the cowl panel normal.
+func test_fan_blades_stay_metal() -> String:
+	var root := Node3D.new()
+	var img := Image.create(2, 2, false, Image.FORMAT_RGBA8)
+	img.fill(Color(0.7, 0.7, 0.7))
+	var alb := ImageTexture.create_from_image(img)
+	var mesh := ArrayMesh.new()
+	var arrays: Array = []
+	arrays.resize(Mesh.ARRAY_MAX)
+	arrays[Mesh.ARRAY_VERTEX] = PackedVector3Array([Vector3.ZERO, Vector3.RIGHT, Vector3.UP])
+	mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
+	var paint := StandardMaterial3D.new()
+	paint.resource_name = "a320_engine"
+	paint.albedo_texture = alb
+	mesh.surface_set_material(0, paint)
+	var fan := MeshInstance3D.new()
+	fan.name = "FanLCFM56L"
+	fan.mesh = mesh
+	root.add_child(fan)
+	var cowl := MeshInstance3D.new()
+	cowl.name = "engine_cowl"
+	cowl.mesh = mesh
+	root.add_child(cowl)
+	MaterialFinish.stamp_surfaces(root, "a320", true)
+	var blade := fan.get_surface_override_material(0) as StandardMaterial3D
+	var skin := cowl.get_surface_override_material(0) as StandardMaterial3D
+	root.free()
+	if blade == null or skin == null or blade == skin:
+		return "fan and cowl must not share a material"
+	if blade.resource_name != "a320_fan" or blade.normal_enabled:
+		return "fan stamp %s normal %s" % [blade.resource_name, blade.normal_enabled]
+	if not is_equal_approx(blade.roughness, 0.4) or not is_equal_approx(blade.metallic, 0.72):
+		return "fan metal %s %s" % [blade.roughness, blade.metallic]
+	if blade.albedo_texture != alb:
+		return "fan lost the atlas"
+	if not skin.clearcoat_enabled or not is_equal_approx(skin.roughness, 0.36):
+		return "cowl paint"
+	return ""
+
+
+## Missing roughness and metal pngs are not bound. The stand-in is AO and normals only.
+## bind_maps leaves the caller's roughness and metal; restamp keeps the table's numbers.
+func test_missing_roughness_metal_maps_keep_numbers() -> String:
+	var img := Image.create(4, 4, false, Image.FORMAT_RGBA8)
+	img.fill(Color(0.25, 0.25, 0.25))
+	var tex := ImageTexture.create_from_image(img)
+	var cases := [
+		["a320_fuselage", true, 0.48, 0.0],
+		["a320_engine", true, 0.52, 0.04],
+		["a320_gear", true, 0.55, 0.05],
+		["a320_plain_333", true, 0.4, 0.3],
+		["a320_fd_leather", false, 0.65, 0.0],
+		["a320_fd_buttons", false, 0.8, 0.0],
+		["a320_glass", false, 0.08, 0.05],
+		["wheel_mat", true, 0.41, 0.0],
+	]
+	for c in cases:
+		var mat := StandardMaterial3D.new()
+		mat.resource_name = str(c[0])
+		mat.roughness = float(c[2])
+		mat.metallic = float(c[3])
+		MaterialFinish.bind_maps(mat, tex, bool(c[1]))
+		if mat.roughness_texture != null or mat.metallic_texture != null:
+			return "%s bound a roughness or metal map that is not in the repo" % c[0]
+		if not is_equal_approx(mat.roughness, float(c[2])) or not is_equal_approx(mat.metallic, float(c[3])):
+			return "%s roughness %s metal %s" % [c[0], mat.roughness, mat.metallic]
+	var fuse := StandardMaterial3D.new()
+	fuse.resource_name = "a320_fuselage"
+	fuse.roughness = 0.11
+	fuse.metallic = 0.22
+	MaterialFinish.restamp(fuse)
+	if fuse.roughness_texture != null or fuse.metallic_texture != null:
+		return "restamp bound a missing roughness or metal map"
+	if not is_equal_approx(fuse.roughness, 0.48) or not is_equal_approx(fuse.metallic, 0.0):
+		return "restamp roughness %s metal %s" % [fuse.roughness, fuse.metallic]
 	return ""
 
 

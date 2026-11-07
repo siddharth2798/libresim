@@ -82,15 +82,29 @@ with_heartbeat() {  # with_heartbeat label expected_secs logfile cmd...  (no || 
 }
 
 # ---------------------------------------------------------------- download sizes
-head_one() { curl -sIL --max-time 20 "$1" 2>/dev/null | tr -d '\r' | awk 'tolower($1) == "content-length:" { v = $2 } END { print v + 0 }' || true; }
-head_sizes() {  # head_sizes url...: exact byte sizes into SIZE[url] by HTTP HEAD (8 at a time); none when offline
+head_one() {  # Content-Length of one URL, or 0. timeout -k sends SIGKILL: curl's own
+  # --max-time does not interrupt a stuck DNS lookup, which is where a first run sits at "[2/8] Plan".
+  local raw
+  if command -v timeout >/dev/null 2>&1; then
+    raw=$(timeout -k 2 12 curl -sIL --connect-timeout 5 --max-time 10 "$1" 2>/dev/null || true)
+  else
+    raw=$(curl -sIL --connect-timeout 5 --max-time 15 "$1" 2>/dev/null || true)
+  fi
+  printf '%s\n' "$raw" | tr -d '\r' | awk 'tolower($1) == "content-length:" { v = $2 } END { print v + 0 }'
+}
+head_sizes() {  # head_sizes url...: exact byte sizes into SIZE[url] by HTTP HEAD (8 at a time); none when offline.
+  # Wait only for these curls. A bare wait also waits for the log's tee, and never returns.
   [[ ${RUN_OFFLINE:-0} != 1 ]] && command -v curl >/dev/null || return 0
-  local tmp i=0 u n; tmp=$(mktemp -d)
+  local tmp i=0 u n total=$#
+  local -a pids=()
+  tmp=$(mktemp -d)
+  note "Checking the size of $total downloads…"
   for u in "$@"; do
-    i=$((i + 1)); ( head_one "$u" >"$tmp/$i" ) &
-    if ((i % 8 == 0)); then wait; fi
+    i=$((i + 1)); ( head_one "$u" >"$tmp/$i" ) & pids+=("$!")
+    if ((${#pids[@]} == 8)); then wait "${pids[@]}" || true; pids=(); note "checked $i of $total"; fi
   done
-  wait; i=0
+  if ((${#pids[@]})); then wait "${pids[@]}" || true; note "checked $i of $total"; fi
+  i=0
   for u in "$@"; do i=$((i + 1)); n=$(cat "$tmp/$i" 2>/dev/null || true); n=${n:-0}; if ((n > 0)); then SIZE[$u]=$n; fi; done
   rm -rf "$tmp"; return 0
 }

@@ -123,9 +123,12 @@ func test_livery_recolor_rule_on_pixels() -> String:
 	var half := Livery.recolor(px, 0.5, col, 0.9)
 	if not Color(half.r, half.g, half.b).is_equal_approx(Color(0.85, 0.5, 0.5)):
 		return "mask 0.5 is the middle: %s" % [half]
-	var bright := Livery.recolor(Color(1, 1, 1), 1.0, col, 0.5)  # gain capped at 1.3, channels at 1
-	if not Color(bright.r, bright.g, bright.b).is_equal_approx(Color(1.0, 0.13, 0.13)):
+	var bright := Livery.recolor(Color(1, 1, 1), 1.0, Color(1, 0.4, 0.4), 0.5)  # as bright as the reference: gain 1.3, channels at 1
+	if not Color(bright.r, bright.g, bright.b).is_equal_approx(Color(1.0, 0.52, 0.52)):
 		return "gain cap: %s" % [bright]
+	var tip := Livery.recolor(Color(0.62, 0.62, 0.60), 1.0, Color(0.05, 0.05, 0.06), 0.513)  # grey tip above the stripe reference
+	if Livery.luma(tip) > Livery.luma(Color(0.05, 0.05, 0.06)) * 1.05:
+		return "a dark colour lit the grey tip: %s" % [tip]
 	if Livery.recolor(Color.BLACK, 1.0, col, 0.9).r != 0.0:
 		return "black stays black"
 	return ""

@@ -2,8 +2,9 @@ shader_type canvas_item;
 render_mode blend_disabled;
 // One-shot livery pass (livery_paint.gd): the atlas recoloured under up to four region masks, one texel to one pixel.
 // The same arithmetic as Livery.recolor_multi (livery.gd explains the rule): sRGB values as stored, Rec.709 luma, the
-// weights of the regions added up, each region keeping the shading left after the others' share is removed. blend_disabled
-// writes the colour and alpha as they are (no premultiplied blend into the viewport).
+// weights of the regions added up, each region keeping the shading left after the others' share is removed. Gain above
+// 1 is scaled by how bright the new colour is against the region's luma, so a dark colour does not light a grey tip.
+// blend_disabled writes the colour and alpha as they are (no premultiplied blend into the viewport).
 uniform sampler2D atlas : filter_nearest, repeat_disable;
 uniform sampler2D mask0 : filter_nearest, repeat_disable;
 uniform sampler2D mask1 : filter_nearest, repeat_disable;
@@ -39,7 +40,9 @@ void fragment() {
 			}
 		}
 		float li = max((l * wn - others) / max(wa[i], 0.001), 0.0);
-		float gain = clamp(li / max(lb[i], 0.0001), 0.0, GAIN_MAX);
+		float raw = clamp(li / max(lb[i], 0.0001), 0.0, GAIN_MAX);
+		float room = clamp(luma(cols[i]) / max(lb[i], 0.0001), 0.0, 1.0);
+		float gain = min(raw, 1.0) + max(raw - 1.0, 0.0) * room;
 		rgb += wa[i] * min(cols[i] * gain, vec3(1.0));
 	}
 	COLOR = vec4(rgb, o.a);

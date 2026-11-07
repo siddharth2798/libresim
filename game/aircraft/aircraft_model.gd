@@ -93,6 +93,14 @@ func _build_glb(path: String) -> void:
 		blur.follow(inst)  # static fan discs; opacity follows engines/1/n1 and engines/2/n1
 
 
+## After a situation load changed the livery: drop the old paint, then the same pass as build().
+func repaint() -> void:
+	if _glb == null or def == null:
+		return
+	PaintPipeline.begin_preview(_glb, def)
+	PaintPipeline.apply(self, _glb, def)
+
+
 ## FlightGear glass uses an effect shader; make it a clear, slightly reflective pane. rain: draw drops / streaks on
 ## it (windshield_rain.gdshader, outer skin only). Tyres get a faint constant glow so they stay visible at night.
 static func lift_tyres(root: Node) -> void:
