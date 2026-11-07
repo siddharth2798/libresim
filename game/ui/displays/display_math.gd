@@ -134,12 +134,12 @@ static func _cross(a: Vector2, b: Vector2, r: Rect2, edge: int) -> Vector2:
 	return Vector2(a.x + (b.x - a.x) * (y - a.y) / (b.y - a.y), y)
 
 
-## Flap lever (0..4: 0, 1, 2, 3, FULL) and the surface angle -> the configuration name; lever 1 with
-## the flaps out (> 5 deg) is 1+F (take-off configuration).
+## Flap detent index (A320: 0, 1, 1+F, 2, 3, FULL) -> the configuration name. Index 1 with the
+## flaps out (> 5 deg) is 1+F, for a lever that shares that notch with CONF 1.
 static func conf_text(lever: int, flap_deg: float) -> String:
 	if lever == 1 and flap_deg > 5.0:
 		return "1+F"
-	return ["0", "1", "2", "3", "FULL"][clampi(lever, 0, 4)]
+	return ["0", "1", "1+F", "2", "3", "FULL"][clampi(lever, 0, 5)]
 
 
 ## "35000" style rounding of an altitude to the 20 ft the tape reads in.

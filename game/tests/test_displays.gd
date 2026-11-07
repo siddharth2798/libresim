@@ -129,8 +129,10 @@ func test_disp_math() -> String:
 	var s := DispMath.sphere_point(Vector2(0, -10), Vector2.ZERO, PI * 0.5)  # banked right: the sky moves left
 	if s.distance_to(Vector2(-10, 0)) > 0.01:
 		return "sphere_point %s" % s
-	if DispMath.conf_text(1, 10.0) != "1+F" or DispMath.conf_text(1, 0.0) != "1" or DispMath.conf_text(4, 35.0) != "FULL":
-		return "conf_text"
+	if DispMath.conf_text(1, 10.0) != "1+F" or DispMath.conf_text(1, 0.0) != "1" or DispMath.conf_text(2, 10.0) != "1+F":
+		return "conf_text 1 / 1+F"
+	if DispMath.conf_text(3, 15.0) != "2" or DispMath.conf_text(4, 20.0) != "3" or DispMath.conf_text(5, 35.0) != "FULL":
+		return "conf_text detent"
 	return "" if DispMath.round_alt(35010.0) == 35020 else "round_alt"
 
 

@@ -1,7 +1,7 @@
 class_name CameraRig
 extends Camera3D
 ## All flight cameras. C / Shift+C cycle, or 1-8 jump directly:
-##  1 cockpit (pilot eye; right-drag look, wheel zoom, V re-centre)
+##  1 cockpit (pilot eye; drag to look, wheel zoom, V re-centre)
 ##  2 chase   3 orbit (right-drag rotate, wheel distance)
 ##  4 free    (detached: WASD move, Q/E down/up, right-drag look, Shift fast, wheel speed)
 ##  5 tower   (nearest airport, auto zoom)   6 wing   7 tail   8 fly-by
@@ -35,6 +35,8 @@ var _label: Label
 var _label_t := 0.0
 var _seat := 0.0  # cockpit eye, metres up from the design eye: lags the vertical g
 var _seat_v := 0.0
+var _grab := ""  # cockpit left button: "look", "glass", "lever", or ""
+var _grab_item := {}  # lever item while _grab == "lever"
 
 
 func setup(model: AircraftModel) -> void:
@@ -62,6 +64,8 @@ func setup(model: AircraftModel) -> void:
 		for a in data:
 			airports.append({"icao": a.icao if a.icao != "" else a.ident, "enu": Vector3(a.x, a.y, a.elev_m)})
 	_label = Label.new()
+	_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_label.add_theme_font_size_override("font_size", 15)
 	_label.add_theme_stylebox_override("normal", Notifications.card_style(Notifications.COLORS[0]))
 	var layer := CanvasLayer.new()
@@ -83,9 +87,13 @@ func set_mode(m: int) -> void:
 	_chase_back = Vector3.ZERO  # a view change snaps the chase camera behind the aircraft
 	_chase_trail = 0.0
 	_focus_back = []
+	_grab = ""
+	_grab_item = {}
 	Props.set_v("view/free_cam", mode == Mode.FREE)
 	Props.set_v("view/mode", NAMES[mode])
 	_label.text = "%s view" % String(NAMES[mode]).capitalize()
+	if mode == Mode.COCKPIT:
+		_label.text += "\nDrag to look · V recentre"
 	_label_t = 2.5
 
 
@@ -104,10 +112,14 @@ func _unhandled_input(e: InputEvent) -> void:
 		_focus_toggle(e.position)
 		get_viewport().set_input_as_handled()
 		return
-	if mode == Mode.COCKPIT and e is InputEventMouseButton and e.button_index in [MOUSE_BUTTON_LEFT, MOUSE_BUTTON_MIDDLE]:
+	if mode == Mode.COCKPIT and e is InputEventMouseButton and e.button_index == MOUSE_BUTTON_LEFT:
+		if _cockpit_left(e):
+			get_viewport().set_input_as_handled()
+		return
+	if mode == Mode.COCKPIT and e is InputEventMouseButton and e.button_index == MOUSE_BUTTON_MIDDLE:
 		if aircraft.cockpit.forward_mouse(e, self):
 			get_viewport().set_input_as_handled()
-			return
+		return
 	if mode == Mode.COCKPIT and e is InputEventKey and aircraft.cockpit.forward_key(e, self):
 		get_viewport().set_input_as_handled()
 		return
@@ -122,10 +134,13 @@ func _unhandled_input(e: InputEvent) -> void:
 			_look_goal = _look
 			_fov_goal = _fov_cockpit
 			_focus_back = []
-	elif e is InputEventMouseMotion and Input.is_mouse_button_pressed(MOUSE_BUTTON_RIGHT):
-		_look += Vector2(-e.relative.x, -e.relative.y) * 0.004 * (_fov_cockpit / 70.0 if mode == Mode.COCKPIT else 1.0)
-		_look.y = clampf(_look.y, -1.45, 1.45)
-		_look_goal = _look
+	elif e is InputEventMouseMotion and (Input.is_mouse_button_pressed(MOUSE_BUTTON_RIGHT) \
+			or (_grab == "look" and mode == Mode.COCKPIT and Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT))):
+		_apply_look(e.relative)
+	elif e is InputEventMouseMotion and _grab == "lever" and Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT):
+		CockpitPick.apply_motion(_grab_item, aircraft.cockpit.lever_items(), e.relative)
+	elif e is InputEventMouseMotion and _grab == "glass":
+		aircraft.cockpit.forward_mouse(e, self)
 	elif e is InputEventMouseButton and e.pressed and e.button_index in [MOUSE_BUTTON_WHEEL_UP, MOUSE_BUTTON_WHEEL_DOWN]:
 		var up: bool = e.button_index == MOUSE_BUTTON_WHEEL_UP
 		match mode:
@@ -148,7 +163,9 @@ func _process(dt: float) -> void:
 		Mode.COCKPIT:
 			var k := 1.0 - exp(-10.0 * dt)  # ease toward the focus targets
 			_fov_cockpit = lerpf(_fov_cockpit, _fov_goal, k)
-			if not Input.is_mouse_button_pressed(MOUSE_BUTTON_RIGHT):
+			if _grab != "" and not Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT):
+				_grab = ""
+			if not Input.is_mouse_button_pressed(MOUSE_BUTTON_RIGHT) and _grab != "look":
 				_look = _look.lerp(_look_goal, k)
 			fov = _fov_cockpit
 			var seat := seat_step(_seat, _seat_v, Props.get_f("fdm/load_factor", 1.0), dt)
@@ -199,28 +216,12 @@ func _process(dt: float) -> void:
 			look_at_from_position(p2, t.origin)
 
 
-## One chase-camera step. `back` is the aircraft's horizontal aft direction; the smoothed copy eases toward it at
-## `follow` 1/s (cornering lag). The extra distance is ground speed / follow, eased over about a second, so a speed
-## change or a long frame does not zoom the picture. A zero smoothed direction snaps to `back`.
-## One step of the cockpit eye. It sags a few centimetres when the vertical load rises and eases back,
-## so the touchdown is a dip rather than the picture stopping dead. Returns [offset m, rate m/s].
 static func seat_step(offset: float, vel: float, nz: float, dt: float) -> Vector2:
-	var target := clampf((1.0 - nz) * 0.028, -0.04, 0.015)
-	var acc := (target - offset) * 55.0 - vel * 8.0
-	vel += acc * dt
-	offset = clampf(offset + vel * dt, -0.045, 0.02)
-	return Vector2(offset, vel)
+	return CameraMotion.seat_step(offset, vel, nz, dt)
 
 
 static func chase_step(back_s: Vector3, trail: float, back: Vector3, speed: float, follow: float, dt: float) -> Dictionary:
-	var k := 1.0 - exp(-maxf(follow, 0.0) * maxf(dt, 0.0))
-	var b := back
-	if back_s.length() > 0.1:
-		b = back_s.lerp(back, k)
-		b = b.normalized() if b.length() > 0.1 else back
-	var target := 0.0 if follow <= 0.0 else speed / follow
-	var trail_k := 1.0 - exp(-maxf(dt, 0.0) / 1.2)
-	return {"back": b, "trail": lerpf(trail, target, trail_k)}
+	return CameraMotion.chase_step(back_s, trail, back, speed, follow, dt)
 
 
 func _free_fly(dt: float) -> void:
@@ -247,10 +248,43 @@ func _nearest_tower(w: Vector3) -> Vector3:
 	return best
 
 
-## Cockpit look angles (yaw, pitch incl. the default -0.12 tilt) that put screen point p centre.
 func _look_at_screen(p: Vector2) -> Vector2:
-	var d: Vector3 = aircraft.transform.basis.inverse() * project_ray_normal(p)
-	return Vector2(atan2(-d.x, -d.z), clampf(asin(clampf(d.y, -1.0, 1.0)) + 0.12, -1.45, 1.45))
+	return CameraLook.aim_at(aircraft.transform.basis.inverse() * project_ray_normal(p))
+
+
+func _apply_look(relative: Vector2) -> void:
+	var scale := _fov_cockpit / 70.0 if mode == Mode.COCKPIT else 1.0
+	_look = CameraLook.drag(_look, relative, scale)
+	_look_goal = _look
+
+
+## Left press picks glass, else a lever, else the head. The drag keeps that choice.
+func _cockpit_left(e: InputEventMouseButton) -> bool:
+	if aircraft == null or aircraft.cockpit == null:
+		return false
+	if not e.pressed:
+		var was := _grab
+		_grab = ""
+		_grab_item = {}
+		if was == "glass":
+			return aircraft.cockpit.forward_mouse(e, self)
+		return was != ""
+	if aircraft.cockpit.hits_glass(self, e.position):
+		_grab = "glass"
+		aircraft.cockpit.forward_mouse(e, self)
+		return true
+	if not CockpitPick.gui_blocks(get_viewport()):
+		var it := CockpitPick.pick(aircraft.cockpit.lever_items(), project_ray_origin(e.position), project_ray_normal(e.position))
+		if not it.is_empty():
+			_grab = "lever"
+			_grab_item = it
+			var drive := str(it.get("drive", ""))
+			var map: Array = it.get("map", [])
+			if not CockpitPick.drags(drive, map, CockpitPick.read_current(drive)):
+				CockpitPick.commit(it)
+			return true
+	_grab = "look"
+	return true
 
 
 ## Ctrl+click: zoom in on the item under the cursor; Ctrl+click again returns to the old view.

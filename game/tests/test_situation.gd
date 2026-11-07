@@ -92,3 +92,27 @@ func test_situation_fdm_damage() -> String:
 	if not dm.flaps_jammed or not dm.structure_damaged or dm.hard_landings != 2:
 		return "damage flags not restored"
 	return "" if Array(dm.events) == Array(a.f.damage.events) else "events differ"
+
+
+## F11 quick-save stores Session.setup, livery included. The JSON round trip keeps it, and applying that
+## setup puts the same livery back (a load must not fall through to the factory paint).
+func test_situation_livery_round_trip() -> String:
+	var keep: Dictionary = Session.setup.duplicate(true)
+	Session.setup = Session.DEFAULT.duplicate(true)
+	var livery: Dictionary = {"c172": {"colors": {"body": "#102030", "stripe": "#050506"}}}
+	Session.setup.livery = livery
+	var saved := {"version": Situation.VERSION, "setup": Session.setup.duplicate(true)}
+	var back: Dictionary = JSON.parse_string(JSON.stringify(saved, "", false, true))
+	var got: Variant = back.get("setup", {}).get("livery", {})
+	var err := ""
+	if not got is Dictionary or (got as Dictionary).is_empty():
+		err = "round trip dropped the livery: %s" % [got]
+	elif (got as Dictionary).get("c172", {}).get("colors", {}).get("stripe", "") != "#050506":
+		err = "round trip changed the livery: %s" % [got]
+	Session.setup.livery = {}
+	var setup: Dictionary = back.get("setup", {})
+	Situation.apply_setup(setup)
+	if err == "" and Session.setup.get("livery", {}) != got:
+		err = "apply left %s" % [Session.setup.get("livery", {})]
+	Session.setup = keep
+	return err

@@ -153,7 +153,12 @@ func test_atc_facility_for_each_frequency() -> String:
 		return "label of an unknown frequency"
 	if AtcFacilities.entries(_coms("full")).size() != 5:
 		return "non-VHF and area-control entries must be dropped: %d" % AtcFacilities.entries(_coms("full")).size()
-	return ""
+	if not is_equal_approx(AtcFacilities.arrival_mhz(_coms("full")), 127.9) or not is_equal_approx(AtcFacilities.arrival_mhz(_coms("twr")), 123.5):
+		return "an airborne start tunes approach, or the tower when there is no approach"
+	if AtcFacilities.arrival_mhz([]) > 0.0:
+		return "no published unit: nothing to tune"
+	var bar := AtcFacilities.summary(_w("full", 127.9))
+	return "" if bar.text == "Approach · Test" else "the bar leads with the role: " + bar.text
 
 
 func test_atc_services_by_unit() -> String:

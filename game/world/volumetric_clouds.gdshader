@@ -7,6 +7,10 @@ render_mode unshaded, depth_test_disabled, depth_draw_never, cull_disabled, fog_
 // noise; both from tiling noise textures (cheap on integrated GPUs).
 
 uniform sampler2D depth_tex : hint_depth_texture, filter_nearest;
+uniform sampler2D scene_depth : filter_nearest, repeat_disable; // copied frame depth when the march is a smaller view (G7)
+uniform float use_scene_depth = 0.0; // 0: depth_tex. Low / Medium stay on this path (march_jitter stays 0)
+uniform vec2 march_jitter = vec2(0.0); // temporal sample offset, in full-view UV
+uniform float depth_flip = 0.0; // 1: scene_depth's v axis is opposite SCREEN_UV
 uniform sampler2D noise_lo : filter_linear_mipmap, repeat_enable;  // coverage (seamless)
 uniform sampler2D noise_hi : filter_linear_mipmap, repeat_enable;  // detail (seamless)
 uniform vec3 cam_world = vec3(0.0);   // camera ENU (east, north, up) m
@@ -147,8 +151,14 @@ vec4 quad_mean(vec4 v, vec2 fc) {
 }
 
 void fragment() {
+	vec2 uv = SCREEN_UV;
 	float depth = texture(depth_tex, SCREEN_UV).r;
-	vec4 ndc = vec4(SCREEN_UV * 2.0 - 1.0, depth, 1.0);
+	if (use_scene_depth > 0.5) {
+		uv = clamp(SCREEN_UV + march_jitter, vec2(0.0), vec2(1.0));
+		vec2 duv = depth_flip > 0.5 ? vec2(uv.x, 1.0 - uv.y) : uv;
+		depth = textureLod(scene_depth, duv, 0.0).r;
+	}
+	vec4 ndc = vec4(uv * 2.0 - 1.0, depth, 1.0);
 	vec4 vpos = INV_PROJECTION_MATRIX * ndc;
 	vpos.xyz /= vpos.w;
 	float scene_dist = length(vpos.xyz);

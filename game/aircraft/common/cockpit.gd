@@ -157,6 +157,14 @@ func _process(dt: float) -> void:
 			viewport.render_target_update_mode = SubViewport.UPDATE_ONCE
 
 
+func hits_glass(cam: Camera3D, screen: Vector2) -> bool:
+	return _hit(cam, screen) != null
+
+
+func lever_items() -> Array:
+	return levers._items if levers != null else []
+
+
 ## Forward a mouse event from the main viewport to the panel if it hits a gauge quad.
 func forward_mouse(e: InputEventMouse, cam: Camera3D) -> bool:
 	var hit = _hit(cam, e.position)

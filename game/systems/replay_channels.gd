@@ -16,7 +16,7 @@ const S_SC := 13
 const N_BASE := 23
 ## FlightControls fields recorded as state when the aircraft's replay section has "fcs": true and the field exists on
 ## `fcs` (a scalar, or an array: one channel per element). Extend when FlightControls gets a new animated field.
-const EXTRA_FCS_FIELDS := ["slat_deg", "spoiler", "speedbrake", "gear_pos", "thrust_lever"]
+const EXTRA_FCS_FIELDS := ["slat_deg", "spoiler", "speedbrake", "gear_pos", "thrust_lever", "ground_spoilers"]
 ## Engine fields (Powerplant) -> prop of engine 1 that older recordings and gauges use.
 const LEGACY := {"rpm": "engine/rpm", "running": "engine/running", "egt_k": "engine/egt_k", "cht_k": "engine/cht_k",
 	"oil_temp_k": "engine/oil_temp_k", "oil_press_pa": "engine/oil_press_pa"}

@@ -177,6 +177,8 @@ func test_a320_flaps_slats_spoilers_stabilizer() -> String:
 	var sp: float = c.spoiler[1]
 	if sp < 45.0 or c.spoiler[0] > 0.1 or c.spoiler[4] > 0.1 or absf(c.spoiler[6] - sp) > 0.5:
 		return "speedbrake: panels 2-4 of both wings at 50 deg, 1 and 5 retracted: %s" % [c.spoiler]
+	f.damage.lim = f.damage.lim.duplicate(true)
+	f.damage.lim.vfe_kias = [[1000.0, 500.0]]  # slats lead, so the flaps extend while the jet is still fast
 	_run(f, 60.0, 1.0 / 30.0)
 	if absf(c.flap_deg - 35.0) > 0.01 or absf(c.slat_deg - 27.0) > 0.01 or absf(c.stabilizer_deg + 13.5) > 0.01:
 		return "end state: flaps %.2f slats %.2f THS %.2f" % [c.flap_deg, c.slat_deg, c.stabilizer_deg]

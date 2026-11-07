@@ -1,0 +1,14 @@
+[remap]
+
+importer="glsl"
+type="RDShaderFile"
+uid="uid://bap77m27kqi5e"
+path="res://.godot/imported/cloud_depth_copy.glsl-4bf584bf3ca901d19fda09da60dee662.res"
+
+[deps]
+
+source_file="res://world/cloud_depth_copy.glsl"
+dest_files=["res://.godot/imported/cloud_depth_copy.glsl-4bf584bf3ca901d19fda09da60dee662.res"]
+
+[params]
+

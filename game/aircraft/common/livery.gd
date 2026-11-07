@@ -9,11 +9,9 @@ extends RefCounted
 ## The pilot's choice is {region key: "#rrggbb"} in Session.setup.livery; a missing or invalid entry is the
 ## factory colour. "stickers" on the section are the fixed picture slots (box, optional mirror_box).
 ## Nothing here knows a specific aircraft. paint_pipeline.gd applies it.
-## Recolour rule (sRGB values as stored, Rec.709 luma): out = lerp(orig, colour * clamp(luma(orig) / luma_base, 0, 1.3), mask).
-## sRGB, not linear: the baked shading (AO, dirt) darkens the paint in display space, so the same ratio keeps its
-## look on any colour; in linear space dark colours would lose their shading.
-## Where regions meet, the weights are added and each takes the luminance left after the others' share
-## (recolor_multi), so a stripe edge has no dark halo.
+## Recolour (sRGB, Rec.709): lerp(orig, colour * gain, mask). gain = luma(orig) / luma_base, capped at
+## GAIN_MAX. The part of that gain above 1 is scaled by luma(colour) / luma_base, so a dark colour does not
+## light a lighter grey texel (the pin-stripe tip). recolor_multi splits the luminance where regions meet.
 
 const GAIN_MAX := 1.3  # a region brighter than its mean may be lifted this much, no more
 const MAX_SLOTS := 4  # regions per atlas the shader takes in one pass (livery.gdshader)
@@ -258,9 +256,17 @@ static func luma(c: Color) -> float:
 	return 0.2126 * c.r + 0.7152 * c.g + 0.0722 * c.b
 
 
+## `recovered` is the texel's luminance, or what remains after the other regions' share. Lift above 1 scales
+## with luma(colour) / luma_base, so a dark colour does not light a grey tip.
+static func _gain(recovered: float, luma_base: float, colour: Color) -> float:
+	var raw := clampf(recovered / maxf(luma_base, 0.0001), 0.0, GAIN_MAX)
+	var room := clampf(luma(colour) / maxf(luma_base, 0.0001), 0.0, 1.0)
+	return minf(raw, 1.0) + maxf(raw - 1.0, 0.0) * room
+
+
 ## One region on one pixel (the single-region case of recolor_multi); the alpha of `orig` is kept.
 static func recolor(orig: Color, mask: float, colour: Color, luma_base: float) -> Color:
-	var gain := clampf(luma(orig) / maxf(luma_base, 0.0001), 0.0, GAIN_MAX)
+	var gain := _gain(luma(orig), luma_base, colour)
 	var tint := Color(minf(colour.r * gain, 1.0), minf(colour.g * gain, 1.0), minf(colour.b * gain, 1.0))
 	var m := clampf(mask, 0.0, 1.0)
 	return Color(lerpf(orig.r, tint.r, m), lerpf(orig.g, tint.g, m), lerpf(orig.b, tint.b, m), orig.a)
@@ -287,7 +293,7 @@ static func recolor_multi(orig: Color, masks: Array, colours: Array, lumas: Arra
 			if j != i:
 				others += w[j] * lumas[j]
 		var li := maxf((l * wn - others) / maxf(w[i], 0.001), 0.0)  # w ~ 0: its own term is ~ 0 as well
-		var gain := clampf(li / maxf(lumas[i], 0.0001), 0.0, GAIN_MAX)
 		var c: Color = colours[i]
+		var gain := _gain(li, lumas[i], c)
 		rgb += w[i] * Vector3(minf(c.r * gain, 1.0), minf(c.g * gain, 1.0), minf(c.b * gain, 1.0))
 	return Color(rgb.x, rgb.y, rgb.z, orig.a)

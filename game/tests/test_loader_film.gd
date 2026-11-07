@@ -65,6 +65,41 @@ func test_scenic_loader_names_the_place() -> String:
 	return ""
 
 
+func test_clip_follows_the_flight() -> String:
+	if _clip_title("a320", "VAPO") != TITLES[0] or _clip_title("a320", "VAJJ") != TITLES[0] or _clip_title("A320", "VABB") != TITLES[0]:
+		return "an A320 should play the evening final, including at Juhu"
+	if _clip_title("c172", "VAJJ") != TITLES[2] or _clip_title("c172", "vajj") != TITLES[2] or _clip_title("c172", "VABB") != TITLES[2]:
+		return "a Cessna at Juhu or Mumbai should play the coast"
+	if _clip_title("c172", "VAPO") != TITLES[1] or _clip_title("c172", "VANM") != TITLES[1] or _clip_title("c172", "VOCI") != TITLES[1]:
+		return "anywhere else, including Navi Mumbai, should play the Ghats"
+	return ""
+
+
+func test_flight_loader_opens_on_that_clip() -> String:
+	var veil := BusyOverlay.new()
+	add_child(veil)
+	veil.show_busy("Loading scenery…", true, "c172", "VAJJ")
+	var film := _film(veil)
+	if film == null or film.caption != TITLES[2]:
+		return "Juhu caption '%s'" % ("" if film == null else film.caption)
+	if film.stretch_mode != TextureRect.STRETCH_KEEP_ASPECT_COVERED:
+		return "the film should stay full-bleed"
+	veil.show_busy("Loading scenery…", true, "a320", "VAJJ")
+	if film.caption != TITLES[0]:
+		return "A320 at Juhu caption '%s'" % film.caption
+	veil.show_busy("Loading the menu…", true)
+	if not TITLES.has(film.caption):
+		return "a menu load should still name a clip, got '%s'" % film.caption
+	return ""
+
+
+func _clip_title(aircraft: String, airport: String) -> String:
+	var i := LoaderFilm.clip_for(aircraft, airport)
+	if i < 0 or i >= LoaderFilm.CLIPS.size():
+		return ""
+	return str(LoaderFilm.CLIPS[i].title)
+
+
 func _film(veil: Node) -> LoaderFilm:
 	for n in veil.get_children():
 		if n is LoaderFilm:

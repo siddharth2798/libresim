@@ -6,14 +6,16 @@ extends FlightControls
 ## Direct control (law == null):
 ##   elevator-l/r = -pitch * max, aileron-l = +roll * max, aileron-r = -roll * max, rudder = +yaw * max,
 ##   stabilizer = trim wheel (nose up = toward clip[0]), flaps / slats by lever detent index flap_cmd,
-##   spoilers by the speedbrake lever (config lever_input_table) and the ground spoilers (on the ground, fast, every
-##   thrust lever at idle or reverse).
-## A control law (FlightControls.law) writes `cmd` (surface name -> deg) and `spoiler_cmd` (deg per panel) itself and the direct
-## mapping is skipped; actuators, flaps and slats stay here.
-## Fields saved / replayed: slat_deg slat_cmd spoiler spoiler_cmd speedbrake speedbrake_cmd gear_pos gear_cmd thrust_lever (and
-## the base flap_deg / flap_cmd = lever index). elevator / aileron / rudder (rad) keep the C172 meaning: rudder + = nose LEFT.
+##   spoilers by the speedbrake lever (config lever_input_table) and the ground spoilers (on the ground, above
+##   GROUND_SPOILER_MPS, every thrust lever at idle or reverse). Once out, the ground spoilers stay out through a
+##   bounce and retract only when a thrust lever leaves idle.
+## The Airbus law calls _direct() itself, then overwrites pitch, roll and yaw. Actuators, flaps and slats stay here.
+## Slats lead an extension and flaps lead a retraction, by LEAD_DEG, on a detent that moves both.
+## Fields saved / replayed: slat_deg slat_cmd spoiler spoiler_cmd speedbrake speedbrake_cmd gear_pos gear_cmd thrust_lever
+## ground_spoilers (and the base flap_deg / flap_cmd = lever index). elevator / aileron / rudder (rad): rudder + = nose LEFT.
 
 const GROUND_SPOILER_MPS := 15.0  # the ground spoilers need this ground speed (about 30 kt)
+const LEAD_DEG := 2.0  # the trailing surface waits until the leading one is this close to the detent
 
 var slat_deg := 0.0
 var slat_cmd := 0.0
@@ -28,6 +30,7 @@ var stabilizer_deg := 0.0
 var cmd := {}  # surface name -> commanded deg
 var ground_speed := 0.0  # set by FDM
 var thrust_idle := true  # set by FDM: every thrust lever at idle or reverse
+var ground_spoilers := false  # latched full deployment; cleared only by a thrust lever off idle
 var landing_light_l := 0.0  # 0..1 extension (drag input), set by FdmNode
 var landing_light_r := 0.0
 
@@ -120,11 +123,14 @@ func _direct() -> void:
 	var lever: Dictionary = _sp.get("lever_input_table", {})
 	if not lever.is_empty():
 		sb = clampf(Table.eval2(lever, speedbrake_cmd), 0.0, 1.0)
-	var ground := not airborne and ground_speed > GROUND_SPOILER_MPS and thrust_idle
+	if not thrust_idle:
+		ground_spoilers = false
+	elif not airborne and ground_speed > GROUND_SPOILER_MPS:
+		ground_spoilers = true
 	var max_deg: float = _sp.get("max_deg", 50.0)
 	for i in _panels.size():
 		var local := i % _n_panels
-		var v := 1.0 if ground else (sb if local in _sb_panels else 0.0)
+		var v := 1.0 if ground_spoilers else (sb if local in _sb_panels else 0.0)
 		spoiler_cmd[i] = v * max_deg
 
 
@@ -132,14 +138,21 @@ func _max(n: String) -> float:
 	return _acts[n].max_deg if _acts.has(n) else 0.0
 
 
-## Flaps and slats move to the detent of the lever (flap_cmd), each at its own rate.
+## Flaps and slats move to the detent of the lever (flap_cmd). On extension the slats lead; on retraction the flaps lead.
 func _flaps(dt: float) -> void:
 	var d: Dictionary = _dets[clampi(flap_cmd, 0, _dets.size() - 1)]
-	slat_cmd = d.slat_deg
-	flap_motor_running = flaps_powered and not (is_equal_approx(flap_deg, d.flap_deg) and is_equal_approx(slat_deg, d.slat_deg))
-	if flap_motor_running:
-		flap_deg = move_toward(flap_deg, d.flap_deg, _fl.flap_rate_deg_s * dt)
-		slat_deg = move_toward(slat_deg, d.slat_deg, _fl.slat_rate_deg_s * dt)
+	var flap_target: float = d.flap_deg
+	var slat_target: float = d.slat_deg
+	slat_cmd = slat_target
+	flap_motor_running = flaps_powered and not (is_equal_approx(flap_deg, flap_target) and is_equal_approx(slat_deg, slat_target))
+	if not flap_motor_running:
+		return
+	var extending := flap_target > flap_deg + 0.01 or slat_target > slat_deg + 0.01
+	var retracting := flap_target < flap_deg - 0.01 or slat_target < slat_deg - 0.01
+	if not (extending and slat_target > slat_deg + LEAD_DEG):
+		flap_deg = move_toward(flap_deg, flap_target, _fl.flap_rate_deg_s * dt)
+	if not (retracting and flap_deg > flap_target + LEAD_DEG):
+		slat_deg = move_toward(slat_deg, slat_target, _fl.slat_rate_deg_s * dt)
 
 
 func _publish_state() -> void:

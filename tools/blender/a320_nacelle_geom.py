@@ -113,13 +113,14 @@ def vertex_fronts(body, centre, forward, n):
     return best
 
 
-def measure_lip(body, centre, forward):
+def measure_lip(body, centre, forward, n=None):
     """Rim points in angle order. Raycast first; a body vertex fills a missed angle."""
+    n = LIP_N if n is None else int(n)
     u, v = basis(forward)
-    verts = vertex_fronts(body, centre, forward, LIP_N)
+    verts = vertex_fronts(body, centre, forward, n)
     hits, rays = [], 0
-    for i in range(LIP_N):
-        a = 2.0 * math.pi * i / LIP_N
+    for i in range(n):
+        a = 2.0 * math.pi * i / n
         arm = u * math.cos(a) + v * math.sin(a)
         hit = ray_front(body, centre, forward, arm)
         if hit is None:
@@ -128,7 +129,7 @@ def measure_lip(body, centre, forward):
             rays += 1
         if hit is not None:
             hits.append(hit)
-    if len(hits) < 16:
+    if len(hits) < int(n * 0.8):
         return None
 
     def ang_of(h):
@@ -140,7 +141,7 @@ def measure_lip(body, centre, forward):
     angs = [ang_of(h) for h in hits]
     gaps = [angs[i + 1] - angs[i] for i in range(len(angs) - 1)]
     gaps.append(angs[0] + 2.0 * math.pi - angs[-1])
-    if max(gaps) > 2.5 * (2.0 * math.pi / LIP_N):
+    if max(gaps) > 2.5 * (2.0 * math.pi / n):
         return None
     return hits, rays
 

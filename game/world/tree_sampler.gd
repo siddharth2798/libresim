@@ -44,7 +44,7 @@ static func cell_tree(ci: int, cj: int, lc: int, px: float, density: float) -> P
 
 ## Worker thread. src: land-class source tile (TerrainMeta.tex_source, looked up on the main
 ## thread) and its size in metres. Returns MultiMesh.buffer data (12 xform + 4 custom floats
-## per tree: custom = tint, species * VARIANTS + variant, tint 2, seed), positions relative to the
+## per tree: custom = hue seed, species * VARIANTS + variant, value seed, mesh seed), positions relative to the
 ## chunk's SW corner.
 func build(x0: float, y0: float, chunk: float, px: float, src: Vector3i, src_size: float, density: float) -> PackedFloat32Array:
 	var out := PackedFloat32Array()
@@ -73,7 +73,7 @@ func build(x0: float, y0: float, chunk: float, px: float, src: Vector3i, src_siz
 			out.append_array([b.x.x, b.y.x, b.z.x, t[0] - x0,
 				b.x.y, b.y.y, b.z.y, h - 0.3,
 				b.x.z, b.y.z, b.z.z, -(t[1] - y0),
-				hash3(gi, gj, 7), sh[0] * TreeSpecies.VARIANTS + sh[1], hash3(gi, gj, 9), hash3(gi, gj, 10)])
+				TreeLook.colour_unit(gi, gj, 0), sh[0] * TreeSpecies.VARIANTS + sh[1], TreeLook.colour_unit(gi, gj, 1), hash3(gi, gj, 10)])
 	return out
 
 

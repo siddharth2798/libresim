@@ -8,7 +8,7 @@ extends RefCounted
 
 enum { BROADLEAF, PALM, ACACIA, SLIM }
 const COUNT := 4
-const VARIANTS := 4  # sprites per species in the impostor atlas (TreeAtlas)
+const VARIANTS := 4  # shape picks packed into custom.g; the atlas columns are yaws (TreeAtlas.YAWS)
 const MAX_HEIGHT := 22.0  # tallest tree of any species
 ## Width of the billboard / crown as a fraction of the height, per species (the atlas draws its
 ## sprites for these proportions).

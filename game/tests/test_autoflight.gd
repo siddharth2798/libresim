@@ -48,6 +48,25 @@ func test_af_managed_vertical() -> String:
 	return ""
 
 
+func test_vs_alt_arm_follows_the_selected_rate() -> String:
+	var v := AfVertical.new()
+	v.set_mode("V/S")
+	var i := AfInputs.new()
+	i.dt = 0.1
+	i.tas = 85.0
+	i.alt_m = 670.0
+	i.f.alt = 3048.0
+	i.f.vs = 0.0
+	i.vs_mps = 1.2  # the aircraft is drifting up; the selection is level
+	v.update(i, 85.0, false)
+	if "ALT" in v.armed:
+		return "level V/S armed ALT from the aircraft's drift"
+	i.f.vs = 2.5
+	i.vs_mps = 0.1  # selected climb, the path is momentarily flat
+	v.update(i, 85.0, false)
+	return "" if "ALT" in v.armed else "a selected climb toward the altitude should keep ALT armed"
+
+
 func test_af_smoke() -> String:
 	var r := AfRig.new(250.0, 10000.0, 0.0)
 	var t0 := Time.get_ticks_msec()

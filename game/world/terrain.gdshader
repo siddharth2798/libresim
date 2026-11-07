@@ -50,38 +50,14 @@ float h_at(ivec2 t) {
 	return (round(rg.r * 255.0) + round(rg.g * 255.0) * 256.0) * h_scale + h_offset;
 }
 
-void vertex() {
-	ivec2 g = ivec2(round(UV * 64.0));
-	ivec2 t = texel_off + g * texel_step;
-	float h = h_at(t);
-	vec3 wp0 = (MODEL_MATRIX * vec4(UV.x * tile_size, h, -UV.y * tile_size, 1.0)).xyz;
-	float morph = clamp((distance(wp0, terrain_eye) - morph_range.x) / (morph_range.y - morph_range.x), 0.0, 1.0);
-	ivec2 odd = g % 2;
-	if (morph > 0.0 && odd != ivec2(0)) {
-		// parent surface: midpoint of the parent edge (or of its triangle diagonal,
-		// which runs from (i+1, j) to (i, j+1) in TerrainMesh) through this vertex
-		int s = texel_step;
-		ivec2 a = odd.x * odd.y == 1 ? ivec2(s, -s) : (odd.x == 1 ? ivec2(s, 0) : ivec2(0, s));
-		h = mix(h, 0.5 * (h_at(t + a) + h_at(t - a)), morph);
-	}
-	float sp = tile_size / (64.0 * float(texel_step)); // metres per texel
-	float dx = (h_at(t + ivec2(1, 0)) - h_at(t - ivec2(1, 0))) / (2.0 * sp);
-	float dn = (h_at(t + ivec2(0, 1)) - h_at(t - ivec2(0, 1))) / (2.0 * sp);
-	NORMAL = normalize(vec3(-dx, 1.0, dn));
-	VERTEX = vec3(UV.x * tile_size, h - UV2.x * skirt_depth, -UV.y * tile_size);
-	v_dist = length((MODELVIEW_MATRIX * vec4(VERTEX, 1.0)).xyz);
-	vec3 wr = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
-	v_en = vec2(wr.x + pattern_origin.x, -wr.z + pattern_origin.y);
-	v_alt = wr.y;
-	VERTEX += curve_local(MODEL_MATRIX, curve_drop(wr));  // Earth curvature, visual only (curvature.gdshaderinc)
-}
-
 float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
 float vnoise(vec2 p) {
 	vec2 i = floor(p), f = fract(p);
 	f = f * f * (3.0 - 2.0 * f);
 	return mix(mix(hash(i), hash(i + vec2(1, 0)), f.x), mix(hash(i + vec2(0, 1)), hash(i + vec2(1, 1)), f.x), f.y);
 }
+#include "res://world/terrain_roads.gdshaderinc"
+
 // Ground detail the 10 m imagery lacks: tonal variation at field / hill scale far away, grain and a
 // micro-relief normal close up. Both fade by distance so nothing shimmers at the horizon.
 float fbm(vec2 p) {
@@ -146,11 +122,36 @@ vec3 ground_detail(vec3 col, vec3 wn, vec4 amp, float streak, float k) {
 	return col;
 }
 
-#include "res://world/terrain_roads.gdshaderinc"
 #include "res://world/terrain_water.gdshaderinc"
 #include "res://world/terrain_night.gdshaderinc"
 #include "res://world/terrain_detail.gdshaderinc"
 #include "res://world/terrain_pavement.gdshaderinc"
+#include "res://world/terrain_bump.gdshaderinc"
+
+void vertex() {
+	ivec2 g = ivec2(round(UV * 64.0));
+	ivec2 t = texel_off + g * texel_step;
+	float h = h_at(t);
+	vec3 wp0 = (MODEL_MATRIX * vec4(UV.x * tile_size, h, -UV.y * tile_size, 1.0)).xyz;
+	float morph = clamp((distance(wp0, terrain_eye) - morph_range.x) / (morph_range.y - morph_range.x), 0.0, 1.0);
+	ivec2 odd = g % 2;
+	if (morph > 0.0 && odd != ivec2(0)) {
+		int s = texel_step;  // parent edge, or the diagonal from (i+1, j) to (i, j+1)
+		ivec2 a = odd.x * odd.y == 1 ? ivec2(s, -s) : (odd.x == 1 ? ivec2(s, 0) : ivec2(0, s));
+		h = mix(h, 0.5 * (h_at(t + a) + h_at(t - a)), morph);
+	}
+	float sp = tile_size / (64.0 * float(texel_step));
+	float dx = (h_at(t + ivec2(1, 0)) - h_at(t - ivec2(1, 0))) / (2.0 * sp);
+	float dn = (h_at(t + ivec2(0, 1)) - h_at(t - ivec2(0, 1))) / (2.0 * sp);
+	vec3 bump = terrain_bump(UV, UV2.x, wp0);
+	NORMAL = normalize(vec3(-dx - bump.y, 1.0, dn + bump.z));
+	VERTEX = vec3(UV.x * tile_size, h - UV2.x * skirt_depth, -UV.y * tile_size) + curve_local(MODEL_MATRIX, -bump.x);
+	v_dist = length((MODELVIEW_MATRIX * vec4(VERTEX, 1.0)).xyz);
+	vec3 wr = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
+	v_en = vec2(wr.x + pattern_origin.x, -wr.z + pattern_origin.y);
+	v_alt = wr.y;
+	VERTEX += curve_local(MODEL_MATRIX, curve_drop(wr));
+}
 
 void fragment() {
 	vec2 uv = img_off + vec2(UV.x, -UV.y) * img_scale;

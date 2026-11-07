@@ -70,6 +70,7 @@ func height_at(east: float, north: float) -> float:
 
 
 func _process(dt: float) -> void:
+	RenderingServer.global_shader_parameter_set("terrain_bump_amp", TerrainBump.peak_m(Graphics.preset))
 	var cam := get_viewport().get_camera_3d()
 	if cam == null:
 		return

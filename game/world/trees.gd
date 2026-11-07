@@ -1,8 +1,8 @@
 class_name Trees
 extends Node3D
 ## Forests from the land-class mask (tools/11_landclass.py, 1..200 = tree density). The world is split into CHUNK-metre cells;
-## cells within radius of the camera get a MultiMesh of crossed-quad impostor trees (TreeAtlas sprites baked at startup, four
-## species, TreeSpecies), placed deterministically. Trees within lod_radius are real meshes (TreeLod, dither swap).
+## cells within radius of the camera get a MultiMesh of crossed-quad impostor trees (TreeAtlas sprites baked at startup:
+## eight yaw angles by four species), placed deterministically. Trees within lod_radius are real meshes (TreeLod, dither swap).
 ## Generation runs on worker threads (TreeSampler reads the data files); the main thread uploads finished buffers, BUDGET per
 ## frame. Hidden above HIDE_AGL.
 
@@ -53,6 +53,10 @@ var _col := {}  # land cell Vector2i -> collision disc record, or false (no tree
 
 func _ready() -> void:
 	_mat.shader = preload("res://world/tree.gdshader")
+	_mat.set_shader_parameter("sway_crown_m", TreeLook.SWAY_CROWN_M)
+	_mat.set_shader_parameter("sway_omega", TAU / TreeLook.SWAY_PERIOD_S)
+	_mat.set_shader_parameter("atlas_grid", Vector2(float(TreeAtlas.YAWS), float(TreeSpecies.COUNT)))
+	_mat.set_shader_parameter("variant_n", float(TreeSpecies.VARIANTS))
 	_mesh = _crossed_quads()
 	_lod = TreeLod.new()
 	_lod.name = "Lod"

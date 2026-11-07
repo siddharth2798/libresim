@@ -86,7 +86,7 @@ func _ready() -> void:
 	add_child(_credit)
 
 
-func show_busy(text: String, scenic := false) -> void:
+func show_busy(text: String, scenic: bool = false, aircraft: String = "", airport: String = "") -> void:
 	if _label != null:
 		_label.text = text
 	_scenic = scenic and _film != null and LoaderFilm.available()
@@ -95,7 +95,10 @@ func show_busy(text: String, scenic := false) -> void:
 	if _film != null:
 		_film.visible = _scenic
 		if _scenic:
-			_film.restart()
+			if aircraft != "" or airport != "":
+				_film.restart_for(aircraft, airport)
+			else:
+				_film.restart()
 	if _scrim != null:
 		_scrim.visible = _scenic
 	if _place != null:
@@ -156,7 +159,8 @@ func _gradient() -> GradientTexture2D:
 
 
 ## One veil on the window root. A later cover replaces it.
-static func cover(tree: SceneTree, text: String) -> void:
+## Empty aircraft and airport: the film picks a clip (a menu load). A flight passes both.
+static func cover(tree: SceneTree, text: String, aircraft: String = "", airport: String = "") -> void:
 	dismiss(tree)
 	var layer := CanvasLayer.new()
 	layer.layer = 80
@@ -164,7 +168,7 @@ static func cover(tree: SceneTree, text: String) -> void:
 	var veil := BusyOverlay.new()
 	layer.add_child(veil)
 	tree.root.add_child(layer)
-	veil.show_busy(text, true)
+	veil.show_busy(text, true, aircraft, airport)
 
 
 ## The veil on the window root, or null. A child veil (a page, the turntable) is not this one.
@@ -191,16 +195,31 @@ static func dismiss(tree: SceneTree) -> void:
 
 ## Paints the veil for two frames, then changes scene. The wait lives on the window root:
 ## the screen that asked is freed by the change, so it must not be the thing awaiting.
+## Deferred: a command-line flight calls this from the start screen's _ready, while the
+## window root is still setting up its children and refuses add_child.
 static func load_scene(tree: SceneTree, path: String, text: String) -> void:
-	cover(tree, text)
 	if tree == null:
 		return
+	_open_scene.call_deferred(tree, path, text)
+
+
+static func _open_scene(tree: SceneTree, path: String, text: String) -> void:
+	if tree == null or tree.root == null:
+		return
+	var aircraft: String = ""
+	var airport: String = ""
+	if path.ends_with("/flight.tscn"):
+		aircraft = str(Session.setup.get("aircraft", ""))
+		airport = str(Session.setup.get("airport", ""))
+	cover(tree, text, aircraft, airport)
 	var gate := Node.new()
 	gate.name = "SceneGate"
 	gate.process_mode = Node.PROCESS_MODE_ALWAYS
 	gate.set_meta("path", path)
 	gate.set_meta("left", 2)
 	tree.root.add_child(gate)
+	if not gate.is_inside_tree():
+		return
 	tree.process_frame.connect(BusyOverlay._gate_frame.bind(gate), CONNECT_ONE_SHOT)
 
 

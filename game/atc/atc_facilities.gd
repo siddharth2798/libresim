@@ -67,6 +67,15 @@ static func freq_of(w: Dictionary, role: String) -> float:
 	return -1.0
 
 
+## Frequency to select on an airborne start: the airport's approach, or its tower when it has no approach.
+static func arrival_mhz(coms: Array) -> float:
+	var w := {"coms": coms}
+	var app := freq_of(w, "APP")
+	if app > 0.0:
+		return app
+	return freq_of(w, "TWR")
+
+
 static func has_role(w: Dictionary, role: String) -> bool:
 	return str(w.get("ctl", "")) == "published" and freq_of(w, role) > 0.0
 
@@ -130,7 +139,10 @@ static func summary(w: Dictionary) -> Dictionary:
 		return {"text": "off (no power)" if str(w.get("com1_why", "")) == "unpowered" else "failed", "tone": "dead"}
 	var t := tuned(w)
 	if t.role != "":
-		return {"text": str(t.name), "tone": "ok"}
+		# Role first, so a narrow bar keeps "Approach" when the airport name is cut.
+		var word := str(WORD.get(t.role, "ATC"))
+		var apt := str(w.get("apt_name", ""))
+		return {"text": word if apt == "" else "%s · %s" % [word, apt], "tone": "ok"}
 	match str(w.get("ctl", "none")):
 		"published":
 			return {"text": "no facility", "tone": "warn"}

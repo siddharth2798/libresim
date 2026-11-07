@@ -122,7 +122,7 @@ func _build_cell(k: Vector2i) -> bool:
 			bufs[int(sh[0])].append_array([b.x.x, b.y.x, b.z.x, t[0] - k.x * CELL,
 				b.x.y, b.y.y, b.z.y, g - 0.3,
 				b.x.z, b.y.z, b.z.z, -(t[1] - k.y * CELL),
-				TreeSampler.hash3(ci, cj, 7), sh[0] * TreeSpecies.VARIANTS + sh[1], TreeSampler.hash3(ci, cj, 9), TreeSampler.hash3(ci, cj, 10)])
+				TreeLook.colour_unit(ci, cj, 0), sh[0] * TreeSpecies.VARIANTS + sh[1], TreeLook.colour_unit(ci, cj, 1), TreeSampler.hash3(ci, cj, 10)])
 	var made := []
 	for sp in TreeSpecies.COUNT:
 		if bufs[sp].is_empty():
