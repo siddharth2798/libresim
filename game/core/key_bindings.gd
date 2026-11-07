@@ -16,19 +16,19 @@ const HELD := ["pitch_down", "pitch_up", "roll_left", "roll_right", "yaw_left", 
 	# twin-jet / airliner actions (offered per aircraft: input/control_actions.gd)
 	"throttle_1_up", "throttle_1_down", "throttle_2_up", "throttle_2_down", "reverse", "apu_start",
 	"rudder_trim_left", "rudder_trim_right", "fcu_spd_up", "fcu_spd_down", "fcu_hdg_right", "fcu_hdg_left",
-	"fcu_alt_up", "fcu_alt_down", "fcu_vs_up", "fcu_vs_down"]
+	"fcu_alt_up", "fcu_alt_down", "fcu_vs_up", "fcu_vs_down", "tiller_left", "tiller_right"]
 const PRESS := ["flaps_down", "flaps_up", "parking_brake", "magnetos_next", "mouse_yoke",
 	"master", "avionics", "fuel_selector", "fuel_shutoff", "beacon", "nav_lights", "strobes",
 	"landing_light", "taxi_light", "pitot_heat",
 	"throttle_detent_up", "throttle_detent_down", "speedbrake_out", "speedbrake_in", "gear_toggle",
 	"autobrake_next", "engine_master_1", "engine_master_2", "engine_mode_next", "apu_master",
 	"fcu_ap1", "fcu_ap2", "fcu_athr", "fcu_loc", "fcu_appr", "anti_ice_wing", "anti_ice_eng_1", "anti_ice_eng_2",
-	"takeoff_light", "turnoff_lights", "wing_lights", "logo_lights"]
+	"takeoff_light", "turnoff_lights", "wing_lights", "logo_lights", "alternate_static"]
 ## Switch-row toggles: action -> Props path (fuel_selector cycles OFF/L/R/BOTH instead).
 const SWITCHES := {"avionics": "controls/electrical/avionics", "fuel_shutoff": "controls/fuel/shutoff",
 	"beacon": "controls/lights/beacon", "nav_lights": "controls/lights/nav", "strobes": "controls/lights/strobe",
 	"landing_light": "controls/lights/landing", "taxi_light": "controls/lights/taxi",
-	"pitot_heat": "controls/electrical/pitot_heat"}
+	"pitot_heat": "controls/electrical/pitot_heat", "alternate_static": "systems/alternate_static"}
 const LABELS := {
 	"pitch_down": "Pitch: push (nose down)", "pitch_up": "Pitch: pull (nose up)",
 	"roll_left": "Roll left", "roll_right": "Roll right", "yaw_left": "Rudder left", "yaw_right": "Rudder right",
@@ -55,6 +55,7 @@ const LABELS := {
 	"fcu_spd_up": "FCU speed up", "fcu_spd_down": "FCU speed down", "fcu_hdg_right": "FCU heading right",
 	"fcu_hdg_left": "FCU heading left", "fcu_alt_up": "FCU altitude up", "fcu_alt_down": "FCU altitude down",
 	"fcu_vs_up": "FCU vertical speed up", "fcu_vs_down": "FCU vertical speed down",
+	"tiller_left": "Tiller left", "tiller_right": "Tiller right", "alternate_static": "Alternate static",
 }
 ## Other in-flight hotkeys (not rebindable here): a binding on one of these is a conflict.
 const RESERVED := {
@@ -100,6 +101,7 @@ static func defaults() -> Dictionary:
 	t.landing_light = [spec(KEY_L, false, true)]
 	t.taxi_light = [spec(KEY_T, false, true)]
 	t.pitot_heat = [spec(KEY_H, false, true)]
+	t.alternate_static = []  # cockpit switch; bind a key on the Controls page
 	_add_airliner_defaults(t)
 	return t
 
@@ -141,6 +143,8 @@ static func _add_airliner_defaults(t: Dictionary) -> void:
 	t.fcu_alt_down = [spec(KEY_DOWN, false, false, true)]
 	t.fcu_vs_up = [spec(KEY_APOSTROPHE, false, false, true)]
 	t.fcu_vs_down = [spec(KEY_SEMICOLON, false, false, true)]
+	t.tiller_left = []  # nosewheel tiller; bind keys or a joystick axis
+	t.tiller_right = []
 
 
 static func describe(s: Dictionary) -> String:

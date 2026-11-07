@@ -8,10 +8,12 @@ extends RefCounted
 
 ## Footprint about the CG (m) plus a 1.2 m margin: forward, aft (tail) and half span. The aircraft's
 ## aircraft.json "ground" section overrides them (ahead_m, behind_m, across_m, taxi_half_m); these are the C172's.
-## The pushback swing is sampled along the aircraft's own path ("pushback" section).
+## The pushback swing is the arc PushbackFit would drive from that stand (published path when no taxiway
+## lies behind it). Both tail directions are swept: the player may be sent either way.
 const FOOTPRINT := {"ahead_m": 3.3, "behind_m": 7.4, "across_m": 6.7}
 const TAXI_HALF := 8.0  # half width of a taxiway corridor
 const RUNWAY_MARGIN := 10.0  # beyond the runway edge
+const _Fit := preload("res://world/pushback_fit.gd")
 
 
 ## ops: one airport of airport_ops.json ({stands, taxi: {nodes, edges}}); runways: its runways.json entries;
@@ -26,16 +28,17 @@ static func register(icao: String, ops: Dictionary, runways: Array, aircraft: Ai
 	var across: float = fp.across_m
 	var taxi_half := float(fp.get("taxi_half_m", TAXI_HALF))
 	var pb := GroundParams.pushback(def)
+	var taxi: Dictionary = ops.get("taxi", {})
 	for s in ops.get("stands", []):
 		var p0 := GroundParams.cg_at_stand(s, def)  # the CG sits behind a gate's door point
 		var h0 := deg_to_rad(float(s.heading_deg))
 		for side in [1.0, -1.0]:
-			for d in PushbackPath.samples(pb.straight_m, pb.radius_m, side > 0.0):  # the straight part once
-				var pose := PushbackPath.pose(p0, h0, side, d, pb.straight_m, pb.radius_m)
+			var fit: Dictionary = _Fit.plan(p0, h0, taxi, side, pb, def, true, false)
+			for d in PushbackPath.samples(fit.straight, fit.radius, true, fit.turn):
+				var pose := PushbackPath.pose(p0, h0, fit.side, d, fit.straight, fit.radius, fit.turn)
 				var hd: float = pose[1]
 				var c: Vector2 = pose[0] + Vector2(sin(hd), cos(hd)) * ((ahead - behind) * 0.5)
 				ObstacleRegistry.add_corridor(group, ObstacleShapes.box(c, (ahead + behind) * 0.5, across, hd, 0.0, 0.0, ""))
-	var taxi: Dictionary = ops.get("taxi", {})
 	var nodes: Dictionary = taxi.get("nodes", {})
 	for e in taxi.get("edges", []):
 		var a := Vector2(nodes[e[0]][0], nodes[e[0]][1])

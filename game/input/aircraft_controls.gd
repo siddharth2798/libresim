@@ -98,8 +98,19 @@ func key_actions() -> Array:
 	return held_keys() + press_keys()
 
 
-## Initial Props of the offered features (never overwrites a prop that exists, e.g. after a load).
+## Initial Props of the offered features. A new flight only fills props that do not exist yet
+## (a loaded situation keeps its values). A restart overwrites them with these defaults.
 func seed_props() -> void:
+	_write_defaults(false)
+
+
+## Flight restart (F5, or a new flight in the same process): the tiller, trims, levers and
+## switches go back to these defaults even when the pilot has already moved them.
+func restore_defaults() -> void:
+	_write_defaults(true)
+
+
+func _write_defaults(overwrite: bool) -> void:
 	var want := {}
 	for g in groups:
 		want.merge(ControlActions.SEEDS.get(g, {}), true)
@@ -111,6 +122,6 @@ func seed_props() -> void:
 			want["controls/reverse_%d" % (n + 1)] = 0.0
 	want.merge(defaults, true)
 	for p in want:
-		if not Props.has(p):
+		if overwrite or not Props.has(p):
 			Props.set_v(p, want[p])
 	levers.sync_all()

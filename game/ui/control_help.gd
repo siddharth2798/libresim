@@ -15,6 +15,7 @@ const FLIGHT := [
 	["mixture", ["mixture_lean", "mixture_rich"], " / ", "mixture"],
 	["trim", ["trim_down", "trim_up"], " / ", "trim"],
 	["rudder_trim", ["rudder_trim_left", "rudder_trim_right"], " / ", "rudder trim"],
+	["tiller", ["tiller_left", "tiller_right"], " / ", "tiller", "axis"],
 	["flaps", ["flaps_up", "flaps_down"], " / ", "flaps"],
 	["speedbrake", ["speedbrake_in", "speedbrake_out"], " / ", "speedbrake in / out"],
 	["gear", ["gear_toggle"], "", "landing gear"],
@@ -60,6 +61,9 @@ static func rows(ctl: AircraftControls, table: Dictionary) -> Array:
 			var slots: Array = table.get(a, [])
 			if not slots.is_empty():
 				parts.append(KeyBindings.describe(slots[0]))
-		if not parts.is_empty():
-			out.append([str(r[2]).join(parts), r[3]])
+		if parts.is_empty():
+			if r.size() > 4:  # a control with no key yet (the tiller): the joystick axis is the binding
+				out.append([str(r[4]), r[3]])
+			continue
+		out.append([str(r[2]).join(parts), r[3]])
 	return out + FIXED

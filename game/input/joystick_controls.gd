@@ -277,6 +277,14 @@ func flap_notch(i: int, ctl: AircraftControls = null) -> void:
 func _press(a: String) -> void:
 	if ControlSteps.press(a):  # flaps, parking brake, magnetos, gear, autobrake, engine / APU / FCU toggles ...
 		return
+	if a == "master":  # battery and alternator together, same as the key
+		var on := not Props.get_b("controls/electrical/master_bat")
+		Props.set_v("controls/electrical/master_bat", on)
+		Props.set_v("controls/electrical/master_alt", on)
+		return
+	if KeyBindings.SWITCHES.has(a):
+		Props.set_v(KeyBindings.SWITCHES[a], not Props.get_b(KeyBindings.SWITCHES[a]))
+		return
 	controls()
 	if not _lever_keys.detent_key(_ctl, a) and KEYS.has(a):
 		tap_key(KEYS[a])

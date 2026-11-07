@@ -40,7 +40,11 @@ const BUTTONS := ["flaps_up", "flaps_down", "brakes", "parking_brake", "trim_up"
 	"fcu_ap1", "fcu_ap2", "fcu_athr", "fcu_loc", "fcu_appr",
 	"parking_brake_switch", "magnetos_switch", "engine_master_1_switch", "engine_master_2_switch",
 	"gear_switch", "engine_mode_crank", "engine_mode_ign", "autobrake_btv", "autobrake_low", "autobrake_2",
-	"autobrake_3", "autobrake_hi"]
+	"autobrake_3", "autobrake_hi",
+	"master", "avionics", "fuel_selector", "fuel_shutoff", "alternate_static",
+	"beacon", "nav_lights", "strobes", "landing_light", "taxi_light", "pitot_heat",
+	"anti_ice_wing", "anti_ice_eng_1", "anti_ice_eng_2",
+	"takeoff_light", "turnoff_lights", "wing_lights", "logo_lights"]
 const LABELS := {
 	"pitch": "Pitch (elevator)", "roll": "Roll (ailerons)", "yaw": "Yaw (rudder)",
 	"throttle": "Throttle", "mixture": "Mixture", "brake_left": "Left toe brake",
@@ -62,6 +66,12 @@ const LABELS := {
 	"engine_mode_crank": "Engine mode CRANK (held)", "engine_mode_ign": "Engine mode IGN/START (held)",
 	"autobrake_btv": "Auto brake BTV", "autobrake_low": "Auto brake LOW", "autobrake_2": "Auto brake 2",
 	"autobrake_3": "Auto brake 3", "autobrake_hi": "Auto brake HI",
+	"master": "Master switch (BAT + ALT)", "avionics": "Avionics master", "fuel_selector": "Fuel selector cycle",
+	"fuel_shutoff": "Fuel shutoff valve", "alternate_static": "Alternate static",
+	"beacon": "Beacon", "nav_lights": "Nav lights", "strobes": "Strobes", "landing_light": "Landing light",
+	"taxi_light": "Taxi light", "pitot_heat": "Pitot heat",
+	"anti_ice_wing": "Wing anti-ice", "anti_ice_eng_1": "Engine 1 anti-ice", "anti_ice_eng_2": "Engine 2 anti-ice",
+	"takeoff_light": "Take-off light", "turnoff_lights": "Runway turn-off lights", "wing_lights": "Wing lights", "logo_lights": "Logo lights",
 }
 ## Binding keys that belong to one physical axis (calibration, notches): dropped when the axis is rebound.
 const CAL_KEYS := ["lo", "hi", "rev", "clicks", "detents", "values"]

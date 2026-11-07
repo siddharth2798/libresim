@@ -161,6 +161,10 @@ func hits_glass(cam: Camera3D, screen: Vector2) -> bool:
 	return _hit(cam, screen) != null
 
 
+func panel_hit(cam: Camera3D, screen: Vector2) -> Variant:
+	return _hit(cam, screen)
+
+
 func lever_items() -> Array:
 	return levers._items if levers != null else []
 

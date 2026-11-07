@@ -55,7 +55,7 @@ Status: L0 to L5 done. Colours, the Livery step, sticker slots, presets, the A32
 
 ## 5. UI (L2, L3)
 
-A **Livery (optional)** step right after Aircraft (the preview needs the aircraft; Next skips it like Failures and Recording). Left: the turntable preview. Right: one row per region (name, about 12 preset swatches, a `ColorPickerButton` for any colour), one block per sticker slot (Load image, scale, offset, mirror, Remove), then Save preset / Load preset / Reset to factory. The Aircraft page picture and chips can show the chosen livery later (same compositor).
+A **Livery (optional)** step right after Aircraft (the preview needs the aircraft; Next skips it like Failures and Recording). Left: the turntable, framed to the aircraft at a mild lens, with Side / Front / Tail and its own pixel size so the model is not stretched. Right, in its own scroll: one card per region (name, the current colour, a grid of square swatches), one block per sticker slot (a thumbnail, Add picture, size, sideways, up, mirror, Remove), then Save preset / Load preset / Reset to factory. The preview atlas is mipmapped, and a picture or a slider restamps it on the next frame. The Aircraft page picture and chips can show the chosen livery later (same compositor).
 
 Picture import: PNG, JPG or WebP from the native file dialog, at most 4 MB, decoded with `Image.load_from_file`, scaled to 512 px on the long side, re-encoded as PNG (drops metadata), named by its hash. Anything else is refused with a one-line message.
 

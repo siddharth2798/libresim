@@ -96,6 +96,7 @@ func _ready() -> void:
 		_start = airports.runway_start("VAJJ", "")
 	model.build(fdm_node)
 	cam.setup(model)
+	cam.add_child(preload("res://ui/cockpit_tip.gd").new())
 	$Instruments/Gyros.fdm = fdm_node.fdm
 	$Instruments/Compass.fdm = fdm_node.fdm
 	$UI/Panel.setup(model.cockpit, cam)
@@ -116,6 +117,9 @@ func _ready() -> void:
 func _reset() -> void:
 	$Replay.clear()
 	$TouchdownFx.clear()
+	fdm_node._defaults()
+	AircraftControls.current().restore_defaults()
+	($Controls as KeyboardControls).reset_flight()
 	var p: Vector2 = _start.pos
 	var hdg: float = _start.heading_deg
 	FloatingOrigin.set_origin(p)
@@ -175,6 +179,9 @@ func _reset() -> void:
 			fdm_node._snap()
 	if (_cold or _stand_ref != "") and _air_ft <= 0.0:  # parked at a stand = always cold & dark
 		_cold_and_dark()
+	var joy := get_node_or_null("JoystickControls")  # latching switches follow the hardware on every restart
+	if joy != null and joy.has_method("resync"):
+		joy.resync()
 	$Systems/Failures.restart()
 	$Systems/Icing.reset()
 	$Training.restart()
@@ -224,9 +231,6 @@ func _cold_and_dark() -> void:
 	Props.set_v("instruments/altimeter/kollsman_inhg", 29.92)
 	$Instruments/Gyros._ai_spin = 0.0
 	$Instruments/Gyros._hi_spin = 0.0
-	var joy := get_node_or_null("JoystickControls")  # latching switches / selectors set the new start from the hardware
-	if joy != null and joy.has_method("resync"):
-		joy.resync()
 
 
 func _unhandled_key_input(e: InputEvent) -> void:

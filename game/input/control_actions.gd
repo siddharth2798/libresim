@@ -20,7 +20,7 @@ extends RefCounted
 ##   controls/lights/{takeoff, rwy_turnoff, wing, logo} bool (an airliner's extra exterior lights, aircraft_lights.gd)
 
 const DEFAULT_GROUPS := ["throttle", "mixture", "trim", "flaps", "brakes", "parking_brake",
-	"magnetos", "starter", "fuel_selector", "fuel_shutoff"]
+	"magnetos", "starter", "fuel_selector", "fuel_shutoff", "alternate_static"]
 
 const GROUPS := {
 	"throttle": ["throttle_up", "throttle_down", "throttle"],
@@ -33,6 +33,7 @@ const GROUPS := {
 	"starter": ["starter"],
 	"fuel_selector": ["fuel_selector"],
 	"fuel_shutoff": ["fuel_shutoff"],
+	"alternate_static": ["alternate_static"],
 	"thrust_levers": ["throttle_1_up", "throttle_1_down", "throttle_2_up", "throttle_2_down",
 		"throttle_detent_up", "throttle_detent_down", "throttle", "throttle_2"],  # lever 1 axis = "throttle" (also in group throttle)
 	"reverse": ["reverse"],
@@ -43,7 +44,7 @@ const GROUPS := {
 	"engine_mode": ["engine_mode_next", "engine_mode_crank", "engine_mode_ign"],
 	"apu": ["apu_master", "apu_start"],
 	"rudder_trim": ["rudder_trim_left", "rudder_trim_right", "rudder_trim_axis"],
-	"tiller": ["tiller"],
+	"tiller": ["tiller", "tiller_left", "tiller_right"],
 	"anti_ice": ["anti_ice_wing", "anti_ice_eng_1", "anti_ice_eng_2"],
 	"fcu": ["fcu_ap1", "fcu_ap2", "fcu_athr", "fcu_loc", "fcu_appr", "fcu_spd_up", "fcu_spd_down",
 		"fcu_hdg_right", "fcu_hdg_left", "fcu_alt_up", "fcu_alt_down", "fcu_vs_up", "fcu_vs_down"],

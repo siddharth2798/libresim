@@ -48,7 +48,7 @@
 		"air": {"alt_ft": 900, "dist_nm": 3.0, "kias": 70, "gear": "down", "flaps": 3,
 			"limits": {"alt_ft": [300, 12000], "dist_nm": [1, 25]}}},
 	"controls": {
-		"actions": ["throttle", "mixture", "trim", "flaps", "brakes", "parking_brake", "magnetos", "starter", "fuel_selector", "fuel_shutoff"]
+		"actions": ["throttle", "mixture", "trim", "flaps", "brakes", "parking_brake", "magnetos", "starter", "fuel_selector", "fuel_shutoff", "alternate_static"]
 	},
 	"model": {
 		"surfaces": {

@@ -12,6 +12,7 @@ const SPRING := 2.5        # return-to-centre per second
 var pitch := 0.0
 var roll := 0.0
 var yaw := 0.0
+var tiller := 0.0
 var mouse_yoke := false
 var parking_brake := false
 var keys := {}  # KeyBindings table (core/key_bindings.gd), reloaded on input/bindings_rev
@@ -27,6 +28,23 @@ func _ready() -> void:
 	Props.set_v("controls/parking_brake", false)
 	_load_keys()
 	controls().seed_props()
+
+
+## F5 / a new flight: forget a tiller, stick or yoke the pilot left away from centre.
+func reset_flight() -> void:
+	pitch = 0.0
+	roll = 0.0
+	yaw = 0.0
+	tiller = 0.0
+	mouse_yoke = false
+	parking_brake = false
+	_detent.clear()
+	_knobs.clear()
+	if _levers != null:
+		_levers._rev_drive = false
+	Props.set_v("controls/mouse_yoke", false)
+	Props.set_v("controls/parking_brake", false)
+	Props.set_v("systems/alternate_static", false)
 
 
 ## What the current aircraft offers (rebuilt when the aircraft changes).
@@ -131,6 +149,11 @@ func _process(dt: float) -> void:
 	_put("pitch", pitch)
 	_put("roll", roll)
 	_put("yaw", yaw)
+	if controls().offers("tiller_left"):  # only while a key is held or springing back, so a click or axis is left alone
+		var tiller_in := _axis("tiller_left", "tiller_right")
+		if tiller_in != 0.0 or tiller != 0.0:
+			tiller = _move("tiller", tiller, tiller_in, dt)
+			_put("tiller", tiller)
 
 	var ctl := controls()
 	_levers.update(ctl, dt)  # throttle, mixture, reverse

@@ -1,11 +1,10 @@
 class_name CameraRig
 extends Camera3D
 ## All flight cameras. C / Shift+C cycle, or 1-8 jump directly:
-##  1 cockpit (pilot eye; drag to look, wheel zoom, V re-centre)
+##  1 cockpit (pilot eye; drag to look, scroll or pinch to zoom, V re-centre)
 ##  2 chase   3 orbit (right-drag rotate, wheel distance)
 ##  4 free    (detached: WASD move, Q/E down/up, right-drag look, Shift fast, wheel speed)
 ##  5 tower   (nearest airport, auto zoom)   6 wing   7 tail   8 fly-by
-## The camera follows the aircraft's interpolated render transform.
 
 enum Mode { COCKPIT, CHASE, ORBIT, FREE, TOWER, WING, TAIL, FLYBY }
 const NAMES := ["Cockpit", "Chase", "Orbit", "Free camera", "Tower", "Wing", "Tail", "Fly-by"]
@@ -93,12 +92,10 @@ func set_mode(m: int) -> void:
 	Props.set_v("view/mode", NAMES[mode])
 	_label.text = "%s view" % String(NAMES[mode]).capitalize()
 	if mode == Mode.COCKPIT:
-		_label.text += "\nDrag to look · V recentre"
+		_label.text += "\nDrag to look · scroll to zoom · hover a control · V recentre"
 	_label_t = 2.5
 
 
-## Fly-by: stand ahead of the aircraft, off its track, scaled by its size and speed (ui/flyby_placement.gd).
-## A re-placement jumps the camera by far more than PostFxRules.CUT_MIN_JUMP_M, so the effects see it as a cut.
 func _place_flyby(w: Vector3) -> void:
 	var v: Vector3 = aircraft.fdm_node.fdm.velocity_ned()
 	var fwd := -aircraft.transform.basis.z
@@ -141,15 +138,19 @@ func _unhandled_input(e: InputEvent) -> void:
 		CockpitPick.apply_motion(_grab_item, aircraft.cockpit.lever_items(), e.relative)
 	elif e is InputEventMouseMotion and _grab == "glass":
 		aircraft.cockpit.forward_mouse(e, self)
-	elif e is InputEventMouseButton and e.pressed and e.button_index in [MOUSE_BUTTON_WHEEL_UP, MOUSE_BUTTON_WHEEL_DOWN]:
-		var up: bool = e.button_index == MOUSE_BUTTON_WHEEL_UP
-		match mode:
-			Mode.COCKPIT:  # zoom toward whatever is under the cursor
-				_fov_goal = clampf(_fov_goal * (0.85 if up else 1.18), 12.0, 95.0)
-				if up:
-					_look_goal = _look_goal.lerp(_look_at_screen(e.position), 0.25)
-			Mode.ORBIT: _dist = clampf(_dist / 1.15 if up else _dist * 1.15, 6.0, 600.0)
-			Mode.FREE: _free_speed = clampf(_free_speed * (1.25 if up else 0.8), 2.0, 3000.0)
+	elif CameraLook.is_zoom(e):
+		if mode == Mode.COCKPIT:
+			var next := CameraLook.zoom_fov(_fov_goal, e)
+			if next < _fov_goal and aircraft != null and is_inside_tree():
+				var at: Vector2 = e.position if e is InputEventMouse or e is InputEventGesture else get_viewport().get_mouse_position()
+				_look_goal = _look_goal.lerp(_look_at_screen(at), 0.25)
+			_fov_goal = next
+		elif e is InputEventMouseButton:
+			var up: bool = e.button_index == MOUSE_BUTTON_WHEEL_UP
+			if mode == Mode.ORBIT:
+				_dist = clampf(_dist / 1.15 if up else _dist * 1.15, 6.0, 600.0)
+			elif mode == Mode.FREE:
+				_free_speed = clampf(_free_speed * (1.25 if up else 0.8), 2.0, 3000.0)
 
 
 func _process(dt: float) -> void:
@@ -184,7 +185,6 @@ func _process(dt: float) -> void:
 			var step := chase_step(_chase_back, _chase_trail, back, Vector2(vn.x, vn.y).length(), follow, dt)
 			_chase_back = step.back
 			_chase_trail = step.trail
-			# Placed from the aircraft every frame: a hitch or a floating-origin shift cannot dolly the lens.
 			_chase_pos = t.origin + _chase_back * (dist + _chase_trail) + Vector3.UP * height
 			look_at_from_position(_chase_pos, t.origin + Vector3.UP)
 		Mode.ORBIT:

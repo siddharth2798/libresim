@@ -10,6 +10,39 @@ extends RefCounted
 const SENS := 0.004
 const PITCH_MIN := -1.45
 const PITCH_MAX := 1.62
+const FOV_MIN := 12.0
+const FOV_MAX := 95.0
+
+
+## Wheel, trackpad scroll, or pinch. A mouse wheel click is a button. A trackpad or Magic Mouse
+## scroll has a gesture phase, so macOS sends a pan and no wheel button. Pan delta.y is the
+## negated scroll delta: negative is the same direction as wheel up.
+static func is_zoom(e: InputEvent) -> bool:
+	if e is InputEventMagnifyGesture:
+		return e.factor > 0.0
+	if e is InputEventPanGesture:
+		return absf(e.delta.y) > 0.01
+	return e is InputEventMouseButton and e.pressed \
+			and e.button_index in [MOUSE_BUTTON_WHEEL_UP, MOUSE_BUTTON_WHEEL_DOWN]
+
+
+## Narrower field of view is zoomed in. One wheel notch, or about 12 points of scroll, is one step.
+static func zoom_fov(fov: float, e: InputEvent) -> float:
+	if e is InputEventMagnifyGesture:
+		return clampf(fov / e.factor, FOV_MIN, FOV_MAX)
+	if e is InputEventPanGesture:
+		return _steps(fov, -e.delta.y / 12.0)
+	if e is InputEventMouseButton:
+		return _steps(fov, 1.0 if e.button_index == MOUSE_BUTTON_WHEEL_UP else -1.0)
+	return fov
+
+
+static func _steps(fov: float, steps: float) -> float:
+	steps = clampf(steps, -2.5, 2.5)
+	if absf(steps) < 0.001:
+		return fov
+	var f := pow(0.85, steps) if steps > 0.0 else pow(1.18, -steps)
+	return clampf(fov * f, FOV_MIN, FOV_MAX)
 
 
 static func drag(look: Vector2, relative: Vector2, sens_scale: float) -> Vector2:

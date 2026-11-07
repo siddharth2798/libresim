@@ -20,6 +20,7 @@ const KEYS := [
 	["J", "Controls panel"],
 	["F5", "Reset to start"],
 	["Esc", "Pause"],
+	["L / Shift+L", "Panel lights brighter / dimmer"],
 ]
 
 const WIDE_W := 560.0  # two pairs per row from this width

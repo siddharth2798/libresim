@@ -1,12 +1,10 @@
 class_name GroundOps
 extends Node3D
-## Ground operations: progressive taxi guidance (T) and pushback (P).
-## T: A* route from the aircraft to the into-wind runway's threshold over the OSM
-##    taxi graph; drawn as a green line with chevrons, instruction shown on screen.
-##    T again clears it. Reaching the end shows "Hold short runway NN".
-## P: pushback tug: straight back, then a 90 deg swing (tail toward the taxiway), path and speed from
-##    aircraft.json "pushback" (GroundParams); the aircraft is moved kinematically (as a real tug does),
-##    brakes must be off. P again stops the push.
+## Ground operations: progressive taxi (T) and pushback (P).
+## T routes over the taxi graph to the into-wind runway, or to a stand, and draws the green line.
+## P pushes back and turns onto the taxiway. PushbackFit keeps the wheels on the pavement; speed and
+## the preferred arc come from aircraft.json "pushback". The aircraft is moved kinematically. P again stops.
+const _Fit := preload("res://world/pushback_fit.gd")
 
 var ops: AirportOps
 var airports: AirportBuilder
@@ -112,8 +110,7 @@ func request_taxi() -> void:
 	Props.set_v("ops/taxi_route", _route_txt)
 
 
-## ATC "taxi to the apron" after landing: route to the nearest stand (ramp stands before jetbridge gates;
-## the other way round for stand_class "gate"). Returns the instruction text, "" if there is none.
+## After landing: route to the nearest stand for this aircraft. Returns the instruction, "" if there is none.
 func request_taxi_to_stand() -> String:
 	var icao := _airport_here()
 	var p := fdm_node.position_enu()
@@ -134,8 +131,7 @@ func request_taxi_to_stand() -> String:
 	return _route_txt
 
 
-## The taxi instruction to a stand: "Taxi to the apron (stand 12) via B", "Taxi to the apron (Bay 3) via B". `stand` is the
-## stand's display name (StandNames: the real ref, else the made-up one); "" leaves the brackets out.
+## "Taxi to the apron (stand 12) via B". `stand` is the display name; "" leaves the brackets out.
 static func apron_text(stand: String, via: Array) -> String:
 	var nm := StandNames.label(stand)
 	return "Taxi to the apron%s%s" % [(" (" + nm + ")") if nm != "" else "", (" via " + ", ".join(via)) if not via.is_empty() else ""]
@@ -206,8 +202,7 @@ func _spawn_follow_me() -> void:
 	_follow_s = _gap + 5.0
 
 
-## Point and heading (compass rad) at distance s along the route.
-func _route_at(s: float) -> Array:
+func _route_at(s: float) -> Array:  # [Vector2 position, heading rad] at distance s along the route
 	for i in range(1, _route.size()):
 		if _route_len[i] >= s:
 			var a: Vector2 = _route[i - 1]
@@ -233,7 +228,6 @@ func _update_follow_me(dt: float, here_s: float) -> void:
 	var r := _route_at(minf(_follow_s, total))
 	_follow.place(r[0].x, r[0].y, r[1], dt, terrain.height_at)
 
-
 func start_pushback() -> void:
 	var f := fdm_node.fdm
 	if not f.gear.wow or Vector2(f.velocity_ned().x, f.velocity_ned().y).length() > 0.5:
@@ -245,14 +239,14 @@ func start_pushback() -> void:
 	var e := f.euler()
 	var p := fdm_node.position_enu()
 	var icao := _airport_here()
-	var side := 1.0  # swing the tail toward the nearest taxi node
+	var here := Vector2(p.x, p.y)
+	var side := 1.0  # tail toward the nearest taxi node; PushbackFit may flip it to stay on the strip
 	if icao != "":
-		var r := ops.route(icao, Vector2(p.x, p.y), Vector2(p.x, p.y))
+		var r := ops.route(icao, here, here)
 		if not r.is_empty():
-			var node: Vector2 = r.path[0]
-			var right := Vector2(cos(e.z), -sin(e.z))  # body right in (east, north)
-			side = 1.0 if (node - Vector2(p.x, p.y)).dot(right) > 0.0 else -1.0
-	_push = {"s": 0.0, "hdg0": e.z, "p0": Vector2(p.x, p.y), "side": side}
+			side = 1.0 if (r.path[0] - here).dot(Vector2(cos(e.z), -sin(e.z))) > 0.0 else -1.0
+	var fit: Dictionary = _Fit.plan(here, e.z, ops.data.get(icao, {}).get("taxi", {}), side, _pb, AircraftDef.current())
+	_push = {"s": 0.0, "hdg0": e.z, "p0": here, "side": fit.side, "straight": fit.straight, "radius": fit.radius, "turn": fit.turn, "limit": fit.limit}
 	_spawn_tug()
 	_banner.say("Pushback in progress — P to stop", "Pushback in progress  ·  P to stop")
 
@@ -284,13 +278,13 @@ func _physics_process(dt: float) -> void:
 		return
 	if f.gear.brake_left > 0.5 or f.gear.brake_right > 0.5:
 		return  # brakes on: tug stalls
-	_push.s += float(_pb.speed_mps) * dt
+	_push.s = minf(_push.s + float(_pb.speed_mps) * dt, float(_push.limit))
 	var s: float = _push.s
 	var h0: float = _push.hdg0
-	var pose := PushbackPath.pose(_push.p0, h0, _push.side, s, _pb.straight_m, _pb.radius_m)
+	var pose := PushbackPath.pose(_push.p0, h0, _push.side, s, _push.straight, _push.radius, _push.turn)
 	var pos: Vector2 = pose[0]
 	var hdg: float = pose[1]
-	if s >= PushbackPath.length(_pb.straight_m, _pb.radius_m) - 1e-3 * float(_pb.radius_m):
+	if s >= float(_push.limit) - 1e-2:
 		_end_push("Pushback complete — set parking brake, start engine, then T for taxi")
 	f.pos_e = pos.x
 	f.pos_n = pos.y

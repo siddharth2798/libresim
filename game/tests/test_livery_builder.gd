@@ -115,3 +115,88 @@ func test_livery_sticker_only_repaints_its_atlas() -> String:
 	if p[0].key.find(bare) < 0:
 		return "the cache key should still carry the colour key"
 	return "" if p[0].key.contains("abc.png") else "the cache key should name the picture: " + p[0].key
+
+
+func test_livery_swatches_stay_square_and_scroll() -> String:
+	var keep: Dictionary = Session.setup.duplicate(true)
+	Session.setup = Session.DEFAULT.duplicate(true)
+	Session.setup.aircraft = "a320"
+	var page: Control = load("res://ui/menu/page_frame.gd").make_page("res://ui/menu/livery_page.gd")
+	add_child(page)
+	page._sync()
+	var chips: Array = []
+	for b in page.find_children("*", "Button", true, false):
+		if str(b.tooltip_text).begins_with("#"):
+			chips.append(b)
+	var err := ""
+	if chips.size() < 12:
+		err = "expected a swatch for each colour, got %d" % chips.size()
+	elif page.find_children("Controls", "ScrollContainer", true, false).is_empty():
+		err = "the paint controls should scroll on their own, or a short window squashes the swatches"
+	else:
+		for b in chips:
+			var chip := b as Control
+			if chip.custom_minimum_size.x < 28 or chip.custom_minimum_size.y < 28:
+				err = "a swatch can collapse into a line: %s" % chip.custom_minimum_size
+				break
+			if chip.size_flags_horizontal & Control.SIZE_FILL or chip.size_flags_vertical & Control.SIZE_FILL:
+				err = "a swatch fills its row and turns into a bar"
+				break
+			if chip.size_flags_horizontal & Control.SIZE_EXPAND or chip.size_flags_vertical & Control.SIZE_EXPAND:
+				err = "a swatch stretches"
+				break
+	page.queue_free()
+	Session.setup = keep
+	return err
+
+
+func test_livery_mirror_is_not_a_filled_bar() -> String:
+	var keep: Dictionary = Session.setup.duplicate(true)
+	Session.setup = Session.DEFAULT.duplicate(true)
+	Session.setup.aircraft = "a320"
+	Session.setup.livery = {"a320": {"stickers": {"side": {"image": "none.png", "mirror": true}}}}
+	var page: Control = load("res://ui/menu/page_frame.gd").make_page("res://ui/menu/livery_page.gd")
+	add_child(page)
+	page._sync()
+	var boxes := page.find_children("*", "CheckBox", true, false)
+	var err := ""
+	if boxes.is_empty():
+		err = "a placed picture should offer the mirror toggle"
+	else:
+		var cb := boxes[0] as CheckBox
+		var sb := cb.get_theme_stylebox("pressed")
+		if not cb.has_theme_stylebox_override("pressed") or (sb is StyleBoxFlat and (sb as StyleBoxFlat).draw_center):
+			err = "the mirror toggle still uses the filled button style"
+	page.queue_free()
+	Session.setup = keep
+	return err
+
+
+func test_livery_preview_texture_has_mipmaps() -> String:
+	var paint = load("res://ui/menu/livery_preview_paint.gd")
+	var img := Image.create(64, 32, false, Image.FORMAT_RGBA8)
+	img.fill(Color.WHITE)
+	var out: Image = paint.for_screen(img)
+	if out == null or not out.has_mipmaps():
+		return "the preview atlas needs mipmaps, or the fuselage aliases into stripes"
+	var big := Image.create(4096, 1024, false, Image.FORMAT_RGBA8)
+	big.fill(Color.BLUE)
+	var small: Image = paint.for_screen(big)
+	if small.get_width() != 2048 or small.get_height() != 512 or not small.has_mipmaps():
+		return "a 4096 atlas should preview at 2048 on the long side, got %s" % [small.get_size()]
+	return ""
+
+
+func test_livery_turntable_fills_a_long_fuselage() -> String:
+	var frame = load("res://ui/menu/livery_frame.gd")
+	var aabb := AABB(Vector3(-20, -2, -2), Vector3(40, 4, 4))
+	var dir := Vector3(0.15, 0.28, 1).normalized()
+	var aspect := 1.45
+	var d: float = frame.distance(aabb, dir, aspect)
+	var use: float = frame.frame_use(aabb, dir, aspect, d)
+	if use < 0.85 or use > 1.02:
+		return "the fuselage should fill the frame, got %s at distance %s" % [use, d]
+	var sphere := aabb.size.length() * 0.5 / sin(deg_to_rad(frame.FOV) * 0.5)
+	if d > sphere * 0.92:
+		return "the fit is no tighter than a bounding sphere (%s vs %s)" % [d, sphere]
+	return ""

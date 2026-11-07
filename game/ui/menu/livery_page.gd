@@ -1,6 +1,5 @@
 extends HBoxContainer
-## Free-flight step after Aircraft: paint regions, sticker slots, and presets kept on this computer.
-## Writes Session.setup.livery through Livery.repair_setup. Reset returns the factory colours and clears stickers.
+## Free-flight step after Aircraft. Writes Session.setup.livery through Livery.repair_setup.
 
 signal changed
 
@@ -20,31 +19,44 @@ var _slot := ""
 
 
 func _ready() -> void:
-	add_theme_constant_override("separation", 16)
+	add_theme_constant_override("separation", 14)
 	var stage := Control.new()
-	stage.custom_minimum_size = Vector2(340, 300)
+	stage.custom_minimum_size = Vector2(420, 420)
+	stage.size_flags_horizontal = SIZE_EXPAND_FILL
 	stage.size_flags_vertical = SIZE_EXPAND_FILL
+	stage.size_flags_stretch_ratio = 1.25
 	stage.mouse_filter = MOUSE_FILTER_IGNORE
 	add_child(stage)
 	var view := preload("res://ui/menu/livery_preview.gd").new()
 	_preview = view
 	view.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	stage.add_child(view)
-	stage.add_child(view.zoom_controls())
+	stage.add_child(_overlay())
+	var scroll := ScrollContainer.new()
+	scroll.name = "Controls"
+	scroll.size_flags_horizontal = SIZE_EXPAND_FILL
+	scroll.size_flags_vertical = SIZE_EXPAND_FILL
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	scroll.custom_minimum_size = Vector2(320, 0)
+	add_child(scroll)
 	var right := VBoxContainer.new()
 	right.size_flags_horizontal = SIZE_EXPAND_FILL
-	right.add_theme_constant_override("separation", 10)
-	add_child(right)
+	right.size_flags_vertical = SIZE_SHRINK_BEGIN
+	right.add_theme_constant_override("separation", 14)
+	scroll.add_child(right)
 	_empty = MenuTheme.note("This aircraft has nothing to paint yet. Reset does nothing.")
 	_empty.visible = false
 	right.add_child(_empty)
+	right.add_child(MenuTheme.heading("Paint"))
 	_regions = preload("res://ui/menu/livery_regions.gd").new()
 	_regions.picked.connect(set_region)
 	right.add_child(_regions)
+	right.add_child(MenuTheme.heading("Pictures"))
 	_slots = preload("res://ui/menu/livery_slots.gd").new()
 	_slots.edited.connect(_on_slot)
 	_slots.load_asked.connect(_ask_file)
 	right.add_child(_slots)
+	right.add_child(MenuTheme.heading("Presets"))
 	right.add_child(_preset_row())
 	_error = MenuTheme.note("")
 	right.add_child(_error)
@@ -110,6 +122,59 @@ func reset_livery() -> void:
 	_placed = {}
 	_store()
 	_sync()
+
+
+func _overlay() -> Control:
+	var layer := Control.new()
+	layer.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	layer.mouse_filter = MOUSE_FILTER_IGNORE
+	var zoom := HBoxContainer.new()
+	zoom.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+	zoom.offset_left = -88.0
+	zoom.offset_top = 8.0
+	zoom.offset_right = -8.0
+	zoom.offset_bottom = 40.0
+	zoom.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+	zoom.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	zoom.add_theme_constant_override("separation", 4)
+	zoom.add_child(_zoom_button("−", 1.0 / 1.18))
+	zoom.add_child(_zoom_button("+", 1.18))
+	layer.add_child(zoom)
+	var views := HBoxContainer.new()
+	views.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
+	views.offset_top = -44.0
+	views.offset_bottom = -8.0
+	views.alignment = BoxContainer.ALIGNMENT_CENTER
+	views.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	views.add_theme_constant_override("separation", 4)
+	for pair in [["Side", "side"], ["Front", "front"], ["Tail", "tail"]]:
+		var b := Button.new()
+		b.text = pair[0]
+		b.focus_mode = Control.FOCUS_NONE
+		b.pressed.connect(_preview.face.bind(pair[1]))
+		views.add_child(b)
+	layer.add_child(views)
+	var hint := Label.new()
+	hint.text = "Drag to turn · scroll to zoom"
+	hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	hint.set_anchors_preset(Control.PRESET_TOP_LEFT)
+	hint.offset_left = 10.0
+	hint.offset_top = 8.0
+	hint.offset_right = 250.0
+	hint.offset_bottom = 30.0
+	hint.add_theme_color_override("font_color", MenuTheme.DIM)
+	hint.add_theme_font_size_override("font_size", 13)
+	layer.add_child(hint)
+	return layer
+
+
+func _zoom_button(text: String, factor: float) -> Button:
+	var b := Button.new()
+	b.text = text
+	b.focus_mode = Control.FOCUS_NONE
+	b.custom_minimum_size = Vector2(36, 28)
+	b.pressed.connect(_preview.zoom_by.bind(factor))
+	return b
 
 
 func _preset_row() -> Control:
@@ -214,6 +279,7 @@ func _on_file(path: String) -> void:
 	_placed[_slot] = cur
 	_store()
 	_sync()
+	_preview.face(_slot)
 
 
 func _load_selected() -> void:

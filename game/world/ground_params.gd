@@ -10,7 +10,7 @@ extends RefCounted
 ##           corridor half width), max_taxi_kt (advice only, absent = none), follow_gap_m (follow-me car ahead of the CG),
 ##           hold_short_m ("hold short" call distance), min_runway_m, stand_class ("any" | "ga" | "gate"), tug_scale.
 ##           Ramp-crew service points: the "ramp" section (world/ramp_points.gd).
-## pushback: straight_m, radius_m, speed_mps (path = PushbackPath).
+## pushback: straight_m, radius_m, speed_mps (preferred arc; PushbackFit shortens it onto the taxiway).
 
 const GROUND := {"tow_ahead_m": 3.2, "ahead_m": 3.3, "behind_m": 7.4, "across_m": 6.7, "height_m": 2.5,
 	"cg_to_door_m": 0.0, "door_y_m": 0.0, "nose_gear_m": 0.0, "taxi_half_m": 8.0, "follow_gap_m": 35.0, "hold_short_m": 40.0,
