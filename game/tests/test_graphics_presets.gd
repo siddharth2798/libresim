@@ -112,6 +112,19 @@ func test_apple_silicon_budget_keeps_the_preset_table() -> String:
 	return ""
 
 
+func test_apple_budget_keeps_a_4k_frame_sharp() -> String:
+	var hi := RenderBudget.clamp_preset(Graphics.PRESETS.high, Vector2i(3840, 2160), true)
+	if float(hi.scale) < RenderBudget.SCALE_FLOOR - 0.001:
+		return "a 4K frame was scaled to %.2f, below the floor" % float(hi.scale)
+	if not hi.fsr or not hi.fxaa:
+		return "a reduced frame must upscale with FSR and keep FXAA once MSAA is off"
+	if RenderBudget.needs_budget("Apple M5 Max") or RenderBudget.needs_budget("Apple M3 Pro") or RenderBudget.needs_budget("Intel(R) Core(TM) i7"):
+		return "Pro / Max chips and Intel must keep the preset"
+	if not RenderBudget.needs_budget("Apple M2"):
+		return "a base Apple chip gets the budget"
+	return ""
+
+
 func test_preset_applies_to_a_scene() -> String:
 	# Headless runs neither renderer's screen-space effects, so they must stay off whatever the preset.
 	var root := Node3D.new()
@@ -161,7 +174,12 @@ func test_menus_list_every_preset() -> String:
 	var names := page.find_children("*", "Button", true, false).map(func(b): return b.text)
 	var notes: Dictionary = page.PRESET_NOTES
 	var restart_shown: bool = page._restart_note.visible
+	var res := page.find_children("*", "ResolutionRow", true, false)
+	var res_items: int = res[0]._pick.item_count if res.size() == 1 else 0
+	var res_auto: String = res[0]._pick.get_item_text(0) if res_items > 0 else ""
 	page.free()
+	if res_items < 2 or not res_auto.begins_with("Auto: "):
+		return "the Graphics tab needs a Render resolution picker with Auto first (got %d items)" % res_items
 	var f10 := PanelContainer.new()
 	f10.set_script(load("res://ui/settings_menu.gd"))
 	add_child(f10)
@@ -173,3 +191,34 @@ func test_menus_list_every_preset() -> String:
 	if Graphics.restart_needed() or restart_shown:
 		return "no renderer was saved in a test run, so no restart should be asked for"
 	return "" if "1.8 km" in notes.high else "the High note should give its real shadow distance"
+
+
+func test_render_resolution_lists_sizes_for_the_screen() -> String:
+	var uhd := RenderResolution.options(Vector2i(3840, 2160))
+	var labels := uhd.map(func(o): return o.label)
+	for want in ["3840×2160 (100%)", "2560×1440 (67%)", "1920×1080 (50%)", "1280×720 (33%)"]:
+		if not want in labels:
+			return "4K list misses %s: %s" % [want, labels]
+	var air := RenderResolution.options(Vector2i(2560, 1664))  # 16:10, sizes keep the screen's shape
+	if air[0].label != "2560×1664 (100%)" or not "1662×1080 (65%)" in air.map(func(o): return o.label):
+		return "16:10 list should keep the screen's shape: %s" % [air.map(func(o): return o.label)]
+	if RenderResolution.options(Vector2i(1920, 1080)).size() != 3:
+		return "a 1080p screen lists native, 900p and 720p only"
+	if RenderResolution.nearest(air, 0.5) != RenderResolution.nearest(air, 0.52):
+		return "a choice saved on another screen lands on the nearest size"
+	return ""
+
+
+func test_render_resolution_overrides_auto() -> String:
+	var hi: Dictionary = Graphics.PRESETS.high
+	if RenderResolution.apply(hi, 0.0) != hi:
+		return "Auto keeps the preset"
+	var half := RenderResolution.apply(hi, 0.5)
+	if not is_equal_approx(float(half.scale), 0.5) or not half.fsr:
+		return "a fixed size sets the scale and upscales with FSR"
+	var lo_native := RenderResolution.apply(Graphics.PRESETS.low, 1.0)
+	if not is_equal_approx(float(lo_native.scale), 1.0) or lo_native.fsr or not lo_native.fxaa:
+		return "native on Low draws full size without FSR and keeps FXAA"
+	if not is_equal_approx(float(RenderResolution.apply(Graphics.PRESETS.max, 1.0).scale), 1.0):
+		return "a fixed native size replaces Max's supersampling"
+	return ""

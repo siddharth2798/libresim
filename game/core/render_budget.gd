@@ -4,12 +4,24 @@ extends RefCounted
 ## preset still names the look; this clamps the costs that scale with the framebuffer
 ## (the cloud march, MSAA, the shadow map) so a 16 GB Air stays near its refresh rate.
 ## Headless runs do not call this (tests keep the preset numbers).
+## Pro / Max / Ultra chips have the GPU for the preset and pass through untouched.
 
 const PIXEL_CAP := 1600000  # about 1600x1000 of 3D, before the UI
+const SCALE_FLOOR := 0.7  # below this a 4K frame turns to mush; spend frame rate instead
 
 
 static func apple_silicon() -> bool:
-	return OS.get_name() == "macOS" and "Apple" in OS.get_processor_name()
+	return OS.get_name() == "macOS" and needs_budget(OS.get_processor_name())
+
+
+## True for a base Apple chip ("Apple M2"), false for "Apple M5 Max", Intel and others.
+static func needs_budget(cpu: String) -> bool:
+	if not cpu.begins_with("Apple"):
+		return false
+	for big in ["Pro", "Max", "Ultra"]:
+		if (" %s" % big) in cpu:
+			return false
+	return true
 
 
 ## Window framebuffer in pixels. On macOS a small window size is in points.
@@ -32,8 +44,12 @@ static func clamp_preset(spec: Dictionary, pixels: Vector2i, apple: bool) -> Dic
 		return s
 	var px := maxi(pixels.x, 1) * maxi(pixels.y, 1)
 	if px > PIXEL_CAP:
-		s.scale = minf(float(s.scale), sqrt(float(PIXEL_CAP) / float(px)))
+		var want := maxf(sqrt(float(PIXEL_CAP) / float(px)), SCALE_FLOOR)
+		if want < float(s.scale):
+			s.scale = want
+			s.fsr = true  # Forward+ upscales with FSR2 (which antialiases) instead of bilinear
 	s.msaa = 0
+	s.fxaa = true  # MSAA is gone; without this edges stair-step
 	s.clouds = mini(int(s.clouds), 10)
 	s.cloud_light = 1
 	s.atlas = mini(int(s.atlas), 2048)
