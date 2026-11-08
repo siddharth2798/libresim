@@ -109,3 +109,36 @@ func test_reproject_centres_and_follows_a_move() -> String:
 	if shifted.x <= centre.x + 0.01:
 		return "a camera that moved right should find the old centre off to the right: %s" % shifted
 	return ""
+
+
+func test_upscaled_march_is_not_jittered() -> String:
+	# A jittered half / quarter-res march made the horizon and the windshield frame blink (tests/debug_flicker.tscn).
+	var view := Vector2(1920, 1080)
+	for scale in [2, 4]:
+		for frame in 16:
+			if CloudTemporal.march_jitter(frame, scale, view) != Vector2.ZERO:
+				return "the scale %d march jitters on frame %d" % [scale, frame]
+	return ""
+
+
+func test_surfaces_nearer_than_the_layer_get_no_cloud() -> String:
+	# Below, above and inside a 1,400 m base, 900 m thick layer: anything nearer than this is in front of every cloud.
+	if not is_equal_approx(CloudTemporal.clear_dist(12.0, 1400.0, 900.0), 1388.0):
+		return "below the base: the gap to the base"
+	if not is_equal_approx(CloudTemporal.clear_dist(3000.0, 1400.0, 900.0), 700.0):
+		return "above the top: the gap to the top"
+	if CloudTemporal.clear_dist(1800.0, 1400.0, 900.0) != 0.0:
+		return "inside the layer every surface can have cloud in front"
+	return ""
+
+
+func test_upscale_reads_the_reversed_depth_buffer() -> String:
+	# The depth buffer is reversed (1 near, 0 sky) and screen y runs down; Camera3D.get_camera_projection() is OpenGL
+	# style. Feeding the stored depth in as clip z put the sky at the near plane: the edge test and the history
+	# reprojection compared the wrong distances, and the horizon and the windshield frame blinked.
+	var src := FileAccess.get_file_as_string("res://world/cloud_upscale.gdshader")
+	if not "1.0 - 2.0 * raw_depth(uv)" in src or not "1.0 - uv.y * 2.0" in src:
+		return "the upscale must convert the stored depth and screen y to OpenGL clip space"
+	if "vec4(uv * 2.0 - 1.0, raw_depth(uv), 1.0)" in src:
+		return "raw depth used as clip z again"
+	return ""

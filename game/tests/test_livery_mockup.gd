@@ -126,3 +126,14 @@ func test_livery_turntable_is_drawn_sharp_and_keeps_the_colour() -> String:
 	holder.free()
 	view.free()
 	return err
+
+
+func test_paint_pass_leaves_no_lambda_on_its_host() -> String:
+	# A lambda capturing the one-shot paint viewport stayed connected to the host after the viewport was freed; when
+	# the livery page or the game closed it ran and logged "Lambda capture at index 0 was freed".
+	var host := Node.new()
+	add_child(host)
+	LiveryPaint._draw(host, ShaderMaterial.new(), Vector2i(4, 4))  # suspends until the frame is drawn
+	var lambdas := host.tree_exiting.get_connections().filter(func(c): return (c.callable as Callable).is_custom())
+	host.queue_free()
+	return "" if lambdas.is_empty() else "the paint pass ties a lambda to its host's tree_exiting"

@@ -36,6 +36,7 @@ var _active := {}  # Vector3i -> MeshInstance3D
 var _pool: Array[MeshInstance3D] = []
 var _cam_enu := Vector3.ZERO
 var visible_nodes := 0
+var pending_tiles := 0  # finer tiles the last selection wanted but the cache has not loaded yet
 var _roots: Array[Vector3i] = []
 var _recs := {}  # Vector3i -> [x0, y0, x1, y1, min_h, max_h, size, src, children|null, can_split]
 var _split := {}  # Vector3i -> true: nodes split at the last selection (hysteresis)
@@ -99,6 +100,7 @@ func _process(dt: float) -> void:
 		_recs.clear()  # memo only; rebuilt on demand
 	var wanted: Array[Vector3i] = []
 	var split := {}
+	pending_tiles = 0
 	for r in _roots:
 		if _ready_tile(r):
 			_select(r, wanted, split)
@@ -146,7 +148,10 @@ func _select(k: Vector3i, out: Array[Vector3i], split: Dictionary) -> void:
 			var kids := _children(k, r)
 			var ok := true
 			for c in kids:
-				ok = _ready_tile(c) and ok  # request all, even after a miss
+				var got := _ready_tile(c)  # request all, even after a miss
+				if not got:
+					pending_tiles += 1
+				ok = got and ok
 			if ok:
 				split[k] = true
 				for c in kids:

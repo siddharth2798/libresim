@@ -110,6 +110,13 @@ static func aircraft_extent_m(def: AircraftDef) -> float:
 	return maxf(span, length)
 
 
+## The near_cut the blur shader gets: negative in the cockpit view, where everything nearer (cockpit, airframe) rides
+## with the camera and is never blurred. The velocity buffer cannot be trusted there: every ~10 frames it carried a
+## whole frame of the aircraft's travel and smeared the panel for one frame (a visible blink at speed).
+static func blur_near_param(near_cut_m: float, view: int) -> float:
+	return -absf(near_cut_m) if view == VIEW_COCKPIT else absf(near_cut_m)
+
+
 ## Pixels nearer than this (m) never get the camera-only reprojection: the aircraft and its cockpit, whichever view.
 static func near_cutoff_m(cam_to_aircraft_m: float, extent_m: float) -> float:
 	return cam_to_aircraft_m + extent_m

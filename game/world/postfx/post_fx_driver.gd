@@ -83,7 +83,7 @@ func _process(dt: float) -> void:
 	var to_ac := cam.global_position.distance_to(model.global_position) if model else 0.0
 	var near_cut := PostFxRules.near_cutoff_m(to_ac, extent)
 	motion_blur.frame_dt = dt
-	motion_blur.near_cut = near_cut
+	motion_blur.near_cut = PostFxRules.blur_near_param(near_cut, view)
 	var w := _weather(cam)
 	_update_shafts(cam, w)
 	var we := _root.get_node_or_null("WorldEnvironment") as WorldEnvironment

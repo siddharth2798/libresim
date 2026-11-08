@@ -119,6 +119,22 @@ func test_post_fx_near_cutoff_from_aircraft_size() -> String:
 	return "" if PostFxRules.aircraft_extent_m(fake) >= 60.0 else "the extent follows the wingspan"
 
 
+## Cockpit view: the panel rides with the camera and is never blurred (the velocity buffer smeared it every ~10
+## frames at speed). Outside views keep the aircraft's own motion.
+func test_cockpit_is_never_motion_blurred() -> String:
+	if PostFxRules.blur_near_param(30.0, PostFxRules.VIEW_COCKPIT) != -30.0:
+		return "the cockpit view should pass a negative near cut"
+	if PostFxRules.blur_near_param(30.0, PostFxRules.VIEW_OTHER) != 30.0 or PostFxRules.blur_near_param(30.0, PostFxRules.VIEW_FREE) != 30.0:
+		return "outside views keep a positive near cut"
+	var src := FileAccess.get_file_as_string("res://world/postfx/motion_blur.glsl")
+	if not src.contains("rigid_near && dc < near_cut"):
+		return "the shader should leave near pixels alone when near_cut is negative"
+	var drv := FileAccess.get_file_as_string("res://world/postfx/post_fx_driver.gd")
+	if not drv.contains("motion_blur.near_cut = PostFxRules.blur_near_param("):
+		return "the driver should pass the signed near cut"
+	return ""
+
+
 func test_post_fx_exhausts_every_aircraft() -> String:
 	for id in AircraftDef.list_ids():
 		var def := AircraftDef.load_def(id)

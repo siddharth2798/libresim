@@ -17,7 +17,7 @@ const FLIP_Y := true  # texel row 0 = top of the view (as world/sun_glare.gdshad
 var shutter := PostFxRules.SHUTTER
 var max_px := PostFxRules.MAX_BLUR_PX
 var samples := PostFxRules.BLUR_SAMPLES
-var near_cut := 20.0  # m, PostFxRules.near_cutoff_m
+var near_cut := 20.0  # m, PostFxRules.blur_near_param: negative in the cockpit view (nearer pixels never blur)
 var frame_dt := 1.0 / 60.0
 var reset := false
 

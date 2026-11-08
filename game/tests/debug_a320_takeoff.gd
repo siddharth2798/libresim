@@ -11,11 +11,29 @@ var _hdg := 0.0
 var _lift_t := -1.0
 var _next := 0.0
 var _go := false
+var _rot_said := false
 var _start_only := false
+var _with_pads := false  # --with-pads: the joystick stays live (windowed run: macOS sends a pad only to a focused window)
+var _stick := 0.0  # --stick=<v>: hold this aft stick (0..1) through the roll, a hand resting on the side stick
+var _hands_off := false  # --hands-off: no stick and the trim the flight starts with, as a player who only adds thrust
 
 
 func _ready() -> void:
 	_start_only = "--start" in OS.get_cmdline_user_args()
+	_hands_off = "--hands-off" in OS.get_cmdline_user_args()
+	_with_pads = "--with-pads" in OS.get_cmdline_user_args()
+	for a in OS.get_cmdline_user_args():
+		if a.begins_with("--stick="):
+			_stick = float(a.substr(8))
+	for a in OS.get_cmdline_user_args():  # --setup=<json>: a saved last_flight.json (loads, airport, weather) for this run
+		if a.begins_with("--setup="):
+			var d = JSON.parse_string(FileAccess.get_file_as_string(a.substr(8)))
+			for k in d:
+				if Session.setup.has(k):
+					Session.setup[k] = d[k]
+			Session.setup.start = "runway"
+			print("TO setup: %s rwy %s cabin %s cargo %s fuel %s icing %s" % [Session.setup.airport, Session.setup.runway,
+				Session.setup.cabin_kg, Session.setup.cargo_kg, Session.setup.fuel_gal, Session.setup.icing])
 	f = load("res://world/flight.tscn").instantiate()
 	add_child(f)
 
@@ -30,19 +48,26 @@ func _physics_process(dt: float) -> void:
 		return
 	if not _go:
 		_go = true
-		for n in ["Controls", "JoystickControls"]:
+		if _with_pads:  # the stick and pedals stay live; the thrust levers are this script's
+			var jc := f.get_node_or_null("JoystickControls")
+			if jc:
+				for a in ["throttle", "throttle_2", "mixture", "brake_left", "brake_right"]:
+					jc.table.erase(a)
+		for n in ([] if _with_pads else ["Controls", "JoystickControls"]):  # --with-pads: keyboard and stick both live
 			var c := f.get_node_or_null(n)
 			if c:
 				c.set_process(false)
 				c.set_physics_process(false)
 		_start = fn.position_enu()
 		_hdg = Props.get_f("fdm/heading_rad")
-		Props.set_v("controls/flaps", 2)
-		Props.set_v("controls/pitch_trim", 0.15)
+		if not _hands_off:
+			Props.set_v("controls/flaps", 2)
+		if not _hands_off:
+			Props.set_v("controls/pitch_trim", 0.15)
 		Props.set_v("controls/parking_brake", false)
 		Props.set_v("controls/brake_left", 0.0)
 		Props.set_v("controls/brake_right", 0.0)
-		print("TO start: engines running n1 %s, mass %.0f kg, hdg %.1f" % [fn.fdm.units.map(func(u): return snappedf(u.engine.n1, 0.1)), fn.fdm.mb.mass, rad_to_deg(_hdg)])
+		print("TO start: mass %.0f kg, cg %s, hdg %.1f, trim %.2f, flaps %s" % [fn.fdm.mb.mass, str(fn.fdm.mb.get("cg")), rad_to_deg(_hdg), Props.get_f("controls/pitch_trim"), str(Props.get_v("controls/flaps"))])
 	var tt := t - 3.0
 	var thr := minf(tt / 3.0, 1.0)  # 0 -> TOGA over 3 s
 	Props.set_v("controls/throttle", thr)
@@ -51,9 +76,15 @@ func _physics_process(dt: float) -> void:
 	var hdg := Props.get_f("fdm/heading_rad")
 	var he := wrapf(hdg - _hdg, -PI, PI)
 	var r: Vector3 = Props.get_v("fdm/body_rates", Vector3.ZERO)
-	Props.set_v("controls/yaw", clampf(-2.0 * he - 1.0 * r.z, -0.3 if kias < 60.0 else -1.0, 0.3 if kias < 60.0 else 1.0))
+	if not _with_pads:
+		Props.set_v("controls/yaw", clampf(-2.0 * he - 1.0 * r.z, -0.3 if kias < 60.0 else -1.0, 0.3 if kias < 60.0 else 1.0))
 	var pitch := rad_to_deg(Props.get_f("fdm/pitch_rad"))
-	if kias > 142.0:
+	if _stick != 0.0:
+		Props.set_v("controls/pitch", _stick)
+		if _lift_t < 0.0 and pitch > 2.0 and not _rot_said:
+			_rot_said = true
+			print("TO nose up at %.0f kt (stick %.2f)" % [kias, _stick])
+	if kias > 142.0 and not _hands_off:
 		Props.set_v("controls/pitch", clampf(0.30 + 0.12 * (12.0 - pitch) - 0.10 * rad_to_deg(r.y), -0.3, 0.8))
 	var wow := Props.get_b("fdm/wow")
 	if _lift_t < 0.0 and not wow and kias > 100.0:
@@ -61,7 +92,10 @@ func _physics_process(dt: float) -> void:
 		var d := (fn.position_enu() - _start).length()
 		print("TO liftoff t %.1f s, roll %.0f m, %.0f kt, pitch %.1f" % [tt, d, kias, pitch])
 	if tt >= _next:
-		_next += 5.0
+		if _with_pads:
+			print("TO pads: pitch in %s owner %s elevator %s fbw law %s" % [Props.get_v("controls/pitch"), Props.get_v("input/axis_owner/pitch"),
+				Props.get_v("fcs/elevator", "?"), "%s ground %s" % [Props.get_v("fcs/law", "?"), Props.get_v("fcs/ground_mode", "?")]])
+		_next += 2.0 if _hands_off else 5.0
 		print("TO t %5.1f kias %5.1f pitch %5.1f alt_agl %6.1f ft hdg_err %5.2f yaw %5.2f roll %5.1f dist %5.0f m n1 %s" % [tt, kias, pitch,
 			Units.m_to_ft(Props.get_f("fdm/agl_m")), rad_to_deg(he), Props.get_f("controls/yaw"), rad_to_deg(Props.get_f("fdm/roll_rad")),
 			(fn.position_enu() - _start).length(), fn.fdm.units.map(func(u): return snappedf(u.engine.n1, 0.1))])

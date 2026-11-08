@@ -12,12 +12,41 @@ func teardown() -> void:
 
 func test_flight_loader_stays_until_the_airfield_is_in() -> String:
 	var flight: GDScript = load("res://world/flight.gd")
-	if not flight.loader_holds(0, true, 0.2, false):
+	if not flight.loader_holds(0, 0, true, 0.2, false):
 		return "the film should cover a flight whose airfield is still building"
-	if flight.loader_holds(3, false, 1.0, false):
+	if flight.loader_holds(3, 0, false, 1.0, false):
 		return "the film should lift once the ground and the airfield are in"
-	if flight.loader_holds(0, true, 0.2, true) or flight.loader_holds(0, true, 13.0, false):
+	if flight.loader_holds(0, 0, true, 0.2, true) or flight.loader_holds(0, 0, true, 13.0, false):
 		return "a blocked run, and a wait past 12 s, should not hold the film"
+	return ""
+
+
+## The first coarse terrain node is not the ground: the film lifted at 11 nodes with 32 tiles still loading and the
+## terrain popped in for the next 3.5 s.
+func test_flight_loader_waits_for_the_finer_tiles() -> String:
+	var flight: GDScript = load("res://world/flight.gd")
+	if not flight.loader_holds(11, 32, false, 0.5, false):
+		return "the film should stay while the view still waits for terrain tiles"
+	if flight.loader_holds(476, 0, false, 4.0, false):
+		return "the film should lift once no tile is pending"
+	if flight.load_percent(0, 0, 0.0) != 0 or flight.load_percent(476, 0, 1.0) != 99 or flight.load_percent(10, 10, 1.0) != 75:
+		return "percent %d %d %d" % [flight.load_percent(0, 0, 0.0), flight.load_percent(476, 0, 1.0), flight.load_percent(10, 10, 1.0)]
+	return ""
+
+
+## The window veil lives under a CanvasLayer. Anchors alone left it, and the film in it, 0 x 0: nothing was drawn.
+func test_window_veil_covers_the_window() -> String:
+	# Built the way BusyOverlay.cover builds it (the root refuses add_child while the runner sets up).
+	var layer := CanvasLayer.new()
+	var veil := BusyOverlay.new()
+	layer.add_child(veil)
+	add_child(layer)
+	veil.show_busy("Loading scenery…", true, "a320", "VOCI")
+	var win := get_viewport().get_visible_rect().size
+	if veil.size.distance_to(win) > 1.0:
+		return "veil %s, window %s" % [veil.size, win]
+	if _film(veil).size.distance_to(win) > 1.0:
+		return "film %s, window %s" % [_film(veil).size, win]
 	return ""
 
 

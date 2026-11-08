@@ -43,6 +43,7 @@ var _stand_ref := ""  # "" = runway start, "*" = default stand, else a stand ref
 var _cold := false
 var _air_t := 0.0
 var _air_wait := true
+var _load_pct := 0
 
 
 func _ready() -> void:
@@ -256,12 +257,13 @@ func _process(dt: float) -> void:
 		get_tree().quit()
 
 
-## The film goes up before this scene is shown and stays until the ground and the runway meshes are in.
+## The film goes up before this scene is shown and stays until the ground and the runway meshes are in: the
+## first terrain node AND the finer tiles the view asks for (pending_tiles), else the ground pops in under the pilot.
 ## Headless, a screenshot and a clean shot never hold it. It cannot hold past 12 s.
-static func loader_holds(terrain_nodes: int, airport_busy: bool, elapsed: float, blocked: bool) -> bool:
+static func loader_holds(terrain_nodes: int, pending_tiles: int, airport_busy: bool, elapsed: float, blocked: bool) -> bool:
 	if blocked or elapsed > 12.0:
 		return false
-	return terrain_nodes <= 0 or airport_busy
+	return terrain_nodes <= 0 or pending_tiles > 0 or airport_busy
 
 
 func _airfield_wait(dt: float) -> void:
@@ -269,7 +271,7 @@ func _airfield_wait(dt: float) -> void:
 		return
 	_air_t += dt
 	var blocked := _shot != "" or Session.clean or DisplayServer.get_name() == "headless"
-	if not loader_holds(terrain.visible_nodes, airports.busy(), _air_t, blocked):
+	if not loader_holds(terrain.visible_nodes, terrain.pending_tiles, airports.busy(), _air_t, blocked):
 		BusyOverlay.dismiss(get_tree())
 		_air_wait = false
 		return
@@ -281,10 +283,12 @@ func _airfield_wait(dt: float) -> void:
 		veil.set_status("Loading the airfield…  %d%%" % _load_percent())
 
 
+## Half the ground (shown nodes against those still waiting for a tile), half the runway meshes. Never goes back.
 func _load_percent() -> int:
-	var p := airports.progress()
-	if terrain.visible_nodes <= 0:
-		return int(round(minf(p, 0.99) * 70.0))
-	if airports.busy():
-		return int(round(70.0 + minf(p, 0.99) * 29.0))
-	return 100
+	_load_pct = maxi(_load_pct, load_percent(terrain.visible_nodes, terrain.pending_tiles, airports.progress()))
+	return _load_pct
+
+
+static func load_percent(nodes: int, pending: int, airport_progress: float) -> int:
+	var ground := 0.0 if nodes <= 0 else float(nodes) / float(nodes + maxi(pending, 0))
+	return int(round(minf(0.5 * ground + 0.5 * clampf(airport_progress, 0.0, 1.0), 0.99) * 100.0))
