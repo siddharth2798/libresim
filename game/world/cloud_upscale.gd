@@ -77,7 +77,7 @@ func _temporal(cam: Camera3D, scale: int, full: Vector2i, depth: Texture2DRD) ->
 	layer.set_screen_draw(false)
 	_blit.visible = true
 	layer._mat.set_shader_parameter("use_scene_depth", 1.0)
-	layer._mat.set_shader_parameter("march_jitter", CloudTemporal.jitter_uv(_frame, scale, Vector2(full)))
+	layer._mat.set_shader_parameter("march_jitter", CloudTemporal.march_jitter(_frame, scale, Vector2(full)))
 	layer._mat.set_shader_parameter("depth_flip", CloudDepthCopy.FLIP)
 	layer._mat.set_shader_parameter("scene_depth", depth)
 	_frame += 1
@@ -112,6 +112,10 @@ func _temporal(cam: Camera3D, scale: int, full: Vector2i, depth: Texture2DRD) ->
 	_blit_mat.set_shader_parameter("blit", 1.0)
 	_blit_mat.set_shader_parameter("block", scale)
 	_blit_mat.set_shader_parameter("accum_tex", dest.get_texture())
+	var thick = layer._mat.get_shader_parameter("cloud_thick")
+	var clear := CloudTemporal.clear_dist(cam.global_position.y, layer.base, float(thick) if thick != null else 900.0)
+	_accum_mat.set_shader_parameter("clear_m", clear)
+	_blit_mat.set_shader_parameter("clear_m", clear)
 	_write = 1 - _write
 
 

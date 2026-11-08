@@ -11,6 +11,10 @@ const CUT_JUMP_M := 50.0
 const CUT_TURN_RAD := 20.0 * PI / 180.0
 const WEIGHT_HALF := 0.15 # share of this frame's march; the rest is reprojected history
 const WEIGHT_QUARTER := 0.10
+## Sub-texel jitter of the low-res march. Off: on a depth edge (the horizon, a windshield frame against the sky)
+## each frame's jittered texel fell on the other side of the edge, and the edge blinked. Clouds are soft, so the
+## history blend without jitter loses little detail.
+const MARCH_JITTER := false
 
 
 ## 1 full, 2 half, 4 quarter. The march viewport is this many times smaller on each axis.
@@ -47,6 +51,21 @@ static func jitter_uv(frame: int, scale: int, view_px: Vector2) -> Vector2:
 	var i := posmod(frame, 16)
 	var j := Vector2(_halton(i, 2) - 0.5, _halton(i, 3) - 0.5)
 	return Vector2(j.x * float(scale) / view_px.x, j.y * float(scale) / view_px.y)
+
+
+## The jitter the low-res march uses this frame: jitter_uv when MARCH_JITTER, else none.
+static func march_jitter(frame: int, scale: int, view_px: Vector2) -> Vector2:
+	return jitter_uv(frame, scale, view_px) if MARCH_JITTER else Vector2.ZERO
+
+
+## Metres from the camera to the cloud slab (0 inside it). A surface nearer than this is in front of every cloud,
+## so the upscale draws no cloud on it: the windshield frame and the aircraft never pick up low-res sky blocks.
+static func clear_dist(cam_alt_m: float, base_m: float, thick_m: float) -> float:
+	if cam_alt_m < base_m:
+		return base_m - cam_alt_m
+	if cam_alt_m > base_m + thick_m:
+		return cam_alt_m - base_m - thick_m
+	return 0.0
 
 
 ## Current view-space point (camera looks down -Z) to the previous frame's screen UV.

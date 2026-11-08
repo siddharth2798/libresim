@@ -90,10 +90,9 @@ static func _draw(host: Node, mat: ShaderMaterial, size: Vector2i) -> Image:
 	vp.add_user_signal("drawn", [{"name": "ok", "type": TYPE_BOOL}])
 	RenderingServer.frame_post_draw.connect(vp.emit_signal.bind("drawn", true), CONNECT_ONE_SHOT)
 	vp.tree_exiting.connect(vp.emit_signal.bind("drawn", false), CONNECT_ONE_SHOT)
-	var drop := func() -> void:
-		if is_instance_valid(vp):
-			vp.queue_free()
-	host.tree_exiting.connect(drop, CONNECT_ONE_SHOT)
+	# A method of vp, not a lambda capturing it: Godot drops this connection when vp is freed. A lambda stayed
+	# connected after vp was freed and logged "Lambda capture at index 0 was freed" when host left the tree.
+	host.tree_exiting.connect(vp.queue_free, CONNECT_ONE_SHOT)
 	var ok: bool = await Signal(vp, "drawn")
 	if not ok:
 		if is_instance_valid(host):
