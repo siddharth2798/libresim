@@ -65,7 +65,7 @@ IN[27]="tools/27_pavement.py tools/pavement_raster.py tools/road_raster.py";  DE
 OUT[17]="data/processed/terrain/fixups.json"   # airport fixups: levelled sites, apron + stand ground, taxiway ground, no water/trees on airfields
 IN[17]="tools/17_airport_fixups.py tools/airport_fixups_io.py tools/apron_flatten.py";  DEP[17]="02 04 05 11 12 13 15"  # not 09: it re-runs after 17
 OUT[13]="data/processed/airport_ops.json"
-IN[13]="tools/13_airport_ops.py tools/jetway_net.py tools/jetway_footprints.py";  DEP[13]="04 05"
+IN[13]="tools/13_airport_ops.py tools/jetway_net.py tools/jetway_footprints.py tools/stand_aim.py tools/stand_geom.py tools/stand_links.py tools/stand_remote.py tools/airport_stands.py";  DEP[13]="04 05"
 OUT[14]="data/processed/ils.json"
 IN[14]="tools/14_ils.py";  DEP[14]="09"
 OUT[15]="data/processed/terminals/VABB.json"

@@ -122,8 +122,8 @@ $PY tools/19_worldcover.py         # -> terrain/wc/ ESA WorldCover 2021 v200 cla
                                    #   The terrain shader varies the ground per class; without wc/ the ground looks as before. Credit: CREDITS.md
 $PY tools/13_airport_ops.py        # -> airport_ops.json: stands, gates, jetbridges, hold points, taxi graph; ~35 s
                                    #   stand_geom / stand_links / stand_remote / airport_stands.py derive airliner stands where OSM maps jet bridges but
-                                   #   no stands (Kochi, Kannur). ./run.sh re-runs 13 when 13_airport_ops.py changes; after editing a stand_*.py or
-                                   #   airport_stands.py run 13 by hand (or --force-step=13).
+                                   #   no stands (Kochi, Kannur). ./run.sh re-runs 13 when 13_airport_ops.py, a stand_*.py or
+                                   #   airport_stands.py changes (or --force-step=13).
                                    #   jetway_net.py splits each OSM jet-bridge network into movable bridges and fixed links ("jetlinks") that run 2 m
                                    #   into the terminal wall; `python tools/jetway_net.py` re-does only that, in place.
                                    #   stand_aim.py then points an OSM jetbridge stand at the bridge that can meet its left door
@@ -616,11 +616,9 @@ cd game
 ~/.local/bin/godot --headless --path . res://tests/run_tests.tscn -- --suite=test_replay  # suite files whose name contains this
 ```
 
-The runner prints PASS/FAIL per test and exits non-zero on failure. The run must end without "ObjectDB instances leaked" / "resources still in use at exit" (the e2e "no script errors" check fails on them): a test that builds a Node must free it, and a callback that captures `self` makes a reference cycle. `-- --leaks` lists the tests that leave orphan nodes.
-
-Known failures (recorded 2026-11-08, not yet fixed):
-- `test_input_joystick_unbound_releases` ("axis still owned with no pad connected"): fails on its own as well.
-- `test_jetway_docked_hood_on_the_door_and_bridges_dock` ("only 31 VABB jet-bridge gates dock an A320"): fails only in the full run; `-- --suite=jetway_dock` passes, so an earlier suite leaves state behind.
+The runner prints PASS/FAIL per test and exits non-zero on failure. The run must end without "ObjectDB instances leaked" / "resources still in use at exit" (the e2e "no script errors" check fails on them): a test that builds a Node must free it, and a callback that captures `self` makes a reference cycle. `-- --leaks` lists the tests that leave orphan nodes. A pad plugged in is seen by the headless run too, so a test of
+"no pad" fakes it (`fake_axes` / `fake_buttons` in `input/joystick_controls.gd`). The airport tests read data/processed: after
+pulling a change to tools/, run `./run.sh` (or `--setup-only`) before the suite.
 
 Main suites (many more are in `game/tests/`; each has a header):
 
