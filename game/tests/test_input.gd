@@ -121,8 +121,14 @@ func test_input_joystick_unbound_releases() -> String:
 	var j := JoystickControls.new()
 	j.table = InputBindings.defaults("gamepad")
 	j._rev = int(Props.get_v("input/bindings_rev", 0))
+	# Stand in for "no pad connected": a developer machine may have a real stick plugged in, and the
+	# headless run sees it. Every axis reports nothing and no button is held.
+	for a in InputBindings.AXES:
+		if a != "throttle_2":  # a faked throttle_2 means "lever 2 is bound" (joystick_controls.gd)
+			j.fake_axes[a] = null
+	j.fake_buttons = {"_no_pad": false}
 	j._own("pitch", true)
-	j._process(0.016)  # no pad connected in tests -> nothing owned, joystick inactive
+	j._process(0.016)  # no pad -> nothing owned, joystick inactive
 	var owner = Props.get_v("input/axis_owner/pitch", "")
 	var active := Props.get_b("controls/joystick_active")
 	j.free()

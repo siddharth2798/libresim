@@ -122,8 +122,8 @@ $PY tools/19_worldcover.py         # -> terrain/wc/ ESA WorldCover 2021 v200 cla
                                    #   The terrain shader varies the ground per class; without wc/ the ground looks as before. Credit: CREDITS.md
 $PY tools/13_airport_ops.py        # -> airport_ops.json: stands, gates, jetbridges, hold points, taxi graph; ~35 s
                                    #   stand_geom / stand_links / stand_remote / airport_stands.py derive airliner stands where OSM maps jet bridges but
-                                   #   no stands (Kochi, Kannur). ./run.sh re-runs 13 when 13_airport_ops.py changes; after editing a stand_*.py or
-                                   #   airport_stands.py run 13 by hand (or --force-step=13).
+                                   #   no stands (Kochi, Kannur). ./run.sh re-runs 13 when 13_airport_ops.py, a stand_*.py or
+                                   #   airport_stands.py changes (or --force-step=13).
                                    #   jetway_net.py splits each OSM jet-bridge network into movable bridges and fixed links ("jetlinks") that run 2 m
                                    #   into the terminal wall; `python tools/jetway_net.py` re-does only that, in place.
                                    #   stand_aim.py then points an OSM jetbridge stand at the bridge that can meet its left door
@@ -616,7 +616,9 @@ cd game
 ~/.local/bin/godot --headless --path . res://tests/run_tests.tscn -- --suite=test_replay  # suite files whose name contains this
 ```
 
-The runner prints PASS/FAIL per test and exits non-zero on failure. The run must end without "ObjectDB instances leaked" / "resources still in use at exit" (the e2e "no script errors" check fails on them): a test that builds a Node must free it, and a callback that captures `self` makes a reference cycle. `-- --leaks` lists the tests that leave orphan nodes.
+The runner prints PASS/FAIL per test and exits non-zero on failure. The run must end without "ObjectDB instances leaked" / "resources still in use at exit" (the e2e "no script errors" check fails on them): a test that builds a Node must free it, and a callback that captures `self` makes a reference cycle. `-- --leaks` lists the tests that leave orphan nodes. A pad plugged in is seen by the headless run too, so a test of
+"no pad" fakes it (`fake_axes` / `fake_buttons` in `input/joystick_controls.gd`). The airport tests read data/processed: after
+pulling a change to tools/, run `./run.sh` (or `--setup-only`) before the suite.
 
 Main suites (many more are in `game/tests/`; each has a header):
 
@@ -975,7 +977,8 @@ flatpak run org.freesim.FreeSim
 | Max | Forward+ | not measured | 125 % supersampling + MSAA 4×, SSAO, SSIL, SSR, TAA | 6 km, 4 cascades, atlas 8192 | 16 km / 4 km (tree meshes 250 m) | 64 (4) |
 
 (FPS figures are from before the cascaded shadows and Forward+ and have not been re-measured.)
-- On an Apple Silicon Mac the running preset is tightened for the framebuffer (`core/render_budget.gd`): the 3D image stays near 1.6 million pixels, MSAA is off (FXAA stays), cloud steps cap at 10 with one light sample, the shadow map is at most 2048 and 500 m, and near tree meshes stop at 60 m. The preset you picked is unchanged in the menus; a headless run does not apply this. The Thrustmaster Captain Pack is two pads, and each bound axis reads that list once a frame (`input/joy_pads.gd`) rather than asking for every control.
+- **Render resolution** (Options > Graphics, `ui/menu/resolution_row.gd`, `core/render_resolution.gd`): Auto, or a fixed size listed for the screen the window is on (native, 2560×1440, 1920×1080, 1280×720 ... in the screen's own shape, each with its share of the frame). Only the 3D world is drawn at that size; the window, menus and HUD stay native, and below native Forward+ upscales with FSR2. Saved in `graphics.cfg` as a share of the frame height (`render_frac`, 0 = Auto), so it carries to another display. When the window moves to another screen or is resized, the sim applies the settings again within a second and the list rebuilds.
+- On a base Apple Silicon chip (an M-series without Pro, Max or Ultra) the running preset is tightened for the framebuffer (`core/render_budget.gd`): the 3D image stays near 1.6 million pixels but never below 70 % of the frame, upscaled with FSR2 on Forward+, MSAA is off (FXAA stays on), cloud steps cap at 10 with one light sample, the shadow map is at most 2048 and 500 m, and near tree meshes stop at 60 m. The preset you picked is unchanged in the menus; a headless run does not apply this. The Thrustmaster Captain Pack is two pads, and each bound axis reads that list once a frame (`input/joy_pads.gd`) rather than asking for every control.
 - Each preset names its renderer (`core/graphics_settings.gd`, `renderer` key). Low and Medium run on Mobile (fastest on integrated GPUs); High, Ultra, Max on Forward+, the project default. Picking a preset on the other renderer writes `override.cfg` (git-ignored), and Options and F10 show "Restart libresim to apply". The F10 Renderer toggle overrides this until the next preset change. On the first start without `override.cfg`, a saved Low / Medium preset writes Mobile. A `--quality=<preset>` run never saves a renderer (it is a one-off: add `--rendering-method mobile` or `forward_plus` for that run), and tests and probes never write the file; only a normal run that picks a preset or uses the renderer toggle does. Delete `game/override.cfg` to go back to the project default.
 - Forward+ adds SSAO (High+), SSR on water and wet runways plus TAA (Ultra+), SSIL (Max), FSR2 below render scale 1 (Mobile stays bilinear; it has no FSR), and more real apron floodlight lamps (2 / 4 on Low / Medium (Mobile: never more than 4), 10 / 16 / 24 on High / Ultra / Max).
 - Every preset sets the sun shadow atlas size and the soft-shadow filter quality at run time. Anisotropic filtering is 16× (project setting). Clouds take `cloud_light` light samples per step (`CloudLayer.light_steps`).

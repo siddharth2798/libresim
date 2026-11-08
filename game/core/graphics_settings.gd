@@ -38,6 +38,10 @@ const CFG := "user://graphics.cfg"
 const OVERRIDE := "override.cfg"
 
 var preset := "high"
+## Render resolution as a fraction of the frame height (core/render_resolution.gd); 0 = Auto.
+var render_frac := 0.0
+var _watch := {}  # screen, window size and 3D scale at the last apply (screen changes re-apply)
+var _watch_t := 0.0
 ## Renderer saved to override.cfg for the next start ("" = none saved in this run).
 var _pending_renderer := ""
 ## --quality=<preset> is a one-off for this run: it never saves a renderer (pass --rendering-method for one).
@@ -49,12 +53,15 @@ var _atlas := [-1, -1, -1]  # last atlas size / soft qualities sent to the Rende
 signal changed(preset: String)
 ## The renderer saved for the next start differs from the running one (or matches it again).
 signal restart_needed_changed(needed: bool)
+## The window moved to another screen or changed size (the resolution list should rebuild).
+signal screen_changed
 
 
 func _ready() -> void:
 	var cf := ConfigFile.new()
 	if cf.load(CFG) == OK:
 		preset = cf.get_value("graphics", "preset", preset)
+		render_frac = float(cf.get_value("graphics", "render_frac", 0.0))
 	for a in OS.get_cmdline_user_args():
 		if a.begins_with("--quality="):
 			preset = a.substr(10).to_lower()
@@ -90,15 +97,64 @@ func set_preset(p: String) -> void:
 		return
 	preset = p
 	if Session.interactive():
-		var cf := ConfigFile.new()
-		cf.set_value("graphics", "preset", p)
-		cf.save(CFG)
+		_save()
 		var want := preset_renderer(p)
 		# Also rewrite when going back to the running renderer, so a pending switch is cancelled.
 		if want != renderer() or _pending_renderer != "":
 			set_renderer(want)
 	apply_to_scene(get_tree().current_scene)
 	changed.emit(p)
+
+
+## Render resolution: a fraction of the frame height (RenderResolution), 0 = Auto. Applies at once.
+func set_render_frac(f: float) -> void:
+	render_frac = maxf(f, 0.0)
+	if Session.interactive():
+		_save()
+	apply_to_scene(get_tree().current_scene)
+	changed.emit(preset)
+
+
+func _save() -> void:
+	var cf := ConfigFile.new()
+	cf.load(CFG)
+	cf.set_value("graphics", "preset", preset)
+	cf.set_value("graphics", "render_frac", render_frac)
+	cf.save(CFG)
+
+
+## The window framebuffer in pixels (what "native" means in the resolution list).
+func frame() -> Vector2i:
+	return RenderBudget.frame_pixels(get_tree().root)
+
+
+## The preset as it runs here: the Apple budget (Auto), then the player's resolution choice.
+## Headless runs (tests) keep the preset numbers.
+func spec_for(pixels: Vector2i) -> Dictionary:
+	var s: Dictionary = PRESETS[preset]
+	if DisplayServer.get_name() == "headless":
+		return s
+	s = RenderBudget.clamp_preset(s, pixels, RenderBudget.apple_silicon())
+	return RenderResolution.apply(s, render_frac)
+
+
+## A window moved to another screen, a display plugged in, or a resize: once it has settled, apply again so
+## Auto and the resolution list fit the new frame. Checked once a second.
+func _process(dt: float) -> void:
+	_watch_t += dt
+	if _watch_t < 1.0 or DisplayServer.get_name() == "headless":
+		return
+	_watch_t = 0.0
+	var now := _watch_key()
+	if not _watch.is_empty() and now != _watch and get_tree().current_scene:
+		apply_to_scene(get_tree().current_scene)
+		screen_changed.emit()
+	_watch = now
+
+
+func _watch_key() -> Dictionary:
+	var sc := DisplayServer.window_get_current_screen()
+	return {"screen": sc, "size": DisplayServer.screen_get_size(sc), "win": DisplayServer.window_get_size()}
 
 
 ## Persist a renderer choice ("mobile" or "forward_plus"); takes effect on restart. Also the manual
@@ -141,9 +197,9 @@ func _match_renderer_once() -> void:
 func apply_to_scene(root: Node) -> void:
 	if root == null:
 		return
-	var s: Dictionary = PRESETS[preset]
+	var s := spec_for(RenderBudget.frame_pixels(root.get_viewport()))
 	if DisplayServer.get_name() != "headless":
-		s = RenderBudget.clamp_preset(s, RenderBudget.frame_pixels(root.get_viewport()), RenderBudget.apple_silicon())
+		_watch = _watch_key()
 	var forward_plus := renderer() == "forward_plus"
 	_apply_shadow_atlas(s)
 	var vp := root.get_viewport()

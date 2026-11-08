@@ -48,6 +48,9 @@ func _ready() -> void:
 		_presets[p] = bt
 	_preset_note = MenuTheme.note(PRESET_NOTES.get(Graphics.preset, ""))
 	add_child(_preset_note)
+	var res := ResolutionRow.new()
+	res.changed.connect(func(): changed.emit())
+	add_child(res)
 	var rr := HBoxContainer.new()
 	rr.add_theme_constant_override("separation", 14)
 	add_child(rr)
