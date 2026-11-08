@@ -41,8 +41,8 @@
 			{"key": "stripe", "label": "Pin stripe", "default": [0.541, 0.545, 0.525], "masks": [{"atlas": "fuselage", "mask": "livery/fuselage_stripe.png", "luma": 0.513}, {"atlas": "tail", "mask": "livery/tail_stripe.png", "luma": 0.545}]},
 			{"key": "struts", "label": "Struts and gear legs", "default": [0.882, 0.882, 0.882], "masks": [{"atlas": "fuselage", "mask": "livery/fuselage_struts.png", "luma": 0.812}]}],
 		"stickers": [
-			{"key": "side", "label": "Fuselage side", "atlas": "fuselage", "box": [1680, 200, 160, 100], "mirror_box": [1680, 1280, 160, 100]},
-			{"key": "fin", "label": "Fin", "atlas": "tail", "box": [900, 330, 180, 120], "mirror_box": [180, 1160, 180, 120]}]
+			{"key": "side", "label": "Fuselage side", "atlas": "fuselage", "box": [1050, 215, 270, 190], "mirror_box": [560, 1315, 270, 190], "mirror_turn": 0},
+			{"key": "fin", "label": "Fin", "atlas": "tail", "box": [1080, 40, 280, 220], "mirror_box": [36, 870, 280, 220], "mirror_turn": 0}]
 	},
 	"start": {"pitch_trim": -0.05,
 		"air": {"alt_ft": 900, "dist_nm": 3.0, "kias": 70, "gear": "down", "flaps": 3,

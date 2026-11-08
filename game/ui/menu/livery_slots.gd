@@ -11,7 +11,10 @@ var _guard := false
 func bind(slots: Array, placed: Dictionary) -> void:
 	_guard = true
 	for c in get_children():
-		c.free()
+		# A button in this list may be the one emitting right now (Remove -> edited -> bind),
+		# so detach and free at end of frame, never mid-signal.
+		remove_child(c)
+		c.queue_free()
 	add_theme_constant_override("separation", 10)
 	for s in slots:
 		add_child(_block(s, placed.get(s.key, {})))

@@ -85,8 +85,8 @@
    {"key": "cheat", "label": "Cheat line", "default": [0.259, 0.322, 0.408], "masks": [{"atlas": "fuselage", "mask": "livery/fuselage_cheat.png", "luma": 0.315}]},
    {"key": "engines", "label": "Engines", "default": [1.0, 1.0, 1.0], "masks": [{"atlas": "engine", "mask": "livery/engine_engines.png", "luma": 0.974}]}],
   "stickers": [
-   {"key": "side", "label": "Fuselage side", "atlas": "fuselage", "box": [2305, 417, 120, 70], "mirror_box": [2216, 1284, 120, 70]},
-   {"key": "fin", "label": "Fin", "atlas": "fuselage", "box": [3780, 2028, 90, 80], "mirror_box": [3520, 2022, 90, 80]}]
+   {"key": "side", "label": "Fuselage side", "atlas": "fuselage", "box": [880, 434, 480, 106], "mirror_box": [880, 1245, 480, 106], "mirror_turn": 180},
+   {"key": "fin", "label": "Fin", "atlas": "fuselage", "box": [3630, 2150, 150, 150], "mirror_box": [3480, 1820, 220, 210], "mirror_turn": 0}]
  },
  "registration": {
   "source": "callsign",

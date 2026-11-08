@@ -201,6 +201,11 @@ static func _clear_overrides(glb_root: Node) -> void:
 			m.set_surface_override_material(i, null)
 
 
+## The glyph images the steps need, drawn into `glyphs` (the turntable stamps the number like a flight does).
+static func glyph_images(host: Node, text: String, steps: Array, glyphs: Dictionary) -> bool:
+	return await _glyphs(host, text, steps, glyphs)
+
+
 static func _glyphs(host: Node, text: String, steps: Array, glyphs: Dictionary) -> bool:
 	if not test_glyphs.is_valid():
 		return await RegistrationPaint.glyph_set(host, text, steps, glyphs)

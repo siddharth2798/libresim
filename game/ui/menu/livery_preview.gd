@@ -21,6 +21,11 @@ var _bases := {}
 var _shown := {}
 var _scratch := {}
 var _veil: BusyOverlay
+var _ground: MeshInstance3D
+var _glyphs := {}  # italic -> registration glyph image, for the number on the turntable
+var _text := ""
+const SUPERSAMPLE := 2.0
+const DEFAULT_ZOOM := 1.3
 const _ZOOM_MIN := 0.55
 const _ZOOM_MAX := 3.4
 const _Frame := preload("res://ui/menu/livery_frame.gd")
@@ -43,10 +48,16 @@ func _ready() -> void:
 	_view.own_world_3d = true
 	_view.render_target_update_mode = SubViewport.UPDATE_WHEN_VISIBLE
 	_view.msaa_3d = Viewport.MSAA_4X
+	_view.screen_space_aa = Viewport.SCREEN_SPACE_AA_FXAA
+	_view.anisotropic_filtering_level = Viewport.ANISOTROPY_16X
+	# Drawn at twice the size and shrunk to the panel: sharp edges, and sharp on a Retina screen where the
+	# panel's pixels are not the display's.
+	_view.scaling_3d_mode = Viewport.SCALING_3D_MODE_BILINEAR
+	_view.scaling_3d_scale = SUPERSAMPLE
 	_view.size = Vector2i(840, 720)
 	_view.add_child(_world())
-	_light(Vector3(-48, -36, 0), 1.25, Color(1.0, 0.97, 0.92))
-	_light(Vector3(24, 150, 0), 0.42, Color(0.78, 0.86, 1.0))
+	_light(Vector3(-52, -38, 0), 1.0, Color(1.0, 0.97, 0.92), true)
+	_light(Vector3(-20, 140, 0), 0.32, Color(0.8, 0.88, 1.0), false)
 	_holder = Node3D.new()
 	_view.add_child(_holder)
 	_cam = Camera3D.new()
@@ -109,7 +120,7 @@ func face(part: String) -> void:
 		_:
 			_yaw = -0.62
 			_pitch = 0.22
-			_zoom = 1.0
+			_zoom = DEFAULT_ZOOM
 	_apply_camera()
 
 func zoom_by(factor: float) -> void:
@@ -162,7 +173,8 @@ func _pump() -> void:
 
 
 func _repaint() -> void:
-	var jobs: Array = PaintPipeline.plan(_def, "", _stored)
+	_text = RegistrationPaint.text_for(_def.section("registration"))
+	var jobs: Array = PaintPipeline.plan(_def, _text, _stored)
 	var missing := false
 	for a in jobs:
 		if not _fresh(a):
@@ -180,6 +192,10 @@ func _repaint() -> void:
 		var img: Image = await PaintPipeline.preview_base(self, _def, job)
 		if img != null:
 			_bases[job.rel] = {"key": _key(job), "image": img}
+		if not job.steps.is_empty():
+			await PaintPipeline.glyph_images(self, _text, job.steps, _glyphs)
+			if not is_instance_valid(self):
+				return
 	if _veil != null:
 		_veil.hide_busy()
 	if is_instance_valid(_root):
@@ -220,6 +236,8 @@ func _blit(jobs: Array) -> void:
 		var stickers: Array = job.get("stickers", [])
 		if not stickers.is_empty():
 			LiveryStickers.stamp(scratch, stickers)
+		if not job.steps.is_empty() and _glyphs.size() > 0:
+			RegistrationPaint.stamp_steps(scratch, job.steps, _glyphs)
 		_Paint.assign(_root, str(job.path), ImageTexture.create_from_image(_Paint.for_screen(scratch)))
 		_shown[job.rel] = true
 	if jobs.is_empty() and not _shown.is_empty():
@@ -241,10 +259,12 @@ func _frame() -> void:
 	if not any:
 		return
 	_holder.position = -aabb.get_center()
+	if _ground != null:
+		_ground.position = Vector3(0, -aabb.size.y * 0.5 - 0.03, 0)
 	_bounds = AABB(-aabb.size * 0.5, aabb.size)
 	_yaw = -0.62
 	_pitch = 0.22
-	_zoom = 1.0
+	_zoom = DEFAULT_ZOOM
 	_fit_viewport()
 
 
@@ -277,23 +297,54 @@ func _apply_camera() -> void:
 	_cam.look_at(Vector3.ZERO, Vector3.UP)
 
 
-func _world() -> WorldEnvironment:
+func _world() -> Node3D:
+	# A soft studio sky: the paint is lit from above and reflects a horizon, not a flat grey. Linear tone mapping keeps
+	# the colour the pilot picked (AgX and Filmic fade a saturated red or blue towards pink and grey).
+	var sky_mat := ProceduralSkyMaterial.new()
+	sky_mat.sky_top_color = Color(0.36, 0.52, 0.78)
+	sky_mat.sky_horizon_color = Color(0.80, 0.85, 0.92)
+	sky_mat.ground_horizon_color = Color(0.80, 0.85, 0.92)
+	sky_mat.ground_bottom_color = Color(0.22, 0.23, 0.25)
+	sky_mat.sun_angle_max = 0.0
+	var sky := Sky.new()
+	sky.sky_material = sky_mat
 	var env := Environment.new()
-	env.background_mode = Environment.BG_COLOR
-	env.background_color = Color(0.10, 0.12, 0.16)
-	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-	env.ambient_light_color = Color(0.62, 0.68, 0.76)
-	env.ambient_light_energy = 0.7
-	env.tonemap_mode = Environment.TONE_MAPPER_AGX
+	env.background_mode = Environment.BG_SKY
+	env.sky = sky
+	env.ambient_light_source = Environment.AMBIENT_SOURCE_SKY
+	env.ambient_light_energy = 0.55
+	env.reflected_light_source = Environment.REFLECTION_SOURCE_SKY
+	env.fog_enabled = true  # the far edge of the ground melts into the horizon, no seam
+	env.fog_mode = Environment.FOG_MODE_DEPTH
+	env.fog_depth_begin = 160.0
+	env.fog_depth_end = 800.0
+	env.fog_light_color = sky_mat.sky_horizon_color
+	env.tonemap_mode = Environment.TONE_MAPPER_LINEAR
+	env.tonemap_exposure = 1.0
+	var root := Node3D.new()
 	var world := WorldEnvironment.new()
 	world.environment = env
-	return world
+	root.add_child(world)
+	_ground = MeshInstance3D.new()
+	var disc := CylinderMesh.new()
+	disc.top_radius = 900.0
+	disc.bottom_radius = 900.0
+	disc.height = 0.05
+	_ground.mesh = disc
+	var gm := StandardMaterial3D.new()
+	gm.albedo_color = Color(0.46, 0.48, 0.5)
+	gm.roughness = 0.95
+	_ground.material_override = gm
+	root.add_child(_ground)
+	return root
 
 
-func _light(rot: Vector3, energy: float, col: Color) -> void:
+func _light(rot: Vector3, energy: float, col: Color, shadows: bool) -> void:
 	var sun := DirectionalLight3D.new()
 	sun.rotation_degrees = rot
 	sun.light_energy = energy
 	sun.light_color = col
-	sun.shadow_enabled = false
+	sun.shadow_enabled = shadows
+	sun.directional_shadow_max_distance = 60.0
+	sun.shadow_blur = 1.6
 	_view.add_child(sun)

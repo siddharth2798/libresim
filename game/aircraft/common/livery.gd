@@ -59,7 +59,9 @@ static func _region(out: Dictionary, seen: Dictionary, r: Variant) -> void:
 	out.regions.append({"key": r.key, "label": str(r.get("label", r.key)), "default": Color(d[0], d[1], d[2]), "masks": masks})
 
 
-## Fixed picture slots: [{key, label, atlas, box [x,y,w,h], mirror_box?}]. A bad box or an unknown atlas is dropped.
+## Fixed picture slots: [{key, label, atlas, box [x,y,w,h], mirror_box?, mirror_turn}]. A bad box or an unknown atlas is dropped.
+## mirror_turn (0 or 180, default 0): how the atlas lays the other side out. 0 = the strip is reflected left to right (the
+## picture reads upright as it is); 180 = the strip is turned half a round (the picture is turned with it).
 static func _slots(section: Dictionary, atlases: Dictionary) -> Array:
 	var raw = section.get("stickers")
 	if not raw is Array:
@@ -78,6 +80,7 @@ static func _slots(section: Dictionary, atlases: Dictionary) -> Array:
 		var mirror := _box(s.get("mirror_box"))
 		if not mirror.is_empty():
 			slot["mirror_box"] = mirror
+			slot["mirror_turn"] = 180 if int(s.get("mirror_turn", 0)) == 180 else 0
 		seen[s.key] = true
 		out.append(slot)
 	return out

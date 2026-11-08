@@ -51,13 +51,20 @@ static func placed(lv: Dictionary, stored: Variant) -> Array:
 
 
 ## Where the picture sits. `rect` is inside box; `mirror` is inside mirror_box (empty when there is none).
-## dx -1 is the left of the slack, +1 the right; the mirror uses -dx so the two sides match.
+## dx -1 is the left of the slack, +1 the right. The other side is put at the same place on the aircraft (see mirror_turn).
 static func fit(iw: int, ih: int, slot: Dictionary) -> Dictionary:
-	var rect := _contain(iw, ih, _rect(slot.box), float(slot.get("scale", 1.0)), float(slot.get("dx", 0.0)), float(slot.get("dy", 0.0)))
+	var dx := float(slot.get("dx", 0.0))
+	var dy := float(slot.get("dy", 0.0))
+	var rect := _contain(iw, ih, _rect(slot.box), float(slot.get("scale", 1.0)), dx, dy)
 	var mirror := Rect2()
 	if slot.has("mirror_box"):
-		mirror = _contain(iw, ih, _rect(slot.mirror_box), float(slot.get("scale", 1.0)), -float(slot.get("dx", 0.0)), float(slot.get("dy", 0.0)))
+		var turned := turn_of(slot) == 180
+		mirror = _contain(iw, ih, _rect(slot.mirror_box), float(slot.get("scale", 1.0)), dx if turned else -dx, -dy if turned else dy)
 	return {"rect": rect, "mirror": mirror}
+
+
+static func turn_of(slot: Dictionary) -> int:
+	return 180 if int(slot.get("mirror_turn", 0)) == 180 else 0
 
 
 static func _rect(b: Array) -> Rect2:
@@ -95,12 +102,12 @@ static func stamp(atlas: Image, slots: Array) -> void:
 		if img == null:
 			continue
 		var where: Dictionary = fit(img.get_width(), img.get_height(), s)
-		_blit(atlas, img, where.rect, false)
+		_blit(atlas, img, where.rect, 0)
 		if s.get("mirror", false):
-			_blit(atlas, img, where.mirror, true)
+			_blit(atlas, img, where.mirror, turn_of(s))
 
 
-static func _blit(atlas: Image, img: Image, rect: Rect2, flip: bool) -> void:
+static func _blit(atlas: Image, img: Image, rect: Rect2, turn: int) -> void:
 	var dw := maxi(1, int(floor(rect.size.x)))
 	var dh := maxi(1, int(floor(rect.size.y)))
 	var x := int(floor(rect.position.x))
@@ -110,7 +117,7 @@ static func _blit(atlas: Image, img: Image, rect: Rect2, flip: bool) -> void:
 	var copy := img.duplicate()
 	if copy.get_format() != Image.FORMAT_RGBA8:
 		copy.convert(Image.FORMAT_RGBA8)
-	if flip:
-		copy.flip_x()
+	if turn == 180:
+		copy.rotate_180()
 	copy.resize(dw, dh, Image.INTERPOLATE_LANCZOS)
 	atlas.blend_rect(copy, Rect2i(0, 0, dw, dh), Vector2i(x, y))

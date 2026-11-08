@@ -96,9 +96,9 @@ func test_livery_sticker_lands_inside_its_box_and_mirrors() -> String:
 	atlas.fill(Color.BLACK)
 	LiveryStickers.stamp(atlas, [slot.merged({"image": name}, true)])
 	var left := atlas.get_pixel(int(where.rect.position.x) + 2, int(where.rect.position.y) + 2)
-	var flipped := atlas.get_pixel(int(where.mirror.position.x) + 2, int(where.mirror.position.y) + 2)
-	if left.g < 0.5 or flipped.r < 0.5:
-		return "picture %s, mirror %s (mirror should be the flipped side)" % [left, flipped]
+	var other := atlas.get_pixel(int(where.mirror.position.x) + 2, int(where.mirror.position.y) + 2)
+	if left.g < 0.5 or other.g < 0.5:
+		return "picture %s, other side %s (the other side reads the same way up, never flipped)" % [left, other]
 	if atlas.get_pixel(0, 0) != Color.BLACK:
 		return "a pixel outside the slot was painted"
 	return ""

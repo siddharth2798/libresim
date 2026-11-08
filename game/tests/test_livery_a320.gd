@@ -157,7 +157,7 @@ func _expect(root: Node, tex: String, box: Array, kind: String, side: float) -> 
 	var mean := acc / pts.size()
 	var span := hi - lo
 	if kind == "side":
-		if absf(mean.z) < 1.5 or signf(mean.z) != side or span.x > 2.0 or span.y > 1.5:
+		if absf(mean.z) < 1.5 or signf(mean.z) != side or span.x > 3.0 or span.y > 1.5:
 			return "fuselage side %s is not a patch on the tube: mean %s span %s" % [box, mean, span]
 	elif mean.x < 13.0 or mean.y < 3.0 or signf(mean.z) != side or span.x > 1.6 or span.y > 1.6:
 		return "fin %s is not a patch on one side of the fin: mean %s span %s" % [box, mean, span]
