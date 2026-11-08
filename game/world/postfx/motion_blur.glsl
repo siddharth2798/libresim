@@ -25,7 +25,7 @@ layout(push_constant, std430) uniform Params {
 	float scale;        // blur length per unit of per-frame motion (shutter, frame-time normalised)
 	float max_px;       // blur length cap in pixels
 	float samples;
-	float near_cut;     // m: no reprojection nearer than this
+	float near_cut;     // m: no reprojection nearer than this. Negative (cockpit view): nearer pixels never blur at all
 	float use_velocity; // 1 = Forward+ velocity buffer present
 	float flip_y;       // 1: texel row 0 is the top of the view (GL ndc y up)
 } pc;
@@ -74,8 +74,16 @@ void main() {
 	vec4 c0 = textureLod(color_tex, uv, 0.0);
 	float d = texelFetch(depth_tex, px, 0).r;
 	float dc = d <= 0.0 ? 1e9 : lin_depth(d);
+	float near_cut = abs(pc.near_cut);
+	bool rigid_near = pc.near_cut < 0.0;
+	if (rigid_near && dc < near_cut) {
+		// Cockpit view: the cockpit and the aircraft ride with the camera, so they do not move on screen. The velocity
+		// buffer is not trusted here: some frames it carried a whole frame of the aircraft's travel and smeared the panel.
+		imageStore(out_img, px, c0);
+		return;
+	}
 	vec2 vel = pc.use_velocity > 0.5 ? texelFetch(velocity_tex, px, 0).xy : vec2(0.0);
-	if (d <= 0.0 || (dot(vel, vel) == 0.0 && dc > pc.near_cut)) {
+	if (d <= 0.0 || (dot(vel, vel) == 0.0 && dc > near_cut)) {
 		vel = reproject(uv, d);
 	}
 	vec2 vpx = vel * pc.size * pc.scale;
@@ -99,7 +107,7 @@ void main() {
 		float ds = depth_at(suv);
 		float w = 1.0;
 		if (ds < dc - tol) {  // a nearer sample: only if its own motion covers this pixel
-			vec2 sv = pc.use_velocity > 0.5 ? textureLod(velocity_tex, suv, 0.0).xy : vec2(0.0);
+			vec2 sv = pc.use_velocity > 0.5 && !(rigid_near && ds < near_cut) ? textureLod(velocity_tex, suv, 0.0).xy : vec2(0.0);
 			w = step(abs(t) * len, length(sv * pc.size * pc.scale));
 		}
 		acc += w * textureLod(color_tex, suv, 0.0);

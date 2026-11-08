@@ -22,14 +22,15 @@ var _spin := 0.0
 
 
 func _ready() -> void:
-	set_anchors_preset(PRESET_FULL_RECT)
+	# Anchors AND offsets: a veil built in code under a CanvasLayer kept its 0 x 0 offsets and never drew.
+	set_anchors_and_offsets_preset(PRESET_FULL_RECT)
 	mouse_filter = MOUSE_FILTER_IGNORE
 	visible = false
 	add_to_group(GROUP)
 	_film = LoaderFilm.new()
 	add_child(_film)
 	_scrim = TextureRect.new()
-	_scrim.set_anchors_preset(PRESET_BOTTOM_WIDE)
+	_scrim.set_anchors_and_offsets_preset(PRESET_BOTTOM_WIDE)
 	_scrim.offset_top = -280.0
 	_scrim.mouse_filter = MOUSE_FILTER_IGNORE
 	_scrim.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
@@ -39,11 +40,11 @@ func _ready() -> void:
 	add_child(_scrim)
 	_dim = ColorRect.new()
 	_dim.color = Color(0.02, 0.03, 0.05, 0.72)
-	_dim.set_anchors_preset(PRESET_FULL_RECT)
+	_dim.set_anchors_and_offsets_preset(PRESET_FULL_RECT)
 	_dim.mouse_filter = MOUSE_FILTER_IGNORE
 	add_child(_dim)
 	_center = CenterContainer.new()
-	_center.set_anchors_preset(PRESET_FULL_RECT)
+	_center.set_anchors_and_offsets_preset(PRESET_FULL_RECT)
 	_center.mouse_filter = MOUSE_FILTER_IGNORE
 	add_child(_center)
 	var box := VBoxContainer.new()
@@ -105,7 +106,7 @@ func show_busy(text: String, scenic: bool = false, aircraft: String = "", airpor
 		_place.visible = _scenic
 	if _center != null:
 		if _scenic:
-			_center.set_anchors_preset(PRESET_BOTTOM_WIDE)
+			_center.set_anchors_and_offsets_preset(PRESET_BOTTOM_WIDE)
 			_center.offset_top = -176.0
 			_center.offset_bottom = -44.0
 		else:

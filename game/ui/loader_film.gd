@@ -32,7 +32,7 @@ static func available() -> bool:
 
 
 func _ready() -> void:
-	set_anchors_preset(PRESET_FULL_RECT)
+	set_anchors_and_offsets_preset(PRESET_FULL_RECT)
 	expand_mode = EXPAND_IGNORE_SIZE
 	stretch_mode = STRETCH_KEEP_ASPECT_COVERED
 	mouse_filter = MOUSE_FILTER_IGNORE

@@ -3,8 +3,11 @@ extends Node
 ## then saves a burst of consecutive frames and a few spaced ones, so a diff shows what blinks from frame to frame.
 ## Needs a display. Run:
 ##   godot --path game --resolution 1920x1080 res://tests/debug_flicker.tscn -- --out=<dir> [--setup=<json>]
-##       [--view=cockpit] [--wait=25] [--burst=12] [--spaced=6] [--spacing=0.25] [--roll=<s>]
+##       [--view=cockpit] [--wait=25] [--burst=12] [--spaced=6] [--spacing=0.25] [--roll=<s>] [--opt=<key>:<on|off>]
+##       [--air=<kt>:<ft>]
 ## --roll=<s>: full thrust and brakes off this many seconds before the burst, to see the picture while moving.
+## --opt: a UserOptions switch for this run only (kept in memory), e.g. --opt=motion_blur:off.
+## --air: start in the air at that speed and height (after --setup), e.g. --air=280:2000.
 ## Writes <dir>/burst_NN.png (one per rendered frame) and <dir>/spaced_NN.png, then quits.
 
 var _out := ""
@@ -21,6 +24,7 @@ var _next := 0.0
 
 func _ready() -> void:
 	var view := "cockpit"
+	var air := []
 	for a in OS.get_cmdline_user_args():
 		var kv := a.trim_prefix("--").split("=", true, 1)
 		if kv.size() < 2:
@@ -33,11 +37,24 @@ func _ready() -> void:
 			"spacing": _spacing = float(kv[1])
 			"view": view = kv[1]
 			"roll": _roll = float(kv[1])
+			"opt":
+				var o := kv[1].split(":")
+				Session.interactive_override = 0
+				UserOptions.set_v(o[0], o[1] == "on")
+			"air":
+				var a2 := kv[1].split(":")
+				air = [float(a2[0]), float(a2[1])]
 			"setup":
 				var d = JSON.parse_string(FileAccess.get_file_as_string(kv[1]))
 				for k in d:
 					if Session.setup.has(k):
 						Session.setup[k] = d[k]
+	if not air.is_empty():
+		Session.setup.start = "air"
+		Session.setup.air_kt = air[0]
+		Session.setup.air_kt_given = true
+		Session.setup.air_ft = air[1]
+		Session.setup.air_custom = true
 	Session.view = view
 	DirAccess.make_dir_recursive_absolute(_out)
 	add_child(load("res://world/flight.tscn").instantiate())
