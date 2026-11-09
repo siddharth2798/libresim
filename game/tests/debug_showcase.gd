@@ -18,6 +18,7 @@ const JetwayScenes := preload("res://tests/showcase_jetway_scenes.gd")
 const FlybyScenes := preload("res://tests/showcase_flyby_scenes.gd")
 const FogScenes := preload("res://tests/showcase_fog_scenes.gd")
 const TerminalScenes := preload("res://tests/showcase_terminal_scenes.gd")
+const FilmScenes := preload("res://tests/showcase_film_scenes.gd")
 const Setup := preload("res://tests/showcase_setup.gd")
 const Views := preload("res://tests/showcase_views.gd")
 const Aim := preload("res://tests/showcase_camera.gd")
@@ -25,7 +26,7 @@ const Stream := preload("res://tests/showcase_stream.gd")
 const FLIGHT := "res://world/flight.tscn"
 
 var f: Node  # the flight scene
-var _all: Dictionary = Scenes.SCENES.merged(CloudScenes.scenes()).merged(LightScenes.scenes()).merged(VehicleScenes.scenes()).merged(JetwayScenes.scenes()).merged(FlybyScenes.scenes()).merged(FogScenes.scenes()).merged(TerminalScenes.scenes())  # every scene by name
+var _all: Dictionary = Scenes.SCENES.merged(CloudScenes.scenes()).merged(LightScenes.scenes()).merged(VehicleScenes.scenes()).merged(JetwayScenes.scenes()).merged(FlybyScenes.scenes()).merged(FogScenes.scenes()).merged(TerminalScenes.scenes()).merged(FilmScenes.scenes())  # every scene by name
 var _out := ""
 var _name := ""
 var _fov := 0.0  # free-camera field of view override (degrees), 0 = the rig's own
@@ -39,7 +40,8 @@ var landing_pilot := false
 var _prop_deg := -1.0  # fixed propeller angle (degrees), -1 = let it turn
 var _bench := 0.0  # --bench=<s>: measure frame times this long before the shot (tools/bench.sh)
 var _film := 0.0  # --film=<s>: after the shot settles, save a short camera move as JPEGs (loader clips)
-var _film_fps := 15
+var _film_fps := 24  # run with --fixed-fps at the same rate: each saved frame is then exactly 1 / fps of game time
+var _film_w := 1600  # saved frame width (px)
 
 
 func _ready() -> void:
@@ -158,7 +160,15 @@ func _flight(def: Dictionary) -> void:
 		await wait(2.0)  # camera easing, cloud and shader warm-up
 		print("SETTLED after %.1f s (%s)" % [settled, Stream.state(f)])
 		if _film > 0.0:
-			await _roll()
+			# no depth of field on a film: in the free camera it focuses on the aircraft and blurs the whole place
+			Session.interactive_override = 0  # options stay in memory: the player's own file is not touched
+			UserOptions.set_v("depth_of_field", false)
+			PostFx.apply(f, Graphics.preset)
+			await wait(1.0)
+			if d.has("cam_end"):
+				await _follow(d)
+			else:
+				await _roll()
 			break
 		if d.has("taxi_banner"):  # the taxi instruction right after landing: just issued, then after it faded
 			await Views.taxi_banner(self, d.taxi_banner)
@@ -181,7 +191,7 @@ func _roll() -> void:
 	DisplayServer.window_move_to_foreground()
 	var cam: CameraRig = f.get_node("Camera")
 	var n := maxi(int(_film * _film_fps), 1)
-	var dir := _out.path_join(_name)
+	var dir := _out.path_join(_name.trim_prefix("film_"))  # film_<aircraft>_<place> -> ui/loader/<aircraft>_<place>
 	DirAccess.make_dir_recursive_absolute(dir)
 	var heading := -cam._look.x
 	var fwd := Vector3(sin(heading), cos(heading), 0.0)
@@ -201,14 +211,49 @@ func _roll() -> void:
 		cam._look_goal = cam._look
 		await frames(1)
 		await RenderingServer.frame_post_draw
-		var img := get_viewport().get_texture().get_image()
-		if img.get_width() > 1280:
-			img.resize(1280, int(img.get_height() * 1280.0 / img.get_width()), Image.INTERPOLATE_LANCZOS)
-		img.convert(Image.FORMAT_RGB8)
-		var path := dir.path_join("%02d.jpg" % i)
-		img.save_jpg(path, 0.82)
-		print("FRAME %d %s" % [i, path])
+		_film_frame(dir, i)
 	print("FILM %d %s" % [n, dir])
+
+
+## A flying clip: the aircraft flies on (the FDM runs again) and the free camera holds an offset from it that drifts
+## from `cam` to `cam_end` (and `aim` to `aim_end`), so the ground moves under a live aircraft instead of a pan
+## around a frozen one. Run with --fixed-fps <film fps>: game time then advances 1 / fps per saved frame.
+func _follow(d: Dictionary) -> void:
+	var credits := f.get_node_or_null("UI/Credits")
+	if credits != null:
+		credits.visible = false
+	DisplayServer.window_set_flag(DisplayServer.WINDOW_FLAG_ALWAYS_ON_TOP, true)
+	DisplayServer.window_move_to_foreground()
+	var cam: CameraRig = f.get_node("Camera")
+	var n := maxi(int(_film * _film_fps), 1)
+	var dir := _out.path_join(_name.trim_prefix("film_"))  # film_<aircraft>_<place> -> ui/loader/<aircraft>_<place>
+	DirAccess.make_dir_recursive_absolute(dir)
+	(f.get_node("Fdm") as FdmNode).paused = false
+	var c0: Array = d.cam
+	var c1: Array = d.cam_end
+	var a0: Array = d.get("aim", [0.0, 0.0, 0.0])
+	var a1: Array = d.get("aim_end", a0)
+	for i in n:
+		var k := smoothstep(0.0, 1.0, float(i) / float(maxi(n - 1, 1)))
+		var dd := d.duplicate()
+		dd.cam = [lerpf(c0[0], c1[0], k), lerpf(c0[1], c1[1], k), lerpf(c0[2], c1[2], k)]
+		dd.aim = [lerpf(a0[0], a1[0], k), lerpf(a0[1], a1[1], k), lerpf(a0[2], a1[2], k)]
+		await get_tree().process_frame  # before the rig's _process: it places the camera from _free_enu
+		Aim.aim(f, cam, dd)
+		await RenderingServer.frame_post_draw
+		_film_frame(dir, i)
+	print("FILM %d %s" % [n, dir])
+
+
+## Saves the frame just drawn (the caller awaits frame_post_draw first).
+func _film_frame(dir: String, i: int) -> void:
+	var img := get_viewport().get_texture().get_image()
+	if img.get_width() > _film_w:
+		img.resize(_film_w, int(img.get_height() * float(_film_w) / img.get_width()), Image.INTERPOLATE_LANCZOS)
+	img.convert(Image.FORMAT_RGB8)
+	var path := dir.path_join("%03d.jpg" % i)
+	img.save_jpg(path, 0.86)
+	print("FRAME %d %s" % [i, path])
 
 
 func _pre_draw() -> void:

@@ -68,3 +68,18 @@ func test_jetway_docked_hood_on_the_door_and_bridges_dock() -> String:
 	if _rows.has("VOGA") and int(_rows.VOGA[0].get("gates_docked", 0)) < 6:
 		return "only %d VOGA gates dock an A320 (want 6)" % int(_rows.VOGA[0].get("gates_docked", 0))
 	return ""
+
+
+## Landmark terminal lines (mullions, panel joints, roof seams, tiles, soffit ribs) are box-filtered by the pixel
+## footprint. Hard step() lines of 1-7 cm aliased into moire that crawled and waved as the camera moved.
+func test_terminal_lines_are_filtered() -> String:
+	var src := FileAccess.get_file_as_string("res://world/terminal.gdshader")
+	if not src.contains("float line_cov(float x, float w)") or not src.contains("fwidth(x)"):
+		return "the terminal shader should filter its lines by the pixel footprint"
+	for bad in ["step(f.x", "step(f.y", "step(0.9, s)", "step(0.93, joint)"]:
+		if src.contains(bad):
+			return "a hard line is left: " + bad
+	var inc := FileAccess.get_file_as_string("res://world/building_terminal.gdshaderinc")
+	if not inc.contains("gl *= mix(1.0, 0.9 + 0.2 * hash(vec2(floor(u / TERM_MULL), floor(sto)) + id), detail)"):
+		return "the generic terminal's per-panel glass tone should fade with the pixel footprint"
+	return ""

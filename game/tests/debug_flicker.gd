@@ -7,6 +7,10 @@ extends Node
 ##       [--air=<kt>:<ft>]
 ## --roll=<s>: full thrust and brakes off this many seconds before the burst, to see the picture while moving.
 ## --opt: a UserOptions switch for this run only (kept in memory), e.g. --opt=motion_blur:off.
+## --push: at a stand start, release the brake and start the pushback 2 s in (the camera moves off the terminal).
+## --cam=f,r,u:af,ar,au: 5 s before the burst, a free camera at [forward, right, up] m from the aircraft (heading
+##   frame) aimed at [af, ar, au] (tests/showcase_camera.gd), e.g. the left engine from behind: --cam=-9,-12,-1:2,-5.8,-1.8
+## --thrust=<0..1>: hold the brakes and set both thrust levers (an engine run-up: the exhaust is hot).
 ## --air: start in the air at that speed and height (after --setup), e.g. --air=280:2000.
 ## Writes <dir>/burst_NN.png (one per rendered frame) and <dir>/spaced_NN.png, then quits.
 
@@ -16,6 +20,11 @@ var _burst := 12
 var _spaced := 6
 var _spacing := 0.25
 var _roll := -1.0
+var _push := false
+var _pushed := false
+var _cam := {}
+var _thrust := -1.0
+var _aimed := false
 var _t := 0.0
 var _n := 0
 var _phase := 0  # 0 waiting, 1 burst, 2 spaced
@@ -37,6 +46,12 @@ func _ready() -> void:
 			"spacing": _spacing = float(kv[1])
 			"view": view = kv[1]
 			"roll": _roll = float(kv[1])
+			"push": _push = kv[1] != "off"
+			"thrust": _thrust = float(kv[1])
+			"cam":
+				var parts := kv[1].split(":")
+				_cam = {"cam": Array(parts[0].split(",")).map(func(x): return float(x)),
+					"aim": Array(parts[1].split(",")).map(func(x): return float(x))}
 			"opt":
 				var o := kv[1].split(":")
 				Session.interactive_override = 0
@@ -62,8 +77,22 @@ func _ready() -> void:
 
 func _process(dt: float) -> void:
 	_t += dt
+	if _thrust >= 0.0 and _t > 3.0:
+		for k in ["controls/throttle", "controls/throttle_2"]:
+			Props.set_v(k, _thrust)
+		Props.set_v("controls/parking_brake", true)
 	match _phase:
 		0:
+			if _push and not _pushed and _t >= 2.0:
+				_pushed = true
+				var fl := get_child(0)
+				Props.set_v("controls/parking_brake", false)
+				fl.get_node("Controls").parking_brake = false
+				fl.get_node("GroundOps").start_pushback()
+			if not _cam.is_empty() and not _aimed and _t >= _wait - 5.0:
+				_aimed = true
+				var fl2 := get_child(0)
+				preload("res://tests/showcase_camera.gd").aim(fl2, fl2.get_node("Camera"), _cam)
 			if _roll > 0.0 and _t >= _wait - _roll:
 				for k in ["controls/throttle", "controls/throttle_2"]:
 					Props.set_v(k, 1.0)

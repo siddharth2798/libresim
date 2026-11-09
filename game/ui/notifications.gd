@@ -181,11 +181,17 @@ func _process(dt: float) -> void:
 	_stall.visible = Props.get_b("fdm/stall_warning") and not crashed
 	_stall.modulate.a = 0.75 + 0.25 * sin(_pulse)
 	var hint := ""
-	if not crashed and not Props.get_b("engine/running") and Props.get_f("engine/rpm") < 300.0 and not Props.get_b("failures/engine"):
+	if not crashed and engines_stopped() and not Props.get_b("failures/engine"):
 		hint = "Engine stopped — mixture rich, magnetos BOTH (M), hold S to start" if AircraftDef.current().engine_type() == "piston" else "Engine stopped — hold S to start"
 		if AircraftControls.current().has_group("engine_master"):  # an airliner: mode selector, then the masters
 			hint = "Engines stopped — set the engine mode to IGN/START, then switch the engine masters on (J: controls)"
 	_hint.text = hint
+
+
+## Every engine stopped. An airliner publishes engines/<n>/running; engine/running alone named only the first
+## unit's model and kept "Engines stopped" up on a running A320.
+static func engines_stopped() -> bool:
+	return not RampCrew.engines_running() and Props.get_f("engine/rpm") < 300.0
 
 
 func _poll_sources() -> void:

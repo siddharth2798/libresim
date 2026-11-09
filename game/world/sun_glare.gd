@@ -16,6 +16,7 @@ func _ready() -> void:
 	extra_cull_margin = 1e6
 	cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	sorting_offset = 2000.0  # after the clouds
+	_mat.render_priority = CloudLayer.PRIORITY + 10
 	visible = false
 
 

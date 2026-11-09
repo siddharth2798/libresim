@@ -130,6 +130,7 @@ func _ensure(full: Vector2i, low: Vector2i) -> void:
 		_march.add_child(_quad(layer._mat))
 		_blit = _quad(_blit_mat)
 		_blit.sorting_offset = 1000.0
+		_blit_mat.render_priority = CloudLayer.PRIORITY  # after the heat shimmer, whatever the quad distances
 		_blit.visible = false
 		add_child(_blit)
 		_hist.append(_make_vp())

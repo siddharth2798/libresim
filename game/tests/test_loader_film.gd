@@ -2,7 +2,7 @@ extends Node
 ## The full-screen loader plays a scenic clip and names the place. A short wait stays a dim veil.
 
 
-const TITLES := ["Mumbai  ·  evening final", "The Western Ghats", "The Juhu coast"]
+const TITLES := ["The Western Ghats", "Cochin  ·  approach", "At the gate  ·  Kochi"]
 
 
 func teardown() -> void:
@@ -59,7 +59,7 @@ func test_ffmpeg_probe_does_not_need_a_working_binary() -> String:
 
 func test_loader_film_decodes_a_frame() -> String:
 	if not LoaderFilm.available():
-		return "missing res://ui/loader/a320_final/00.jpg"
+		return "missing res://ui/loader/a320_ghats/000.jpg"
 	var film := LoaderFilm.new()
 	add_child(film)
 	film.restart()
@@ -94,39 +94,37 @@ func test_scenic_loader_names_the_place() -> String:
 	return ""
 
 
+## Each aircraft has its own four clips, chosen by where the flight starts.
 func test_clip_follows_the_flight() -> String:
-	if _clip_title("a320", "VAPO") != TITLES[0] or _clip_title("a320", "VAJJ") != TITLES[0] or _clip_title("A320", "VABB") != TITLES[0]:
-		return "an A320 should play the evening final, including at Juhu"
-	if _clip_title("c172", "VAJJ") != TITLES[2] or _clip_title("c172", "vajj") != TITLES[2] or _clip_title("c172", "VABB") != TITLES[2]:
-		return "a Cessna at Juhu or Mumbai should play the coast"
-	if _clip_title("c172", "VAPO") != TITLES[1] or _clip_title("c172", "VANM") != TITLES[1] or _clip_title("c172", "VOCI") != TITLES[1]:
-		return "anywhere else, including Navi Mumbai, should play the Ghats"
+	var cases := [["a320", "VAPO", "runway", "a320_ghats"], ["a320", "VABB", "air", "a320_ghats"], ["a320", "VAJJ", "runway", "a320_ghats"],
+		["A320", "voci", "air", "a320_cochin"], ["a320", "VOCC", "runway", "a320_cochin"], ["a320", "VOCI", "stand", "a320_gate"],
+		["c172", "VAPO", "air", "c172_ghats"], ["c172", "VAJJ", "runway", "c172_ghats"], ["c172", "VOCI", "runway", "c172_cochin"],
+		["c172", "VABB", "stand", "c172_gate"], ["", "VANM", "", "c172_ghats"]]
+	for c in cases:
+		var i := LoaderFilm.clip_for(c[0], c[1], c[2])
+		var dir: String = LoaderFilm.CLIPS[i].dir if i >= 0 and i < LoaderFilm.CLIPS.size() else ""
+		if not dir.ends_with("/" + c[3]):
+			return "%s at %s (%s): got %s, want %s" % [c[0], c[1], c[2], dir, c[3]]
 	return ""
 
 
-func test_flight_loader_opens_on_that_clip() -> String:
-	var veil := BusyOverlay.new()
-	add_child(veil)
-	veil.show_busy("Loading scenery…", true, "c172", "VAJJ")
-	var film := _film(veil)
-	if film == null or film.caption != TITLES[2]:
-		return "Juhu caption '%s'" % ("" if film == null else film.caption)
-	if film.stretch_mode != TextureRect.STRETCH_KEEP_ASPECT_COVERED:
-		return "the film should stay full-bleed"
-	veil.show_busy("Loading scenery…", true, "a320", "VAJJ")
-	if film.caption != TITLES[0]:
-		return "A320 at Juhu caption '%s'" % film.caption
-	veil.show_busy("Loading the menu…", true)
-	if not TITLES.has(film.caption):
-		return "a menu load should still name a clip, got '%s'" % film.caption
+## Every clip is shot (tools/shoot_loader_films.sh): 24 fps for at least 3 s, at 1600 px wide or more.
+func test_every_clip_is_shot() -> String:
+	if LoaderFilm.CLIPS.size() != 6:
+		return "%d clips, want 6 (two aircraft x three places)" % LoaderFilm.CLIPS.size()
+	for c in LoaderFilm.CLIPS:
+		if str(c.dir).contains("juhu"):
+			return "the Mumbai approach clip is gone: %s" % c.dir
+	for c in LoaderFilm.CLIPS:
+		var n := 0
+		while ResourceLoader.exists("%s/%03d.jpg" % [c.dir, n]):
+			n += 1
+		if n < int(LoaderFilm.FPS * 3.0):
+			return "%s has %d frames" % [c.dir, n]
+		var tex := load("%s/000.jpg" % c.dir) as Texture2D
+		if tex == null or tex.get_width() < 1600:
+			return "%s frames are %s px wide" % [c.dir, tex.get_width() if tex else 0]
 	return ""
-
-
-func _clip_title(aircraft: String, airport: String) -> String:
-	var i := LoaderFilm.clip_for(aircraft, airport)
-	if i < 0 or i >= LoaderFilm.CLIPS.size():
-		return ""
-	return str(LoaderFilm.CLIPS[i].title)
 
 
 func _film(veil: Node) -> LoaderFilm:

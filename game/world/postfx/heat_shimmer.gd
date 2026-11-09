@@ -19,6 +19,9 @@ var _exhausts: Array = []  # [{pos, dir (local), r, len, spread, k, engine}]
 var _model: Node3D
 
 
+const PRIORITY := -10  # Material.render_priority: before the clouds (CloudLayer.PRIORITY)
+
+
 func _ready() -> void:
 	var q := QuadMesh.new()
 	q.size = Vector2(1, 1)
@@ -28,6 +31,10 @@ func _ready() -> void:
 	extra_cull_margin = 1e6
 	cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	sorting_offset = 500.0  # before the cloud quad (1000), see the shader header
+	# Distance sorting between full-screen quads is not reliable: on Max the cloud upscale quad drew first, and the
+	# shimmer then painted the cloud-free screen copy over the clouds (dark discs behind the engines). The material
+	# priority always wins: shimmer, then clouds, then the sun glare.
+	_mat.render_priority = PRIORITY
 	visible = false
 
 

@@ -105,3 +105,23 @@ func test_engine_start_with_battery_and_starter_key() -> String:
 	if bus < bat + 1.0:
 		return "alternator not charging after the start (bus %.1f V, battery %.1f V)" % [bus, bat]
 	return ""
+
+
+## "Engines stopped" stays down while any airliner engine runs (engine/running alone kept it up on a running A320).
+func test_engines_stopped_hint_reads_every_engine() -> String:
+	var keys := ["engine/count", "engine/running", "engine/rpm", "engines/1/running", "engines/2/running"]
+	var saved := keys.map(func(k): return Props.get_v(k, null))
+	Props.set_v("engine/count", 2.0)
+	Props.set_v("engine/running", false)
+	Props.set_v("engine/rpm", 0.0)
+	Props.set_v("engines/1/running", false)
+	Props.set_v("engines/2/running", true)
+	var one_running := Notifications.engines_stopped()
+	Props.set_v("engines/2/running", false)
+	var none := Notifications.engines_stopped()
+	var fallback := [1.0, false, 0.0, false, false]  # a test that set none of these sees the C172 values
+	for i in keys.size():
+		Props.set_v(keys[i], saved[i] if saved[i] != null else fallback[i])
+	if one_running or not none:
+		return "one engine running: stopped %s; none running: stopped %s" % [one_running, none]
+	return ""
