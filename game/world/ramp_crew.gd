@@ -28,6 +28,10 @@ func _init() -> void:
 
 func setup(o: AirportOps) -> void:
 	ops = o
+	if get_node_or_null("CabinDoor") == null:
+		var door := CabinDoor.new()
+		door.name = "CabinDoor"
+		add_child(door)
 	FloatingOrigin.shifted.connect(func(d: Vector3): _root.position += d)
 
 
@@ -49,6 +53,8 @@ func _process(dt: float) -> void:
 func parked_stand() -> Dictionary:
 	if ops == null or not Props.get_b("fdm/wow") or Props.get_f("fdm/groundspeed_mps") > STILL_MPS:
 		return {}
+	if Props.get_b("controls/ground/crew_away"):
+		return {}  # sent away with the key; calling them again brings them back
 	if not Props.get_b("controls/parking_brake") or engines_running():
 		return {}
 	var p: Vector3 = Props.get_v("fdm/position_enu", Vector3.ZERO)

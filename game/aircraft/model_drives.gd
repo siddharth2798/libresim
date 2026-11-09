@@ -6,6 +6,7 @@ extends RefCounted
 ##   flap_deg | slat_deg | stabilizer_deg   fcs field, degrees
 ##   spoiler_<l|r><1..n>_deg            one spoiler panel (fcs.spoiler: left panels first, then right)
 ##   gear_pos | reverser                0..1 unit values: they need a "map"
+##   cabin_door                         0..1 unit value (systems/door_pos, world/cabin_door.gd): needs a "map"
 ##   nose_steer_deg                     the steered wheel's angle (tiller + pedals)
 ##   wheel_nose_rad | wheel_main_l_rad | wheel_main_r_rad   rolling angle (integrated from ground speed)
 ## "map": [[value, degrees], ...] (piecewise linear, clamped) converts a drive value to degrees, e.g. a gear door that opens at
@@ -29,6 +30,7 @@ static func angle(name: String, s: Dictionary, f: FDM, wheels: Dictionary) -> fl
 		"stabilizer_deg": v = deg_to_rad(float(f.fcs.get("stabilizer_deg")))
 		"gear_pos": v = float(f.fcs.get("gear_pos")) if "gear_pos" in f.fcs else 1.0
 		"reverser": v = Props.get_f("engines/%d/reverser" % (int(s.get("engine", 0 if "_L" in name else 1)) + 1))
+		"cabin_door": v = Props.get_f("systems/door_pos")
 		"nose_steer_deg": v = _steer(f)
 		_:
 			if drive.begins_with("spoiler_"):

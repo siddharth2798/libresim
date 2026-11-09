@@ -23,7 +23,8 @@ const PRESS := ["flaps_down", "flaps_up", "parking_brake", "magnetos_next", "mou
 	"throttle_detent_up", "throttle_detent_down", "speedbrake_out", "speedbrake_in", "gear_toggle",
 	"autobrake_next", "engine_master_1", "engine_master_2", "engine_mode_next", "apu_master",
 	"fcu_ap1", "fcu_ap2", "fcu_athr", "fcu_loc", "fcu_appr", "anti_ice_wing", "anti_ice_eng_1", "anti_ice_eng_2",
-	"takeoff_light", "turnoff_lights", "wing_lights", "logo_lights", "alternate_static"]
+	"takeoff_light", "turnoff_lights", "wing_lights", "logo_lights", "alternate_static",
+	"jetway_toggle", "door_toggle", "ground_crew_toggle"]
 ## Switch-row toggles: action -> Props path (fuel_selector cycles OFF/L/R/BOTH instead).
 const SWITCHES := {"avionics": "controls/electrical/avionics", "fuel_shutoff": "controls/fuel/shutoff",
 	"beacon": "controls/lights/beacon", "nav_lights": "controls/lights/nav", "strobes": "controls/lights/strobe",
@@ -56,6 +57,8 @@ const LABELS := {
 	"fcu_hdg_left": "FCU heading left", "fcu_alt_up": "FCU altitude up", "fcu_alt_down": "FCU altitude down",
 	"fcu_vs_up": "FCU vertical speed up", "fcu_vs_down": "FCU vertical speed down",
 	"tiller_left": "Tiller left", "tiller_right": "Tiller right", "alternate_static": "Alternate static",
+	"jetway_toggle": "Jetway: move to / away from the door", "door_toggle": "Cabin door open / close",
+	"ground_crew_toggle": "Ground vehicles: call / send away",
 }
 ## Other in-flight hotkeys (not rebindable here): a binding on one of these is a conflict.
 const RESERVED := {
@@ -145,6 +148,9 @@ static func _add_airliner_defaults(t: Dictionary) -> void:
 	t.fcu_vs_down = [spec(KEY_SEMICOLON, false, false, true)]
 	t.tiller_left = []  # nosewheel tiller; bind keys or a joystick axis
 	t.tiller_right = []
+	t.jetway_toggle = [spec(KEY_J, true)]
+	t.door_toggle = [spec(KEY_O)]
+	t.ground_crew_toggle = [spec(KEY_U)]
 
 
 static func describe(s: Dictionary) -> String:

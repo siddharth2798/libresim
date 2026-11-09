@@ -159,6 +159,9 @@ func _gradient() -> GradientTexture2D:
 	return t
 
 
+static var _muting := false  # cover() holds the game's sound; dismiss() gives it back
+
+
 ## One veil on the window root. A later cover replaces it.
 ## Empty aircraft and airport: the film picks a clip (a menu load). A flight passes both.
 static func cover(tree: SceneTree, text: String, aircraft: String = "", airport: String = "", start: String = "") -> void:
@@ -169,6 +172,8 @@ static func cover(tree: SceneTree, text: String, aircraft: String = "", airport:
 	var veil := BusyOverlay.new()
 	layer.add_child(veil)
 	tree.root.add_child(layer)
+	_muting = true
+	AudioSettings.hold_game(true)  # no engine or wind behind the film until the game begins
 	veil.show_busy(text, true, aircraft, airport, start)
 
 
@@ -192,6 +197,9 @@ static func dismiss(tree: SceneTree) -> void:
 		var layer := n.get_parent()
 		if layer is CanvasLayer and layer.get_parent() == tree.root:
 			layer.queue_free()
+	if _muting:
+		_muting = false
+		AudioSettings.hold_game(false)
 
 
 ## Paints the veil for two frames, then changes scene. The wait lives on the window root:

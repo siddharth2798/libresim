@@ -44,7 +44,8 @@ const BUTTONS := ["flaps_up", "flaps_down", "brakes", "parking_brake", "trim_up"
 	"master", "avionics", "fuel_selector", "fuel_shutoff", "alternate_static",
 	"beacon", "nav_lights", "strobes", "landing_light", "taxi_light", "pitot_heat",
 	"anti_ice_wing", "anti_ice_eng_1", "anti_ice_eng_2",
-	"takeoff_light", "turnoff_lights", "wing_lights", "logo_lights"]
+	"takeoff_light", "turnoff_lights", "wing_lights", "logo_lights",
+	"jetway_toggle", "door_toggle", "ground_crew_toggle"]
 const LABELS := {
 	"pitch": "Pitch (elevator)", "roll": "Roll (ailerons)", "yaw": "Yaw (rudder)",
 	"throttle": "Throttle", "mixture": "Mixture", "brake_left": "Left toe brake",
@@ -68,6 +69,7 @@ const LABELS := {
 	"autobrake_3": "Auto brake 3", "autobrake_hi": "Auto brake HI",
 	"master": "Master switch (BAT + ALT)", "avionics": "Avionics master", "fuel_selector": "Fuel selector cycle",
 	"fuel_shutoff": "Fuel shutoff valve", "alternate_static": "Alternate static",
+	"jetway_toggle": "Jetway", "door_toggle": "Cabin door", "ground_crew_toggle": "Ground vehicles",
 	"beacon": "Beacon", "nav_lights": "Nav lights", "strobes": "Strobes", "landing_light": "Landing light",
 	"taxi_light": "Taxi light", "pitot_heat": "Pitot heat",
 	"anti_ice_wing": "Wing anti-ice", "anti_ice_eng_1": "Engine 1 anti-ice", "anti_ice_eng_2": "Engine 2 anti-ice",

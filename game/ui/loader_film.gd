@@ -21,7 +21,7 @@ var _clip := 0
 var _frame := 0
 var _acc := 0.0
 var _count := 0
-var _hold: bool = false  # a flight keeps its clip; a menu load moves on when the clip ends
+var _hold: bool = false  # a flight stays with its aircraft's clips; either way the next clip plays when one ends
 
 
 static func available() -> bool:
@@ -55,6 +55,15 @@ static func clip_for(aircraft: String, airport: String, start: String = "") -> i
 	return a * PLACES.size() + PLACES.find(place)
 
 
+## The clip after `clip`. A clip never repeats at once: a flight load moves on within its own aircraft's clips,
+## a menu load through all of them.
+static func next_clip(clip: int, same_aircraft: bool) -> int:
+	if not same_aircraft:
+		return (clip + 1) % CLIPS.size()
+	var n := PLACES.size()
+	return (clip / n) * n + (clip % n + 1) % n
+
+
 ## Menu load, or any wait with no flight: a different clip each time, then the next when it ends.
 func restart() -> void:
 	if CLIPS.is_empty():
@@ -82,8 +91,7 @@ func _process(dt: float) -> void:
 	_acc = 0.0
 	_frame += 1
 	if _frame >= _count:
-		if not _hold:
-			_clip = (_clip + 1) % CLIPS.size()
+		_clip = next_clip(_clip, _hold)
 		_show_frame(0)
 	else:
 		_show_frame(_frame)

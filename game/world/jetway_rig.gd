@@ -151,7 +151,7 @@ func _process(dt: float) -> void:
 	if _check <= 0.0:
 		_check = CHECK_S
 		_evaluate()
-	var target := 1.0 if docked_stand != "" else 0.0
+	var target := 1.0 if docked_stand != "" and not Props.get_b("controls/ground/jetway_stowed") else 0.0
 	if is_equal_approx(progress, target):
 		return
 	progress = move_toward(progress, target, dt / DOCK_S)

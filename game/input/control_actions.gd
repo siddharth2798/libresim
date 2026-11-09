@@ -17,6 +17,8 @@ extends RefCounted
 ##   controls/anti_ice/{wing, eng_<n>} bool (probe heat, controls/anti_ice/probe, stays on: systems/icing.gd)
 ##   controls/fcu/ap1, ap2, athr, loc, appr (bool toggles)
 ##   controls/fcu/spd_kt, hdg_deg, alt_ft, vs_fpm (set-points in pilot units, like adf/freq_khz)
+##   controls/ground/jetway_stowed bool (the jetway stays retracted at a gate)  controls/ground/crew_away bool (ground vehicles sent away)
+##   controls/door_open bool (cabin door; eases systems/door_pos 0..1, world/cabin_door.gd)
 ##   controls/lights/{takeoff, rwy_turnoff, wing, logo} bool (an airliner's extra exterior lights, aircraft_lights.gd)
 
 const DEFAULT_GROUPS := ["throttle", "mixture", "trim", "flaps", "brakes", "parking_brake",
@@ -61,6 +63,9 @@ const TOGGLES := {
 	"fcu_loc": "controls/fcu/loc", "fcu_appr": "controls/fcu/appr",
 	"takeoff_light": "controls/lights/takeoff", "turnoff_lights": "controls/lights/rwy_turnoff",
 	"wing_lights": "controls/lights/wing", "logo_lights": "controls/lights/logo",
+	# every aircraft: the ramp (world/jetway_rig.gd, world/ramp_crew.gd, world/cabin_door.gd)
+	"jetway_toggle": "controls/ground/jetway_stowed", "door_toggle": "controls/door_open",
+	"ground_crew_toggle": "controls/ground/crew_away",
 }
 ## Press actions that cycle an int prop: action -> [prop, states, value when the prop was never set].
 const CYCLES := {

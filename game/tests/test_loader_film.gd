@@ -139,3 +139,29 @@ func _dim(veil: Node) -> ColorRect:
 		if n is ColorRect:
 			return n
 	return null
+
+
+## A long load moves on to the next clip instead of replaying the one that ended.
+func test_loader_film_moves_on_instead_of_repeating() -> String:
+	for c in LoaderFilm.CLIPS.size():
+		for same in [true, false]:
+			var n := LoaderFilm.next_clip(c, same)
+			if n == c:
+				return "clip %d repeats" % c
+			if same and n / LoaderFilm.PLACES.size() != c / LoaderFilm.PLACES.size():
+				return "flight clip %d left its aircraft" % c
+	return ""
+
+
+## The game's sound stays off behind the loader film and comes back when the veil goes.
+func test_loader_silences_the_game_until_it_lifts() -> String:
+	BusyOverlay.cover(get_tree(), "Loading…", "c172", "VOCI")
+	var held := AudioServer.is_bus_mute(AudioServer.get_bus_index("Engine"))
+	BusyOverlay.dismiss(get_tree())
+	var freed := not AudioServer.is_bus_mute(AudioServer.get_bus_index("Engine"))
+	AudioSettings.hold_game(false)
+	if not held:
+		return "engine bus should be muted behind the film"
+	if not freed:
+		return "engine bus should be live once the veil is dropped"
+	return ""
