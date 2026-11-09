@@ -88,6 +88,9 @@ func _build_glb(path: String) -> void:
 		var finish := MaterialFinish.new()
 		add_child(finish)
 		finish.follow(inst, _cg, def)  # cabin-window glow and the fuselage stain; roughness is stamped inside apply()
+		var door := CabinDoorPanel.make(def.section("ground"), _cg, _s)
+		if door:
+			add_child(door)
 		var blur := FanBlur.new()
 		add_child(blur)
 		blur.follow(inst)  # static fan discs; opacity follows engines/1/n1 and engines/2/n1

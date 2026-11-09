@@ -30,6 +30,7 @@ var _pitch := Node3D.new()
 var _cab := Node3D.new()
 var _rotunda := Node3D.new()
 var _legs: JetwayLegs
+var _collar: Node3D  # the rubber skirt round the hood face (JetwayCollar)
 var _back_yaw := 0.0  # ENU angle the fixed rotunda (model +x) points along
 var _model: Node3D
 var _parts := {}
@@ -60,6 +61,7 @@ func setup(model: Node3D, rot: Vector2, way_cab: Vector2, p_cands: Array, back :
 		var m := _take(model, n, _cab)
 		if m:
 			m.position = Vector3(-JetwayPose.DRUM_X, 0.0, -CAB_Z)
+	_collar = JetwayCollar.build(_cab.find_child("Hood", false, false) as Node3D, GroundParams.ground())
 	var r := _take(model, "Rotunda1", _rotunda)
 	if r:
 		r.position = Vector3(-JetwayPose.PIVOT_X, 0.0, 0.0)
@@ -94,6 +96,7 @@ func start(solids: OpsSolids, key: String, ground: float) -> void:
 	else:
 		apply(pose)  # the support's wheels onto the ground now that it is known
 	_first = false
+	_sync_collar()
 	_sync_solid()
 
 
@@ -156,7 +159,13 @@ func _process(dt: float) -> void:
 		return
 	progress = move_toward(progress, target, dt / DOCK_S)
 	apply(JetwayPose.mix(rest, cands[_last].pose, smoothstep(0.0, 1.0, progress)))
+	_sync_collar()
 	_sync_solid()
+
+
+## The skirt unfolds over the last part of the move, once the hood is nearly at the door.
+func _sync_collar() -> void:
+	JetwayCollar.set_open(_collar, smoothstep(0.85, 1.0, progress))
 
 
 func _sync_solid() -> void:

@@ -10,6 +10,7 @@ var f: Node
 var _shots := ""
 var _at := 8.0
 var _lights := false
+var _door := false  # --door: the cabin door open (key O)
 var _jetway := false
 var _views: Array = []
 const MODES := {"cockpit": 0, "chase": 1, "orbit": 2, "free": 3, "tower": 4, "wing": 5, "tail": 6, "flyby": 7}
@@ -23,6 +24,8 @@ func _ready() -> void:
 			_at = float(a.substr(5))
 		elif a == "--jetway":
 			_jetway = true
+		elif a == "--door":
+			_door = true
 		elif a == "--lights":
 			_lights = true
 		elif a.begins_with("--views="):
@@ -41,6 +44,9 @@ func _vec(s: String) -> Vector3:
 
 func _run() -> void:
 	await get_tree().create_timer(_at).timeout
+	if _door:
+		Props.set_v("controls/door_open", true)
+		await get_tree().create_timer(4.0).timeout
 	if _lights:
 		for k in ["nav", "beacon", "strobe", "landing", "taxi"]:
 			Props.set_v("controls/lights/" + k, true)

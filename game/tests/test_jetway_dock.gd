@@ -280,3 +280,37 @@ func test_jetway_rig_rest_layout_stub_and_wheels() -> String:
 			break
 	host.queue_free()
 	return msg
+
+
+func test_jetway_collar_is_deeper_toward_the_crown_and_unfolds() -> String:
+	var r := 1.98
+	var mid := JetwayCollar.depth_at(JetwayCollar.Y0 + 0.9, r, 0.9)
+	var top := JetwayCollar.depth_at(JetwayCollar.Y1, r, 0.9)
+	if mid > 0.1 or top < 0.5:
+		return "skirt depth: axis height %.2f (want ~0.05), top edge %.2f (want > 0.5)" % [mid, top]
+	if JetwayCollar.build(Node3D.new(), {}) != null:
+		return "no fuselage radius, no collar"
+	var hood := Node3D.new()
+	var c := JetwayCollar.build(hood, {"fuselage_r_m": r, "door_axis_z_m": 0.9})
+	JetwayCollar.set_open(c, 0.0)
+	var closed: bool = not c.visible
+	JetwayCollar.set_open(c, 1.0)
+	var ok: bool = closed and c.visible and is_equal_approx(c.scale.x, 1.0)
+	hood.free()
+	return "" if ok else "the skirt must hide folded and show at full reach"
+
+
+func test_cabin_door_panel_needs_data_and_swings_out_to_the_left() -> String:
+	if CabinDoorPanel.make({}, Vector3.ZERO, func(p): return p) != null:
+		return "no door data, no panel"
+	var g: Dictionary = AircraftDef.load_def("a320").section("ground")
+	var d := CabinDoorPanel.make(g, Vector3(-2.5, 0.0, 0.0), func(p: Vector3): return Vector3(p.y, p.z, p.x + 2.5))
+	if d == null:
+		return "the A320 ground section must give a door panel"
+	d._apply(0.0)
+	var shut: bool = not d._hinge.visible
+	d._apply(1.0)
+	var tip: Vector3 = d._hinge.basis * Vector3(0, 0, 1)
+	var ok: bool = shut and d._hinge.visible and tip.x < -0.9
+	d.free()
+	return "" if ok else "closed hidden, open visible with the trailing edge swung left (tip %s)" % [tip]
