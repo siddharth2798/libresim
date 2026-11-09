@@ -58,7 +58,7 @@ static func candidates(k: int, ways: Array, stands: Array, dy_of: Callable, def:
 			if pose.is_empty():
 				continue
 			if i == k:
-				out.append({"stand": st.ref, "cg": GroundParams.cg_at_stand(st, def), "pose": pose})
+				out.append({"stand": st.ref, "st": st, "cg": GroundParams.cg_at_stand(st, def), "pose": pose})
 			break
 	return out
 
@@ -70,3 +70,20 @@ static func occupied(cands: Array, cg: Vector2, gs: float, docked: bool) -> int:
 		if d < (LEAVE_M if docked else NEAR_M) and gs < (2.0 if docked else SLOW_MPS):
 			return i
 	return -1
+
+
+## The jetbridge stands (dicts of `stands`) an aircraft `def` can dock to: some OSM gates have no bridge that can reach their door.
+static func docking_stands(a: Dictionary, def: AircraftDef = null) -> Array:
+	var ways := []
+	for jb in a.get("jetbridges", []):
+		var e := ends(jb, a.stands)
+		if not e.is_empty():
+			ways.append(e)
+	var flat := func(_t: Vector2, _tip: Vector2) -> float: return 0.0
+	var out := []
+	for k in ways.size():
+		for c in candidates(k, ways, a.stands, flat, def):
+			var st: Dictionary = c.st
+			if not out.has(st):
+				out.append(st)
+	return out

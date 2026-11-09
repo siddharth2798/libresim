@@ -56,7 +56,13 @@ func find_stand(icao: String, ref: String, stand_class := "") -> Dictionary:
 		var i := StandNames.find_index(stands, ref)  # a made-up name ("Gate 3", "Bay 7") or a repeated ref ("Bay 12 (2)")
 		if i >= 0:
 			return stands[i]
-	return GroundChoice.default_stand(stands, stand_class if stand_class != "" else str(GroundParams.ground().stand_class))
+	var cls := stand_class if stand_class != "" else str(GroundParams.ground().stand_class)
+	if GroundParams.dockable():  # the default gate is one whose jetway can reach this aircraft's door
+		var docks := JetwayDocks.docking_stands(a)
+		var ok := GroundChoice.offered(stands, cls).filter(func(s): return docks.has(s))
+		if not ok.is_empty():
+			return ok[0]
+	return GroundChoice.default_stand(stands, cls)
 
 
 ## The display name of a stand of `icao` (StandNames: the real ref, else the made-up "Bay 3" / "Gate 4").

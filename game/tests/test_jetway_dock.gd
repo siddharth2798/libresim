@@ -123,6 +123,19 @@ func test_jetway_docks_candidates_nearest_reach_and_aircraft() -> String:
 	return ""
 
 
+func test_jetway_docking_stands_lists_only_gates_a_bridge_can_reach() -> String:
+	var def := a320()
+	var good := _gate(0.0, 0.0, 90.0)
+	var bad := _gate(500.0, 500.0, 90.0)
+	var a := {"stands": [bad, good], "jetbridges": [{"pts": [[-3.0, 30.0], [1.0, 8.0]]}]}
+	var out := JetwayDocks.docking_stands(a, def)
+	if out.size() != 1 or out[0] != good:
+		return "only the gate a bridge reaches may be listed: %s" % [out]
+	if not JetwayDocks.docking_stands(a, AircraftDef.load_def("c172")).is_empty():
+		return "the C172 docks nowhere"
+	return ""
+
+
 # --- the glb's parts really end where the pose says --------------------------------
 
 ## ENU position of the hood face centre and the cab floor height of a placed rig.
