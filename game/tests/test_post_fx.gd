@@ -180,6 +180,38 @@ func test_post_fx_looks_stay_subtle() -> String:
 	return "" if d.far_start > 30.0 + 11.0 and d.near_end < 30.0 - 11.0 else "the aircraft must stay in focus: %s" % d
 
 
+## The exhaust ripple weights each plume disc by the share of its gas in front of the pixel's surface. A flat 0.5 m
+## tolerance rippled the nacelle and the rear of the engine itself, which sit at the nozzle's depth.
+func test_exhaust_shimmer_leaves_the_engine_sharp() -> String:
+	var src := FileAccess.get_file_as_string("res://world/postfx/heat_shimmer.gdshader")
+	if src.contains("dist < s - 0.5"):
+		return "the plume still distorts anything within 0.5 m of a disc"
+	if not src.contains("float gas = clamp((dist - (s - h))") or not src.contains("smoothstep(0.0, 0.17, t)"):
+		return "the plume should weight by the gas in front of the surface and grow in aft of the nozzle"
+	return ""
+
+
+## Full-screen quads keep their order by material priority, not distance: shimmer, clouds, sun glare. On Max the
+## cloud upscale quad drew first and the shimmer painted the cloud-free screen copy over it (dark discs behind the
+## engines).
+func test_shimmer_draws_before_the_clouds() -> String:
+	var hs := HeatShimmer.new()
+	var cl := CloudLayer.new()
+	var sg: Node = load("res://world/sun_glare.gd").new()
+	add_child(hs)
+	add_child(cl)
+	add_child(sg)
+	var a: int = hs.material_override.render_priority
+	var b: int = cl.material_override.render_priority
+	var c: int = sg.material_override.render_priority
+	var up := FileAccess.get_file_as_string("res://world/cloud_upscale.gd").contains("_blit_mat.render_priority = CloudLayer.PRIORITY")
+	for n in [hs, cl, sg]:
+		n.free()
+	if not (a < b and b < c and up):
+		return "priorities shimmer %d, clouds %d, glare %d, upscale blit set: %s" % [a, b, c, up]
+	return ""
+
+
 func test_post_fx_lut_identity() -> String:
 	var imgs := ColorGrade.lut_images(0.0)
 	if imgs.size() != ColorGrade.LUT_SIZE:

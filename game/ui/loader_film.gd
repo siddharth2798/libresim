@@ -6,18 +6,15 @@ extends TextureRect
 ## on its own so an export can play it and only one frame stays in memory.
 
 
-const FPS := 15.0
-const CLIPS := [
-	{"dir": "res://ui/loader/a320_final", "title": "Mumbai  ·  evening final"},
-	{"dir": "res://ui/loader/ghats_chase", "title": "The Western Ghats"},
-	{"dir": "res://ui/loader/coast_juhu", "title": "The Juhu coast"},
-]
-const CLIP_FINAL: int = 0
-const CLIP_GHATS: int = 1
-const CLIP_COAST: int = 2
-## Mumbai shore in world/airport_cities.json. VAJJ is Juhu. VABB is Mumbai, the field the
-## Juhu film was flown from. Navi Mumbai and the rest of the coast stay on the inland film.
-const COAST_AIRPORTS: Array[String] = ["VAJJ", "VABB"]
+const FPS := 24.0  # the clips are shot at this rate with game time locked to it (tools/shoot_loader_films.sh)
+const AIRCRAFT: Array[String] = ["a320", "c172"]
+const PLACES: Array[String] = ["ghats", "cochin", "gate"]
+const TITLES := {"ghats": "The Western Ghats", "cochin": "Cochin  ·  approach", "gate": "At the gate  ·  Kochi"}
+## One clip per aircraft and place, aircraft-major: index = aircraft * PLACES.size() + place.
+static var CLIPS: Array = _clips()
+## Kochi (VOCI, VOCC) plays the Cochin approach, a stand start the gate, everywhere else the Ghats (the Mumbai
+## approach clips were dropped).
+const COCHIN_AIRPORTS: Array[String] = ["VOCI", "VOCC"]
 
 var caption := ""
 var _clip := 0
@@ -28,7 +25,15 @@ var _hold: bool = false  # a flight keeps its clip; a menu load moves on when th
 
 
 static func available() -> bool:
-	return ResourceLoader.exists(CLIPS[0].dir + "/00.jpg")
+	return ResourceLoader.exists(CLIPS[0].dir + "/000.jpg")
+
+
+static func _clips() -> Array:
+	var out := []
+	for a in AIRCRAFT:
+		for p in PLACES:
+			out.append({"dir": "res://ui/loader/%s_%s" % [a, p], "title": TITLES[p], "aircraft": a, "place": p})
+	return out
 
 
 func _ready() -> void:
@@ -39,13 +44,15 @@ func _ready() -> void:
 	visible = false
 
 
-## Which clip a flight opens on. An A320 keeps the evening final, including on the coast.
-static func clip_for(aircraft: String, airport: String) -> int:
-	if aircraft.to_lower().begins_with("a320"):
-		return CLIP_FINAL
-	if COAST_AIRPORTS.has(airport.to_upper()):
-		return CLIP_COAST
-	return CLIP_GHATS
+## Which clip a flight opens on: the aircraft's own clips (an A320, else the Cessna's), at the place it starts.
+static func clip_for(aircraft: String, airport: String, start: String = "") -> int:
+	var a := 0 if aircraft.to_lower().begins_with("a320") else 1
+	var place := "ghats"
+	if start == "stand":
+		place = "gate"
+	elif COCHIN_AIRPORTS.has(airport.to_upper()):
+		place = "cochin"
+	return a * PLACES.size() + PLACES.find(place)
 
 
 ## Menu load, or any wait with no flight: a different clip each time, then the next when it ends.
@@ -58,11 +65,11 @@ func restart() -> void:
 
 
 ## Flight load: the clip for this aircraft and airport, held for the whole wait.
-func restart_for(aircraft: String, airport: String) -> void:
+func restart_for(aircraft: String, airport: String, start: String = "") -> void:
 	if CLIPS.is_empty():
 		return
 	_hold = true
-	_clip = clip_for(aircraft, airport) % CLIPS.size()
+	_clip = clip_for(aircraft, airport, start) % CLIPS.size()
 	_show_frame(0)
 
 
@@ -95,7 +102,7 @@ func _show_frame(i: int) -> void:
 	if _count == 0:
 		return
 	_frame = i % _count
-	var res: Resource = ResourceLoader.load("%s/%02d.jpg" % [dir, _frame], "", ResourceLoader.CACHE_MODE_IGNORE)
+	var res: Resource = ResourceLoader.load("%s/%03d.jpg" % [dir, _frame], "", ResourceLoader.CACHE_MODE_IGNORE)
 	var tex := res as Texture2D
 	if tex == null:
 		return
@@ -105,6 +112,6 @@ func _show_frame(i: int) -> void:
 
 func _frames(dir: String) -> int:
 	var n := 0
-	while ResourceLoader.exists("%s/%02d.jpg" % [dir, n]):
+	while ResourceLoader.exists("%s/%03d.jpg" % [dir, n]):
 		n += 1
 	return n

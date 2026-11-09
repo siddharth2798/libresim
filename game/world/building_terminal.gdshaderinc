@@ -54,7 +54,9 @@ vec3 terminal_wall(vec3 rgb, float share, float glum, float u, float hg, float H
 	// glass: the researched tone, darker inside, reflecting more sky toward the top of the hall
 	vec3 gl = vec3(0.82, 0.96, 1.06) * pow(glum, 2.2) * 0.45;
 	gl = mix(gl, fogc * 0.45, 0.2 + 0.3 * smoothstep(plinth, top, hg));
-	gl *= 0.9 + 0.2 * hash(vec2(floor(u / TERM_MULL), floor(sto)) + id);
+	// per-panel tone, faded out with the pixel footprint: from afar each pixel covered several panels and picked a
+	// different random one as the camera moved (sparkling facades once e610670 dropped the far fade)
+	gl *= mix(1.0, 0.9 + 0.2 * hash(vec2(floor(u / TERM_MULL), floor(sto)) + id), detail);
 	vec3 fr = mix(clad, vec3(0.55, 0.57, 0.58), 0.5);
 	col = mix(clad, gl, gm);
 	col = mix(col, fr, frame * 0.8);

@@ -35,6 +35,23 @@ void vertex() {
 
 float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
 
+// Share of a pixel covered by lines that fill [0, w) of every period of x (x in periods), box-filtered over the
+// pixel's footprint. A hard step() here turned 1-7 cm mullions, joints and seams into moire that crawled and
+// waved as the camera moved; filtered, a line thinner than a pixel becomes its average shade instead.
+float line_cov(float x, float w) {
+	float fw = max(fwidth(x), 1e-4);
+	float a = x - 0.5 * fw;
+	float b = x + 0.5 * fw;
+	float ca = floor(a) * w + min(fract(a), w);
+	float cb = floor(b) * w + min(fract(b), w);
+	return clamp((cb - ca) / fw, 0.0, 1.0);
+}
+
+// 1 up close, 0 once a pattern of this period (x in periods) is under ~3 pixels: its fine shading goes flat.
+float detail_of(float x) {
+	return 1.0 - smoothstep(0.15, 0.35, fwidth(x));
+}
+
 void fragment() {
 	vec3 n = normalize(v_n);
 	// horizontal facade coordinate along the wall
@@ -47,39 +64,41 @@ void fragment() {
 	if (kind == 0) {
 		vec2 cell = vec2(u / mullion, v_world.y / floor_h);
 		vec2 f = fract(cell);
-		float frame = max(step(f.x, 0.06), step(f.y, 0.035));
-		float slab_band = step(0.93, f.y);  // floor edge behind the glass
+		float frame = max(line_cov(cell.x, 0.06), line_cov(cell.y, 0.035));
+		float slab_band = line_cov(cell.y - 0.93, 0.07);  // floor edge behind the glass
 		float fres = pow(1.0 - abs(dot(normalize(VIEW), NORMAL)), 3.0);
 		vec3 refl = mix(fog_color, sky_top_color, 0.35 + 0.4 * n.y);
 		vec3 glass = mix(base_color * 0.35, refl, 0.35 + 0.55 * fres);
 		col = mix(glass, vec3(0.75, 0.77, 0.78), max(frame, slab_band * 0.6) * (1.0 - far));
 		// lit interior: bays of four panels vary, brighter under each floor's ceiling lights
-		float lit = mix(0.6, 1.0, hash(floor(cell * vec2(0.25, 1.0)))) * (0.7 + 0.3 * smoothstep(0.2, 0.9, f.y)) * (1.0 - frame);
+		float bay_d = detail_of(cell.x * 0.25);
+		float lit = mix(0.8, mix(0.6, 1.0, hash(floor(cell * vec2(0.25, 1.0)))), bay_d) * mix(0.85, 0.7 + 0.3 * smoothstep(0.2, 0.9, f.y), detail_of(cell.y)) * (1.0 - frame);
 		emit = vec3(1.0, 0.84, 0.62) * lit * night * 0.26;
 		rough = 0.08;
 		metal = 0.4;
 	} else if (kind == 1) {
-		vec2 f = fract(vec2(u / 3.0, v_world.y / 1.5));
-		float joint = max(step(f.x, 0.012), step(f.y, 0.02)) * (1.0 - far);
+		float joint = max(line_cov(u / 3.0, 0.012), line_cov(v_world.y / 1.5, 0.02)) * (1.0 - far);
 		col = base_color * (1.0 - 0.18 * joint);
 		rough = 0.6;
 	} else if (kind == 2) {
-		float s = fract((v_world.x * 0.7 + v_world.z * 0.7) / 0.9);
-		col = base_color * (0.94 + 0.06 * step(0.9, s) * (1.0 - far));
+		float seam = (v_world.x * 0.7 + v_world.z * 0.7) / 0.9;
+		col = base_color * (0.94 + 0.06 * line_cov(seam - 0.9, 0.1) * (1.0 - far));
 		rough = 0.45;
 		metal = 0.3;
 	} else if (kind == 3) {
 		// clay tiles: courses along the slope, staggered joints
 		float course = v_world.y / 0.28;
 		float row = floor(course);
-		float joint = fract(u / 0.32 + 0.5 * mod(row, 2.0));
-		float shade = 0.82 + 0.18 * smoothstep(0.0, 0.8, fract(course));
-		col = base_color * shade * (1.0 - 0.25 * step(0.93, joint)) * (0.9 + 0.2 * hash(vec2(row, floor(u / 0.32))));
+		float jx = u / 0.32 + 0.5 * mod(row, 2.0);
+		float d = min(detail_of(course), detail_of(u / 0.32));  // tiles under ~3 px: their average, not noise
+		float shade = mix(0.93, 0.82 + 0.18 * smoothstep(0.0, 0.8, fract(course)), d);
+		float joint = line_cov(jx - 0.93, 0.07) * d;  // the stagger jumps at each course: d hides the bad derivative
+		col = base_color * shade * (1.0 - 0.25 * joint) * mix(1.0, 0.9 + 0.2 * hash(vec2(row, floor(u / 0.32))), d);
 		col = mix(col, base_color * 0.9, far);
 		rough = 0.9;
 	} else if (kind == 5) {
 		vec2 f = fract(v_world.xz / 6.0);
-		float rib = max(step(f.x, 0.08), step(f.y, 0.08));
+		float rib = max(line_cov(v_world.x / 6.0, 0.08), line_cov(v_world.z / 6.0, 0.08));
 		col = base_color * (0.85 + 0.15 * rib);
 		float spot = 1.0 - smoothstep(0.05, 0.12, length(f - 0.5));
 		emit = vec3(1.0, 0.92, 0.78) * spot * night * 0.8;

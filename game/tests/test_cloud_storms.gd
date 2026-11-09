@@ -285,8 +285,18 @@ func test_radar_is_blank_in_dry_cloud_and_paints_rain_and_storm_cores() -> Strin
 	for c in WxRadar.sweep(Vector2.ZERO, 0.0, 40000.0):
 		reds += int(int(c.level) >= 3)
 		greens += int(int(c.level) == 1)
-	var shadow := WxRadar.shade(PackedByteArray([1, 2, 3, 2, 1]))
-	var open := WxRadar.shade(PackedByteArray([1, 2, 2, 1]))
+	# path loss, not a wall: rain behind a red core still shows, a long heavy stretch fades it
+	var behind := WxRadar.attenuate(PackedFloat32Array([0.9, 0.9, 0.5, 0.5]), 1500.0)
+	var long := PackedFloat32Array()
+	for i in 40:
+		long.append(0.9)
+	var faded := WxRadar.attenuate(long, 1500.0)
+	var area_red := 0
+	Props.set_v("weather/storms", 0.0)
+	Props.set_v("weather/precip", 0.95)
+	Props.set_v("weather/cloud_cover", 1.0)
+	for c in WxRadar.sweep(Vector2.ZERO, 0.0, 74000.0):
+		area_red += int(int(c.level) >= 3)
 	var keys := ["weather/storms", "weather/precip", "weather/cloud_cover"]
 	for i in 3:
 		Props.set_v(keys[i], saved[i])
@@ -294,6 +304,10 @@ func test_radar_is_blank_in_dry_cloud_and_paints_rain_and_storm_cores() -> Strin
 		return "clear %d dry %d" % [clear.size(), dry.size()]
 	if bad != "" or rain.size() < 12 or beams.size() < 4:
 		return bad if bad != "" else "rain %d over %d beams" % [rain.size(), beams.size()]
-	if reds < 1 or greens < 1 or shadow[3] != 0 or shadow[2] != 3 or open[3] != 1:
-		return "storm red %d green %d shadow %s" % [reds, greens, shadow]
+	if reds < 1 or greens < 1:
+		return "storm red %d green %d" % [reds, greens]
+	if behind[0] != 3 or behind[3] < 1 or faded[39] != 0:
+		return "attenuation: behind a core %s, after 60 km of heavy rain %d" % [behind, faded[39]]
+	if area_red > 0:
+		return "widespread rain without storms painted %d red cells" % area_red
 	return ""

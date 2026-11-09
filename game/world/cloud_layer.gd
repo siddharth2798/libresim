@@ -5,6 +5,10 @@ extends MeshInstance3D
 ## The CPU copy of the density (for in-cloud fog) lives in SkyTime.cloud_density.
 ## High / Max march into a smaller view and upscale (world/cloud_upscale.gd); the mesh here stays the full-resolution path.
 
+## Material.render_priority of the cloud quad (and the cloud upscale blit): after the heat shimmer (-10), before the
+## sun glare (20). Distance sorting alone did not keep full-screen quads in this order.
+const PRIORITY := 10
+
 var steps := 24  # set by graphics presets
 var light_steps := 1  # samples along the sun ray per march step (graphics presets: 1..4)
 var max_dist := 25000.0  # m: end of the march (graphics presets "cloud_dist"); the cloud fades out before it
@@ -43,6 +47,7 @@ func _ready() -> void:
 	extra_cull_margin = 1e6
 	cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	sorting_offset = 1000.0  # after other transparents
+	_mat.render_priority = PRIORITY
 
 
 static func _noise(size: int, freq: float, octaves: int, seed: int) -> NoiseTexture2D:

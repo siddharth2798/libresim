@@ -87,7 +87,7 @@ func _ready() -> void:
 	add_child(_credit)
 
 
-func show_busy(text: String, scenic: bool = false, aircraft: String = "", airport: String = "") -> void:
+func show_busy(text: String, scenic: bool = false, aircraft: String = "", airport: String = "", start: String = "") -> void:
 	if _label != null:
 		_label.text = text
 	_scenic = scenic and _film != null and LoaderFilm.available()
@@ -97,7 +97,7 @@ func show_busy(text: String, scenic: bool = false, aircraft: String = "", airpor
 		_film.visible = _scenic
 		if _scenic:
 			if aircraft != "" or airport != "":
-				_film.restart_for(aircraft, airport)
+				_film.restart_for(aircraft, airport, start)
 			else:
 				_film.restart()
 	if _scrim != null:
@@ -161,7 +161,7 @@ func _gradient() -> GradientTexture2D:
 
 ## One veil on the window root. A later cover replaces it.
 ## Empty aircraft and airport: the film picks a clip (a menu load). A flight passes both.
-static func cover(tree: SceneTree, text: String, aircraft: String = "", airport: String = "") -> void:
+static func cover(tree: SceneTree, text: String, aircraft: String = "", airport: String = "", start: String = "") -> void:
 	dismiss(tree)
 	var layer := CanvasLayer.new()
 	layer.layer = 80
@@ -169,7 +169,7 @@ static func cover(tree: SceneTree, text: String, aircraft: String = "", airport:
 	var veil := BusyOverlay.new()
 	layer.add_child(veil)
 	tree.root.add_child(layer)
-	veil.show_busy(text, true, aircraft, airport)
+	veil.show_busy(text, true, aircraft, airport, start)
 
 
 ## The veil on the window root, or null. A child veil (a page, the turntable) is not this one.
@@ -209,10 +209,12 @@ static func _open_scene(tree: SceneTree, path: String, text: String) -> void:
 		return
 	var aircraft: String = ""
 	var airport: String = ""
+	var start: String = ""
 	if path.ends_with("/flight.tscn"):
 		aircraft = str(Session.setup.get("aircraft", ""))
 		airport = str(Session.setup.get("airport", ""))
-	cover(tree, text, aircraft, airport)
+		start = str(Session.setup.get("start", ""))
+	cover(tree, text, aircraft, airport, start)
 	var gate := Node.new()
 	gate.name = "SceneGate"
 	gate.process_mode = Node.PROCESS_MODE_ALWAYS

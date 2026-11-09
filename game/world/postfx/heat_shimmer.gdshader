@@ -5,7 +5,8 @@ render_mode unshaded, depth_test_disabled, depth_draw_never, cull_disabled, fog_
 //  - over sunlit ground at grazing angles (the far runway / apron / fields seen from low down), between near_m
 //    (beyond the aircraft) and far_m;
 //  - behind running exhausts: up to 4 plumes, each a cone from the nozzle along its flow (aircraft.json "exhausts").
-//    Only geometry behind the plume is distorted, so the airframe in front stays sharp.
+//    Only geometry behind the gas is distorted, weighted by how much of the plume lies in front of it, so the
+//    airframe and the engine itself stay sharp.
 // Sorted before the cloud quad (CloudLayer sorting_offset 1000), because the screen texture is captured before
 // the transparent pass: clouds drawn later stay on top and are never overwritten.
 
@@ -56,12 +57,19 @@ void fragment() {
 			float t = float(j) / 6.0;
 			vec3 p = mix(a, b, t);
 			float s = dot(p, dir);
-			if (s <= 0.0 || dist < s - 0.5) {
-				continue;  // behind the camera, or the pixel's surface is in front of the plume
+			if (s <= 0.0) {
+				continue;  // behind the camera
 			}
 			float r = mix(plume_a[i].w, plume_b[i].w, t);
 			float off = length(p - dir * s);
-			best = max(best, (1.0 - smoothstep(0.4 * r, r, off)) * (1.0 - 0.8 * t));
+			// Share of this disc's gas that lies in front of the pixel's surface, along the ray. A nacelle side
+			// or the engine at the nozzle is in front of the gas and stays sharp; with a flat 0.5 m tolerance
+			// the whole rear of the engine rippled.
+			float h = sqrt(max(r * r - off * off, 0.0));
+			float gas = clamp((dist - (s - h)) / max(2.0 * h, 0.05), 0.0, 1.0);
+			// the shimmer grows in aft of the nozzle (the exit plane itself does not ripple)
+			float grow = smoothstep(0.0, 0.17, t);
+			best = max(best, (1.0 - smoothstep(0.4 * r, r, off)) * (1.0 - 0.8 * t) * gas * grow);
 		}
 		mask += best * plume_k[i];
 	}

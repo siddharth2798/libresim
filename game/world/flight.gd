@@ -277,7 +277,8 @@ func _airfield_wait(dt: float) -> void:
 		return
 	var veil := BusyOverlay.root_veil(get_tree())
 	if veil == null:
-		BusyOverlay.cover(get_tree(), "Loading the airfield…")
+		var ss: Dictionary = Session.setup
+		BusyOverlay.cover(get_tree(), "Loading the airfield…", str(ss.aircraft), str(ss.airport), str(ss.start))
 		veil = BusyOverlay.root_veil(get_tree())
 	if veil != null:
 		veil.set_status("Loading the airfield…  %d%%" % _load_percent())
