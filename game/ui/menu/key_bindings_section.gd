@@ -4,6 +4,7 @@ extends VBoxContainer
 ## Esc cancels, Delete / Backspace empties the slot. ✕ clears the row. Conflicts
 ## (same key on two actions, or on another hotkey) are listed in orange.
 ## Saves to user://key_bindings.json and bumps Props input/bindings_rev.
+## Ground operations (ControlActions.GROUND: taxi route, pushback, jetway, door, ground vehicles) get their own section.
 ## Only the actions the aircraft offers (aircraft_controls.gd) get a row or count for conflicts;
 ## the others stay in the saved profile.
 
@@ -24,6 +25,9 @@ var _query := ""
 var _warn: Label
 var _hint: Label
 var _grid: GridContainer
+var _ground_grid: GridContainer
+var _ground_head: Label
+var _flight_head: Label
 var _cap_action := ""
 var _cap_slot := -1
 
@@ -48,22 +52,39 @@ func _ready() -> void:
 	_warn.add_theme_color_override("font_color", WARN)
 	_warn.add_theme_font_size_override("font_size", 14)
 	add_child(_warn)
-	_grid = GridContainer.new()
-	_grid.columns = 2
-	_grid.add_theme_constant_override("h_separation", 28)
-	_grid.add_theme_constant_override("v_separation", 6)
-	add_child(_grid)
+	_flight_head = MenuTheme.heading("Flight controls")
+	add_child(_flight_head)
+	_grid = _new_grid()
+	_ground_head = MenuTheme.heading("Ground operations")
+	add_child(_ground_head)
+	_ground_grid = _new_grid()
 	for a in controls.key_actions():
-		_add_row(a)
+		_add_row(a, _ground_grid if a in ControlActions.GROUND else _grid)
 	_refresh()
-	resized.connect(func(): _grid.columns = 2 if size.x >= TWO_COLUMNS_W else 1)
+	resized.connect(func():
+		for g in [_grid, _ground_grid]:
+			g.columns = 2 if size.x >= TWO_COLUMNS_W else 1)
 
 
-func _add_row(a: String) -> void:
+func _new_grid() -> GridContainer:
+	var g := GridContainer.new()
+	g.columns = 2
+	g.add_theme_constant_override("h_separation", 28)
+	g.add_theme_constant_override("v_separation", 6)
+	add_child(g)
+	return g
+
+
+## The section an action's row is in: "ground" or "flight".
+func section_of(a: String) -> String:
+	return "ground" if _rows.has(a) and (_rows[a] as Control).get_parent() == _ground_grid else "flight"
+
+
+func _add_row(a: String, grid: GridContainer) -> void:
 	var r := HBoxContainer.new()
 	r.add_theme_constant_override("separation", 6)
 	r.size_flags_horizontal = SIZE_EXPAND_FILL
-	_grid.add_child(r)
+	grid.add_child(r)
 	_rows[a] = r
 	var n := Label.new()
 	n.text = KeyBindings.LABELS[a]
@@ -98,12 +119,16 @@ func _add_row(a: String) -> void:
 func filter(query: String) -> int:
 	_query = query
 	var n := 0
+	var ground := 0
 	for a in _rows:
-		var texts := [KeyBindings.LABELS[a], a]
+		var texts := [KeyBindings.LABELS[a], a, "ground operations" if a in ControlActions.GROUND else "flight controls"]
 		texts.append_array(table[a].map(func(k): return KeyBindings.describe(k)))
 		var ok := ControlsFilter.matches(query, texts)
 		(_rows[a] as Control).visible = ok
 		n += int(ok)
+		ground += int(ok and a in ControlActions.GROUND)
+	_ground_head.visible = ground > 0
+	_flight_head.visible = n - ground > 0
 	return n
 
 
