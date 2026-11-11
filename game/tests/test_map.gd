@@ -337,3 +337,14 @@ func test_map_shift_click_builds_a_route_and_clear_removes_it() -> String:
 	if Props.get_v("controls/gps/target") != "" or not Props.get_v("controls/gps/route_next").is_empty():
 		return "clear route must cancel the target and the legs"
 	return ""
+
+
+## The moving map (N) shows no weather radar: the radar lives on the ND only.
+func test_moving_map_draws_no_weather_radar() -> String:
+	if ResourceLoader.exists("res://ui/map/map_wx.gd"):
+		return "the map radar layer (ui/map/map_wx.gd) is still there"
+	var src := FileAccess.get_file_as_string("res://ui/moving_map.gd")
+	for word in ["MapWx", "WxRadar"]:
+		if src.contains(word):
+			return "moving_map.gd still draws the radar (%s)" % word
+	return ""
