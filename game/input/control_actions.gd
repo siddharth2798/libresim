@@ -113,6 +113,9 @@ const SELECTORS := {
 	"autobrake": {"prop": "controls/autobrake", "rest": 0, "positions": {"autobrake_btv": 1, "autobrake_low": 1,
 		"autobrake_2": 2, "autobrake_3": 2, "autobrake_hi": 3}},
 }
+## Ramp state every aircraft starts a flight with (and gets back on a restart): door shut, jetway and vehicles called.
+const RAMP_SEEDS := {"controls/door_open": false, "systems/door_pos": 0.0, "controls/ground/jetway_stowed": false,
+	"controls/ground/crew_away": false}
 ## Initial Props of a group (only set when the prop does not exist yet); aircraft.json "defaults" wins.
 const SEEDS := {
 	"speedbrake": {"controls/speedbrake": 0.0}, "gear": {"controls/gear": 1}, "autobrake": {"controls/autobrake": 0},

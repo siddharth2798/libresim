@@ -3,7 +3,7 @@ extends Node
 ## metres (x aft, y right, z up), optionally with the exterior lights on.
 ##   godot --path game res://tests/debug_a320_look.tscn --audio-driver Dummy -- --aircraft=a320 --airport=VABB --stand --clean \
 ##     --shots=<abs dir> [--at=8] [--lights] [--eyepoint] \
-##     --views="name|chase;door|free|-24,-16,1|-13,-2,0.5;pilot|cockpit"
+##     --views="name|chase;door|free|-24,-16,1|-13,-2,0.5;pilot|cockpit" [--props=controls/speedbrake=1,controls/reverse_1=1]
 ## A view is  name | mode [| eye | target]:  mode = cockpit|chase|orbit|wing|tail|flyby|tower or free (eye and target
 ## structural metres from the model origin; fov = 65). Screenshots are named <name>.png in --shots (use an absolute path).
 var f: Node
@@ -13,6 +13,7 @@ var _lights := false
 var _door := false  # --door: the cabin door open (key O)
 var _jetway := false
 var _views: Array = []
+var _props := {}  # --props=k=v,k=v: held every frame from the shot time (spoilers out, reverse, flaps ...)
 const MODES := {"cockpit": 0, "chase": 1, "orbit": 2, "free": 3, "tower": 4, "wing": 5, "tail": 6, "flyby": 7}
 
 
@@ -28,6 +29,10 @@ func _ready() -> void:
 			_door = true
 		elif a == "--lights":
 			_lights = true
+		elif a.begins_with("--props="):
+			for kv in a.substr(8).split(",", false):
+				var p := kv.split("=")
+				_props[p[0]] = true if p[1] == "true" else (false if p[1] == "false" else float(p[1]))
 		elif a.begins_with("--views="):
 			for v in a.substr(8).split(";", false):
 				_views.append(v.split("|"))
@@ -42,8 +47,19 @@ func _vec(s: String) -> Vector3:
 	return Vector3(float(p[0]), float(p[1]), float(p[2]))
 
 
+func _process(_dt: float) -> void:
+	if _armed:
+		for k in _props:
+			Props.set_v(k, _props[k])
+
+
+var _armed := false
+
+
 func _run() -> void:
 	await get_tree().create_timer(_at).timeout
+	_armed = true
+	await get_tree().create_timer(3.0 if not _props.is_empty() else 0.0).timeout
 	if _door:
 		Props.set_v("controls/door_open", true)
 		await get_tree().create_timer(4.0).timeout

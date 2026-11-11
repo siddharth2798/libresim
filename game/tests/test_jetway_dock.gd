@@ -300,7 +300,8 @@ func test_jetway_collar_is_deeper_toward_the_crown_and_unfolds() -> String:
 	return "" if ok else "the skirt must hide folded and show at full reach"
 
 
-func test_cabin_door_panel_needs_data_and_swings_out_to_the_left() -> String:
+## Open, an Airbus door lies along the fuselage ahead of the doorway, moved out clear of the skin (it once stood at 105°).
+func test_cabin_door_panel_needs_data_and_folds_forward_along_the_skin() -> String:
 	if CabinDoorPanel.make({}, Vector3.ZERO, func(p): return p) != null:
 		return "no door data, no panel"
 	var g: Dictionary = AircraftDef.load_def("a320").section("ground")
@@ -309,8 +310,11 @@ func test_cabin_door_panel_needs_data_and_swings_out_to_the_left() -> String:
 		return "the A320 ground section must give a door panel"
 	d._apply(0.0)
 	var shut: bool = not d._hinge.visible
+	var x0: float = d._hinge.position.x
 	d._apply(1.0)
 	var tip: Vector3 = d._hinge.basis * Vector3(0, 0, 1)
-	var ok: bool = shut and d._hinge.visible and tip.x < -0.9
+	var out: float = x0 - d._hinge.position.x  # left door: out = -x
+	var ok: bool = shut and d._hinge.visible and tip.z < -0.98 and absf(out - CabinDoorPanel.ARM_M) < 0.001
 	d.free()
-	return "" if ok else "closed hidden, open visible with the trailing edge swung left (tip %s)" % [tip]
+	return "" if ok else "closed hidden, open visible, trailing edge forward and %.2f m out (tip %s, out %.2f)" % [
+		CabinDoorPanel.ARM_M, tip, out]

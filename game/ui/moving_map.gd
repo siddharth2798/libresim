@@ -310,7 +310,6 @@ func _draw() -> void:
 	draw_rect(Rect2(Vector2.ZERO, size), Color(0.08, 0.1, 0.12))
 	var level := MapView.level_for(view.physical_m_per_px(UiScale.factor), tiles.cache.levels.size())
 	tiles.draw(self, view, level, Color(0.88, 0.88, 0.88))
-	MapWx.draw(self, view, _here())
 	var legs := _plan.legs(_here())
 	var taken: Array = []  # label rects placed so far: the route's names win, then airports, navaids, ILS
 	MapRouteLayer.reserve(view, legs, font, taken)

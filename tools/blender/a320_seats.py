@@ -1,10 +1,8 @@
 """Seats and cockpit door for interior.glb. Measure the deck, export via a320_scene.export_glb.
 pivot_* stays within 1 mm / 0.1 deg or the glb is restored from /tmp/interior.glb.bak.
 """
-import json
 import math
 import shutil
-import struct
 import sys
 from pathlib import Path
 
@@ -15,31 +13,11 @@ from mathutils import Matrix, Vector
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "tools/blender"))
 import a320_scene as S  # noqa: E402
+from a320_skin import roof as _roof, skin as _skin  # noqa: E402
 
 GLB = ROOT / "game/aircraft/a320/models/interior.glb"
 BAK = Path("/tmp/interior.glb.bak")
 PITCH, ROLL = 16.0, 20.0
-def _glb(path):
-    data, off = Path(path).read_bytes(), 12
-    while off < len(data):
-        ln, typ = struct.unpack_from("<II", data, off)
-        chunk, off = data[off + 8:off + 8 + ln], off + 8 + ln
-        if typ == 0x4E4F534A:
-            return json.loads(chunk)
-    raise RuntimeError("no glTF json")
-
-def _file_pivots(path):
-    names, piv = [], {}
-    for n in _glb(path)["nodes"]:
-        name = n.get("name", "")
-        names.append(name)
-        if name.startswith("pivot_"):
-            piv[name] = (n.get("translation", [0, 0, 0]), n.get("rotation", [0, 0, 0, 1]))
-    return names, piv
-
-def _qdeg(a, b):
-    return math.degrees(2 * math.acos(min(1.0, abs(sum(x * y for x, y in zip(a, b))))))
-
 def _restore(msg):
     shutil.copy(BAK, GLB)
     print("PIVOT ASSERT FAIL", msg)
@@ -138,9 +116,13 @@ def _jump(floor, pan, x_nose, x_door):
         _box(bm, x_door - 0.06, x_door - 0.03, y - 0.018, y + 0.018, pan - 0.03, pan + 0.03)
     return bm
 
-def _door(x, y0, y1, z0, z1, wy0, wy1, wz0, wz1):
-    bm, parts = bmesh.new(), [(y0, wy0, z0, z1), (wy1, y1, z0, z1), (wy0, wy1, wz1, z1), (wy0, wy1, z0, wz0)]
-    for a, b, c, d in parts:
+def _door(x, y0, y1, z0, z1, wy0, wy1, wz0, wz1, roof):
+    """roof(y): highest z inside the skin at y; the side panels follow it (flat, their corners stuck out 0.40 m)."""
+    bm = bmesh.new()
+    for a, b in ((y0, wy0), (wy1, y1)):
+        _shell(bm, [[Vector((x + 0.028, y, z)) for z in (z0, max(z0 + 0.05, min(z1, roof(y))))] for y in _ls(a, b, 14)],
+               Vector((0.028, 0, 0)))
+    for a, b, c, d in ((wy0, wy1, wz1, z1), (wy0, wy1, z0, wz0)):
         _box(bm, x, x + 0.028, a, b, c, d)
     for a, b in ((wy0 - 0.028, wy0), (wy1, wy1 + 0.028)):
         _box(bm, x - 0.012, x, a, b, z0, z1)
@@ -212,6 +194,7 @@ def main():
     names0 = {o.name for o in bpy.data.objects}
     piv0 = {o.name: tuple(x.copy() for x in o.matrix_local.decompose()[:2])
             for o in bpy.data.objects if o.name.startswith("pivot_")}
+    skin = _skin()
     before = S.triangles()
     cock = bpy.data.objects["cockpit"]
     m = _measure(cock)
@@ -242,7 +225,7 @@ def main():
         door_x += 0.015
     z0, wz1 = m["floor"] - 0.004, min(top - 0.18, m["floor"] + 1.40)
     wz0 = wz1 - 0.11
-    door = _finish(_door(door_x, y0, y1, z0, top, wy0, wy1, wz0, wz1), "deck_door", door_mat, (0.352, 0.086), False, cock)
+    door = _finish(_door(door_x, y0, y1, z0, top, wy0, wy1, wz0, wz1, _roof(skin, door_x, m["floor"])), "deck_door", door_mat, (0.352, 0.086), False, cock)
     win = bmesh.new()
     _box(win, door_x + 0.008, door_x + 0.014, wy0 + 0.01, wy1 - 0.01, wz0 + 0.01, wz1 - 0.01)
     window = _finish(win, "deck_door_window", glass, (0.352, 0.086), False, cock)
@@ -280,14 +263,14 @@ def main():
     print("TRIANGLES before %d after %d delta %d new %d" % (before, after, after - before, new_tris))
     print("PIVOT ASSERT scene ok pivots %d names %d" % (len(piv0), len(names0)))
     S.export_glb(GLB)
-    nb, pb = _file_pivots(BAK)
-    n1, p1 = _file_pivots(GLB)
+    nb, pb = S.file_pivots(BAK)
+    n1, p1 = S.file_pivots(GLB)
     bad, worst = [n for n in nb if n not in set(n1)], [0.0, 0.0]
     for name, (t0, r0) in pb.items():
         if name not in p1:
             bad.append(name)
             continue
-        dt, da = math.dist(t0, p1[name][0]), _qdeg(r0, p1[name][1])
+        dt, da = math.dist(t0, p1[name][0]), S.qdeg(r0, p1[name][1])
         worst = [max(worst[0], dt), max(worst[1], da)]
         if dt > 0.001 or da > 0.1:
             bad.append(name)

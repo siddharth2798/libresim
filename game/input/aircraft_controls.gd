@@ -111,7 +111,7 @@ func restore_defaults() -> void:
 
 
 func _write_defaults(overwrite: bool) -> void:
-	var want := {}
+	var want := ControlActions.RAMP_SEEDS.duplicate()
 	for g in groups:
 		want.merge(ControlActions.SEEDS.get(g, {}), true)
 	if has_group("engine_master"):

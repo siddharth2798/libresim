@@ -6,7 +6,9 @@ for this model (glb origin = structural origin, model.origin_m = 0); glTF export
 (aircraft_model.fg_transform places it).
 Upstream: FlightGear A320-family (GPL-2.0-only), credits and changes in third_party/a320-family/SOURCE.md.
 """
+import json
 import math
+import struct
 import sys
 from pathlib import Path
 
@@ -195,3 +197,28 @@ def export_glb(path):
 def bbox(objs):
     pts = [o.matrix_world @ Vector(c) for o in objs for c in o.bound_box]
     return [(min(p[i] for p in pts), max(p[i] for p in pts)) for i in range(3)]
+
+
+def glb_json(path):
+    """The glTF JSON chunk of a .glb."""
+    data, off = Path(path).read_bytes(), 12
+    while off < len(data):
+        ln, typ = struct.unpack_from("<II", data, off)
+        chunk, off = data[off + 8:off + 8 + ln], off + 8 + ln
+        if typ == 0x4E4F534A:
+            return json.loads(chunk)
+    raise RuntimeError("no glTF json")
+
+
+def file_pivots(path):
+    names, piv = [], {}
+    for n in glb_json(path)["nodes"]:
+        name = n.get("name", "")
+        names.append(name)
+        if name.startswith("pivot_"):
+            piv[name] = (n.get("translation", [0, 0, 0]), n.get("rotation", [0, 0, 0, 1]))
+    return names, piv
+
+
+def qdeg(a, b):
+    return math.degrees(2 * math.acos(min(1.0, abs(sum(x * y for x, y in zip(a, b))))))
