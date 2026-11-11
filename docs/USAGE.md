@@ -267,6 +267,7 @@ The logo splash shows first, then the home screen with two cards: **Free flight*
 
 **Controls** (home → Controls; in flight **J**, opens on the joystick tab): tabs **Keyboard**, **Joystick & gamepad**, **Other keys** (fixed hotkeys). **Controls for** (C172S / A320-family) lists the other aircraft's actions without changing your setup. **Search actions** (Ctrl+F / Cmd+F) filters by action name or bound key.
 - **Keyboard:** click a slot (up to 3 keys per action, Shift / Ctrl / Alt allowed), press the new key. Esc cancels, Delete clears, conflicts show in orange, **Reset keys to defaults**. Keys match by physical position. Saved in `user://key_bindings.json`.
+- **Ground operations** have their own section on the Keyboard and the Joystick & gamepad tabs (`ControlActions.GROUND`): taxi route (T), pushback (P), jetway (Shift+J), cabin door (O), ground vehicles (U). All five are rebindable keys and joystick buttons on every aircraft; taxi route and pushback bump `controls/ground/taxi_req` / `push_req`, which `world/ground_ops.gd` watches (each press toggles). The F1 card lists them. Test: `tests/test_ramp_keys.gd`.
 - **Joystick & gamepad:** connected devices are listed; hot-plug works. Each action has **Bind** (move an axis or press a button; Esc or 10 s cancels), clear, a live bar and **Tune** (invert; range: full, half for levers, trigger for toe brakes; deadzone; expo curve). Resets: gamepad = left stick roll/pitch, right stick X yaw, triggers toe brakes, LB/RB flaps, A brakes, X parking brake, Y/B views, D-pad trim and magnetos; joystick = X/Y roll/pitch, twist yaw, throttle axis. A bound axis takes over from the keyboard; unbound actions stay on the keyboard. Saved in `user://input_bindings.json`. The Thrustmaster Captain Pack has its own profile (below).
 
 **Options** (home → Options; same pages in the pause screen) has six tabs and saves at once (`user://options.cfg`, `user://audio.cfg`):
@@ -378,9 +379,10 @@ cd game
 | Tab / Shift+Tab | 2D panel layout in outside views: Full, Split, Compact, Minimal (ASI, AI, ALT top-right), Off. Remembered |
 | Right-mouse drag | Look around (cockpit, orbit, free, wing, tail). In the cockpit, a left-drag on empty space looks too; a left-click on a glass screen or an A320 lever still uses that control. Wheel, trackpad scroll, or pinch: cockpit zoom. Hover a lever or switch for its name, key and position. Wheel also sets orbit distance and free-camera speed |
 | V | Re-centre the view |
-| T | Taxi guidance: green route line to the into-wind runway and a "Taxi via …, hold short" card (8-12 s; 12 s the first time after landing). T again clears it. Route and distance left stay as a tiny line in the radio bar |
+| T | Taxi guidance (rebindable, Controls → Ground operations): green route line to the into-wind runway and a "Taxi via …, hold short" card (8-12 s; 12 s the first time after landing). T again clears it. Route and distance left stay as a tiny line in the radio bar |
 | Backspace | Dismiss the taxi / pushback message (it also goes when you start taxiing or reach the stand; it stays in the radio History) |
 | P | Pushback (parking brake off): a tug pushes you back and swings the tail toward the taxiway. P again stops |
+| Shift+J / O / U | Jetway to / away from the door / cabin door open and shut / ground vehicles called or sent away |
 | ` (backquote) | Open / close the radio (see "Radio and ATC") |
 | K | Training callouts on / off |
 | F2 | Checklists window (see "Checklists") |

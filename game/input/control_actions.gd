@@ -18,6 +18,7 @@ extends RefCounted
 ##   controls/fcu/ap1, ap2, athr, loc, appr (bool toggles)
 ##   controls/fcu/spd_kt, hdg_deg, alt_ft, vs_fpm (set-points in pilot units, like adf/freq_khz)
 ##   controls/ground/jetway_stowed bool (the jetway stays retracted at a gate)  controls/ground/crew_away bool (ground vehicles sent away)
+##   controls/ground/taxi_req, push_req int (counters: each press asks world/ground_ops.gd for a taxi route / pushback)
 ##   controls/door_open bool (cabin door; eases systems/door_pos 0..1, world/cabin_door.gd)
 ##   controls/lights/{takeoff, rwy_turnoff, wing, logo} bool (an airliner's extra exterior lights, aircraft_lights.gd)
 
@@ -67,6 +68,11 @@ const TOGGLES := {
 	"jetway_toggle": "controls/ground/jetway_stowed", "door_toggle": "controls/door_open",
 	"ground_crew_toggle": "controls/ground/crew_away",
 }
+## Press actions that bump a counter prop: a request another module acts on (world/ground_ops.gd watches them).
+const PULSES := {"taxi_route": "controls/ground/taxi_req", "pushback": "controls/ground/push_req"}
+## Ground operations, offered by every aircraft: their own section on the Controls page (keyboard and joystick).
+const GROUND := ["taxi_route", "pushback", "jetway_toggle", "door_toggle", "ground_crew_toggle"]
+
 ## Press actions that cycle an int prop: action -> [prop, states, value when the prop was never set].
 const CYCLES := {
 	"magnetos_next": ["controls/magnetos", 4, 3], "fuel_selector": ["controls/fuel/selector", 4, 3],

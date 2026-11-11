@@ -8,7 +8,6 @@ const KEYS := [
 	["Tab / Shift+Tab", "2D panel layout"],
 	["V", "Re-centre view"],
 	["N", "Moving map"],
-	["T / P", "Taxi route / pushback"],
 	["Backspace", "Dismiss the taxi message"],
 	["`", "Radio (ATC) menu"],
 	["F2", "Checklists"],

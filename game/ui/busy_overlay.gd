@@ -8,6 +8,7 @@ extends Control
 const GROUP := &"busy_overlay"
 const _FRAMES := "⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏"
 const _Credits := preload("res://ui/credits_screen.gd")
+const CREDIT_MIN_W := 480.0  # narrower (the first frames, a window still settling) the line wraps into a column at the left
 
 var _label: Label
 var _mark: Label
@@ -115,7 +116,7 @@ func show_busy(text: String, scenic: bool = false, aircraft: String = "", airpor
 		_label.add_theme_font_size_override("font_size", MenuTheme.SIZE_BODY if _scenic else MenuTheme.SIZE_TITLE)
 		_label.add_theme_color_override("font_color", MenuTheme.DIM if _scenic else MenuTheme.TEXT)
 	if _credit != null:
-		_credit.visible = _scenic
+		_credit.visible = credit_shows()
 		if _scenic:
 			_credit.text = _Credits.attribution_line()
 	_place_text()
@@ -137,9 +138,16 @@ func hide_busy() -> void:
 func _process(dt: float) -> void:
 	if not visible or _mark == null:
 		return
+	if _credit != null:
+		_credit.visible = credit_shows()
 	_spin += dt * 12.0
 	_mark.text = _FRAMES[int(_spin) % _FRAMES.length()]
 	_place_text()
+
+
+## The attribution line under a scenic film, once the veil is wide enough to show it on one or two centred lines.
+func credit_shows() -> bool:
+	return _scenic and size.x >= CREDIT_MIN_W
 
 
 func _place_text() -> void:
