@@ -165,3 +165,27 @@ func test_loader_silences_the_game_until_it_lifts() -> String:
 	if not freed:
 		return "engine bus should be live once the veil is dropped"
 	return ""
+
+
+## The credit line never shows squeezed into a column at the left: hidden while the veil is narrow (its first frames,
+## a window still settling), shown full width and centred once the window is laid out.
+func test_credit_line_waits_for_a_wide_veil() -> String:
+	var host := Control.new()
+	host.size = Vector2(64, 64)
+	add_child(host)
+	var veil := BusyOverlay.new()
+	host.add_child(veil)
+	veil.show_busy("Loading the flight…", true)
+	var c: Label = veil.get("_credit")
+	var narrow := c.visible
+	host.size = Vector2(1280, 720)
+	veil._process(0.016)
+	var wide := c.visible
+	var w := c.size.x
+	var centred := c.horizontal_alignment == HORIZONTAL_ALIGNMENT_CENTER
+	host.free()
+	if narrow:
+		return "credit shown in a 64 px veil (it wraps into a column at the left)"
+	if not wide or w < 1000.0 or not centred:
+		return "credit at 1280 px: visible %s, width %.0f, centred %s" % [wide, w, centred]
+	return ""

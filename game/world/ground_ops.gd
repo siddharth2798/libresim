@@ -1,9 +1,8 @@
 class_name GroundOps
 extends Node3D
-## Ground operations: progressive taxi (T) and pushback (P).
-## T routes over the taxi graph to the into-wind runway, or to a stand, and draws the green line.
-## P pushes back and turns onto the taxiway. PushbackFit keeps the wheels on the pavement; speed and
-## the preferred arc come from aircraft.json "pushback". The aircraft is moved kinematically. P again stops.
+## Ground operations (rebindable keys): taxi (T) routes over the taxi graph to the into-wind runway, or to a stand, and
+## draws the green line. Pushback (P, again stops) turns onto the taxiway; PushbackFit keeps the wheels on the pavement,
+## speed and arc come from aircraft.json "pushback". The aircraft is moved kinematically.
 const _Fit := preload("res://world/pushback_fit.gd")
 
 var ops: AirportOps
@@ -24,6 +23,7 @@ var _pb := GroundParams.PUSHBACK  # pushback path and speed
 var _tow_ahead := 3.2  # tug origin ahead of the CG
 var _route_len: PackedFloat32Array = []  # cumulative distance at each route point
 var _mat := StandardMaterial3D.new()
+var _seen := Vector2i.ZERO  # last seen _requests() (a request made before setup is ignored)
 
 
 func setup(o: AirportOps, ab: AirportBuilder, fn: FdmNode, t: TerrainQuadtree, ui: CanvasLayer) -> void:
@@ -37,12 +37,12 @@ func setup(o: AirportOps, ab: AirportBuilder, fn: FdmNode, t: TerrainQuadtree, u
 	_mat.albedo_color = Color(0.2, 1.0, 0.35)
 	_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	_mat.emission_enabled = true
-	_mat.emission = Color(0.2, 1.0, 0.35)
+	_mat.emission = _mat.albedo_color
+	_seen = _requests()
 	_banner = TaxiBanner.new()
 	add_child(_banner)
 	FloatingOrigin.shifted.connect(func(d: Vector3):
-		if _line:
-			_line.position += d)
+		if _line: _line.position += d)
 
 
 func _airport_here() -> String:
@@ -78,19 +78,18 @@ func _best_runway_end(icao: String) -> Dictionary:
 	return best
 
 
-func _unhandled_key_input(e: InputEvent) -> void:
-	if not e.pressed or e.echo:
-		return
-	if e.keycode == KEY_T and not e.ctrl_pressed:
-		if _route.is_empty():
-			request_taxi()
-		else:
-			clear_route()
-	elif e.keycode == KEY_P and not e.ctrl_pressed:
-		if _push.is_empty():
-			start_pushback()
-		else:
-			_end_push("Pushback stopped")
+## Keys / buttons taxi_route and pushback bump these counters (ControlActions.PULSES); each press toggles.
+func _poll_requests() -> void:
+	var r := _requests()
+	if r.x != _seen.x:
+		request_taxi() if _route.is_empty() else clear_route()
+	if r.y != _seen.y:
+		start_pushback() if _push.is_empty() else _end_push("Pushback stopped")
+	_seen = r
+
+
+static func _requests() -> Vector2i:  # controls/ground/taxi_req, push_req
+	return Vector2i(Props.get_v("controls/ground/taxi_req", 0), Props.get_v("controls/ground/push_req", 0))
 
 
 func request_taxi() -> void:
@@ -175,6 +174,7 @@ func _say(t: String) -> void:
 
 
 func _process(_dt: float) -> void:
+	_poll_requests()
 	if not _route.is_empty():
 		var p := fdm_node.position_enu()
 		var here := Vector2(p.x, p.y)

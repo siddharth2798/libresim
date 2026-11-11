@@ -40,10 +40,13 @@ const FLIGHT := [
 	["", ["beacon", "nav_lights", "strobes", "landing_light", "taxi_light"], " ", "beacon nav strobe land taxi"],
 	["ext_lights", ["takeoff_light", "turnoff_lights", "wing_lights", "logo_lights"], " ", "take-off rwy turn-off wing logo lights"],
 	["", ["pitot_heat"], "", "pitot heat"],
+	# ground operations (ControlActions.GROUND)
+	["", ["taxi_route", "pushback"], " · ", "taxi route · pushback"],
+	["", ["jetway_toggle", "door_toggle", "ground_crew_toggle"], " · ", "jetway · door · ground vehicles"],
 ]
 const FIXED := [
 	["C · 1–8", "views"], ["Tab", "panel layout"], ["N", "map"], ["`", "radio / ATC"],
-	["T · P", "taxi route · pushback"], ["F2", "checklists"], ["F9 · F10", "failures · settings"],
+	["F2", "checklists"], ["F9 · F10", "failures · settings"],
 	["R · F8", "replay · record"], ["F11", "quick-save"], ["J", "controls"], ["H", "flight-data bar"],
 	["Esc", "pause menu"], ["L · Shift+L", "panel lights + / −"], ["F1", "this help"],
 	["Ctrl+click", "zoom on cockpit item"], ["wheel", "zoom to cursor"], ["K", "training callouts on / off"],

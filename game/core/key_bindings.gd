@@ -24,7 +24,7 @@ const PRESS := ["flaps_down", "flaps_up", "parking_brake", "magnetos_next", "mou
 	"autobrake_next", "engine_master_1", "engine_master_2", "engine_mode_next", "apu_master",
 	"fcu_ap1", "fcu_ap2", "fcu_athr", "fcu_loc", "fcu_appr", "anti_ice_wing", "anti_ice_eng_1", "anti_ice_eng_2",
 	"takeoff_light", "turnoff_lights", "wing_lights", "logo_lights", "alternate_static",
-	"jetway_toggle", "door_toggle", "ground_crew_toggle"]
+	"jetway_toggle", "door_toggle", "ground_crew_toggle", "taxi_route", "pushback"]
 ## Switch-row toggles: action -> Props path (fuel_selector cycles OFF/L/R/BOTH instead).
 const SWITCHES := {"avionics": "controls/electrical/avionics", "fuel_shutoff": "controls/fuel/shutoff",
 	"beacon": "controls/lights/beacon", "nav_lights": "controls/lights/nav", "strobes": "controls/lights/strobe",
@@ -59,12 +59,13 @@ const LABELS := {
 	"tiller_left": "Tiller left", "tiller_right": "Tiller right", "alternate_static": "Alternate static",
 	"jetway_toggle": "Jetway: move to / away from the door", "door_toggle": "Cabin door open / close",
 	"ground_crew_toggle": "Ground vehicles: call / send away",
+	"taxi_route": "Taxi route: ask / clear (follow-me car)", "pushback": "Pushback: start / stop",
 }
 ## Other in-flight hotkeys (not rebindable here): a binding on one of these is a conflict.
 const RESERVED := {
 	KEY_C: "camera", KEY_1: "view 1", KEY_2: "view 2", KEY_3: "view 3", KEY_4: "view 4",
 	KEY_5: "view 5", KEY_6: "view 6", KEY_7: "view 7", KEY_8: "view 8", KEY_V: "re-centre view",
-	KEY_N: "moving map", KEY_T: "taxi route", KEY_P: "pushback", KEY_H: "HUD", KEY_J: "controls panel",
+	KEY_N: "moving map", KEY_H: "HUD", KEY_J: "controls panel",
 	KEY_TAB: "panel layout", KEY_QUOTELEFT: "radio menu", KEY_ESCAPE: "pause", KEY_F1: "key help",
 	KEY_F2: "checklists", KEY_F3: "perf overlay", KEY_F5: "reset", KEY_F8: "recording",
 	KEY_F9: "failures", KEY_F10: "settings", KEY_F11: "saved flights", KEY_F12: "credits",
@@ -151,6 +152,8 @@ static func _add_airliner_defaults(t: Dictionary) -> void:
 	t.jetway_toggle = [spec(KEY_J, true)]
 	t.door_toggle = [spec(KEY_O)]
 	t.ground_crew_toggle = [spec(KEY_U)]
+	t.taxi_route = [spec(KEY_T)]
+	t.pushback = [spec(KEY_P)]
 
 
 static func describe(s: Dictionary) -> String:

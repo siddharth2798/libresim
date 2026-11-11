@@ -1,10 +1,8 @@
 extends HBoxContainer
-## Controls page (start screen, pause screen, and in flight via ui/controls_overlay.gd), in tabs
-## (ui/menu/menu_tabs.gd): Keyboard (rebindable flight keys, key_bindings_section.gd), Joystick & gamepad
-## (connected devices, one row per action with Bind (capture the next axis moved > 0.5 or button pressed),
-## clear, a live bar and, for axes, Tune: invert / range / deadzone / curve / Lo and Hi calibration; reset to
-## gamepad, joystick or Airbus Captain Pack defaults; controls_row.gd) and Other keys (the fixed hotkeys, keyboard_reference.gd). Saves on every change. Only the actions the
-## aircraft offers (aircraft_controls.gd) are listed; the rest stay in the saved profile.
+## Controls page (start screen, pause screen, and in flight via ui/controls_overlay.gd), in tabs (ui/menu/menu_tabs.gd):
+## Keyboard (rebindable keys: flight controls and ground operations, key_bindings_section.gd), Joystick & gamepad (devices,
+## one row per action in Axes / Buttons / Ground operations, controls_row.gd: Bind, clear, a live bar, Tune for axes;
+## resets) and Other keys (fixed hotkeys, keyboard_reference.gd). Saves on every change; lists what the aircraft offers.
 ## The tab bar is sticky (the rows scroll under it) and carries two extras: "Controls for" (the aircraft whose action list is
 ## shown, show_aircraft(); it only changes the list, never the flight setup or a binding) and a search box that hides the
 ## rows that do not match (controls_filter.gd; Ctrl+F or Cmd+F focuses it).
@@ -24,7 +22,7 @@ var keys: VBoxContainer  # the Keyboard tab (key_bindings_section.gd)
 var search: LineEdit
 var aircraft_switch: Segmented  # null when only one aircraft is installed
 var _rows := {}  # action -> row
-var _heads: Array[Label] = []  # the Axes / Buttons headings of the joystick tab, hidden with their rows
+var _heads: Array[Label] = []  # the Axes / Buttons / Ground operations headings of the joystick tab, hidden with their rows
 var _empties := {}  # tab id -> the "No match" note
 var _query := ""
 var _other: GridContainer  # the Other keys tab's hotkey list (keyboard_reference.gd)
@@ -100,11 +98,16 @@ func _filter_joystick(query: String) -> int:
 		var ok := ControlsFilter.matches(query, texts)
 		(_rows[a] as Control).visible = ok
 		n += int(ok)
-		group_shown[InputBindings.is_axis(a)] = group_shown.get(InputBindings.is_axis(a), false) or ok
-	if _heads.size() == 2:
-		_heads[0].visible = group_shown.get(true, false)
-		_heads[1].visible = group_shown.get(false, false)
+		var g := _joy_section(a)
+		group_shown[g] = group_shown.get(g, false) or ok
+	for i in _heads.size():
+		_heads[i].visible = group_shown.get(i, false)
 	return n
+
+
+## Joystick tab section of an action: 0 Axes, 1 Buttons, 2 Ground operations (ControlActions.GROUND).
+static func _joy_section(a: String) -> int:
+	return 0 if InputBindings.is_axis(a) else (2 if a in ControlActions.GROUND else 1)
 
 
 func _unhandled_key_input(e: InputEvent) -> void:
@@ -146,13 +149,11 @@ func _joystick_tab() -> Control:
 		top.add_child(b)
 	_status = MenuTheme.note("Bind, then move an axis or press a button (Esc cancels). Keyboard keeps working for anything not bound.")
 	col.add_child(_status)
-	_heads = [MenuTheme.heading("Axes"), MenuTheme.heading("Buttons")]
-	col.add_child(_heads[0])
-	for a in controls.axes():
-		_add_row(col, a)
-	col.add_child(_heads[1])
-	for a in controls.buttons():
-		_add_row(col, a)
+	_heads = [MenuTheme.heading("Axes"), MenuTheme.heading("Buttons"), MenuTheme.heading("Ground operations")]
+	for i in _heads.size():
+		col.add_child(_heads[i])
+		for a in controls.axes() + controls.buttons():
+			if _joy_section(a) == i: _add_row(col, a)
 	_empties["joystick"] = ControlsHeader.no_match_note()
 	col.add_child(_empties["joystick"])
 	return col
