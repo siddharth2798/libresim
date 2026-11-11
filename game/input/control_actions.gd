@@ -19,7 +19,9 @@ extends RefCounted
 ##   controls/fcu/spd_kt, hdg_deg, alt_ft, vs_fpm (set-points in pilot units, like adf/freq_khz)
 ##   controls/ground/jetway_stowed bool (the jetway stays retracted at a gate)  controls/ground/crew_away bool (ground vehicles sent away)
 ##   controls/ground/taxi_req, push_req int (counters: each press asks world/ground_ops.gd for a taxi route / pushback)
-##   controls/door_open bool (cabin door; eases systems/door_pos 0..1, world/cabin_door.gd)
+##   controls/door_open bool (cabin door L1; eases systems/door_pos 0..1, world/cabin_door.gd)
+##   controls/doors/<id> bool (the other doors of aircraft.json ground.doors: R1 L2 R2 CF CA; eases systems/doors/<id>)
+##   controls/doors/passenger_all_req, cargo_all_req int (bumped: open every passenger / cargo door, or shut them all when all are open)
 ##   controls/lights/{takeoff, rwy_turnoff, wing, logo} bool (an airliner's extra exterior lights, aircraft_lights.gd)
 
 const DEFAULT_GROUPS := ["throttle", "mixture", "trim", "flaps", "brakes", "parking_brake",
@@ -48,6 +50,8 @@ const GROUPS := {
 	"apu": ["apu_master", "apu_start"],
 	"rudder_trim": ["rudder_trim_left", "rudder_trim_right", "rudder_trim_axis"],
 	"tiller": ["tiller", "tiller_left", "tiller_right"],
+	"doors": ["passenger_doors_all", "cargo_doors_all", "door_r1_toggle", "door_l2_toggle", "door_r2_toggle",
+		"door_cargo_fwd_toggle", "door_cargo_aft_toggle"],  # the doors after L1 (door_toggle, every aircraft)
 	"anti_ice": ["anti_ice_wing", "anti_ice_eng_1", "anti_ice_eng_2"],
 	"fcu": ["fcu_ap1", "fcu_ap2", "fcu_athr", "fcu_loc", "fcu_appr", "fcu_spd_up", "fcu_spd_down",
 		"fcu_hdg_right", "fcu_hdg_left", "fcu_alt_up", "fcu_alt_down", "fcu_vs_up", "fcu_vs_down"],
@@ -66,12 +70,16 @@ const TOGGLES := {
 	"wing_lights": "controls/lights/wing", "logo_lights": "controls/lights/logo",
 	# every aircraft: the ramp (world/jetway_rig.gd, world/ramp_crew.gd, world/cabin_door.gd)
 	"jetway_toggle": "controls/ground/jetway_stowed", "door_toggle": "controls/door_open",
+	"door_r1_toggle": "controls/doors/R1", "door_l2_toggle": "controls/doors/L2", "door_r2_toggle": "controls/doors/R2",
+	"door_cargo_fwd_toggle": "controls/doors/CF", "door_cargo_aft_toggle": "controls/doors/CA",
 	"ground_crew_toggle": "controls/ground/crew_away",
 }
 ## Press actions that bump a counter prop: a request another module acts on (world/ground_ops.gd watches them).
-const PULSES := {"taxi_route": "controls/ground/taxi_req", "pushback": "controls/ground/push_req"}
+const PULSES := {"taxi_route": "controls/ground/taxi_req", "pushback": "controls/ground/push_req",
+	"passenger_doors_all": "controls/doors/passenger_all_req", "cargo_doors_all": "controls/doors/cargo_all_req"}
 ## Ground operations, offered by every aircraft: their own section on the Controls page (keyboard and joystick).
-const GROUND := ["taxi_route", "pushback", "jetway_toggle", "door_toggle", "ground_crew_toggle"]
+const GROUND := ["taxi_route", "pushback", "jetway_toggle", "door_toggle", "passenger_doors_all", "cargo_doors_all", "door_r1_toggle",
+	"door_l2_toggle", "door_r2_toggle", "door_cargo_fwd_toggle", "door_cargo_aft_toggle", "ground_crew_toggle"]
 
 ## Press actions that cycle an int prop: action -> [prop, states, value when the prop was never set].
 const CYCLES := {
@@ -115,6 +123,9 @@ const SELECTORS := {
 }
 ## Ramp state every aircraft starts a flight with (and gets back on a restart): door shut, jetway and vehicles called.
 const RAMP_SEEDS := {"controls/door_open": false, "systems/door_pos": 0.0, "controls/ground/jetway_stowed": false,
+	"controls/doors/R1": false, "systems/doors/R1": 0.0, "controls/doors/L2": false, "systems/doors/L2": 0.0,
+	"controls/doors/R2": false, "systems/doors/R2": 0.0, "controls/doors/CF": false, "systems/doors/CF": 0.0,
+	"controls/doors/CA": false, "systems/doors/CA": 0.0,
 	"controls/ground/crew_away": false}
 ## Initial Props of a group (only set when the prop does not exist yet); aircraft.json "defaults" wins.
 const SEEDS := {

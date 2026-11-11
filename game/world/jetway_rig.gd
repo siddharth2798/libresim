@@ -3,7 +3,9 @@ extends Node3D
 ## One movable jetway of an airport, hinged at its rotunda (tools/jetway_net.py: the OSM network node where the apron-drive bridge
 ## starts; a fixed link, JetwayLinks, joins it to the terminal), in two layouts: rest (straight toward the drawn cab end, hood
 ## REST_BACK_M short of it) and docked (hood face on the door of the aircraft parked at a gate it serves, JetwayDocks), and the
-## move between them. Tunnel sections stretch; drum / girder / cab move rigidly (the cab turns about the drum to face the
+## move between them, with the cab's closure (JetwayCanopy) lowered onto the skin only once the bridge has stopped, and the
+## cabin door requested open once it is on; leaving runs backwards (door shut, canopy folded, then the bridge moves).
+## Tunnel sections stretch; drum / girder / cab move rigidly (the cab turns about the drum to face the
 ## fuselage); the bridge tilts about the rotunda to put the cab floor at the door sill. The rotunda stays put, and the wheel
 ## support stands upright on the apron under the girder (JetwayLegs). Retracted it is solid (OpsSolids); extended it is not.
 ## Poses: JetwayPose.
@@ -14,6 +16,7 @@ const CAB := ["Hood", "Entrance", "GateSign"]
 const SIGN_SHARE := 0.59  # the airline sign sits this far along the tunnel
 const CAB_Z := -0.04
 const DOCK_S := 6.0  # seconds to extend or retract
+const CANOPY_S := 2.0  # seconds to lower or fold the canopy
 const CHECK_S := 0.25
 
 var terminal := Vector2.ZERO  # the rotunda (ENU), where the rig stands
@@ -21,6 +24,7 @@ var rest := {}
 var cands: Array = []
 var pose := {}  # the pose now applied
 var progress := 0.0  # 0 rest .. 1 docked
+var canopy_k := 0.0  # 0 folded .. 1 on the skin (only moves while progress is 1)
 var docked_stand := ""  # ref of the gate the cab is (or is going) at, "" at rest
 var ground_at := Callable()  # (east, north) -> ground height (m); unset: flat at the rotunda's ground
 var _solids: OpsSolids
@@ -30,7 +34,7 @@ var _pitch := Node3D.new()
 var _cab := Node3D.new()
 var _rotunda := Node3D.new()
 var _legs: JetwayLegs
-var _collar: Node3D  # the rubber skirt round the hood face (JetwayCollar)
+var _canopy: JetwayCanopy  # bellows and floor plate round the hood face
 var _back_yaw := 0.0  # ENU angle the fixed rotunda (model +x) points along
 var _model: Node3D
 var _parts := {}
@@ -38,6 +42,8 @@ var _last := -1
 var _check := 0.0
 var _solid_on := false
 var _first := true
+var _door_requested := false
+var _attached := false
 
 
 ## model: the instanced jetway scene; rot / way_cab: rotunda and drawn cab end (ENU); cands: JetwayDocks.candidates;
@@ -61,7 +67,7 @@ func setup(model: Node3D, rot: Vector2, way_cab: Vector2, p_cands: Array, back :
 		var m := _take(model, n, _cab)
 		if m:
 			m.position = Vector3(-JetwayPose.DRUM_X, 0.0, -CAB_Z)
-	_collar = JetwayCollar.build(_cab.find_child("Hood", false, false) as Node3D, GroundParams.ground())
+	_canopy = JetwayCanopy.build(_cab.find_child("Hood", false, false) as Node3D, GroundParams.ground())
 	var r := _take(model, "Rotunda1", _rotunda)
 	if r:
 		r.position = Vector3(-JetwayPose.PIVOT_X, 0.0, 0.0)
@@ -96,8 +102,10 @@ func start(solids: OpsSolids, key: String, ground: float) -> void:
 	else:
 		apply(pose)  # the support's wheels onto the ground now that it is known
 	_first = false
-	_sync_collar()
+	_set_canopy(0.0)  # lowered by _process, once the aircraft is in the scene to measure
+	_sync_door_request()
 	_sync_solid()
+	_sync_attached()
 
 
 func apply(p: Dictionary) -> void:
@@ -143,6 +151,8 @@ func _evaluate() -> void:
 	if at >= 0:
 		if at != _last and progress > 0.0 and not _first:
 			progress = 0.0  # a different gate: retract first
+			_set_canopy(0.0)
+			_sync_attached()
 		_last = at
 		docked_stand = str(cands[at].stand)
 	else:
@@ -154,18 +164,50 @@ func _process(dt: float) -> void:
 	if _check <= 0.0:
 		_check = CHECK_S
 		_evaluate()
-	var target := 1.0 if docked_stand != "" and not Props.get_b("controls/ground/jetway_stowed") else 0.0
-	if is_equal_approx(progress, target):
-		return
-	progress = move_toward(progress, target, dt / DOCK_S)
+	var dock := docked_stand != "" and not Props.get_b("controls/ground/jetway_stowed")
+	if dock and progress < 1.0:
+		_move(move_toward(progress, 1.0, dt / DOCK_S))
+	elif dock and canopy_k < 1.0:
+		if _canopy != null and not _canopy.fitted:  # the cab is at the door: measure the skin (again while the aircraft loads)
+			_canopy.fit(JetwayCanopy.aircraft_exterior(get_tree()))
+		_set_canopy(move_toward(canopy_k, 1.0, dt / CANOPY_S))
+	elif not dock and canopy_k > 0.0:
+		if docked_stand == "" or Props.get_f("systems/door_pos") <= 0.02:  # the door shuts before the canopy lifts off
+			_set_canopy(move_toward(canopy_k, 0.0, dt / CANOPY_S))
+	elif not dock and progress > 0.0:
+		_move(move_toward(progress, 0.0, dt / DOCK_S))
+	_sync_door_request()
+
+
+func _move(p: float) -> void:
+	progress = p
 	apply(JetwayPose.mix(rest, cands[_last].pose, smoothstep(0.0, 1.0, progress)))
-	_sync_collar()
 	_sync_solid()
+	_sync_attached()
 
 
-## The skirt unfolds over the last part of the move, once the hood is nearly at the door.
-func _sync_collar() -> void:
-	JetwayCollar.set_open(_collar, smoothstep(0.85, 1.0, progress))
+## systems/jetway_attached: this bridge is out at the aircraft (pushback waits, world/ground_ops.gd). Only the rig that set
+## it clears it.
+func _sync_attached() -> void:
+	var on := progress > 0.0
+	if on != _attached:
+		Props.set_v("systems/jetway_attached", on)
+		_attached = on
+
+
+func _set_canopy(k: float) -> void:
+	canopy_k = k
+	JetwayCanopy.set_open(_canopy, k)
+
+
+## The cabin door is requested open once the canopy is on the skin, and shut first when leaving. Only the rig that asked
+## closes it again, so a door the player opened at a stand without a bridge is left alone.
+func _sync_door_request() -> void:
+	var want := docked_stand != "" and progress >= 1.0 and canopy_k >= 1.0 and not Props.get_b("controls/ground/jetway_stowed")
+	if want == _door_requested:
+		return
+	Props.set_v("controls/door_open", want)
+	_door_requested = want
 
 
 func _sync_solid() -> void:

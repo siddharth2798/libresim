@@ -44,6 +44,7 @@ var _glb: Node3D  # glb mode: the exterior model root (light parents, AircraftLi
 
 func build(node: FdmNode) -> void:
 	fdm_node = node
+	add_to_group(JetwayCanopy.GROUP)  # a docking jetway fits its canopy to exterior()
 	def = node.fdm.def if node.fdm.def != null else AircraftDef.current()
 	_model = def.section_or("model", DEFAULTS)
 	_cg = node.fdm.mb.cg
@@ -88,12 +89,17 @@ func _build_glb(path: String) -> void:
 		var finish := MaterialFinish.new()
 		add_child(finish)
 		finish.follow(inst, _cg, def)  # cabin-window glow and the fuselage stain; roughness is stamped inside apply()
-		var door := CabinDoorPanel.make(def.section("ground"), _cg, _s)
-		if door:
+		var probe := SkinProbe.make(inst, self, _s)  # the panels lie on the measured skin
+		for door in CabinDoorPanel.make_all(def.section("ground"), _cg, _s, probe):  # every door painted on the skin
 			add_child(door)
 		var blur := FanBlur.new()
 		add_child(blur)
 		blur.follow(inst)  # static fan discs; opacity follows engines/1/n1 and engines/2/n1
+
+
+## The exterior model (glb, or the placeholder airframe) for things that measure the skin, such as a jetway canopy.
+func exterior() -> Node3D:
+	return _glb if _glb != null else _airframe
 
 
 ## After a situation load changed the livery: drop the old paint, then the same pass as build().

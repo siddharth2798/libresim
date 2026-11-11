@@ -170,7 +170,8 @@
    "brakes",
    "parking_brake",
    "anti_ice",
-   "ext_lights"
+   "ext_lights",
+   "doors"
   ],
   "levers": {
    "throttle": {
@@ -1886,6 +1887,15 @@
   "door_h_m": 1.85,
   "door_w_m": 0.9,
   "door_axis_z_m": 0.9,
+  "_doors_doc": "Every door that opens (aircraft/common/cabin_door_panel.gd, world/cabin_door.gd). x_m: door centre, structural x (aft +); side -1 left / +1 right; sill_z_m / h_m: bottom and height (vertical); w_m: width. Passenger doors measured on the painted outlines of models/exterior.glb (orthographic side views, 2026-11); L1 = cg_to_door_m / door_y_m. The glb paints no cargo doors: CF / CA follow the usual A320 layout (lower right, ahead of and behind the wing fairing, 1.82 m wide, hinged at the top) and are approximate.",
+  "doors": [
+   {"id": "L1", "label": "Door L1 (front left)", "kind": "passenger", "x_m": -13.78, "side": -1, "sill_z_m": -0.58, "w_m": 0.9, "h_m": 1.85},
+   {"id": "R1", "label": "Door R1 (front right)", "kind": "passenger", "x_m": -13.76, "side": 1, "sill_z_m": -0.58, "w_m": 0.9, "h_m": 1.85},
+   {"id": "L2", "label": "Door L2 (rear left)", "kind": "passenger", "x_m": 10.85, "side": -1, "sill_z_m": -0.5, "w_m": 0.9, "h_m": 1.85},
+   {"id": "R2", "label": "Door R2 (rear right)", "kind": "passenger", "x_m": 10.87, "side": 1, "sill_z_m": -0.5, "w_m": 0.9, "h_m": 1.85},
+   {"id": "CF", "label": "Forward cargo door", "kind": "cargo", "x_m": -10.0, "side": 1, "sill_z_m": -1.5, "w_m": 1.82, "h_m": 0.8},
+   {"id": "CA", "label": "Aft cargo door", "kind": "cargo", "x_m": 6.0, "side": 1, "sill_z_m": -1.5, "w_m": 1.82, "h_m": 0.8}
+  ],
   "nose_gear_m": 11.1,
   "taxi_half_m": 22.0,
   "max_taxi_kt": 30.0,

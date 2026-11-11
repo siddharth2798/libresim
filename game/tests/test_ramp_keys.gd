@@ -47,11 +47,16 @@ func test_cabin_door_eases_open_and_shut() -> String:
 ## default key; T and P are no longer fixed hotkeys (a binding on them is not a conflict).
 func test_every_ground_operation_is_rebindable() -> String:
 	var d := KeyBindings.defaults()
+	var each_door: Array = ControlActions.GROUPS.doors.filter(func(a): return not a.ends_with("_all"))  # listed, no default key
 	for c in [AircraftControls.default_set(), AircraftControls.for_def(AircraftDef.load_def("a320"))]:
 		for a in ControlActions.GROUND:
+			if ControlActions.group_of(a) == "doors" and c.id != "a320":
+				if a in c.press_keys():
+					return "%s: an aircraft without those doors must not list it" % a
+				continue
 			if not a in c.press_keys() or not a in c.buttons():
 				return "%s is not offered as a key and a button" % a
-			if not KeyBindings.LABELS.has(a) or not InputBindings.LABELS.has(a) or d.get(a, []).is_empty():
+			if not KeyBindings.LABELS.has(a) or not InputBindings.LABELS.has(a) or (d.get(a, []).is_empty() and not a in each_door):
 				return "%s has no label or default key" % a
 			if not ControlSteps.handles(a):
 				return "%s does nothing when pressed" % a
@@ -112,7 +117,7 @@ func test_controls_page_has_a_ground_section() -> String:
 	add_child(page)
 	var heads: Array = page.get("_heads").map(func(h): return str(h.text).to_lower())
 	var rows: Dictionary = page.get("_rows")
-	var ok := heads.has("ground operations") and ControlActions.GROUND.all(func(a): return rows.has(a))
+	var ok := heads.has("ground operations") and ControlActions.GROUND.all(func(a): return rows.has(a) or ControlActions.group_of(a) == "doors")
 	page.free()
 	return "" if ok else "joystick tab heads %s" % [heads]
 

@@ -24,7 +24,8 @@ const PRESS := ["flaps_down", "flaps_up", "parking_brake", "magnetos_next", "mou
 	"autobrake_next", "engine_master_1", "engine_master_2", "engine_mode_next", "apu_master",
 	"fcu_ap1", "fcu_ap2", "fcu_athr", "fcu_loc", "fcu_appr", "anti_ice_wing", "anti_ice_eng_1", "anti_ice_eng_2",
 	"takeoff_light", "turnoff_lights", "wing_lights", "logo_lights", "alternate_static",
-	"jetway_toggle", "door_toggle", "ground_crew_toggle", "taxi_route", "pushback"]
+	"jetway_toggle", "door_toggle", "passenger_doors_all", "cargo_doors_all", "door_r1_toggle", "door_l2_toggle", "door_r2_toggle", "door_cargo_fwd_toggle",
+	"door_cargo_aft_toggle", "ground_crew_toggle", "taxi_route", "pushback"]
 ## Switch-row toggles: action -> Props path (fuel_selector cycles OFF/L/R/BOTH instead).
 const SWITCHES := {"avionics": "controls/electrical/avionics", "fuel_shutoff": "controls/fuel/shutoff",
 	"beacon": "controls/lights/beacon", "nav_lights": "controls/lights/nav", "strobes": "controls/lights/strobe",
@@ -57,7 +58,11 @@ const LABELS := {
 	"fcu_hdg_left": "FCU heading left", "fcu_alt_up": "FCU altitude up", "fcu_alt_down": "FCU altitude down",
 	"fcu_vs_up": "FCU vertical speed up", "fcu_vs_down": "FCU vertical speed down",
 	"tiller_left": "Tiller left", "tiller_right": "Tiller right", "alternate_static": "Alternate static",
-	"jetway_toggle": "Jetway: move to / away from the door", "door_toggle": "Cabin door open / close",
+	"jetway_toggle": "Retract / dock bridge", "door_toggle": "Door L1 (front left)",
+	"passenger_doors_all": "All passenger doors", "cargo_doors_all": "All cargo doors",
+	"door_r1_toggle": "Door R1 (front right)",
+	"door_l2_toggle": "Door L2 (rear left)", "door_r2_toggle": "Door R2 (rear right)",
+	"door_cargo_fwd_toggle": "Forward cargo door", "door_cargo_aft_toggle": "Aft cargo door",
 	"ground_crew_toggle": "Ground vehicles: call / send away",
 	"taxi_route": "Taxi route: ask / clear (follow-me car)", "pushback": "Pushback: start / stop",
 }
@@ -151,6 +156,10 @@ static func _add_airliner_defaults(t: Dictionary) -> void:
 	t.tiller_right = []
 	t.jetway_toggle = [spec(KEY_J, true)]
 	t.door_toggle = [spec(KEY_O)]
+	t.passenger_doors_all = [spec(KEY_O, true)]
+	t.cargo_doors_all = [spec(KEY_O, false, true)]
+	for a in ["door_r1_toggle", "door_l2_toggle", "door_r2_toggle", "door_cargo_fwd_toggle", "door_cargo_aft_toggle"]:
+		t[a] = []  # listed under Ground operations; bind a key there
 	t.ground_crew_toggle = [spec(KEY_U)]
 	t.taxi_route = [spec(KEY_T)]
 	t.pushback = [spec(KEY_P)]
@@ -170,6 +179,12 @@ const SHORT := {"BracketLeft": "[", "BracketRight": "]", "Apostrophe": "'", "Sem
 	"Comma": ",", "Period": ".", "Minus": "−", "Equal": "=", "Slash": "/", "Backslash": "\\",
 	"QuoteLeft": "`", "Kp Add": "Num +", "Kp Subtract": "Num −", "Kp Multiply": "Num *",
 	"Kp Divide": "Num /", "Kp Period": "Num .", "Up": "↑", "Down": "↓", "Left": "←", "Right": "→"}
+
+
+## The first key bound to `action` as text ("Shift+J"), for messages; `t` defaults to the saved bindings.
+static func key_text(action: String, t := {}) -> String:
+	var slots: Array = (t if not t.is_empty() else load_from()).get(action, [])
+	return describe(slots[0]) if not slots.is_empty() else "set a key on the Controls page"
 
 
 static func from_event(e: InputEventKey) -> Dictionary:

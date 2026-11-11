@@ -51,8 +51,14 @@ func test_jetway_dock_door_tip_is_left_of_the_centre_line() -> String:
 		var st := _gate(100.0, 200.0, hd)
 		var rel := GroundParams.door_tip(st, def) - Vector2(100.0, 200.0)
 		var want := -1.95 - GroundParams.DOOR_GAP_M
-		if absf(rel.dot(_right(hd)) - want) > 1e-4 or absf(rel.dot(Vector2(sin(deg_to_rad(hd)), cos(deg_to_rad(hd))))) > 1e-4:
-			return "heading %.0f: tip %s from the stand, want %.2f m along the right vector and 0 ahead" % [hd, rel, want]
+		var ahead := 0.0  # the fixture gives no door width
+		if absf(rel.dot(_right(hd)) - want) > 1e-4 or absf(rel.dot(Vector2(sin(deg_to_rad(hd)), cos(deg_to_rad(hd)))) - ahead) > 1e-4:
+			return "heading %.0f: tip %s from the stand, want %.2f m along the right vector and %.2f ahead" % [hd, rel, want, ahead]
+	var a := AircraftDef.load_def("a320")  # with a door width the hood centre leads the doorway: the open door swings forward inside it
+	var st := _gate(100.0, 200.0, 90.0)
+	var ahead_a := (GroundParams.door_tip(st, a) - Vector2(100.0, 200.0)).dot(Vector2(1.0, 0.0))
+	if absf(ahead_a - (0.9 * 0.5 + 0.05)) > 1e-4:
+		return "A320: the hood centre must be %.2f m ahead of the doorway (%.2f)" % [0.9 * 0.5 + 0.05, ahead_a]
 	return ""
 
 
@@ -282,39 +288,142 @@ func test_jetway_rig_rest_layout_stub_and_wheels() -> String:
 	return msg
 
 
-func test_jetway_collar_is_deeper_toward_the_crown_and_unfolds() -> String:
+## The canopy measures the skin: in front of a stand-in fuselage (a cylinder of the A320's radius lying along the aircraft axis,
+## its side 0.15 m in front of the hood face at the door's axis height) every edge sample reaches the skin, deeper toward the
+## crown, as a round fuselage predicts; with nothing in front it keeps the round guess. It hides folded and shows on the skin.
+func test_jetway_canopy_reaches_the_fuselage_all_round() -> String:
 	var r := 1.98
-	var mid := JetwayCollar.depth_at(JetwayCollar.Y0 + 0.9, r, 0.9)
-	var top := JetwayCollar.depth_at(JetwayCollar.Y1, r, 0.9)
-	if mid > 0.1 or top < 0.5:
-		return "skirt depth: axis height %.2f (want ~0.05), top edge %.2f (want > 0.5)" % [mid, top]
-	if JetwayCollar.build(Node3D.new(), {}) != null:
-		return "no fuselage radius, no collar"
+	var axis := 0.9
+	if JetwayCanopy.build(Node3D.new(), {}) != null:
+		return "no fuselage radius, no canopy"
+	var host := Node3D.new()
+	add_child(host)
 	var hood := Node3D.new()
-	var c := JetwayCollar.build(hood, {"fuselage_r_m": r, "door_axis_z_m": 0.9})
-	JetwayCollar.set_open(c, 0.0)
-	var closed: bool = not c.visible
-	JetwayCollar.set_open(c, 1.0)
-	var ok: bool = closed and c.visible and is_equal_approx(c.scale.x, 1.0)
-	hood.free()
-	return "" if ok else "the skirt must hide folded and show at full reach"
+	host.add_child(hood)
+	var c := JetwayCanopy.build(hood, {"fuselage_r_m": r, "door_axis_z_m": axis})
+	JetwayCanopy.set_open(c, 0.0)
+	var msg := "" if not c.visible else "folded, the canopy must hide"
+	var body := Node3D.new()  # the cylinder's axis along z (fore-aft), centred r + gap in front of the face
+	var cyl := MeshInstance3D.new()
+	var cm := CylinderMesh.new()
+	cm.top_radius = r
+	cm.bottom_radius = r
+	cm.height = 20.0
+	cm.radial_segments = 96
+	cyl.mesh = cm
+	cyl.rotation.x = PI * 0.5
+	body.add_child(cyl)
+	body.position = Vector3(JetwayCanopy.FACE_X + GroundParams.DOOR_GAP_M + r, JetwayCanopyMesh.Y0 + axis, 0.0)
+	host.add_child(body)
+	if msg == "" and not c.fit(body):
+		msg = "the canopy found no skin in front of it"
+	var pts: Array = JetwayCanopyMesh.outline()[0]
+	for k in pts.size():
+		if msg != "":
+			break
+		var p: Vector3 = pts[k]
+		var want := JetwayCanopy.depth_at(p.y, r, axis) + GroundParams.DOOR_GAP_M
+		if absf(c.depths[k] - want) > 0.03:
+			msg = "edge sample %d (height %.2f): depth %.3f m, the skin is %.3f m away" % [k, p.y - JetwayCanopyMesh.Y0, c.depths[k], want]
+	var top: float = c.depths[JetwayCanopyMesh.SIDE_N + JetwayCanopyMesh.TOP_N / 2]
+	if msg == "" and top < 0.6:
+		msg = "the top edge must reach far forward to the crown (%.2f m)" % top
+	for k in c.floor_depths.size():
+		if msg == "" and absf(c.floor_depths[k] - GroundParams.DOOR_GAP_M - JetwayCanopy.depth_at(JetwayCanopyMesh.Y0, r, axis)) > 0.03:
+			msg = "floor edge %d stops %.3f m out, not at the skin" % [k, c.floor_depths[k]]
+	JetwayCanopy.set_open(c, 1.0)
+	if msg == "" and not (c.visible and is_equal_approx(c.scale.x, 1.0)):
+		msg = "on the skin, the canopy must show at full reach"
+	body.position.x += 50.0  # nothing in front: the round guess stays
+	if msg == "" and (c.fit(body) or c.fitted):
+		msg = "with no skin in front the canopy must keep the round-fuselage guess"
+	host.queue_free()
+	return msg
 
 
-## Open, an Airbus door lies along the fuselage ahead of the doorway, moved out clear of the skin (it once stood at 105°).
-func test_cabin_door_panel_needs_data_and_folds_forward_along_the_skin() -> String:
+## Docking order as at a real gate: the bridge stops at the door, then the canopy comes down, then the door is asked open; leaving
+## the door is asked shut and the canopy folds before the bridge moves.
+func test_jetway_rig_lowers_the_canopy_after_the_bridge_and_opens_the_door_last() -> String:
+	var def := AircraftDef.load_def("a320")
+	var host := Node3D.new()
+	add_child(host)
+	var st := _gate(500.0, 500.0, 0.0)
+	var cab := Vector2(500.0, 500.0) + Vector2(-9.0, 4.0)
+	var prev = Session.setup.get("aircraft", "c172")
+	Session.setup.aircraft = "a320"  # the rig builds its canopy from the current aircraft's ground section
+	var rig := _rig(host, Vector2(488.0, 520.0), cab, st, def)
+	Session.setup.aircraft = prev
+	Props.set_v("fdm/position_enu", Vector3(900.0, 900.0, 0.0))
+	Props.set_v("fdm/groundspeed_mps", 0.0)
+	Props.set_v("controls/door_open", false)
+	Props.set_v("systems/door_pos", 0.0)
+	rig.start(null, "0", 0.0)
+	var cg: Vector2 = rig.cands[0].cg
+	Props.set_v("fdm/position_enu", Vector3(cg.x, cg.y, 0.0))
+	var msg := "" if rig._canopy != null else "the A320 rig must have a canopy"
+	var saw_canopy_early := false
+	var saw_door_early := false
+	for i in 48:
+		rig._process(0.25)
+		saw_canopy_early = saw_canopy_early or (rig.progress < 1.0 and rig.canopy_k > 0.0)
+		saw_door_early = saw_door_early or (rig.canopy_k < 1.0 and Props.get_b("controls/door_open"))
+	if msg == "" and (saw_canopy_early or saw_door_early):
+		msg = "the canopy came down while the bridge moved (%s) or the door opened before it was on (%s)" % [saw_canopy_early, saw_door_early]
+	if msg == "" and not (rig.progress >= 1.0 and rig.canopy_k >= 1.0 and rig._canopy.visible and Props.get_b("controls/door_open")):
+		msg = "docked: bridge %.2f, canopy %.2f, door asked %s" % [rig.progress, rig.canopy_k, Props.get_b("controls/door_open")]
+	if msg == "" and not Props.get_b("systems/jetway_attached"):
+		msg = "docked: systems/jetway_attached must hold pushback"
+	Props.set_v("systems/door_pos", 1.0)  # the door is open; the player stows the bridge
+	Props.set_v("controls/ground/jetway_stowed", true)
+	for i in 8:
+		rig._process(0.25)
+	if msg == "" and (Props.get_b("controls/door_open") or rig.canopy_k < 1.0 or rig.progress < 1.0):
+		msg = "stowing with the door open: the door is asked shut first, canopy and bridge wait (canopy %.2f)" % rig.canopy_k
+	Props.set_v("systems/door_pos", 0.0)
+	for i in 48:
+		rig._process(0.25)
+		if msg == "" and rig.progress < 1.0 and rig.canopy_k > 0.0:
+			msg = "the bridge moved before the canopy was folded"
+	if msg == "" and (rig.progress > 0.0 or rig.canopy_k > 0.0 or rig._canopy.visible):
+		msg = "stowed: bridge %.2f, canopy %.2f" % [rig.progress, rig.canopy_k]
+	if msg == "" and Props.get_b("systems/jetway_attached"):
+		msg = "stowed: systems/jetway_attached must clear (pushback may start)"
+	Props.set_v("controls/ground/jetway_stowed", false)
+	Props.set_v("fdm/position_enu", Vector3.ZERO)
+	host.queue_free()
+	return msg
+
+
+## The Airbus door: off its stops (up and out), then the hinge arm carries it out and forward, parallel to the skin all the way
+## (it never turns), to lie flat along the fuselage just ahead of the doorway, a little off the skin.
+func test_cabin_door_panel_swings_forward_parallel_to_the_skin() -> String:
 	if CabinDoorPanel.make({}, Vector3.ZERO, func(p): return p) != null:
 		return "no door data, no panel"
 	var g: Dictionary = AircraftDef.load_def("a320").section("ground")
 	var d := CabinDoorPanel.make(g, Vector3(-2.5, 0.0, 0.0), func(p: Vector3): return Vector3(p.y, p.z, p.x + 2.5))
 	if d == null:
 		return "the A320 ground section must give a door panel"
+	var w := float(g.door_w_m)
 	d._apply(0.0)
-	var shut: bool = not d._hinge.visible
-	var x0: float = d._hinge.position.x
+	var msg := "" if not d._hinge.visible else "closed, the panel hides (the painted door shows)"
+	var p0: Vector3 = d._hinge.position
+	for pos in [0.1, 0.3, 0.5, 0.7, 0.9, 1.0]:
+		d._apply(pos)
+		if msg == "" and not d._hinge.basis.is_equal_approx(Basis.IDENTITY):
+			msg = "at %.1f the door has turned: it must stay parallel to the skin" % pos
+	d._apply(0.575)  # half the swing: the arm points straight out
+	var mid: Vector3 = d._hinge.position - p0
+	if msg == "" and -mid.x < w * 0.5:
+		msg = "half way the door must be well out from the skin (%.2f m)" % -mid.x
 	d._apply(1.0)
-	var tip: Vector3 = d._hinge.basis * Vector3(0, 0, 1)
-	var out: float = x0 - d._hinge.position.x  # left door: out = -x
-	var ok: bool = shut and d._hinge.visible and tip.z < -0.98 and absf(out - CabinDoorPanel.ARM_M) < 0.001
+	var end: Vector3 = d._hinge.position - p0
+	if msg == "" and not d._hinge.visible:
+		msg = "open, the panel shows"
+	if msg == "" and end.z > -(w + 0.05):  # the forward edge is the hinge point: the whole door is ahead of the frame
+		msg = "open, the door must lie entirely ahead of the doorway (moved %.2f m forward, door %.2f m wide)" % [-end.z, w]
+	if msg == "" and (-end.x < 0.1 or -end.x > 0.3):
+		msg = "open, the door lies along the skin 0.1-0.3 m out (%.2f m)" % -end.x
+	if msg == "" and absf(end.y - CabinDoorPanel.PLUG_UP_M) > 1e-4:
+		msg = "the door stays raised off its stops while open (%.3f m)" % end.y
 	d.free()
-	return "" if ok else "closed hidden, open visible, trailing edge forward and %.2f m out (tip %s, out %.2f)" % [
-		CabinDoorPanel.ARM_M, tip, out]
+	return msg

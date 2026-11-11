@@ -78,7 +78,17 @@ static func dockable(def: AircraftDef = null) -> bool:
 
 ## Where the face of a docked cab meets the aircraft at a jetbridge gate: the stand point is the L1 door's place
 ## along the centre line, the door is door_y_m off it (left, the cab side) and the hood stops DOOR_GAP_M short of the skin.
+## The hood centre sits hood_fwd_m ahead of the doorway, so the doorway and the door swung forward along the skin both lie
+## inside the canopy (CabinDoorPanel).
 static func door_tip(st: Dictionary, def: AircraftDef = null) -> Vector2:
 	var hd := deg_to_rad(float(st.heading_deg))
 	var right := Vector2(cos(hd), -sin(hd))
-	return Vector2(st.x, st.y) + right * (float(ground(def).door_y_m) - DOOR_GAP_M)
+	var fwd := Vector2(sin(hd), cos(hd))
+	return Vector2(st.x, st.y) + right * (float(ground(def).door_y_m) - DOOR_GAP_M) + fwd * hood_fwd_m(def)
+
+
+## How far ahead of the doorway centre the docked hood centre is: half the door width and the gap the open door leaves
+## ahead of the frame (CabinDoorPanel.SWING_GAP_M). Zero for an aircraft without a door width.
+static func hood_fwd_m(def: AircraftDef = null) -> float:
+	var w := float(ground(def).get("door_w_m", 0.0))
+	return w * 0.5 + 0.05 if w > 0.0 else 0.0

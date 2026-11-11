@@ -42,7 +42,8 @@ const FLIGHT := [
 	["", ["pitot_heat"], "", "pitot heat"],
 	# ground operations (ControlActions.GROUND)
 	["", ["taxi_route", "pushback"], " · ", "taxi route · pushback"],
-	["", ["jetway_toggle", "door_toggle", "ground_crew_toggle"], " · ", "jetway · door · ground vehicles"],
+	["", ["jetway_toggle", "door_toggle", "ground_crew_toggle"], " · ", "jet bridge · door L1 · ground vehicles"],
+	["doors", ["passenger_doors_all", "cargo_doors_all"], " · ", "all passenger doors · all cargo doors (each door: Controls page)"],
 ]
 const FIXED := [
 	["C · 1–8", "views"], ["Tab", "panel layout"], ["N", "map"], ["`", "radio / ATC"],

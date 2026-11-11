@@ -175,6 +175,7 @@ func _say(t: String) -> void:
 
 func _process(_dt: float) -> void:
 	_poll_requests()
+	PushbackChecks.after_takeoff(fdm_node.fdm.gear.wow)
 	if not _route.is_empty():
 		var p := fdm_node.position_enu()
 		var here := Vector2(p.x, p.y)
@@ -230,11 +231,9 @@ func _update_follow_me(dt: float, here_s: float) -> void:
 
 func start_pushback() -> void:
 	var f := fdm_node.fdm
-	if not f.gear.wow or Vector2(f.velocity_ned().x, f.velocity_ned().y).length() > 0.5:
-		_say("Pushback is only possible when stopped on the ground")
-		return
-	if Props.get_b("controls/parking_brake"):
-		_say("Release the parking brake (Shift+B) for pushback")
+	var block := PushbackChecks.blocker(f.gear.wow, Vector2(f.velocity_ned().x, f.velocity_ned().y).length())
+	if block != "":  # stopped, brake off, jet bridge back, doors shut
+		_say(block)
 		return
 	var e := f.euler()
 	var p := fdm_node.position_enu()
