@@ -505,3 +505,21 @@ func test_disp_panel_builds_children_at_rects() -> String:
 		if err != "":
 			return err
 	return ""
+
+
+func test_nd_track_mark_holds_the_heading_while_parked() -> String:
+	# A parked aircraft creeps on its springs: its velocity direction is noise and the track mark flashed at random
+	# angles. Below TRACK_HOLD_KT the mark sits on the heading; moving, it is the measured track.
+	if not is_equal_approx(ND.track_shown(137.0, 358.0, 0.3), 358.0):
+		return "parked: the track mark must follow the heading"
+	if not is_equal_approx(ND.track_shown(137.0, 358.0, ND.TRACK_HOLD_KT), 137.0):
+		return "moving: the measured track"
+	return ""
+
+
+func test_hud_airspeed_reads_zero_at_a_standstill() -> String:
+	if Units.shown_kt(3.4) != 0 or Units.shown_kt(9.9) != 0:
+		return "gust noise below 10 kt must read 0"
+	if Units.shown_kt(10.0) != 10 or Units.shown_kt(64.6) != 65:
+		return "above the floor the readout rounds"
+	return ""

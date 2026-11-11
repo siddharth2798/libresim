@@ -18,6 +18,7 @@ const RESTART_NOTE := "Restart libresim to apply: the next start uses the %s ren
 const RENDERERS := {"Mobile": "mobile", "Forward+": "forward_plus"}
 
 var restart_note: Label
+var advice_note: Label  # the preset is designed for the other renderer (Graphics.renderer_note)
 var _preset_note: Label
 var _presets := {}  # preset -> Button
 var _renderer: PresetRow
@@ -68,6 +69,8 @@ func _ready() -> void:
 	restart_note = MenuTheme.note("")
 	restart_note.add_theme_color_override("font_color", MenuTheme.WARN)
 	add_child(restart_note)
+	advice_note = MenuTheme.note("")
+	add_child(advice_note)
 	_refresh_restart()
 	add_child(MenuTheme.heading("Post effects"))
 	var fx := PostFxToggles.new()
@@ -84,4 +87,6 @@ func _refresh_restart() -> void:
 	var fp := Graphics.next_renderer() == "forward_plus"
 	restart_note.text = RESTART_NOTE % ("Forward+" if fp else "Mobile") if need else ""
 	restart_note.visible = need
+	advice_note.text = Graphics.renderer_note(Graphics.preset, Graphics.next_renderer())
+	advice_note.visible = advice_note.text != ""
 	_renderer.select("Forward+" if fp else "Mobile")

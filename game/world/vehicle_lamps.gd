@@ -42,6 +42,14 @@ static func set_night(night: float) -> void:
 	_lamp_mat.set_shader_parameter("level", night)
 
 
+## CPU twin of the beacon flash in vehicle_surface.gdshaderinc (keep both in step): the flash term toward an eye
+## `angle` radians off the beam, at the beam's turn rate BEACON_RAD_S. Tests check it ramps over frames.
+const BEACON_RAD_S := 5.5  # ~52 rpm
+const FLASH_POW := 5.0
+static func beacon_flash(angle: float) -> float:
+	return pow(maxf(cos(angle), 0.0), FLASH_POW) * 2.5
+
+
 static func release() -> void:
 	_beacon_mat = null
 	_lamp_mat = null

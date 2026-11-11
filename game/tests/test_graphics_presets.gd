@@ -222,3 +222,18 @@ func test_render_resolution_overrides_auto() -> String:
 	if not is_equal_approx(float(RenderResolution.apply(Graphics.PRESETS.max, 1.0).scale), 1.0):
 		return "a fixed native size replaces Max's supersampling"
 	return ""
+
+
+func test_budget_frame_is_the_viewport_texture_not_the_doubled_window() -> String:
+	# A 1600x900 pixel window on a Retina screen used to be read as 3200x1800 (window size taken as points) and every
+	# preset was clamped to FSR2 at 0.7. The viewport texture is the frame that is drawn.
+	if RenderBudget.pick_frame(Vector2i(1600, 900), 2.0, Vector2i(1600, 900)) != Vector2i(1600, 900):
+		return "the texture size must win over the points heuristic"
+	if RenderBudget.pick_frame(Vector2i(1512, 982), 2.0, Vector2i(3024, 1964)) != Vector2i(3024, 1964):
+		return "a Retina backing texture is the frame"
+	if RenderBudget.pick_frame(Vector2i(1600, 900), 2.0, Vector2i.ZERO) != Vector2i(3200, 1800):
+		return "without a texture a small window on a scaled screen is in points"
+	if RenderBudget.pick_frame(Vector2i(1920, 1080), 1.0, Vector2i.ZERO) != Vector2i(1920, 1080):
+		return "a plain screen keeps the window size"
+	var hi := RenderBudget.clamp_preset(Graphics.PRESETS.high, RenderBudget.pick_frame(Vector2i(1600, 900), 2.0, Vector2i(1600, 900)), true)
+	return "" if is_equal_approx(float(hi.scale), 1.0) and not hi.fsr else "a 1.44 MP frame must not be scaled: %s" % [hi]

@@ -11,6 +11,7 @@ extends Display
 
 const RANGES := [10, 20, 40, 80, 160, 320]
 const NM := 1852.0
+const TRACK_HOLD_KT := 2.0  # below this ground speed the track is the heading: a parked aircraft's velocity is noise
 var _c := Vector2.ZERO
 var _r := 0.0
 var _rose := false
@@ -51,6 +52,12 @@ func _paint() -> void:
 	_compass()
 	_ownship()
 	_header()
+
+
+## The track to draw: the measured one when moving, the heading when parked (the creep of a parked aircraft on
+## its springs points anywhere, and the mark flashed at random angles).
+static func track_shown(track_deg: float, hdg_deg: float, gs_kt: float) -> float:
+	return track_deg if gs_kt >= TRACK_HOLD_KT else hdg_deg
 
 
 func _ang(deg: float) -> float:
@@ -128,7 +135,7 @@ func _compass() -> void:
 		var a := _ang(sel)
 		if _rose or absf(a) < deg_to_rad(52):
 			arrow(DispMath.polar(_c, _r + 1.0, a), a + PI, 14, 8, CYAN)
-	var ta := _ang(Props.get_f("instruments/adirs/track_deg"))
+	var ta := _ang(track_shown(Props.get_f("instruments/adirs/track_deg"), _hdg, Units.mps_to_kt(Props.get_f("fdm/groundspeed_mps"))))
 	var tp := DispMath.polar(_c, _r - 5.0, ta)
 	poly(PackedVector2Array([tp + Vector2(0, -8), tp + Vector2(7, 0), tp + Vector2(0, 8), tp + Vector2(-7, 0)]), GREEN)
 	line(_c, DispMath.polar(_c, _r - 10.0, ta), GREEN, 2.0)

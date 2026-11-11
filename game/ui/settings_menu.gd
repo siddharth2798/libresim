@@ -70,6 +70,10 @@ func _ready() -> void:
 		_refresh_renderer(rend, restart))
 	gh.add_child(rend)
 	vb.add_child(restart)
+	var advice := Label.new()  # the preset is designed for the other renderer (Graphics.renderer_note)
+	advice.name = "RendererAdvice"
+	advice.add_theme_color_override("font_color", Color(0.7, 0.7, 0.7))
+	vb.add_child(advice)
 	_refresh_renderer(rend, restart)
 	var pl := Label.new()
 	pl.text = "Post effects"
@@ -110,6 +114,10 @@ func _refresh_renderer(rend: Button, note: Label) -> void:
 	rend.text = "Renderer: Forward+ (switch to Mobile)" if fp else "Renderer: Mobile (switch to Forward+)"
 	note.text = "Restart libresim to apply the %s renderer." % ("Forward+" if fp else "Mobile") if Graphics.restart_needed() else ""
 	note.visible = Graphics.restart_needed()
+	var advice := note.get_parent().get_node_or_null("RendererAdvice") as Label
+	if advice:
+		advice.text = Graphics.renderer_note(Graphics.preset, Graphics.next_renderer())
+		advice.visible = advice.text != ""
 
 
 func _unhandled_key_input(e: InputEvent) -> void:

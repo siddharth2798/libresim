@@ -255,3 +255,26 @@ func _inside(p: Vector3, t: Array) -> bool:
 func _exit_tree() -> void:
 	GroundVehicles.release()
 	FollowMeCar.release()
+
+
+func test_vehicles_beacon_flash_ramps_over_frames() -> String:
+	# At 80 rpm and 25 fps the beam turns 0.34 rad per frame. The flash toward the eye must rise and fall over several
+	# frames (no step of more than 40 % of the peak), yet stay a clear flash (peak 2.5, dark a quarter turn away).
+	var peak := VehicleLamps.beacon_flash(0.0)
+	if absf(peak - 2.5) > 1e-6 or VehicleLamps.beacon_flash(PI * 0.5) > 1e-6:
+		return "peak %.2f, quarter turn %.3f" % [peak, VehicleLamps.beacon_flash(PI * 0.5)]
+	var step := VehicleLamps.BEACON_RAD_S / 25.0
+	var worst := 0.0
+	var a := -PI
+	while a < PI:
+		worst = maxf(worst, absf(VehicleLamps.beacon_flash(a + step) - VehicleLamps.beacon_flash(a)))
+		a += 0.01
+	if worst > 0.4 * peak:
+		return "the flash jumps %.2f of %.2f in one frame" % [worst, peak]
+	var frames := 0
+	a = -PI
+	while a < PI:
+		if VehicleLamps.beacon_flash(a) > 0.1 * peak:
+			frames += 1
+		a += step
+	return "" if frames >= 3 else "the flash is visible for %d frames only" % frames

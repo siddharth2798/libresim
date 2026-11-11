@@ -17,6 +17,9 @@ static func m_to_ft(m: float) -> float: return m / FT
 static func ft_to_m(ft: float) -> float: return ft * FT
 static func mps_to_kt(v: float) -> float: return v / KT
 static func kt_to_mps(kt: float) -> float: return kt * KT
+## Knots for a readout: 0 below floor_kt (an airspeed indicator reads nothing at a standstill; gust noise
+## on the pitot flipped the digit), rounded above it.
+static func shown_kt(kt: float, floor_kt := 10.0) -> int: return 0 if kt < floor_kt else roundi(kt)
 static func mps_to_fpm(v: float) -> float: return v / FPM
 static func pa_to_inhg(p: float) -> float: return p / INHG
 static func pa_to_hpa(p: float) -> float: return p / HPA

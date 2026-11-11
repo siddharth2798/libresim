@@ -95,12 +95,17 @@ def strips(poly, n_target_len):
     return out
 
 
+PIECE_STEP = 0.015  # m: alternate roof pieces sit this much higher, so where neighbours overlap (2 x overhang)
+# their slopes, ridges and soffits are not coplanar duplicates (z-fighting; docs/FLICKER-PLAN.md phase 2)
+
+
 def kerala_roofs(g, poly, eave, piece_len, pitch_deg=28.0, overhang=4.0, max_rise=13.0):
-    for p in strips(poly, piece_len):
+    for i, p in enumerate(strips(poly, piece_len)):
         c, ax, L, W = tg.mrr(p)
         rise = min(math.tan(math.radians(pitch_deg)) * (W / 2 + overhang), max_rise)
-        tg.hip_roof(g, "roof_tile", c, ax, L + 2 * overhang, W + 2 * overhang, eave, rise, TERRACOTTA, gablet=0.3)
-        tg.cap(g, "soffit", tg.rect_poly(c, ax, L + 2 * overhang, W + 2 * overhang), eave, False, CREAM)
+        z = eave + PIECE_STEP * (i % 2)
+        tg.hip_roof(g, "roof_tile", c, ax, L + 2 * overhang, W + 2 * overhang, z, rise, TERRACOTTA, gablet=0.3)
+        tg.cap(g, "soffit", tg.rect_poly(c, ax, L + 2 * overhang, W + 2 * overhang), z, False, CREAM)
 
 
 def elevated_roads(g, ctx, near, max_dist=500.0):

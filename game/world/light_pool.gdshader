@@ -62,16 +62,32 @@ void vertex() {
 }
 
 void fragment() {
+	if (level <= 0.0) {
+		discard;  // daylight: the pools add nothing (uniform for the whole quad: derivatives below stay valid)
+	}
+	// The surface position from the depth buffer, and its screen derivatives for the normal, are computed for
+	// every lane BEFORE any lane may discard: a 2x2 quad with a discarded lane has undefined derivatives, and that
+	// garbage differed from frame to frame, so every silhouette inside a pool flickered (docs/FLICKER-PLAN.md
+	// phase 2). Sky pixels (reverse Z: depth 0, view.w 0) are given a finite far position for the same reason.
 	float depth = texture(depth_tex, SCREEN_UV).r;
-	vec4 view = INV_PROJECTION_MATRIX * vec4(SCREEN_UV * 2.0 - 1.0, depth, 1.0);
+	bool sky = depth <= 1e-7;
+	vec4 view = INV_PROJECTION_MATRIX * vec4(SCREEN_UV * 2.0 - 1.0, max(depth, 1e-7), 1.0);
 	view.xyz /= view.w;
 	vec3 wp = (INV_VIEW_MATRIX * vec4(view.xyz, 1.0)).xyz;
+	vec3 ddx = dFdx(wp);
+	vec3 ddy = dFdy(wp);
 	vec3 r = wp - v_c;
 	vec3 q = vec3(dot(r, v_ax) / dot(v_ax, v_ax), dot(r, v_ay) / dot(v_ay, v_ay), dot(r, v_az) / dot(v_az, v_az));
-	if (max(abs(q.x), max(abs(q.y), abs(q.z))) > 1.0 || max(v_col.r, max(v_col.g, v_col.b)) < 1e-4) {
+	if (sky || max(abs(q.x), max(abs(q.y), abs(q.z))) > 1.0 || max(v_col.r, max(v_col.g, v_col.b)) < 1e-4) {
 		discard;
 	}
-	vec3 n = normalize(cross(dFdx(wp), dFdy(wp)));
+	// Across a depth discontinuity (a silhouette) the derivatives span metres and the cross product is meaningless;
+	// the ground the pools light is flat, so an up normal is the right fallback there and where both vanish.
+	vec3 c = cross(ddx, ddy);
+	if (dot(c, c) < 1e-20 || dot(ddx, ddx) > 0.25 || dot(ddy, ddy) > 0.25) {
+		c = vec3(0.0, 1.0, 0.0);
+	}
+	vec3 n = normalize(c);
 	vec3 to_lamp = v_lamp - wp;
 	float d = max(length(to_lamp), 0.5);
 	vec3 l = to_lamp / d;

@@ -93,3 +93,13 @@ func test_headless_never_writes_the_real_file() -> String:
 	g.free()
 	Session.interactive_override = -1
 	return "" if not may else "a headless run with no scratch folder may write the real override.cfg"
+
+
+func test_renderer_note_tells_a_medium_player_on_forward_plus() -> String:
+	var G = load("res://core/graphics_settings.gd")
+	var n: String = G.renderer_note("medium", "forward_plus")
+	if not n.contains("Mobile") or not n.contains("Forward+"):
+		return "Medium on Forward+ should name both renderers: '%s'" % n
+	if G.renderer_note("medium", "mobile") != "" or G.renderer_note("high", "forward_plus") != "":
+		return "a preset on its own renderer needs no note"
+	return "" if G.renderer_note("high", "mobile").contains("Forward+") else "High on Mobile should point at Forward+"

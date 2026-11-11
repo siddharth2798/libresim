@@ -39,13 +39,15 @@ float digits3(vec2 uv, float seed) {
 	return float((GLYPH[d] >> ((4 - row) * 3 + (2 - cx))) & 1);
 }
 
-// Rotating beacon: lit side of the lens turning at ~80 rpm, a strong flash when the beam faces the eye.
+// Rotating beacon: lit side of the lens turning at ~52 rpm, a strong flash when the beam faces the eye.
+// Turn rate and lobe (cos^5) are chosen so the flash rises and falls over several frames at 25 fps; at 80 rpm
+// and cos^14 it was one or two frames long and read as a pop. Twin: VehicleLamps.beacon_flash (tests/test_vehicles.gd).
 float beacon_level(vec3 p, vec4 piv, vec3 to_eye, float phase) {
-	float a0 = TIME * 8.4 + phase * 6.2832;
+	float a0 = TIME * 5.5 + phase * 6.2832;
 	vec2 beam = vec2(sin(a0), cos(a0));
 	vec2 d = normalize(p.xz - piv.xz + vec2(1e-4, 0.0));
 	float lit = pow(0.5 + 0.5 * dot(d, beam), 5.0);
-	float face = pow(max(dot(beam, normalize(to_eye.xz + vec2(1e-4, 0.0))), 0.0), 14.0);
+	float face = pow(max(dot(beam, normalize(to_eye.xz + vec2(1e-4, 0.0))), 0.0), 5.0);
 	return lit * 1.2 + face * 2.5;
 }
 

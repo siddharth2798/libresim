@@ -90,7 +90,7 @@ func _process(_dt: float) -> void:
 		return
 	var p := Props
 	var agl := Units.m_to_ft(p.get_f("fdm/agl_m"))
-	_vals.IAS.text = "%d kt" % roundi(Units.mps_to_kt(p.get_f("fdm/cas_mps")))
+	_vals.IAS.text = "%d kt" % Units.shown_kt(Units.mps_to_kt(p.get_f("fdm/cas_mps")))
 	_vals.GS.text = "%d kt" % roundi(Units.mps_to_kt(p.get_f("fdm/groundspeed_mps")))
 	_vals.ALT.text = "%d ft" % (roundi(Units.m_to_ft(p.get_f("fdm/alt_m")) / 10.0) * 10)
 	_vals.AGL.text = "%d ft" % roundi(agl)

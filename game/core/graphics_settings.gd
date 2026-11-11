@@ -92,6 +92,17 @@ func next_renderer() -> String:
 	return _pending_renderer if restart_needed() else renderer()
 
 
+## Advice for the menus when preset `p` is designed for a renderer other than `next` (a manual renderer choice
+## stands, so this only tells); "" when they agree. Low / Medium on Forward+ is the case that shimmers at thin
+## edges (docs/FLICKER-PLAN.md).
+static func renderer_note(p: String, next: String) -> String:
+	var want: String = PRESETS.get(p, PRESETS.high).renderer
+	if want == next or not next in ["mobile", "forward_plus"]:  # headless / compatibility runs: nothing to advise
+		return ""
+	var name := {"mobile": "Mobile", "forward_plus": "Forward+"}
+	return "%s is designed for the %s renderer; %s was chosen by hand." % [p.capitalize(), name.get(want, want), name.get(next, next)]
+
+
 func set_preset(p: String) -> void:
 	if not PRESETS.has(p):
 		return
