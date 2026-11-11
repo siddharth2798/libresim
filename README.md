@@ -14,7 +14,7 @@ A free, offline flight simulator for the Mumbai–Pune region (with a corridor d
 - **Per-aircraft data:** an aircraft is a folder of JSON (`game/aircraft/<id>/`), not code. See "Adding an aircraft" in [docs/USAGE.md](docs/USAGE.md).
 - **Simulation:** systems, failures, weather with ridge lift off the Western Ghats, time of day, night lighting.
 
-**Quick start:** double-click **Start libresim** (Linux: `Start libresim.desktop`, macOS: `Start libresim.command`; see [docs/USAGE.md](docs/USAGE.md)). The first time, a window sets everything up; after that it starts the game. From a terminal, `./run.sh` checks and installs the prerequisites (asking before any `sudo`), downloads the data, builds it and opens the game. Running it again just launches the game. `./run.sh --help` lists the options.
+**Quick start:** double-click **Start libresim** (Linux: `Start libresim.desktop`, macOS: `Start libresim.command`; see [docs/USAGE.md](docs/USAGE.md)). The first time, a window sets everything up; after that it starts the game. From a terminal, `./run.sh` checks and installs the prerequisites (asking before any `sudo`), downloads the data, builds it and opens the game. Running it again just launches the game. `./run.sh --help` lists the options; [docs/RUN-SH.md](docs/RUN-SH.md) explains what it does step by step.
 
 ## Screenshots
 
