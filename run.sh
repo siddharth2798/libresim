@@ -13,8 +13,7 @@ ROOT=$PWD
 
 GODOT_VERSION=4.7.2                     # must match docs/USAGE.md section 1
 PY=tools/.venv/bin/python
-PIP_PKGS="osmium jsbsim mapbox_earcut shapely matplotlib pillow numpy"
-PY_MODULES="osmium jsbsim mapbox_earcut shapely matplotlib PIL numpy"   # import names, same order
+REQS=tools/requirements.txt   # pip packages of the pipeline (tools/check_requirements.py keeps it complete)
 STAMPS=data/.stamps
 HASHPY=python3   # for tools/code_hash.py; set to $SYS_PY below
 LOG=data/run.log
@@ -190,6 +189,15 @@ ask() {  # ask "question" -> 0 on yes. The question is a full line: a read -p pr
 timed() {  # timed "label" cmd...
   local label=$1 t=$SECONDS; shift; "$@"; note "($label: $((SECONDS - t)) s)"
 }
+missing_reqs() {  # " pkg pkg" for each package of $REQS that does not import in the venv (no network)
+  local pkg rest mod
+  while read -r pkg rest; do
+    [[ -z $pkg || $pkg == \#* ]] && continue
+    mod=${pkg%%[^A-Za-z0-9_]*}
+    [[ $rest =~ import[[:space:]]+([A-Za-z0-9_]+) ]] && mod=${BASH_REMATCH[1]}
+    $PY -c "import $mod" 2>/dev/null || printf ' %s' "$pkg"
+  done <"$REQS"
+}
 
 # ---------------------------------------------------------------- [1] system tools + Godot
 OS=$(uname -s); ARCH=$(uname -m)
@@ -326,12 +334,16 @@ else
     else timed venv "$SYS_PY" -m venv --system-site-packages tools/.venv; fi
   fi
   if [[ -x $PY ]]; then
-    read -ra mods <<<"$PY_MODULES"; read -ra pkgs <<<"$PIP_PKGS"; need=()
-    for i in "${!mods[@]}"; do $PY -c "import ${mods[$i]}" 2>/dev/null || need+=("${pkgs[$i]}"); done
+    need=$(missing_reqs)
     $PY -c 'from osgeo import gdal' 2>/dev/null || note "WARNING: GDAL Python bindings not visible in the venv (install $(pkg_for pygdal))"
-    if ((${#need[@]} == 0)); then note "venv OK (all packages importable)"
-    elif dry; then note "WOULD pip install ${need[*]}"
-    else with_heartbeat "pip install" 0 "" timed pip $PY -m pip install "${need[@]}"; fi
+    if [[ -z $need ]]; then note "venv OK (all packages in $REQS importable)"
+    elif dry; then note "WOULD pip install -r $REQS (missing:$need)"
+    else
+      note "missing:$need"
+      with_heartbeat "pip install" 0 "" timed pip $PY -m pip install -r "$REQS"
+      need=$(missing_reqs)
+      [[ -z $need ]] || { echo "pip install -r $REQS finished but these still do not import:$need"; exit 1; }
+    fi
   fi
 fi
 

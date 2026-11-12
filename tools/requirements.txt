@@ -1,0 +1,13 @@
+# pip packages of the data pipeline (tools/NN_*.py run by ./run.sh). run.sh installs the ones
+# that do not import into tools/.venv. "# import X" names the import when it differs from the package.
+# GDAL (osgeo) is not here: it comes from the system package (run.sh preflight), the venv sees it
+# through --system-site-packages. tools/check_requirements.py fails when a pipeline script imports
+# a third-party module that is missing from this file.
+numpy
+scipy
+shapely
+matplotlib
+pillow  # import PIL
+osmium
+jsbsim
+mapbox_earcut

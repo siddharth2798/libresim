@@ -24,7 +24,7 @@ done
 
 echo "== (ii) first-run plan in a scratch copy (empty data/, offline: built-in size estimates)"
 S=$T/scratch; mkdir -p "$S/tools" "$T/home/.local/bin"
-cp run.sh "$S/"; cp tools/run_stale.sh tools/run_progress.sh tools/run_raw.sh tools/code_hash.py \
+cp run.sh "$S/"; cp tools/run_stale.sh tools/run_progress.sh tools/run_raw.sh tools/code_hash.py tools/requirements.txt \
   tools/22_a320_fetch.sh tools/01d_fetch_corridor.py "$S/tools/"
 printf '#!/bin/sh\necho 4.7.2.stable.official.test\n' >"$T/home/.local/bin/godot"; chmod +x "$T/home/.local/bin/godot"
 (cd "$S" && HOME=$T/home RUN_OFFLINE=1 ./run.sh --dry-run --a320 >"$T/plan.txt" 2>&1) || bad "dry run exited non-zero"
@@ -117,7 +117,7 @@ check "overall % = (done + running) / total" test "$(hb_env pct)" = "35"
 
 echo "== (v) whole run in a scratch copy with stub curl, python and godot (nothing real is downloaded or built)"
 V=$T/full; mkdir -p "$V/tools/.venv/bin" "$V/stubs" "$V/home/.local/bin"
-cp run.sh "$V/"; cp tools/*.py tools/run_*.sh tools/22_a320_fetch.sh "$V/tools/"
+cp run.sh "$V/"; cp tools/*.py tools/run_*.sh tools/requirements.txt tools/22_a320_fetch.sh "$V/tools/"
 printf '#!/bin/sh\ncase "$*" in *--version*) echo 4.7.2.stable.official.test;; esac\nexit 0\n' >"$V/home/.local/bin/godot"
 printf '#!/bin/sh\ncase "$*" in *10_buildings*) sleep 3;; esac\nexit 0\n' >"$V/tools/.venv/bin/python"
 cat >"$V/stubs/curl" <<'STUB'
@@ -150,6 +150,17 @@ check "final line says how long setup took" has "Setup finished in" "$T/full.txt
 check "second run does not fetch the raw data again" bash -c "! grep -q 'WOULD fetch' '$T/again.txt'"
 check "no heartbeat process left" test -z "$(pgrep -f 'sleep 1$' || true)"
 check "no real package manager was called" bash -c "! grep -q 'Homebrew\|already installed' '$T/full.txt'"
+
+echo "== (vi) Python packages: tools/requirements.txt covers the pipeline, run.sh reads it"
+check "every third-party import of the pipeline is in tools/requirements.txt" python3 -I tools/check_requirements.py
+check "scipy is listed (Fedora run failed without it)" grep -qx scipy tools/requirements.txt
+R=$T/reqs; mkdir -p "$R"
+printf '# comment\n\nnumpy\npillow  # import PIL\nnot_a_real_pkg_xyz>=1.0\n' >"$R/requirements.txt"
+got=$(REQS=$R/requirements.txt PY=python3 bash -c "$(sed -n '/^missing_reqs() {/,/^}/p' run.sh); missing_reqs")
+want=" not_a_real_pkg_xyz>=1.0"
+python3 -c 'import numpy, PIL' 2>/dev/null || want=$(python3 -c 'import numpy' 2>/dev/null && echo " pillow$want" || echo " numpy pillow$want")
+check "missing_reqs lists only what does not import ('$got')" test "$got" = "$want"
+check "run.sh installs with pip install -r" has 'pip install -r "$REQS"' run.sh
 
 echo
 if ((FAILS)); then echo "$FAILS check(s) FAILED"; exit 1; fi
