@@ -171,3 +171,54 @@ func test_door_panels_right_side_and_cargo_move_the_right_way() -> String:
 	for d in panels:
 		d.free()
 	return msg
+
+
+## The A320's passenger doors are the modelled door (models/doors.glb), not the grid panel: the hinge arm pivots on a pin in the
+## forward door frame (inboard of the skin, just aft of the doorway's forward edge) and its end stays on the door's fitting all
+## the way (a rigid arm: the door is carried round the pin, parallel to the skin); the handle is down while shut and comes fully
+## up over the plug travel (unlocked); closed, nothing shows (the painted door does). Cargo doors keep the plain panel.
+func test_passenger_doors_are_the_modelled_door_with_a_hinge_arm_on_the_frame() -> String:
+	var def := AircraftDef.load_def("a320")
+	if not def.has_file("door_model"):
+		return "the A320 must name its door model (files.door_model)"
+	var g: Dictionary = def.section("ground")
+	var s := func(p: Vector3): return Vector3(p.y, p.z, p.x + 2.5)  # structural -> local (x right, y up, z aft)
+	var panels := CabinDoorPanel.make_all(g, Vector3(-2.5, 0.0, 0.0), s, null, load(def.path("door_model")))
+	var msg := ""
+	for d in panels:
+		if msg != "":
+			break
+		if d.kind == "cargo":
+			msg = "" if d._model == null else "%s: cargo doors keep the panel" % d.id
+			continue
+		var m: CabinDoorModel = d._model
+		if m == null:
+			msg = "%s: a passenger door must be the modelled door" % d.id
+			break
+		var spec: Dictionary = g.doors.filter(func(x): return x.id == d.id)[0]
+		var piv: Vector3 = m.arm.position  # local: x = structural y, z = structural x - (-2.5)
+		var xf := float(spec.x_m) - float(spec.w_m) * 0.5 + 2.5
+		if piv.z < xf or piv.z > xf + 0.15 or absf(piv.x) > float(g.fuselage_r_m) - 0.05:
+			msg = "%s: the arm pivot (%s) must be in the forward door frame, inboard of the skin" % [d.id, piv]
+		d._apply(0.0)
+		if msg == "" and (d._hinge.visible or m.arm.visible or m.frame.visible or m.mask.visible):
+			msg = "%s: closed, the model hides (the painted door shows)" % d.id
+		if msg == "" and not m.locked.visible:
+			msg = "%s: closed, the lock indicator shows LOCKED" % d.id
+		for pos in [0.05, 0.15, 0.3, 0.575, 0.8, 1.0]:
+			d._apply(pos)
+			var gap := m.arm_end_point().distance_to(m.door_fitting_point())
+			if msg == "" and gap > 0.002:
+				msg = "%s at %.2f: the arm's end left the door fitting by %.3f m" % [d.id, pos, gap]
+			if msg == "" and m.arm.position.distance_to(piv) > 0.07:
+				msg = "%s at %.2f: the arm pivot must stay on the frame" % [d.id, pos]
+		var tip := m.handle.transform * Vector3(0.0, -0.3, 0.0)  # down the handle from its hinge
+		if msg == "" and tip.y < m.handle.position.y + 0.2:
+			msg = "%s: open, the handle must point up (unlocked)" % d.id
+		if msg == "" and (m.locked.visible or not m.unlocked.visible or not m.frame.visible):
+			msg = "%s: open, the indicator shows UNLOCKED and the doorway shows" % d.id
+		if msg == "" and absf(m.arm.rotation.y) < deg_to_rad(CabinDoorPanel.SWING_DEG - 1.0):
+			msg = "%s: open, the arm has swung %.0f deg" % [d.id, rad_to_deg(m.arm.rotation.y)]
+	for d in panels:
+		d.free()
+	return msg

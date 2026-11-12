@@ -12,6 +12,8 @@ extends Node3D
 ## door_sill_z_m, door_w_m, door_h_m). The skin comes from a SkinProbe on the exterior meshes (the panel lies on the real surface);
 ## without one, a round fuselage of fuselage_r_m about the axis door_sill_z_m + door_axis_z_m. Structural frame x aft, y right,
 ## z up; AircraftModel places the panels (`s` converts structural points to its local frame).
+## With a door model scene (aircraft.json files.door_model, the A320's models/doors.glb) a passenger door is the modelled door,
+## hinge arm and doorway of CabinDoorModel instead of the grid panel; a door the scene lacks, or no scene, keeps the grid.
 
 const PLUG_OUT_M := 0.05  # off the stops: out ...
 const PLUG_UP_M := 0.04  # ... and up
@@ -30,19 +32,20 @@ var _doorway := MeshInstance3D.new()
 var _base := Vector3.ZERO  # the hinge closed
 var _arm := 0.5  # hinge arm length: pivot to door centre (w / 2 + SWING_GAP_M)
 var _side := -1.0  # +1: door on the right (local +x)
+var _model: CabinDoorModel  # the modelled door, or null (grid panel)
 
 
 ## The L1 panel. g: the ground section; cg: structural CG; s: Callable(structural Vector3) -> local Vector3. Null without the data.
-static func make(g: Dictionary, cg: Vector3, s: Callable, probe: SkinProbe = null) -> CabinDoorPanel:
-	var all := make_all(g, cg, s, probe)
+static func make(g: Dictionary, cg: Vector3, s: Callable, probe: SkinProbe = null, model: PackedScene = null) -> CabinDoorPanel:
+	var all := make_all(g, cg, s, probe, model)
 	for d: CabinDoorPanel in all:
 		if d.id == "L1":
 			return d
 	return null
 
 
-## A panel for every door of the ground section (empty without a fuselage radius and a sill).
-static func make_all(g: Dictionary, cg: Vector3, s: Callable, probe: SkinProbe = null) -> Array[CabinDoorPanel]:
+## A panel for every door of the ground section (empty without a fuselage radius and a sill). model: the door glb, or null.
+static func make_all(g: Dictionary, cg: Vector3, s: Callable, probe: SkinProbe = null, model: PackedScene = null) -> Array[CabinDoorPanel]:
 	var out: Array[CabinDoorPanel] = []
 	if not g.has("door_sill_z_m") or float(g.get("fuselage_r_m", 0.0)) <= 0.0:
 		return out
@@ -57,12 +60,12 @@ static func make_all(g: Dictionary, cg: Vector3, s: Callable, probe: SkinProbe =
 		d.id = str(spec.get("id", "L1"))
 		d.kind = str(spec.get("kind", "passenger"))
 		d.name = "CabinDoor_" + d.id
-		d._build(spec, float(g.fuselage_r_m), zc, s, probe)
+		d._build(spec, float(g.fuselage_r_m), zc, s, probe, model)
 		out.append(d)
 	return out
 
 
-func _build(spec: Dictionary, r: float, zc: float, s: Callable, probe: SkinProbe) -> void:
+func _build(spec: Dictionary, r: float, zc: float, s: Callable, probe: SkinProbe, model: PackedScene = null) -> void:
 	var side := 1.0 if float(spec.get("side", -1.0)) > 0.0 else -1.0
 	var w := float(spec.get("w_m", 0.9))
 	var h := float(spec.get("h_m", 1.85))
@@ -81,6 +84,13 @@ func _build(spec: Dictionary, r: float, zc: float, s: Callable, probe: SkinProbe
 	_hinge.position = hinge_at
 	_base = hinge_at
 	add_child(_hinge)
+	if kind != "cargo" and model != null:
+		_model = CabinDoorModel.attach(self, _hinge, model, id, s, side)
+		if _model != null:
+			add_child(_doorway)  # stays empty and hidden: the model draws the doorway
+			_apply(0.0)
+			set_process(true)
+			return
 	var panel := MeshInstance3D.new()
 	panel.mesh = _grid(skin, s, xf, w, z0, h, OFFSET_M * side, hinge_at)
 	panel.material_override = _mat(Color(0.93, 0.94, 0.95), 0.45)
@@ -142,11 +152,13 @@ func _process(_dt: float) -> void:
 ## top hinge to CARGO_DEG. The panel hides while closed (the painted door shows); the doorway shows once it moves.
 func _apply(pos: float) -> void:
 	_hinge.visible = pos > 0.01
-	_doorway.visible = pos > 0.01
+	_doorway.visible = pos > 0.01 and _model == null
 	if kind == "cargo":
 		_hinge.rotation.z = _side * deg_to_rad(CARGO_DEG) * smoothstep(0.0, 1.0, pos)  # the bottom edge swings out and up
 	else:
 		_hinge.position = _base + offset(pos, _arm, _side)
+		if _model != null:
+			_model.apply(pos)
 
 
 ## Where the door is (local frame: x = structural right, y up, z = structural aft) against its closed place at pos 0..1. The door

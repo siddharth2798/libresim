@@ -6,7 +6,7 @@ extends Node
 const DRAFT := "res://aircraft/a320/audio_section.json"
 const C172_LOOPS := ["engine-idle", "engine", "engine-crank", "gyro", "wind1", "tires-rolling-asphalt", "rumble",
 	"stall2", "flaps-motor", "trim", "avionics-400Hz", "rain", "rain-windshield"]
-const C172_SHOTS := ["engine-start", "engine-cut", "squeal", "click", "click2", "double-click", "lever", "keys", "flaps-click"]
+const C172_SHOTS := ["engine-start", "engine-cut", "click", "click2", "double-click", "lever", "keys", "flaps-click"]
 
 
 func _draft() -> Array:
@@ -166,17 +166,8 @@ func test_audio_layer_states_a320_curves() -> String:
 
 
 func test_audio_shot_volume_and_gates() -> String:
-	var td := _layer("touchdown")
-	var fast := {"fdm/groundspeed_mps": 70.0, "fdm/vs_mps": -3.0, "fdm/wow": true}
-	var slow := {"fdm/groundspeed_mps": 5.0, "fdm/vs_mps": -3.0, "fdm/wow": true}
-	var hard := AudioCurves.shot_volume(td, _ctx(fast))
-	var soft := AudioCurves.shot_volume(td, _ctx({"fdm/groundspeed_mps": 70.0, "fdm/vs_mps": -0.2, "fdm/wow": true}))
-	if hard <= soft or soft <= 0.0:
-		return "touchdown squeal grows with sink rate (%.2f vs %.2f)" % [hard, soft]
-	if AudioCurves.shot_volume(td, _ctx(slow)) != 0.0:
-		return "no squeal at taxi speed (gate min groundspeed)"
-	if td.trigger.prop != "fdm/wow" or td.trigger.edge != "rising":
-		return "touchdown trigger is fdm/wow rising"
+	if not _layer("touchdown").is_empty():
+		return "the touchdown squeal is per wheel and placed at the wheel (world/tyre_squeal.gd), not a fdm/wow layer"
 	var gear := _layer("gear_motion")
 	if not AudioCurves.layer_state(gear, _ctx({"fdm/gear_pos": 0.5})).on or AudioCurves.layer_state(gear, _ctx({"fdm/gear_pos": 1.0})).on:
 		return "gear motion only while in transit"

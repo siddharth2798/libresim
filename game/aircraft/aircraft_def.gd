@@ -13,6 +13,8 @@ extends RefCounted
 ##            (damage.gd, ASI arcs, lessons, ui/gauges/*.gd); max_crosswind_kt for the start-screen
 ##            readiness check (core/setup_checks.gd), absent = 15
 ##   damage   touchdown and gear thresholds, propeller hub positions (damage.gd)
+##   touchdown  optional tyre smoke width per gear leg and the squeal sound {legs {<contact>: {width_m}}, squeal {file,
+##            gain, pitch, unit_m}} (world/tyre_smoke.gd, world/tyre_squeal.gd)
 ##   systems  electrical / fuel / pitot_static numbers (systems/*.gd, keys in each header)
 ##   radio_type  how the pilot calls the aircraft on the radio (atc/atc_phraseology.gd)
 ##   atc      {profile: "ga" | "airline", wake: L | M | H | J; airline also telephony, flight_no,

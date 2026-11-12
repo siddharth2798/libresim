@@ -90,7 +90,8 @@ func _build_glb(path: String) -> void:
 		add_child(finish)
 		finish.follow(inst, _cg, def)  # cabin-window glow and the fuselage stain; roughness is stamped inside apply()
 		var probe := SkinProbe.make(inst, self, _s)  # the panels lie on the measured skin
-		for door in CabinDoorPanel.make_all(def.section("ground"), _cg, _s, probe):  # every door painted on the skin
+		var doors: PackedScene = load(def.path("door_model")) if def.has_file("door_model") else null  # modelled passenger doors
+		for door in CabinDoorPanel.make_all(def.section("ground"), _cg, _s, probe, doors):  # every door painted on the skin
 			add_child(door)
 		var blur := FanBlur.new()
 		add_child(blur)

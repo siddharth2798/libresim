@@ -75,6 +75,10 @@
   ],
   "orbit_m": 48.0
  },
+ "files": {
+  "_doc": "door_model: the modelled passenger doors, hinge arms and doorways (tools/blender/a320_door.py, aircraft/common/cabin_door_model.gd).",
+  "door_model": "models/doors.glb"
+ },
  "livery": {
   "atlases": [
    {"id": "fuselage", "texture": "models/exterior_fuselage.png"},
@@ -1075,6 +1079,10 @@
    {"switch": "wing", "skin": true, "pos": [-9.5, 1.95, 0.3], "aim": [5.5, 6.1, -1.3], "energy": 12, "range": 26, "angle": 22, "beam": 0, "bulb": 0.05, "size": 0.8}
   ]
  },
+ "touchdown": {
+  "legs": {"LEFT_MLG": {"width_m": 1.34}, "RIGHT_MLG": {"width_m": 1.34}, "NOSE_LG": {"width_m": 0.78}},
+  "squeal": {"file": "res://aircraft/c172/sounds/squeal.wav", "gain": 1.0, "pitch": 0.82, "unit_m": 25.0}
+ },
  "audio": {
   "gpws": true,
   "layers": [
@@ -1643,41 +1651,6 @@
     "view": {
      "cockpit": 1.0,
      "outside": 0.6
-    }
-   },
-   {
-    "id": "touchdown",
-    "file": "res://aircraft/c172/sounds/tires-screech-asphalt.wav",
-    "bus": "Environment",
-    "loop": false,
-    "trigger": {
-     "prop": "fdm/wow",
-     "edge": "rising"
-    },
-    "drive": [
-     "sub",
-     0,
-     "fdm/vs_mps"
-    ],
-    "volume": [
-     [
-      0,
-      0.3
-     ],
-     [
-      3,
-      1.0
-     ]
-    ],
-    "gate": {
-     "min": {
-      "fdm/groundspeed_mps": 25.0
-     }
-    },
-    "gain": 0.8,
-    "view": {
-     "cockpit": 0.7,
-     "outside": 1.0
     }
    },
    {

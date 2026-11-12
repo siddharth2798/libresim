@@ -472,7 +472,7 @@ footer { margin-top: 2.5rem; padding-top: 0.7rem; border-top: 1px solid var(--ru
         <li><a href="#c172" data-ac="c172" data-k="cessna 172 skyhawk cold start mixture magnetos starter taxi takeoff landing shutdown"><span class="no">OPS 2</span><span>Cessna 172S</span></a></li>
         <li><a href="#a320" data-ac="a320" data-k="a320 airliner cold start apu engine master ign start taxi takeoff landing"><span class="no">OPS 3</span><span>A320-family</span></a></li>
         <li><a href="#navigation" data-k="vor ils gps map radar atc radio checklist mcdu airway"><span class="no">OPS 4</span><span>Navigation and the radio</span></a></li>
-        <li><a href="#airports" data-k="airports stands taxi pushback jetway lights terminals"><span class="no">OPS 5</span><span>Airports and the ground</span></a></li>
+        <li><a href="#airports" data-k="airports stands taxi pushback jetway jet bridge doors cargo lights terminals"><span class="no">OPS 5</span><span>Airports and the ground</span></a></li>
         <li><a href="#weather" data-k="weather live metar wind rain icing night moon"><span class="no">OPS 6</span><span>Weather, time and night</span></a></li>
         <li><a href="#systems" data-k="failures electrical fuel hydraulics f9 pitot vacuum apu"><span class="no">OPS 7</span><span>Systems and failures</span></a></li>
         <li><a href="#limits" data-k="damage crash landing hard gear weight balance cg"><span class="no">OPS 8</span><span>Limits, damage, weight</span></a></li>
@@ -884,6 +884,7 @@ flatpak run org.freesim.FreeSim</code></pre><button class="copy" type="button">C
 <ol class="steps">
   <li><span>Flaps for takeoff: <kbd>]</kbd> once is CONF 1, slats out and flaps still in, on the ground and in the air. <kbd>]</kbd> again is 1+F. A third press is CONF 2. <kbd>[</kbd> retracts one detent. On the Captain Pack the first notch is 1+F on the ground and CONF 1 in the air.</span></li>
   <li><span><kbd>Ctrl</kbd>+<kbd>A</kbd> cycles autobrake OFF, LO, MED, MAX. Use MAX for takeoff. Speedbrake in with <kbd>/</kbd>. <kbd>\</kbd> walks it out. <kbd>Ctrl</kbd>+<kbd>B</kbd> beacon, <kbd>Ctrl</kbd>+<kbd>N</kbd> nav lights.</span></li>
+  <li><span>At a gate, before pushback: <kbd>Shift</kbd>+<kbd>J</kbd> retracts the jet bridge. It shuts the L1 door, folds the canopy and drives the bridge back. Close any other door: <kbd>Shift</kbd>+<kbd>O</kbd> for all passenger doors, <kbd>Ctrl</kbd>+<kbd>O</kbd> for both cargo doors. Pushback waits until the bridge is back and every door is shut, and says which key is missing.</span></li>
   <li><span><kbd>Shift</kbd>+<kbd>B</kbd> releases the parking brake. At a gate, <kbd>P</kbd> pushes back and swings the tail toward the taxiway, then stops before a wheel leaves the pavement. The brake has to be off. <kbd>P</kbd> again stops. <kbd>T</kbd> is the taxi route and the follow-me. Stay under 30 kt.</span></li>
   <li><span>Steer with <kbd>Z</kbd> and <kbd>X</kbd>. That is the rudder pedals, about 6° of nosewheel, fading out by about 130 kt. A tiller axis on a joystick steers further and fades by about 70 kt. The Controls page lists it: bind the axis, or give Tiller left and Tiller right a key. <kbd>Ctrl</kbd>+<kbd>T</kbd> is the taxi light.</span></li>
   <li><span>Lined up: <kbd>Ctrl</kbd>+<kbd>S</kbd> strobes, <kbd>Ctrl</kbd>+<kbd>L</kbd> landing lights. <kbd>Alt</kbd>+<kbd>=</kbd> steps both thrust levers IDLE, CL, FLX/MCT, TOGA. Takeoff is FLX/MCT or TOGA. <kbd>Page Up</kbd> moves both levers smoothly. <kbd>Alt</kbd>+<kbd>Page Up</kbd> / <kbd>Page Down</kbd> is engine 1. <kbd>Alt</kbd>+<kbd>Home</kbd> / <kbd>End</kbd> is engine 2.</span></li>
@@ -899,7 +900,8 @@ flatpak run org.freesim.FreeSim</code></pre><button class="copy" type="button">C
   <li><span>Vacate: speedbrake in, flaps up, landing lights and strobes off. <kbd>Ctrl</kbd>+<kbd>U</kbd> then <kbd>Alt</kbd>+<kbd>U</kbd> if you want the APU for the gate.</span></li>
   <li><span>Parked: <kbd>Shift</kbd>+<kbd>B</kbd> brake set, <kbd>Ctrl</kbd>+<kbd>E</kbd> and <kbd>Ctrl</kbd>+<kbd>D</kbd> masters off, beacon off.</span></li>
 </ol>
-<p>At a jetway the bridge reaches the L1 door in about 6 seconds once you are parked within 3 m, and retracts when you leave. It is not solid while it is extended. Limits are in <a href="#limits">OPS 8</a>.</p>
+<p>At a jetway the bridge reaches the L1 door in about 6 seconds once you are parked within 3 m. Then its canopy comes down onto the fuselage, and the L1 door opens. The open door lies inside the canopy. Leaving runs the other way: door shut, canopy up, bridge back. <kbd>Shift</kbd>+<kbd>J</kbd> retracts the bridge before pushback, and docks it again. A bridge retracted for pushback docks again at the arrival gate. It is not solid while it is extended. Limits are in <a href="#limits">OPS 8</a>.</p>
+<p>The doors open the Airbus way, and only stopped on the ground. A passenger door lifts off its stops, swings out and forward on its hinge arm, and ends flat along the fuselage ahead of the doorway. Its inside handle goes up as it unlocks. The slide stays disarmed, with the safety pin and its red streamer in. The cargo doors on the lower right swing up. <kbd>O</kbd> is door L1, <kbd>Shift</kbd>+<kbd>O</kbd> all passenger doors, and <kbd>Ctrl</kbd>+<kbd>O</kbd> both cargo doors. R1, L2, R2 and each cargo door have their own row under Ground operations on the Controls page; give them a key there. Open doors shut by themselves if the aircraft starts to roll.</p>
 
 <h3 id="a320-deck">The flight deck</h3>
 <ul>
@@ -960,7 +962,7 @@ flatpak run org.freesim.FreeSim</code></pre><button class="copy" type="button">C
 
 <h3 id="nav-check">Checklists</h3>
 <p><kbd>F2</kbd> opens the checklist for the aircraft you are flying. Items the sim can see tick themselves. The others tick on click or <kbd>Enter</kbd>. <kbd>Ctrl</kbd>+<kbd>Page Up</kbd> / <kbd>Page Down</kbd> change list. The window docks on the right the first time. Drag the title, resize from the edges, and use the opacity slider if you want the background to drop out. The position is remembered. It hides while you are paused.</p>
-<p><kbd>T</kbd> draws a taxi route to the into-wind runway and names the taxiways. The follow-me car drives ahead and peels off at the hold-short point. <kbd>T</kbd> again clears it. <kbd>P</kbd> pushes back, with the parking brake off, swings the tail toward the taxiway, and stops before a wheel leaves the pavement. <kbd>P</kbd> again stops. <kbd>Backspace</kbd> dismisses the message. The route line stays in the radio bar.</p>
+<p><kbd>T</kbd> draws a taxi route to the into-wind runway and names the taxiways. The follow-me car drives ahead and peels off at the hold-short point. <kbd>T</kbd> again clears it. <kbd>P</kbd> pushes back, with the parking brake off, swings the tail toward the taxiway, and stops before a wheel leaves the pavement. <kbd>P</kbd> again stops. <kbd>Backspace</kbd> dismisses the message. The route line stays in the radio bar. Pushback waits until the jet bridge is retracted (<kbd>Shift</kbd>+<kbd>J</kbd>) and every door is shut.</p>
 </section>
 
 <section id="airports">
@@ -1093,7 +1095,7 @@ flatpak run org.freesim.FreeSim</code></pre><button class="copy" type="button">C
 </nav>
 
 <h3 id="limits-land">Landing and the airframe</h3>
-<p>The oleo strokes on touchdown and stays there, rather than bouncing you back into the air. Smoke and a rubber mark follow the tyre. The debrief after a landing is the same shape for both aircraft.</p>
+<p>The oleo strokes on touchdown and stays there, rather than bouncing you back into the air. Each main wheel that lands squeals once and throws a puff of white smoke that drifts back and fades in a few seconds. There is none on takeoff or taxi. The debrief after a landing is the same shape for both aircraft.</p>
 <div class="tbl"><table class="cmp">
   <caption>Touchdown, about</caption>
   <thead><tr><th></th><th>Cessna 172S</th><th>A320-family</th></tr></thead>
@@ -1269,6 +1271,8 @@ flatpak run org.freesim.FreeSim</code></pre><button class="copy" type="button">C
     <tr><td><kbd>N</kbd> · <kbd>H</kbd> · <kbd>K</kbd></td><td>Map · flight-data bar · callouts</td></tr>
     <tr class="group"><td colspan="2">On the ground and on the radio</td></tr>
     <tr><td><kbd>T</kbd> · <kbd>P</kbd> · <kbd>Backspace</kbd></td><td>Taxi route · pushback · dismiss that message</td></tr>
+    <tr><td><kbd>Shift</kbd>+<kbd>J</kbd> · <kbd>O</kbd> · <kbd>U</kbd></td><td>Jet bridge retract / dock · door L1 · ground vehicles call / send away</td></tr>
+    <tr class="only-a320"><td><kbd>Shift</kbd>+<kbd>O</kbd> · <kbd>Ctrl</kbd>+<kbd>O</kbd></td><td>All passenger doors · all cargo doors. R1, L2, R2 and each cargo door: Controls page, Ground operations</td></tr>
     <tr><td><kbd>`</kbd></td><td>Radio. Arrows, Enter, 1–4, A say again, H history, V voice, Esc close</td></tr>
     <tr class="group"><td colspan="2">Session</td></tr>
     <tr><td><kbd>F1</kbd> <kbd>F2</kbd> <kbd>F3</kbd></td><td>Key card · checklists · performance</td></tr>

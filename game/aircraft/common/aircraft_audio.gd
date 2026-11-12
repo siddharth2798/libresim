@@ -5,7 +5,8 @@ extends Node
 ## (props engine/rpm, engine/running).
 ## Loops: engine idle/run (volume & pitch from RPM), starter crank, gyro spin, wind (airspeed), tyre roll + rumble (ground
 ## speed), stall horn, flap motor, trim wheel, avionics fan, rain (environment/precip; on the windshield it drums harder with
-## airspeed). One-shots: engine catch / cut, touchdown squeal, switch clicks, levers.
+## airspeed). One-shots: engine catch / cut, switch clicks, levers. The touchdown squeal is per wheel and placed at
+## the wheel (world/tyre_squeal.gd, every aircraft).
 ## Cockpit view hears everything; outside views hear the engine louder and no clicks.
 ## An aircraft whose "audio" has a "layers" list (A320) uses audio_layers.gd instead (schema in audio_curves.gd).
 ## "audio.gpws" adds the stall horn and lite GPWS tones (gpws_player.gd). The C172 leaves that unset.
@@ -43,7 +44,7 @@ const WATCH := ["controls/electrical/master_bat", "controls/electrical/master_al
 
 const BUS := {"engine-idle": "Engine", "engine": "Engine", "engine-crank": "Engine", "engine-start": "Engine",
 	"engine-cut": "Engine", "wind1": "Environment", "tires-rolling-asphalt": "Environment", "rumble": "Environment",
-	"rain": "Environment", "rain-windshield": "Environment", "squeal": "Environment"}  # everything else: Cockpit (see core/audio_settings.gd)
+	"rain": "Environment", "rain-windshield": "Environment"}  # everything else: Cockpit (see core/audio_settings.gd)
 
 
 func _ready() -> void:
@@ -67,7 +68,7 @@ func _ready() -> void:
 	for n in ["engine-idle", "engine", "engine-crank", "gyro", "wind1", "tires-rolling-asphalt", "rumble",
 			"stall2", "flaps-motor", "trim", "avionics-400Hz", "rain", "rain-windshield"]:
 		_loops[n] = _player(n, true)
-	for n in ["engine-start", "engine-cut", "squeal", "click", "click2", "double-click", "lever", "keys", "flaps-click"]:
+	for n in ["engine-start", "engine-cut", "click", "click2", "double-click", "lever", "keys", "flaps-click"]:
 		_shots[n] = _player(n, false)
 
 
@@ -142,9 +143,6 @@ func _process(dt: float) -> void:
 	var roll := clampf(log(1.0 + gs) * 0.25, 0.0, 1.0) if wow else 0.0
 	_loop("tires-rolling-asphalt", roll * 0.7)
 	_loop("rumble", roll * 0.5)
-	if wow and not _prev.get("wow", true) and gs > 25.0:
-		_shot("squeal", clampf(-Props.get_f("fdm/vs_mps") * 0.6 + 0.3, 0.2, 1.0))
-	_prev["wow"] = wow
 	# warnings / actuators
 	_loop("stall2", 0.7 if Props.get_b("fdm/stall_warning") else 0.0)
 	var flap_motor := Props.get_b("systems/electrical/flap_motor_running")
