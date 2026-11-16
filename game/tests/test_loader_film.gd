@@ -2,7 +2,7 @@ extends Node
 ## The full-screen loader plays a scenic clip and names the place. A short wait stays a dim veil.
 
 
-const TITLES := ["The Western Ghats", "Cochin  ·  approach", "At the gate  ·  Kochi"]
+const TITLES := ["The Western Ghats", "At the gate  ·  Kochi"]
 
 
 func teardown() -> void:
@@ -94,11 +94,11 @@ func test_scenic_loader_names_the_place() -> String:
 	return ""
 
 
-## Each aircraft has its own four clips, chosen by where the flight starts.
+## Each aircraft has its own two clips, chosen by how the flight starts (Kochi air and runway starts play the Ghats).
 func test_clip_follows_the_flight() -> String:
 	var cases := [["a320", "VAPO", "runway", "a320_ghats"], ["a320", "VABB", "air", "a320_ghats"], ["a320", "VAJJ", "runway", "a320_ghats"],
-		["A320", "voci", "air", "a320_cochin"], ["a320", "VOCC", "runway", "a320_cochin"], ["a320", "VOCI", "stand", "a320_gate"],
-		["c172", "VAPO", "air", "c172_ghats"], ["c172", "VAJJ", "runway", "c172_ghats"], ["c172", "VOCI", "runway", "c172_cochin"],
+		["A320", "voci", "air", "a320_ghats"], ["a320", "VOCC", "runway", "a320_ghats"], ["a320", "VOCI", "stand", "a320_gate"],
+		["c172", "VAPO", "air", "c172_ghats"], ["c172", "VAJJ", "runway", "c172_ghats"], ["c172", "VOCI", "runway", "c172_ghats"],
 		["c172", "VABB", "stand", "c172_gate"], ["", "VANM", "", "c172_ghats"]]
 	for c in cases:
 		var i := LoaderFilm.clip_for(c[0], c[1], c[2])
@@ -110,11 +110,14 @@ func test_clip_follows_the_flight() -> String:
 
 ## Every clip is shot (tools/shoot_loader_films.sh): 24 fps for at least 3 s, at 1600 px wide or more.
 func test_every_clip_is_shot() -> String:
-	if LoaderFilm.CLIPS.size() != 6:
-		return "%d clips, want 6 (two aircraft x three places)" % LoaderFilm.CLIPS.size()
+	if LoaderFilm.CLIPS.size() != 4:
+		return "%d clips, want 4 (two aircraft x two places)" % LoaderFilm.CLIPS.size()
 	for c in LoaderFilm.CLIPS:
-		if str(c.dir).contains("juhu"):
-			return "the Mumbai approach clip is gone: %s" % c.dir
+		if str(c.dir).contains("juhu") or str(c.dir).contains("cochin"):
+			return "the Mumbai and Cochin approach clips are gone: %s" % c.dir
+	for gone in ["a320_cochin", "c172_cochin"]:
+		if DirAccess.dir_exists_absolute("res://ui/loader/" + gone):
+			return "the Cochin approach frames are still shipped: ui/loader/%s" % gone
 	for c in LoaderFilm.CLIPS:
 		var n := 0
 		while ResourceLoader.exists("%s/%03d.jpg" % [c.dir, n]):

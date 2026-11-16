@@ -8,13 +8,11 @@ extends TextureRect
 
 const FPS := 24.0  # the clips are shot at this rate with game time locked to it (tools/shoot_loader_films.sh)
 const AIRCRAFT: Array[String] = ["a320", "c172"]
-const PLACES: Array[String] = ["ghats", "cochin", "gate"]
-const TITLES := {"ghats": "The Western Ghats", "cochin": "Cochin  ·  approach", "gate": "At the gate  ·  Kochi"}
+const PLACES: Array[String] = ["ghats", "gate"]
+const TITLES := {"ghats": "The Western Ghats", "gate": "At the gate  ·  Kochi"}
 ## One clip per aircraft and place, aircraft-major: index = aircraft * PLACES.size() + place.
 static var CLIPS: Array = _clips()
-## Kochi (VOCI, VOCC) plays the Cochin approach, a stand start the gate, everywhere else the Ghats (the Mumbai
-## approach clips were dropped).
-const COCHIN_AIRPORTS: Array[String] = ["VOCI", "VOCC"]
+## A stand start plays the gate, everything else the Ghats (the Mumbai and Cochin approach clips were dropped).
 
 var caption := ""
 var _clip := 0
@@ -44,14 +42,11 @@ func _ready() -> void:
 	visible = false
 
 
-## Which clip a flight opens on: the aircraft's own clips (an A320, else the Cessna's), at the place it starts.
-static func clip_for(aircraft: String, airport: String, start: String = "") -> int:
+## Which clip a flight opens on: the aircraft's own clips (an A320, else the Cessna's), by how it starts.
+## `airport` is kept for callers; no clip depends on it now.
+static func clip_for(aircraft: String, _airport: String, start: String = "") -> int:
 	var a := 0 if aircraft.to_lower().begins_with("a320") else 1
-	var place := "ghats"
-	if start == "stand":
-		place = "gate"
-	elif COCHIN_AIRPORTS.has(airport.to_upper()):
-		place = "cochin"
+	var place := "gate" if start == "stand" else "ghats"
 	return a * PLACES.size() + PLACES.find(place)
 
 
