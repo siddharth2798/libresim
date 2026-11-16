@@ -147,6 +147,9 @@ const SCENES := {
 	"moving_map": {"weather": "Fair", "view": "chase", "ui": ["Panel"], "map": true, "panel": 2, "gps": "VAAV",
 		"setup": {"airport": "VANM", "runway": "08", "start": "air", "air_ft": 3500.0, "air_nm": 4.0, "time_h": 10.0},
 		"cam": [-18.0, 11.0, 4.0], "aim": [0.0, 11.0, 0.0], "fov": 60.0},
+	"minimap": {"weather": "Fair", "view": "chase", "ui": ["Hud", "Panel"], "panel": 1, "props": {"controls/gps/target": "VAAV"},
+		"setup": {"airport": "VANM", "runway": "08", "start": "air", "air_ft": 3500.0, "air_nm": 4.0, "time_h": 10.0},
+		"cam": [-18.0, 11.0, 4.0], "aim": [0.0, 11.0, 0.0], "fov": 60.0},
 	# Trees and buildings (look: close forest, Konkan palm coast, dense city district)
 	"trees_close": {"weather": "Fair", "view": "chase",
 		"setup": {"airport": "VAAV", "runway": "14", "start": "air", "air_ft": 330.0, "air_nm": 3.0, "time_h": 16.4, "visibility_m": 30000.0},

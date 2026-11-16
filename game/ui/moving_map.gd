@@ -118,6 +118,11 @@ func _here() -> Vector2:
 	return Vector2(p.x, p.y)
 
 
+## Breadcrumb track (ENU points, one every 2 s), shared with the mini-map.
+func track() -> Array:
+	return _track
+
+
 func _view_size() -> Vector2:
 	return size if size.x > 64.0 else get_viewport_rect().size - Vector2(MARGIN, MARGIN) * 2.0
 

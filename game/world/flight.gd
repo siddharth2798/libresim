@@ -100,7 +100,7 @@ func _ready() -> void:
 	cam.add_child(preload("res://ui/cockpit_tip.gd").new())
 	$Instruments/Gyros.fdm = fdm_node.fdm
 	$Instruments/Compass.fdm = fdm_node.fdm
-	$UI/Panel.setup(model.cockpit, cam)
+	$UI/Panel.setup(model.cockpit, cam, $UI/Map)
 	var views := ["cockpit", "chase", "orbit", "free", "tower", "wing", "tail", "flyby"]
 	var vi := views.find(_view)
 	cam.set_mode(vi if vi >= 0 else 1)

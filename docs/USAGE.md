@@ -376,7 +376,7 @@ cd game
 | Y | Toggle mouse yoke (mouse position = control column) |
 | L / Shift+L | PANEL light dimmer brighter / dimmer (10 % steps) |
 | C / Shift+C, or 1–8 | Camera: 1 cockpit, 2 chase, 3 orbit, 4 free (WASD move, Q/E down/up, right-drag look, Shift speed, wheel sets speed), 5 tower, 6 wing, 7 tail, 8 fly-by |
-| Tab / Shift+Tab | 2D panel layout in outside views: Full, Split, Compact, Minimal (ASI, AI, ALT top-right), Off. Remembered |
+| Tab / Shift+Tab | 2D panel layout in outside views: Full, Split (C172: round mini-map top-right instead of the radio stack), Compact, Minimal (ASI, AI, ALT top-right), Off. Remembered |
 | Right-mouse drag | Look around (cockpit, orbit, free, wing, tail). In the cockpit, a left-drag on empty space looks too; a left-click on a glass screen or an A320 lever still uses that control. Wheel, trackpad scroll, or pinch: cockpit zoom. Hover a lever or switch for its name, key and position. Wheel also sets orbit distance and free-camera speed |
 | V | Re-centre the view |
 | T | Taxi guidance (rebindable, Controls → Ground operations): green route line to the into-wind runway and a "Taxi via …, hold short" card (8-12 s; 12 s the first time after landing). T again clears it. Route and distance left stay as a tiny line in the radio bar |
@@ -518,6 +518,7 @@ The panel carries the right-hand column and radio stack of a real C172S:
   - **Zoom:** wheel (around the cursor), `+` / `-` (also `=`, number pad) or buttons; 0.3 to 300 nm. While the map is open `=`, `-` and Num +/- zoom instead of moving the throttle (Page Up / Page Down still do) and the mouse yoke is ignored.
   - **Pan and follow:** drag with the left button. Panning leaves follow mode; **Space** or the Follow button recentres. **O** switches north up / heading up. **G** fits the whole route.
   - **Route (magenta line):** aircraft to active waypoint in bold, later legs thinner, a label per leg (magnetic bearing, distance, ETE; 90 kt when nearly stopped), a diamond with ident and distance at each waypoint. **Backspace** or Clear route cancels it. The bottom shows total distance and ETE.
+- **Mini-map (outside views):** the C172's Split layout shows a round copy of the moving map top-right where the radio stack used to be (the radios are on the Full layout and the 3D panel). Always centred on the aircraft, with imagery, airports, navaids, ILS feathers, track and the GPS route. Drag moves it, wheel zooms, Shift+wheel resizes, right-click swaps north up / heading up, double-click opens the full map. It hides while the full map is open. Place, size, range and orientation are saved in `user://ui.cfg` `[minimap]` (`ui/mini_map.gd`; a `panel.json` overlay piece with items `["minimap"]`, its height = the diameter as a fraction of the screen).
   - **Keys:** N open/close, wheel or +/- zoom, Space follow, O orientation, G fit route, Backspace clear route. Tests: `tests/test_map.gd`; showcase scenes `map_open`, `map_zoom_in`, `map_zoom_out`, `map_route`, `map_heading_up`.
 
 ### Systems, weather and failures
