@@ -62,7 +62,7 @@ func _ready() -> void:
 	rr.add_child(rl)
 	_renderer = PresetRow.new().setup(RENDERERS.keys(), RENDERERS.size())
 	_renderer.picked.connect(func(k: String):
-		Graphics.set_renderer(RENDERERS[k])
+		Graphics.set_renderer(RENDERERS[k], true)
 		_refresh_restart()
 		changed.emit())
 	rr.add_child(_renderer)

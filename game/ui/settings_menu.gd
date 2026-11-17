@@ -66,7 +66,7 @@ func _ready() -> void:
 		b.set_meta("preset", p)
 		gh.add_child(b)
 	rend.pressed.connect(func():
-		Graphics.set_renderer("mobile" if Graphics.next_renderer() == "forward_plus" else "forward_plus")
+		Graphics.set_renderer("mobile" if Graphics.next_renderer() == "forward_plus" else "forward_plus", true)
 		_refresh_renderer(rend, restart))
 	gh.add_child(rend)
 	vb.add_child(restart)

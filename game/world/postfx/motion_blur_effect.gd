@@ -5,6 +5,8 @@ extends PfComputeEffect
 ## tonemapping (HDR, so bright lights streak properly).
 ## Forward+ only (PostFxRules.FX): it needs the velocity buffer (needs_motion_vectors); Mobile has no motion
 ## vectors, and camera-only blur there would also blur the moving aircraft wrong, so it stays off.
+## Each world pixel's motion is capped at what the camera's turn and travel can produce at its distance (rot_px, move_px):
+## the renderer's velocity for some meshes (OSM buildings) was ~100x too large and blurred whole districts in steady flight.
 ## Discontinuities: the driver (post_fx_driver.gd) sets reset on a floating-origin shift or a camera view switch;
 ## this effect also detects jumps itself (PostFxRules.is_cut, e.g. the fly-by camera re-placing). On those frames
 ## (PostFxRules.SKIP_FRAMES) nothing is blurred, because the renderer's previous transforms are stale.
@@ -62,6 +64,7 @@ func _render_callback(callback_type: int, render_data: RenderData) -> void:
 	if blur.is_empty() or copy.is_empty():
 		return
 	var size := buffers.get_internal_size()
+	var cam_px := camera_motion_px(prev_xf, xf, proj, size)
 	var depth := buffers.get_depth_layer(0)
 	var vel := buffers.get_velocity_layer(0)
 	var has_vel := sampleable(vel)
@@ -74,7 +77,8 @@ func _render_callback(callback_type: int, render_data: RenderData) -> void:
 	var near := sampler(false)
 	dispatch(blur, [u_sampled(0, lin, color), u_sampled(1, near, depth), u_sampled(2, near, vel if has_vel else depth),
 		u_image(3, temp), u_buffer(4, _ubo)],
-		PackedFloat32Array([size.x, size.y, scale, max_px, samples, near_cut, 1.0 if has_vel else 0.0, 1.0 if FLIP_Y else 0.0]), size)
+		PackedFloat32Array([size.x, size.y, scale, max_px, samples, near_cut, 1.0 if has_vel else 0.0, 1.0 if FLIP_Y else 0.0,
+			cam_px.x, cam_px.y, 0.0, 0.0]), size)
 	dispatch(copy, [u_image(0, temp), u_image(1, color)], PackedFloat32Array([size.x, size.y, 0.0, 0.0]), size)
 
 
@@ -87,3 +91,11 @@ func _update_ubo(inv_proj: Projection, to_prev: Projection) -> void:
 	else:
 		rd.buffer_update(_ubo, 0, bytes.size(), bytes)
 
+
+## The camera's motion between two frames as screen limits for static objects: x = its turn in pixels (angle x focal
+## length), y = its travel (m) x focal length (px), which divided by an object's distance (m) gives that object's
+## parallax in pixels. Focal length from the projection: size.y / 2 x cot(fov / 2) = size.y / 2 x proj[1][1].
+static func camera_motion_px(prev_xf: Transform3D, xf: Transform3D, proj: Projection, size: Vector2i) -> Vector2:
+	var focal := 0.5 * float(size.y) * absf(proj.y.y)
+	var turn := prev_xf.basis.get_rotation_quaternion().angle_to(xf.basis.get_rotation_quaternion())
+	return Vector2(turn * focal, prev_xf.origin.distance_to(xf.origin) * focal)

@@ -221,6 +221,39 @@ func test_post_fx_lut_identity() -> String:
 	return "" if absf(c.r - 4.0 / n) < 0.01 and absf(c.g - 12.0 / n) < 0.01 and absf(c.b - 8.0 / n) < 0.01 else "warmth 0 is the identity: %s" % c
 
 
+## The blur's limits for static objects come from the camera's real motion: a 1 degree turn is that angle times the
+## focal length in pixels, and travel scales with the focal length (divided by distance in the shader).
+func test_motion_blur_camera_limits() -> String:
+	var proj := Projection.create_perspective(60.0, 16.0 / 9.0, 0.1, 10000.0)
+	var size := Vector2i(1600, 900)
+	var a := Transform3D()
+	var turned := Transform3D(Basis(Vector3.UP, deg_to_rad(1.0)), Vector3.ZERO)
+	var moved := Transform3D(Basis(), Vector3(0.0, 0.0, -2.0))
+	var focal := 0.5 * 900.0 / tan(deg_to_rad(30.0))
+	var t := MotionBlurEffect.camera_motion_px(a, turned, proj, size)
+	if absf(t.x - deg_to_rad(1.0) * focal) > 0.5 or t.y != 0.0:
+		return "a 1 degree turn should be %.1f px, got %s" % [deg_to_rad(1.0) * focal, t]
+	var m := MotionBlurEffect.camera_motion_px(a, moved, proj, size)
+	if m.x != 0.0 or absf(m.y - 2.0 * focal) > 0.5:
+		return "2 m of travel should give 2 x focal = %.0f, got %s" % [2.0 * focal, m]
+	return ""
+
+
+## Static scenery is capped at what the camera explains (the renderer's velocity for building meshes was ~100x too large
+## and blurred districts in steady flight), and depth is read in the renderer's own reverse-Z convention (it was read as
+## GL ndc 1 - 2d, which put the whole ground under 50 m).
+func test_motion_blur_caps_static_motion_and_reads_depth_right() -> String:
+	var src := FileAccess.get_file_as_string("res://world/postfx/motion_blur.glsl")
+	if src.contains("1.0 - 2.0 * d"):
+		return "depth must not be converted as GL ndc z = 1 - 2 d"
+	if not src.contains("vec2 capped_px(") or src.count("capped_px(") < 3:
+		return "both the pixel and the depth-aware samples should use the camera cap"
+	var fx := FileAccess.get_file_as_string("res://world/postfx/motion_blur_effect.gd")
+	if not fx.contains("camera_motion_px(prev_xf, xf, proj, size)"):
+		return "the effect should pass this frame's camera turn and travel to the shader"
+	return ""
+
+
 func test_post_fx_shaders_compile() -> String:
 	for p in ["res://world/postfx/motion_blur.glsl", "res://world/postfx/pf_copy.glsl", "res://world/postfx/sun_shafts.glsl"]:
 		var f := load(p) as RDShaderFile

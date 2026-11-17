@@ -5,6 +5,10 @@
 //  - the renderer's velocity buffer (Forward+ motion vectors: camera and object motion), else
 //  - camera-only reprojection from depth: sky pixels (depth 0, reverse-Z) and far pixels that wrote no motion.
 //    Pixels nearer than near_cut (the aircraft and its cockpit) never get the reprojection.
+// A static object cannot move on screen faster than the camera's own turn and travel make it: per frame at most
+// rot_px + move_px / distance pixels. Beyond near_cut (everything but the aircraft) the motion is capped there, so a
+// wrong velocity (the renderer has written ~100x the real motion for building meshes in steady flight, which smeared
+// whole districts) cannot blur more than the camera explains. Real camera turns still blur fully.
 // Samples are centred on the pixel (so the sign of the motion does not matter) and depth-aware: a nearer sample
 // (the aircraft, the cockpit frame) only counts if its own motion reaches this pixel, so a sharp foreground never
 // smears onto the background behind it.
@@ -28,15 +32,22 @@ layout(push_constant, std430) uniform Params {
 	float near_cut;     // m: no reprojection nearer than this. Negative (cockpit view): nearer pixels never blur at all
 	float use_velocity; // 1 = Forward+ velocity buffer present
 	float flip_y;       // 1: texel row 0 is the top of the view (GL ndc y up)
+	float rot_px;       // camera turn this frame, in pixels at the image centre
+	float move_px;      // camera travel this frame (m) x focal length (px): divided by distance (m) gives pixels
+	float pad0;
+	float pad1;
 } pc;
 
 vec2 ndc_xy(vec2 uv) {
 	return vec2(uv.x * 2.0 - 1.0, pc.flip_y > 0.5 ? 1.0 - 2.0 * uv.y : uv.y * 2.0 - 1.0);
 }
 
-// Linear view distance along -z of a depth-buffer value (reverse-Z [0, 1] -> GL ndc z = 1 - 2 d).
+// Linear view distance along -z of a depth-buffer value. The projection the effect gets (RenderSceneData
+// get_cam_projection) already maps to the renderer's reverse-Z [0, 1] depth, so the stored value is its ndc z as is.
+// (It was converted as GL ndc z = 1 - 2 d, which put the whole ground under 50 m: the camera reprojection came out
+// far too large, every pixel counted as "near the aircraft", and the cockpit view blurred nothing outside.)
 float lin_depth(float d) {
-	float z = 1.0 - 2.0 * d;
+	float z = d;
 	float vz = rp.inv_proj[2][2] * z + rp.inv_proj[3][2];
 	float vw = rp.inv_proj[2][3] * z + rp.inv_proj[3][3];
 	return -vz / vw;
@@ -50,7 +61,7 @@ float depth_at(vec2 uv) {
 // Camera-only motion of the pixel at uv: where it was on screen last frame (sky: direction only, w = 0).
 vec2 reproject(vec2 uv, float d) {
 	bool sky = d <= 0.0;
-	vec4 v = rp.inv_proj * vec4(ndc_xy(uv), sky ? 1.0 : 1.0 - 2.0 * d, 1.0);
+	vec4 v = rp.inv_proj * vec4(ndc_xy(uv), sky ? 0.5 : d, 1.0);  // sky: any point on the pixel's ray (w = 0 below)
 	vec3 p = v.xyz / v.w;
 	vec4 c = rp.to_prev * vec4(p, sky ? 0.0 : 1.0);
 	if (c.w <= 1e-6) {
@@ -59,6 +70,19 @@ vec2 reproject(vec2 uv, float d) {
 	vec2 n = c.xy / c.w;
 	vec2 prev_uv = vec2(n.x * 0.5 + 0.5, pc.flip_y > 0.5 ? 0.5 - 0.5 * n.y : n.y * 0.5 + 0.5);
 	return uv - prev_uv;
+}
+
+// Pixels of motion this frame for a static object at distance dist (m), capped at what the camera explains.
+vec2 capped_px(vec2 vel, float dist, bool world) {
+	vec2 mpx = vel * pc.size;
+	if (world) {
+		float cap = (pc.rot_px + pc.move_px / max(dist, 0.1)) * 1.5 + 0.5;
+		float m = length(mpx);
+		if (m > cap) {
+			mpx *= cap / m;
+		}
+	}
+	return mpx;
 }
 
 float ign(vec2 p) {  // interleaved gradient noise: per-pixel sample offset, hides the steps
@@ -86,7 +110,7 @@ void main() {
 	if (d <= 0.0 || (dot(vel, vel) == 0.0 && dc > near_cut)) {
 		vel = reproject(uv, d);
 	}
-	vec2 vpx = vel * pc.size * pc.scale;
+	vec2 vpx = capped_px(vel, dc, d > 0.0 && dc > near_cut) * pc.scale;
 	float len = length(vpx);
 	if (len < 0.5) {
 		imageStore(out_img, px, c0);
@@ -108,7 +132,7 @@ void main() {
 		float w = 1.0;
 		if (ds < dc - tol) {  // a nearer sample: only if its own motion covers this pixel
 			vec2 sv = pc.use_velocity > 0.5 && !(rigid_near && ds < near_cut) ? textureLod(velocity_tex, suv, 0.0).xy : vec2(0.0);
-			w = step(abs(t) * len, length(sv * pc.size * pc.scale));
+			w = step(abs(t) * len, length(capped_px(sv, ds, ds > near_cut) * pc.scale));
 		}
 		acc += w * textureLod(color_tex, suv, 0.0);
 		wsum += w;

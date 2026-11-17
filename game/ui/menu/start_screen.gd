@@ -37,6 +37,8 @@ var captain_watch: CaptainWatch  # offers the Thrustmaster Captain Pack profile 
 
 
 func _ready() -> void:
+	if _resume_after_restart():
+		return
 	if Session.skip_menu:
 		_boot_flight()
 		return
@@ -273,6 +275,22 @@ func _fly_now() -> void:
 	if dry_run:
 		return
 	_load_flight("Loading scenery…")
+
+
+## Started again by RendererRestart with a flight to carry on: straight back into it (same as Fly from this save).
+func _resume_after_restart() -> bool:
+	var file := RendererRestart.resume_file(OS.get_cmdline_user_args())
+	if file == "":
+		return false
+	var d := SituationStore.read(file)
+	if d.is_empty():
+		return false
+	var setup: Dictionary = Session.DEFAULT.duplicate(true)
+	setup.merge(d.get("setup", {}), true)
+	Session.setup = setup
+	Situation.pending_load = file
+	_load_flight.call_deferred("Loading scenery…")
+	return true
 
 
 func _boot_flight() -> void:

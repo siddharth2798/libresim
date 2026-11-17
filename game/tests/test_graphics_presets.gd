@@ -99,29 +99,53 @@ func test_steps_grow_with_quality() -> String:
 	return ""
 
 
-func test_apple_silicon_budget_keeps_the_preset_table() -> String:
-	var med: Dictionary = Graphics.PRESETS.medium
-	var air := RenderBudget.clamp_preset(med, Vector2i(2560, 1664), true)
-	var other := RenderBudget.clamp_preset(med, Vector2i(2560, 1664), false)
-	if air.scale >= float(med.scale) or int(air.msaa) != 0 or int(air.clouds) > 10 or int(air.atlas) > 2048:
-		return "an Air-sized frame should drop scale, MSAA, cloud steps and the shadow atlas"
-	if not is_equal_approx(float(other.scale), float(med.scale)) or int(other.clouds) != int(med.clouds):
-		return "other machines keep the preset"
-	if not is_equal_approx(float(Graphics.PRESETS.medium.scale), 0.85) or int(Graphics.PRESETS.medium.clouds) != 16:
-		return "the budget must not rewrite the preset table"
+func test_auto_scale_follows_measured_gpu_time_on_any_machine() -> String:
+	var sc := RenderScaler.new()
+	sc.reset(1.0)
+	var budget := RenderScaler.budget_ms(60.0)
+	var steps := 0
+	for i in 600:  # 10 s of frames at twice the frame budget
+		if sc.feed(budget * 2.0, budget, 1.0 / 60.0):
+			steps += 1
+	if not is_equal_approx(sc.scale, RenderScaler.FLOOR) or steps != 3:
+		return "an overloaded GPU should step 1.0 -> 0.9 -> 0.8 -> 0.7 and stop at the floor, got %.2f after %d steps" % [sc.scale, steps]
+	for i in 60 * 30:  # 30 s with plenty of room
+		sc.feed(budget * 0.3, budget, 1.0 / 60.0)
+	if not is_equal_approx(sc.scale, 1.0):
+		return "with room again the scale should come back to the preset's, got %.2f" % sc.scale
+	for i in 60 * 30:
+		sc.feed(budget * 0.8, budget, 1.0 / 60.0)  # between the two thresholds: hold
+	if not is_equal_approx(sc.scale, 1.0):
+		return "a GPU between the thresholds keeps its scale"
+	var hi := RenderScaler.at_scale(Graphics.PRESETS.high, 0.8)
+	if not hi.fsr or not is_equal_approx(float(hi.scale), 0.8) or RenderScaler.at_scale(Graphics.PRESETS.high, 1.0).fsr:
+		return "below 1 the image is upscaled, at 1 it is not"
 	return ""
 
 
-func test_apple_budget_keeps_a_4k_frame_sharp() -> String:
-	var hi := RenderBudget.clamp_preset(Graphics.PRESETS.high, Vector2i(3840, 2160), true)
-	if float(hi.scale) < RenderBudget.SCALE_FLOOR - 0.001:
-		return "a 4K frame was scaled to %.2f, below the floor" % float(hi.scale)
-	if not hi.fsr or not hi.fxaa:
-		return "a reduced frame must upscale with FSR and keep FXAA once MSAA is off"
-	if RenderBudget.needs_budget("Apple M5 Max") or RenderBudget.needs_budget("Apple M3 Pro") or RenderBudget.needs_budget("Intel(R) Core(TM) i7"):
-		return "Pro / Max chips and Intel must keep the preset"
-	if not RenderBudget.needs_budget("Apple M2"):
-		return "a base Apple chip gets the budget"
+func test_no_brand_or_processor_rules_in_the_graphics_code() -> String:
+	for f in ["res://core/graphics_settings.gd", "res://core/render_budget.gd", "res://core/render_scaler.gd", "res://core/render_resolution.gd"]:
+		var src := FileAccess.get_file_as_string(f)
+		for word in ["get_processor_name", "Apple", "Intel", "NVIDIA", "AMD", "get_video_adapter_name"]:
+			if src.contains(word):
+				return "%s decides on %s; the quality rules must be the same on every machine" % [f, word]
+	return ""
+
+
+func test_fsr2_upscale_is_not_softened_again_by_fxaa() -> String:
+	var vp := SubViewport.new()
+	add_child(vp)
+	var s := RenderScaler.at_scale(Graphics.PRESETS.medium, 0.8)  # medium asks for FXAA
+	Graphics._apply_viewport(vp, s, true)
+	var fsr_aa := vp.screen_space_aa
+	var mode := vp.scaling_3d_mode
+	Graphics._apply_viewport(vp, s, false)  # Mobile: bilinear, FXAA as asked
+	var mobile_aa := vp.screen_space_aa
+	vp.free()
+	if mode != Viewport.SCALING_3D_MODE_FSR2 or fsr_aa != Viewport.SCREEN_SPACE_AA_DISABLED:
+		return "Forward+ below 1 should be FSR2 with no FXAA on top"
+	if mobile_aa != Viewport.SCREEN_SPACE_AA_FXAA:
+		return "Mobile keeps FXAA when the spec asks for it"
 	return ""
 
 
@@ -235,5 +259,4 @@ func test_budget_frame_is_the_viewport_texture_not_the_doubled_window() -> Strin
 		return "without a texture a small window on a scaled screen is in points"
 	if RenderBudget.pick_frame(Vector2i(1920, 1080), 1.0, Vector2i.ZERO) != Vector2i(1920, 1080):
 		return "a plain screen keeps the window size"
-	var hi := RenderBudget.clamp_preset(Graphics.PRESETS.high, RenderBudget.pick_frame(Vector2i(1600, 900), 2.0, Vector2i(1600, 900)), true)
-	return "" if is_equal_approx(float(hi.scale), 1.0) and not hi.fsr else "a 1.44 MP frame must not be scaled: %s" % [hi]
+	return ""

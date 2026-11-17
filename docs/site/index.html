@@ -477,7 +477,7 @@ footer { margin-top: 2.5rem; padding-top: 0.7rem; border-top: 1px solid var(--ru
         <li><a href="#systems" data-k="failures electrical fuel hydraulics f9 pitot vacuum apu"><span class="no">OPS 7</span><span>Systems and failures</span></a></li>
         <li><a href="#limits" data-k="damage crash landing hard gear weight balance cg"><span class="no">OPS 8</span><span>Limits, damage, weight</span></a></li>
         <li><a href="#saving" data-k="save load replay recording f8 f11 film"><span class="no">OPS 9</span><span>Saves, replay, recording</span></a></li>
-        <li><a href="#graphics" data-k="graphics preset low medium high ultra max apple silicon fps"><span class="no">OPS 10</span><span>Graphics</span></a></li>
+        <li><a href="#graphics" data-k="graphics preset low medium high ultra max fps blurry auto resolution motion blur renderer restart"><span class="no">OPS 10</span><span>Graphics</span></a></li>
         <li class="part">DEV · Building it</li>
         <li><a href="#world-data" data-k="pipeline data osm dem worldcover airways"><span class="no">DEV 1</span><span>World data</span></a></li>
         <li><a href="#developers" data-k="developers tests architecture aircraft.json"><span class="no">DEV 2</span><span>For developers</span></a></li>
@@ -602,7 +602,7 @@ footer { margin-top: 2.5rem; padding-top: 0.7rem; border-top: 1px solid var(--ru
     <tr><td>Linux</td><td>GDAL with Python bindings, python3-venv, curl, git, unzip, and Godot 4.7.2. Developed on Pop!_OS / Ubuntu 24.04. <code>run.sh</code> installs what is missing.</td></tr>
     <tr><td>macOS</td><td>bash 4+ and Homebrew GDAL: <code>brew install bash gdal python</code>. The script re-runs under Homebrew's bash.</td></tr>
     <tr><td>Windows</td><td>No Windows build yet.</td></tr>
-    <tr><td>GPU</td><td>Vulkan. The default look is tuned for integrated GPUs. On an Apple Silicon Mac the 3D picture is drawn smaller so a fanless machine can keep its refresh rate. The preset name does not change.</td></tr>
+    <tr><td>GPU</td><td>Vulkan. The default look is tuned for integrated GPUs. On Auto, any machine that cannot keep up draws the 3D picture a little smaller until it can, and back again when it has room. The preset name does not change.</td></tr>
   </tbody>
 </table></div>
 <p>Godot lives at <code>~/.local/bin/godot</code> and is not always on <code>PATH</code>. To start by hand: <code>cd game &amp;&amp; ~/.local/bin/godot --path .</code></p>
@@ -1135,20 +1135,21 @@ flatpak run org.freesim.FreeSim</code></pre><button class="copy" type="button">C
 
 <section id="graphics">
 <h2><span class="no">OPS 10</span>Graphics</h2>
-<p>The default is High. Change it on Options, with <kbd>F10</kbd>, or with <code>--quality=</code>. Low and Medium use the Mobile renderer. High, Ultra and Max use Forward+, which needs a restart when you change to it or away from it. A one-off <code>--quality</code> does not change the renderer saved for the next launch.</p>
+<p>The default is High. Change it on Options, with <kbd>F10</kbd>, or with <code>--quality=</code>. Low and Medium use the Mobile renderer. High, Ultra and Max use Forward+. The game can only switch renderer when it starts, so changing to it or away from it asks whether to restart now. Say yes and libresim closes and opens again by itself; if you were flying, the flight is saved and carries on from where you were. Say later and it switches on your next launch. A one-off <code>--quality</code> does not change the renderer saved for the next launch.</p>
 <div class="tbl"><table>
   <caption>What the presets spend</caption>
   <thead><tr><th>Preset</th><th>Picture</th><th>Shadows</th><th>Buildings / trees</th><th>Cloud steps</th></tr></thead>
   <tbody>
-    <tr><td>Low</td><td>70 %, FSR</td><td>Off</td><td>4 km / 1.2 km</td><td class="num">10</td></tr>
-    <tr><td>Medium</td><td>85 %, FSR, MSAA 2×</td><td>700 m</td><td>6 km / 1.8 km</td><td class="num">16</td></tr>
+    <tr><td>Low</td><td>70 %, upscaled</td><td>Off</td><td>4 km / 1.2 km</td><td class="num">10</td></tr>
+    <tr><td>Medium</td><td>85 %, upscaled, MSAA 2×</td><td>700 m</td><td>6 km / 1.8 km</td><td class="num">16</td></tr>
     <tr><td>High</td><td>100 %, MSAA 2×, SSAO</td><td>1.8 km</td><td>9 km / 2.2 km</td><td class="num">24</td></tr>
     <tr><td>Ultra</td><td>100 %, MSAA 4×, TAA</td><td>4 km</td><td>12 km / 3 km</td><td class="num">40</td></tr>
     <tr><td>Max</td><td>125 %, MSAA 4×, TAA</td><td>6 km</td><td>16 km / 4 km</td><td class="num">64</td></tr>
   </tbody>
 </table></div>
-<p>High and above add volumetric fog. Ultra and Max add reflections and let the nearest apron lights cast shadows. Options can turn individual effects off: bloom, motion blur, sun shafts, sharpening, colour, heat shimmer and rain on the lens. Vignette and film grain are off unless you enable them.</p>
-<p>On an Apple Silicon Mac the preset you picked is kept, and the expensive parts are clamped: no MSAA, cloud steps capped, shadows no further than 500 m, and the 3D image scaled down when the window is large. <kbd>F3</kbd> is the performance overlay. If a frame is late, drop a preset before editing the terrain node.</p>
+<p>Low and Medium stretch a smaller picture to the screen (the Mobile renderer has no FSR). On Forward+ a picture below 100 % is upscaled with FSR2, which smooths edges itself. High and above add volumetric fog. Ultra and Max add reflections and let the nearest apron lights cast shadows. Options can turn individual effects off: bloom, motion blur, sun shafts, sharpening, colour, heat shimmer and rain on the lens. Vignette and film grain are off unless you enable them.</p>
+<p>Motion blur (High and up) blurs the scenery only as much as the camera's own turn and movement explain: steady flight stays sharp, a fast pan or a hard turn streaks. Switch it off under Options, Graphics if you want every frame still-sharp.</p>
+<p>With Render resolution on Auto, the game measures how long the graphics card takes per frame. If it cannot keep up with your screen, the 3D picture is drawn a step smaller, down to 70 %, and brought back when there is room. The same rule runs on every computer. <kbd>F3</kbd> is the performance overlay. If a frame is late, drop a preset before editing the terrain node.</p>
 <p class="note"><span class="label">Read-only installs</span>AppImage and Flatpak cannot save a renderer. Pass <code>--rendering-method forward_plus</code> on the command line.</p>
 </section>
 
@@ -1321,8 +1322,8 @@ flatpak run org.freesim.FreeSim</code></pre><button class="copy" type="button">C
     <tr><td>No joystick on macOS</td><td>The sidestick switch must be on PC. Start through <code>run.sh</code> or the <code>.command</code> file so the SDL variables are set. See <a href="#install-packages">GEN 2</a></td></tr>
     <tr><td>No sound</td><td>Check the system output and Options → Sound. Linux uses PulseAudio or PipeWire</td></tr>
     <tr><td>Voice stays silent</td><td>Linux: install <code>speech-dispatcher</code> and <code>espeak-ng</code>, then restart</td></tr>
-    <tr><td>The picture is soft on a Mac</td><td>Apple Silicon draws a smaller 3D image on purpose. The interface stays sharp</td></tr>
-    <tr><td>Renderer toggle does nothing</td><td>It applies on the next start. A read-only install needs <code>--rendering-method forward_plus</code></td></tr>
+    <tr><td>The picture is soft</td><td>Auto draws a smaller 3D image when the graphics card cannot keep up. Drop a preset, or pick a fixed Render resolution. Motion blur (Options, Graphics) blurs when the view turns; switch it off if you prefer a still-sharp picture</td></tr>
+    <tr><td>Renderer toggle does nothing</td><td>It applies after a restart: choose Restart now when asked, or it waits for the next start. A read-only install needs <code>--rendering-method forward_plus</code></td></tr>
     <tr><td>Low frame rate</td><td><kbd>F3</kbd>, then a lower preset</td></tr>
   </tbody>
 </table></div>

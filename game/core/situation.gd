@@ -25,6 +25,8 @@ static func load_pending(root: Node) -> String:
 	var err := load_file(root, file)
 	if err != "":
 		push_error(err)
+	if file == SituationStore.file_name(RendererRestart.RESUME):
+		SituationStore.delete(file)  # the flight saved for a renderer restart is not a save of the player's
 	return err
 
 

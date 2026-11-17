@@ -3,7 +3,8 @@ extends Node
 ## overridable with --quality=<preset>. Applies to viewport, environment, sun, shadow atlas and the scenery streamers
 ## (call apply_to_scene once the scene is ready).
 ## Each preset names a renderer: Low / Medium use Mobile, High and up use Forward+. Changing the renderer needs a
-## restart: set_renderer() writes override.cfg and restart_needed() tells the menus.
+## restart: set_renderer() writes override.cfg and restart_needed() tells the menus. A change the player made asks
+## "Restart now?" (ui/menu/restart_prompt.gd); yes relaunches libresim and resumes a flight (core/renderer_restart.gd).
 ## Preset keys: scale (3D render scale, > 1 supersample, < 1 bilinear on Mobile / FSR2 on Forward+), msaa (index into
 ## [off, 2x, 4x]), shadow (sun shadow distance, m), pssm (directional_shadow_mode), atlas / soft / pos_soft (shadow
 ## atlas size, soft filter quality of sun and omni / spot lights), ssao / ssil / taa (Forward+ only), ssr (ray steps,
@@ -50,11 +51,16 @@ var _quality_cli := false
 var override_dir := ""
 var running_override := ""
 var _atlas := [-1, -1, -1]  # last atlas size / soft qualities sent to the RenderingServer
+## Auto render resolution from the measured GPU time (core/render_scaler.gd); reset on every preset change.
+var scaler := RenderScaler.new()
+var _measuring := RID()  # the viewport whose GPU time is being measured
 signal changed(preset: String)
 ## The renderer saved for the next start differs from the running one (or matches it again).
 signal restart_needed_changed(needed: bool)
 ## The window moved to another screen or changed size (the resolution list should rebuild).
 signal screen_changed
+## Auto render resolution stepped (the Render resolution row shows the size).
+signal auto_scale_changed
 
 
 func _ready() -> void:
@@ -68,6 +74,7 @@ func _ready() -> void:
 			_quality_cli = true
 	if not PRESETS.has(preset):
 		preset = "high"
+	scaler.reset(float(PRESETS[preset].scale))
 	_match_renderer_once.call_deferred()  # deferred: Session (autoloaded after us) decides interactive()
 
 
@@ -107,12 +114,13 @@ func set_preset(p: String) -> void:
 	if not PRESETS.has(p):
 		return
 	preset = p
+	scaler.reset(float(PRESETS[p].scale))
 	if Session.interactive():
 		_save()
 		var want := preset_renderer(p)
 		# Also rewrite when going back to the running renderer, so a pending switch is cancelled.
 		if want != renderer() or _pending_renderer != "":
-			set_renderer(want)
+			set_renderer(want, true)
 	apply_to_scene(get_tree().current_scene)
 	changed.emit(p)
 
@@ -120,6 +128,7 @@ func set_preset(p: String) -> void:
 ## Render resolution: a fraction of the frame height (RenderResolution), 0 = Auto. Applies at once.
 func set_render_frac(f: float) -> void:
 	render_frac = maxf(f, 0.0)
+	scaler.reset(float(PRESETS[preset].scale))
 	if Session.interactive():
 		_save()
 	apply_to_scene(get_tree().current_scene)
@@ -139,19 +148,21 @@ func frame() -> Vector2i:
 	return RenderBudget.frame_pixels(get_tree().root)
 
 
-## The preset as it runs here: the Apple budget (Auto), then the player's resolution choice.
-## Headless runs (tests) keep the preset numbers.
-func spec_for(pixels: Vector2i) -> Dictionary:
+## The preset as it runs here: the player's Render resolution choice, or on Auto the scale RenderScaler measured.
+## The same on every machine (no brand or processor rules). Headless runs (tests) keep the preset numbers.
+func spec_for(_pixels: Vector2i) -> Dictionary:
 	var s: Dictionary = PRESETS[preset]
 	if DisplayServer.get_name() == "headless":
 		return s
-	s = RenderBudget.clamp_preset(s, pixels, RenderBudget.apple_silicon())
-	return RenderResolution.apply(s, render_frac)
+	if render_frac > 0.0:
+		return RenderResolution.apply(s, render_frac)
+	return RenderScaler.at_scale(s, scaler.scale)
 
 
 ## A window moved to another screen, a display plugged in, or a resize: once it has settled, apply again so
 ## Auto and the resolution list fit the new frame. Checked once a second.
 func _process(dt: float) -> void:
+	_auto_scale(dt)
 	_watch_t += dt
 	if _watch_t < 1.0 or DisplayServer.get_name() == "headless":
 		return
@@ -163,6 +174,23 @@ func _process(dt: float) -> void:
 	_watch = now
 
 
+## Auto render resolution: feed the main viewport's GPU time to the scaler; on a step, redo only the viewport scaling.
+func _auto_scale(dt: float) -> void:
+	var scene := get_tree().current_scene
+	if render_frac > 0.0 or DisplayServer.get_name() == "headless" or scene == null or get_viewport().get_camera_3d() == null:
+		return
+	var vp := get_viewport()
+	var rid := vp.get_viewport_rid()
+	if rid != _measuring:
+		RenderingServer.viewport_set_measure_render_time(rid, true)
+		_measuring = rid
+		return
+	var hz := DisplayServer.screen_get_refresh_rate(DisplayServer.window_get_current_screen())
+	if scaler.feed(RenderingServer.viewport_get_measured_render_time_gpu(rid), RenderScaler.budget_ms(hz), dt):
+		_apply_viewport(vp, spec_for(frame()), renderer() == "forward_plus")
+		auto_scale_changed.emit()
+
+
 func _watch_key() -> Dictionary:
 	var sc := DisplayServer.window_get_current_screen()
 	return {"screen": sc, "size": DisplayServer.screen_get_size(sc), "win": DisplayServer.window_get_size()}
@@ -170,7 +198,7 @@ func _watch_key() -> Dictionary:
 
 ## Persist a renderer choice ("mobile" or "forward_plus"); takes effect on restart. Also the manual
 ## F10 toggle: the choice stands until the next preset change on the other renderer.
-func set_renderer(method: String) -> void:
+func set_renderer(method: String, ask := false) -> void:
 	if _may_write():  # tests, probes and headless runs never leave an override.cfg behind
 		var f := FileAccess.open(_override_path(), FileAccess.WRITE)
 		if f:
@@ -179,6 +207,26 @@ func set_renderer(method: String) -> void:
 	_pending_renderer = method
 	if restart_needed() != was:
 		restart_needed_changed.emit(restart_needed())
+	if ask and restart_needed() and _may_write():
+		_ask_restart.call_deferred()
+
+
+var _prompt: CanvasLayer
+
+
+## "Restart now?" over whatever is on screen (menus, the pause screen, a flight). Yes: RendererRestart.restart.
+func _ask_restart() -> void:
+	if is_instance_valid(_prompt) or not restart_needed():
+		return
+	_prompt = CanvasLayer.new()
+	_prompt.layer = 128  # above the pause screen and the loader
+	var scene := get_tree().current_scene
+	var flying := scene != null and scene.scene_file_path == RendererRestart.FLIGHT
+	var p := RestartPrompt.make(next_renderer(), flying)
+	_prompt.add_child(p)
+	get_tree().root.add_child(_prompt)
+	p.later.connect(func(): _prompt.queue_free())
+	p.restart.connect(func(): RendererRestart.restart(get_tree()))
 
 
 ## May this run save a renderer? Only a real player run: interactive (core/save_guard.gd) and not headless (a headless
@@ -259,7 +307,8 @@ func apply_to_scene(root: Node) -> void:
 
 
 ## Supersampling above 1 is a plain bilinear downscale. Below 1, Forward+ uses FSR2, which
-## antialiases itself, so TAA is off. The mobile renderer has no FSR, so it stays bilinear.
+## antialiases itself, so TAA and FXAA are off (FXAA on top of FSR2 only softened the upscaled image again).
+## The mobile renderer has no FSR, so it stays bilinear (with FXAA when the spec asks for it).
 func _apply_viewport(vp: Viewport, s: Dictionary, forward_plus: bool) -> void:
 	var up: bool = s.fsr and s.scale < 1.0 and forward_plus
 	if up:
@@ -268,7 +317,7 @@ func _apply_viewport(vp: Viewport, s: Dictionary, forward_plus: bool) -> void:
 		vp.scaling_3d_mode = Viewport.SCALING_3D_MODE_BILINEAR
 	vp.scaling_3d_scale = s.scale
 	vp.msaa_3d = [Viewport.MSAA_DISABLED, Viewport.MSAA_2X, Viewport.MSAA_4X][s.msaa]
-	vp.screen_space_aa = Viewport.SCREEN_SPACE_AA_FXAA if s.fxaa else Viewport.SCREEN_SPACE_AA_DISABLED
+	vp.screen_space_aa = Viewport.SCREEN_SPACE_AA_FXAA if s.fxaa and not up else Viewport.SCREEN_SPACE_AA_DISABLED
 	vp.use_debanding = true  # dither before the 8-bit output: smooth dark sky gradients and fog do not band
 	vp.use_taa = s.taa and forward_plus and not (up and forward_plus)
 

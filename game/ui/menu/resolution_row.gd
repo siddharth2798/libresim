@@ -27,6 +27,7 @@ func _ready() -> void:
 	add_child(_pick)
 	Graphics.changed.connect(_on_graphics)
 	Graphics.screen_changed.connect(_on_graphics.bind(""))
+	Graphics.auto_scale_changed.connect(_on_graphics.bind(""))
 	refresh()
 
 
@@ -39,8 +40,7 @@ func refresh() -> void:
 	var frame := Graphics.frame()
 	_opts = RenderResolution.options(frame)
 	_pick.clear()
-	var auto := RenderBudget.clamp_preset(Graphics.PRESETS[Graphics.preset], frame, RenderBudget.apple_silicon())
-	_pick.add_item("Auto: " + RenderResolution.label(frame, float(auto.scale)))
+	_pick.add_item("Auto: " + RenderResolution.label(frame, Graphics.scaler.scale if Graphics.render_frac <= 0.0 else float(Graphics.PRESETS[Graphics.preset].scale)))
 	for o in _opts:
 		_pick.add_item(o.label)
 	_pick.select(0 if Graphics.render_frac <= 0.0 else 1 + RenderResolution.nearest(_opts, Graphics.render_frac))
