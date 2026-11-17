@@ -1,5 +1,5 @@
 extends Node
-## Debug: walk every start-screen page (home, the five Free-flight steps, Training, Saved flights, each Options and Controls tab,
+## Debug: walk every start-screen page (home, the seven Free-flight steps, Training, Saved flights, each Options and Controls tab,
 ## credits, the controls overlay J and the pause screen) at one window size and UI scale, save a screenshot of each and print the
 ## layout audit (tests/ui_audit.gd). Needs a display; scratch data only: nothing of the player's saves, options, bindings or
 ## training stars is read or written (the UI scale is kept in memory).

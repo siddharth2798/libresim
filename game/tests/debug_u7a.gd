@@ -58,11 +58,11 @@ func _ready() -> void:
 	match page:
 		"failures", "recording":
 			scr.go("flight")
-			scr.screen("flight").show_step(3 if page == "failures" else 4)
+			scr.screen("flight").show_step(5 if page == "failures" else 6)
 		_:
 			scr.go(page)
 	await get_tree().process_frame
-	var p: Control = scr.screen("flight").pages[3 if page == "failures" else 4] if page in ["failures", "recording"] else scr.screen(page).pages[0]
+	var p: Control = scr.screen("flight").pages[5 if page == "failures" else 6] if page in ["failures", "recording"] else scr.screen(page).pages[0]
 	print("u7a page minimum size ", page, " ", p.get_combined_minimum_size())
 	for c in p.get_children():
 		print("  column ", c.get_class(), " min ", c.get_combined_minimum_size())

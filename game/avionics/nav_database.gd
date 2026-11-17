@@ -13,6 +13,10 @@ var coms: Dictionary = {}  # airport icao -> [{type, desc, mhz}]
 var airports: Array = []
 var airways: Dictionary = {}  # designator -> {fixes, direction}
 var fixes: Dictionary = {}    # ident -> Vector2, when no airport or navaid has it
+## Waypoints of the planned route (Session.setup.route), ident -> Vector2: user waypoints clicked on the map, and the
+## stored position of any route ident the data no longer has. Static, so every NavDatabase of the flight (GPS, map, MCDU,
+## ND) resolves them; core/route_setup.gd refills it at each flight start and after a saved flight is loaded.
+static var route_fixes: Dictionary = {}
 
 
 func _init() -> void:
@@ -45,8 +49,8 @@ func airport(ident: String) -> Dictionary:
 	return {}
 
 
-## Position (Vector2, ENU metres) of an airport (ICAO or ident), VOR, NDB, or synthetic
-## runway fix (ICAO + runway + D/F); null if unknown.
+## Position (Vector2, ENU metres) of an airport (ICAO or ident), VOR, NDB, airway fix, route waypoint
+## (route_fixes) or synthetic runway fix (ICAO + runway + D/F); null if unknown.
 func position_of(ident: String) -> Variant:
 	for a in airports:
 		if a.ident == ident or a.icao == ident:
@@ -59,6 +63,8 @@ func position_of(ident: String) -> Variant:
 			return Vector2(n.x, n.y)
 	if fixes.has(ident):
 		return fixes[ident]
+	if route_fixes.has(ident):
+		return route_fixes[ident]
 	return RunwayWaypoints.position(ident, airports)
 
 

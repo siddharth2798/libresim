@@ -36,7 +36,7 @@ func test_menu_order_aircraft_then_airport_then_conditions() -> String:
 	var f: Control = s.screen("flight")
 	var names: Array = f.STEPS.map(func(st): return str(st[0]).get_slice(" (", 0))
 	var err := ""
-	if names != ["Aircraft", "Livery", "Airport & start", "Weather & time", "Failures", "Recording"]:
+	if names != ["Aircraft", "Livery", "Airport & start", "Route", "Weather & time", "Failures", "Recording"]:
 		err = "step order: %s" % [names]
 	elif f.cur != 0 or f.pages[0].get_script().resource_path != "res://ui/menu/aircraft_page.gd" or not f.pages[0].visible:
 		err = "Free flight should open on the aircraft page (cur %d)" % f.cur

@@ -66,7 +66,7 @@ static func snapshot(env: Dictionary, t: float) -> Dictionary:
 		w.apt_dist_nm = ap.dist / 1852.0
 		w.coms = env.coms.get(icao, [])
 		w.ils = env.get("ils", []).filter(func(i): return str(i.airport) == icao).map(func(i): return str(i.runway))
-		w.dest = AtcProfile.dest_for(env, icao, w.apt_pos)
+		w.dest = AtcProfile.dest_for(env, icao, w.apt_pos, str(Props.get_v(RouteSetup.DEST_PROP, "")))
 		w.ctl = AtcFacilities.control_mode(w.coms, w.apt_type, icao)
 		var rwys: Array = env.runways.filter(func(r): return r.airport == icao)
 		geometry(w, rwys, env.ops.get(icao, {}))

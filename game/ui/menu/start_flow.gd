@@ -4,7 +4,8 @@ extends "res://ui/menu/page_frame.gd"
 ## Fly button. Fly is never disabled: normal accent when the setup is ready (or has only warnings), amber "Fly anyway" when
 ## SetupChecks finds a "bad" problem (start_screen.gd then asks first). Back on the first step leaves for home (back_pressed).
 ## Choices go into Session.setup. Aircraft comes first because the airport page depends on it (air-start height and distance,
-## runways long enough, stands that suit it). Livery is the optional step right after it. Keys 1 through the last step jump,
+## runways long enough, stands that suit it). Livery is the optional step right after it; Route (optional) follows the
+## Airport step because it starts there. Keys 1 through the last step jump,
 ## Page Up / Down step, Ctrl+Enter flies, Esc goes back.
 ## Texts: flow_values.gd.
 
@@ -15,6 +16,7 @@ const STEPS := [
 	["Aircraft", "res://ui/menu/aircraft_page.gd", "Which aircraft, and how loaded?"],
 	["Livery (optional)", "res://ui/menu/livery_page.gd", "Paint the aircraft, or skip this."],
 	["Airport & start", "res://ui/menu/airport_page.gd", "Where do you want to start?"],
+	["Route (optional)", "res://ui/menu/route_page.gd", "Plan the waypoints you want to fly, or skip this."],
 	["Weather & time", "res://ui/menu/conditions_page.gd", "What are the conditions?"],
 	["Failures (optional)", "res://ui/menu/failures_page.gd", "Practise an emergency, or skip this."],
 	["Recording (optional)", "res://ui/menu/recording_page.gd", "Record the flight as a video, or skip this."],

@@ -465,7 +465,7 @@ footer { margin-top: 2.5rem; padding-top: 0.7rem; border-top: 1px solid var(--ru
         <li class="part">GEN · Before you fly</li>
         <li><a href="#overview" data-k="about region mumbai pune kochi aircraft c172 a320"><span class="no">GEN 1</span><span>Overview</span></a></li>
         <li><a href="#install" data-k="install run.sh macos linux apple silicon a320 download"><span class="no">GEN 2</span><span>Install and run</span></a></li>
-        <li><a href="#start-screen" data-k="start screen livery registration fly anyway weather live menu"><span class="no">GEN 3</span><span>Start a flight</span></a></li>
+        <li><a href="#start-screen" data-k="start screen livery registration fly anyway weather live menu route waypoints flight plan"><span class="no">GEN 3</span><span>Start a flight</span></a></li>
         <li><a href="#training" data-ac="c172" data-k="training lessons takeoff cruise landing c172"><span class="no">GEN 4</span><span>Training</span></a></li>
         <li class="part">OPS · Flying</li>
         <li><a href="#controls" data-k="keyboard mouse joystick gamepad keys cameras pause"><span class="no">OPS 1</span><span>Controls, views, pause</span></a></li>
@@ -632,6 +632,7 @@ flatpak run org.freesim.FreeSim</code></pre><button class="copy" type="button">C
   <a href="#ss-rail">Free flight</a>
   <a href="#ss-livery">Livery</a>
   <a href="#ss-airport">Airport</a>
+  <a href="#ss-route">Route</a>
   <a href="#ss-weather">Weather</a>
   <a href="#ss-rest">The other steps</a>
   <a href="#ss-options">Options and controls</a>
@@ -651,11 +652,12 @@ flatpak run org.freesim.FreeSim</code></pre><button class="copy" type="button">C
   <li><span><strong>Aircraft.</strong> Specs, registration, fuel and payload.</span></li>
   <li><span><strong>Livery.</strong> Optional. Next skips it.</span></li>
   <li><span><strong>Airport and start.</strong></span></li>
+  <li><span><strong>Route.</strong> Optional. The waypoints you want to fly.</span></li>
   <li><span><strong>Weather and time.</strong></span></li>
   <li><span><strong>Failures.</strong> Optional.</span></li>
   <li><span><strong>Recording.</strong> Optional.</span></li>
 </ol>
-<p>Each row shows its current value and a mark: green ready, amber look at this, red a problem, hollow optional. <strong>Fly now</strong> is in the bottom bar from any step. It turns amber <strong>Fly anyway</strong> when the setup has a problem. Keys <kbd>1</kbd>–<kbd>6</kbd> jump (not while you are typing), <kbd>Page Up</kbd> / <kbd>Page Down</kbd> step through, <kbd>Ctrl</kbd>+<kbd>Enter</kbd> flies, <kbd>Esc</kbd> goes back. The last setup is <code>user://last_flight.json</code>.</p>
+<p>Each row shows its current value and a mark: green ready, amber look at this, red a problem, hollow optional. <strong>Fly now</strong> is in the bottom bar from any step. It turns amber <strong>Fly anyway</strong> when the setup has a problem. Keys <kbd>1</kbd>–<kbd>7</kbd> jump (not while you are typing), <kbd>Page Up</kbd> / <kbd>Page Down</kbd> step through, <kbd>Ctrl</kbd>+<kbd>Enter</kbd> flies, <kbd>Esc</kbd> goes back. The last setup is <code>user://last_flight.json</code>.</p>
 <p class="caution"><span class="label">Fly anyway</span>Fly asks, and never blocks, when you are over max takeoff weight, the centre of gravity is outside the envelope, the runway is shorter than the aircraft's minimum (runway starts only), the tailwind is above 5 kt, or the crosswind is above the aircraft's limit (C172 15 kt, A320 33 kt). Gusts do not count. Wind is checked for runway and air starts, not for a stand. Visibility under 1.6 km is only a warning. <strong>Go back</strong> has the focus. Lessons and saved flights skip the question.</p>
 
 <h4>Aircraft and the call sign</h4>
@@ -682,6 +684,18 @@ flatpak run org.freesim.FreeSim</code></pre><button class="copy" type="button">C
   <li><strong>Stand or gate.</strong> Always cold and dark, parking brake set. Real OpenStreetMap refs are kept. A stand without one becomes Gate n or Bay n. Lists put gates first for the airliner and bays or tie-downs first for the Cessna.</li>
   <li><strong>In the air.</strong> Height and distance start at that aircraft's approach and follow the aircraft until you edit one. Default puts them back. Speed has no slider: it is the aircraft's own, unless <code>--air-kt</code> or a lesson sets it.</li>
 </ul>
+
+<h3 id="ss-route">Route</h3>
+<p>Plan where you want to go before you fly. The route starts at the airport and start you chose on the Airport step and ends at a destination. Skip the step and there is no route; a direct-to on the moving map still works in flight.</p>
+<ul>
+  <li><strong>To</strong> searches for the destination. The runway chips (Any, or one end) add a fix 8 nm out on that runway's final. <strong>Cruise ft</strong> is the altitude new waypoints get: 4,500 ft, or FL240 on the airliner.</li>
+  <li><strong>Auto-route.</strong> <strong>Direct</strong> flies straight there. <strong>VOR to VOR</strong> hops between radio beacons; a short trip stays direct. <strong>Airways</strong> takes the shortest path along the published airways, and respects one-way airways. Airways near Mumbai and Pune are few, so on a short trip Direct or VOR to VOR is usually what you want. An amber line says why when a route cannot be built. <strong>Clear</strong> starts again.</li>
+  <li><strong>Type a route</strong> in the box and press <kbd>Enter</kbd>: <span class="mono">VABB DCT PAPRI W15 GOA VAPO</span>. Spaces or slashes, <span class="mono">DCT</span> is ignored, an airway between two of its fixes is filled in. A mistake keeps the old route.</li>
+  <li><strong>On the map</strong>: click an airport, beacon or fix to add it. Click empty map for your own waypoint (WPT01, WPT02 …). <kbd>Shift</kbd>-click an airport to make it the destination. Drag a waypoint to move it, or drag the middle of a leg to add one there. Right-click a waypoint to remove it. The wheel zooms, dragging empty map pans, <kbd>F</kbd> fits the route.</li>
+  <li><strong>Nav log</strong>: course, distance, time at the aircraft's cruise speed (C172 124 kt, A320 450 kt), running total and an altitude for every waypoint. ▲ ▼ reorder, × deletes. The total is in still air.</li>
+  <li><strong>Start on a leg.</strong> With an In the air start, choose <strong>On final</strong> or <strong>On leg N</strong>. On a leg you start 2 nm past its first point, heading along it, at its altitude (at least 1,000 ft above the ground ahead), clean, at cruise speed (C172 110 kt, A320 280 kt above 10,000 ft). The airliner starts with the thrust levers in CL and autothrust on, so engaging the autopilot flies the route.</li>
+</ul>
+<p>In the flight the route is your GPS route: on the moving map, the mini-map and the airliner's F-PLN and ND. The next waypoint becomes active within 1 nm. <span class="only-c172">The Cessna has no autopilot: follow the magenta line and the GPS bearing.</span> <span class="only-a320">On the airliner the MCDU INIT page is already filled with the route, runways and cruise level, and the FCU altitude is set and NAV is selected, so the autopilot flies it once you engage it.</span> The controller's clearance names your destination. Saves keep the route; Restart (<kbd>F5</kbd>) starts it again. Lessons never use it. There are no published departure or arrival procedures (SID and STAR).</p>
 
 <h3 id="ss-weather">Weather and time</h3>
 <p>Presets run from Clear to Monsoon. The day strip is a 24-hour bar; click or drag for quarter hours. Dawn and Dusk are the real sunrise and sunset for the month you pick, for the middle of the map (18.75 N, 73.4 E), not for each airport. The wind dial sets direction in 10° steps and draws the chosen runway. The headwind and crosswind line follows that aircraft's limit.</p>
@@ -924,7 +938,7 @@ flatpak run org.freesim.FreeSim</code></pre><button class="copy" type="button">C
   <li>Filing or a direct-to selects NAV. The heading window shows dashes. Middle-click the heading knob to go back to a selected heading. With the autopilot on, NAV flies the leg and sequences within 1 nm.</li>
   <li>Cruise flight level on INIT is copied to the FCU altitude and selects managed vertical. At top of descent the FCU altitude is lowered to the destination elevation plus 3,000 ft. There are no constraint altitudes.</li>
 </ul>
-<p>The same route can be built on the moving map, which both aircraft share. That is <a href="#nav-map">OPS 4</a>.</p>
+<p>The same route can be built on the moving map, which both aircraft share. That is <a href="#nav-map">OPS 4</a>. A route planned in the start screen's <a href="#ss-route">Route step</a> arrives here already filed.</p>
 </section>
 
 <section id="navigation">
@@ -947,7 +961,7 @@ flatpak run org.freesim.FreeSim</code></pre><button class="copy" type="button">C
 <h3 id="nav-map">The moving map</h3>
 <p><kbd>N</kbd> opens it, centred on you, about 20 nm across, wider if a route needs the room. Imagery, airports, runways, VOR and NDB, ILS feathers, your track, and the weather-radar sweep when there is weather to paint.</p>
 <ul>
-  <li>Click an airport or a navaid for a direct-to. Shift-click adds a leg. On the airliner this is the same route the MCDU files.</li>
+  <li>A route planned on the start screen (<a href="#ss-route">Route</a>) is already drawn. Click an airport or a navaid for a direct-to. Shift-click adds a leg. On the airliner this is the same route the MCDU files.</li>
   <li>The wheel zooms around the cursor, from 0.3 to 300 nm. While the map is open, <kbd>=</kbd> and <kbd>−</kbd> zoom instead of moving the throttle. <kbd>Page Up</kbd> and <kbd>Page Down</kbd> still do.</li>
   <li>Drag to pan. <kbd>Space</kbd> follows again. <kbd>O</kbd> swaps north-up and heading-up. <kbd>G</kbd> fits the route. <kbd>Backspace</kbd> clears it.</li>
 </ul>

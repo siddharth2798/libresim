@@ -37,8 +37,8 @@ func _ready() -> void:
 	await _grab("Back", f.back_btn)
 	await _grab("Next", f.primary_btn)
 	await _grab("Fly now", f.fly_btn)
-	f.show_step(5)
-	var rec: Control = f.pages[5]
+	f.show_step(6)
+	var rec: Control = f.pages[6]
 	for c in _all(rec):
 		if c is Segmented:
 			await _grab("Segmented", (c as Segmented).get_child(1))

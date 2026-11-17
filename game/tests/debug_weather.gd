@@ -43,12 +43,12 @@ func _ready() -> void:
 	add_child(_s)
 	await get_tree().create_timer(1.0).timeout
 	_s.go("flight")
-	_s.screen("flight").show_step(3)
+	_s.screen("flight").show_step(4)
 	if OS.get_environment("FREESIM_OPEN") != "":
-		_s.screen("flight").pages[3]._show_more(true)
+		_s.screen("flight").pages[4]._show_more(true)
 	await get_tree().create_timer(0.5).timeout
 	await RenderingServer.frame_post_draw
-	print("weather page minimum size: ", _s.screen("flight").pages[3].get_combined_minimum_size())
+	print("weather page minimum size: ", _s.screen("flight").pages[4].get_combined_minimum_size())
 	var out := OS.get_environment("FREESIM_SHOTS")
 	if out == "":
 		out = OS.get_user_data_dir()

@@ -62,9 +62,15 @@ static func dest_text(w: Dictionary) -> String:
 	return d if d != "" else "the filed destination"
 
 
-## Destination for an airport: the nearest large airport at least MIN_LEG_M away (a name), "" if none.
-## Cached in env.dest_cache (the airport list does not change in a flight).
-static func dest_for(env: Dictionary, icao: String, pos: Vector2) -> String:
+## Destination for an airport (a name): the planned route's destination `route_dest` (ident) when there is one, else
+## the nearest large airport at least MIN_LEG_M away, "" if none. Cached in env.dest_cache (the airport list does not
+## change in a flight).
+static func dest_for(env: Dictionary, icao: String, pos: Vector2, route_dest := "") -> String:
+	if route_dest != "":
+		for a in env.get("airports", []):
+			if str(a.get("icao", "")) == route_dest or str(a.get("ident", "")) == route_dest:
+				return AtcFacilities.apt_name(route_dest, str(a.get("name", route_dest)))
+		return route_dest
 	var cache: Dictionary = env.get("dest_cache", {})
 	if cache.has(icao):
 		return cache[icao]

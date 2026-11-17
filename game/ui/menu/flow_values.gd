@@ -3,12 +3,12 @@ extends RefCounted
 ## What the Free-flight rail and footer chips say about the setup: one live value line per step, its
 ## status level and its tooltip. Pure functions over a Session.setup-shaped Dictionary and the
 ## SetupChecks list (no nodes), so they are testable headless. Steps are keyed like SetupChecks:
-## "aircraft" | "livery" | "airport" | "weather" | "failures" | "recording" (the order of start_flow.gd STEPS).
+## "aircraft" | "livery" | "airport" | "route" | "weather" | "failures" | "recording" (the order of start_flow.gd STEPS).
 ## Level: "ok" ready, "warn" / "bad" from SetupChecks.step_level, "none" = an optional step with nothing chosen.
 
-const KEYS := ["aircraft", "livery", "airport", "weather", "failures", "recording"]
-const TITLES := {"aircraft": "Aircraft", "livery": "Livery", "airport": "Airport & start", "weather": "Weather & time", "failures": "Failures", "recording": "Recording"}
-const OPTIONAL := ["livery", "failures", "recording"]
+const KEYS := ["aircraft", "livery", "airport", "route", "weather", "failures", "recording"]
+const TITLES := {"aircraft": "Aircraft", "livery": "Livery", "airport": "Airport & start", "route": "Route", "weather": "Weather & time", "failures": "Failures", "recording": "Recording"}
+const OPTIONAL := ["livery", "route", "failures", "recording"]
 const ConditionsPage := preload("res://ui/menu/conditions_page.gd")
 
 
@@ -25,6 +25,8 @@ static func rail_value(key: String, s: Dictionary) -> String:
 			return _paint(s, false)
 		"airport":
 			return _start(s, false)
+		"route":
+			return RouteEdit.rail_text(s)
 		"weather":
 			return _weather(s, false)
 		"failures":
@@ -48,6 +50,8 @@ static func chip_text(key: String, s: Dictionary) -> String:
 			return _paint(s, true)
 		"airport":
 			return _start(s, true)
+		"route":
+			return RouteEdit.chip_text(s)
 		"weather":
 			return _weather(s, true)
 		"failures":
@@ -59,7 +63,8 @@ static func chip_text(key: String, s: Dictionary) -> String:
 	return ""
 
 
-## Status level of a step: SetupChecks for the first three, "ok" / "none" for the optional two.
+## Status level of a step: SetupChecks for the required ones, "ok" / "none" for the optional ones (a planned route can also
+## carry SetupChecks warnings).
 static func level(key: String, s: Dictionary, list: Array) -> String:
 	match key:
 		"livery":
@@ -68,6 +73,8 @@ static func level(key: String, s: Dictionary, list: Array) -> String:
 			return "ok" if armed_count(s) > 0 or _random(s) else "none"
 		"recording":
 			return "ok" if bool(s.get("record", false)) else "none"
+		"route":
+			return SetupChecks.step_level(list, key) if RouteEdit.planned(RouteEdit.route_of(s)) else "none"
 	return SetupChecks.step_level(list, key)
 
 
@@ -172,6 +179,9 @@ static func _start(s: Dictionary, short: bool) -> String:
 			var st := StandNames.label(str(s.get("stand", "")))  # "stand 12", "Bay 3": one rule everywhere
 			return "%s · %s" % [icao, st if st != "" else "gate"]
 		"air":
+			var leg := RouteSetup.air_leg(s)  # starting on a leg of the planned route, not on final
+			if leg >= 0:
+				return "%s · in the air, route leg %d" % [icao, leg + 1]
 			return "%s · %s ft · %s nm" % [icao, _thousands(roundi(float(s.get("air_ft", 0.0)))), Session.nm_text(float(s.get("air_nm", 0.0)))]
 	var rw := str(s.get("runway", ""))
 	if rw == "":

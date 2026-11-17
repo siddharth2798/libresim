@@ -153,6 +153,15 @@ func test_every_free_flight_step_has_a_complete_ring_in_rail_page_footer_order()
 	return ""
 
 
+func test_route_step_with_a_planned_route_has_a_complete_ring() -> String:
+	_open()
+	var w := {"id": "WPT01", "kind": "user", "x": 0.0, "y": 0.0, "alt_ft": 4500.0}
+	Session.setup.merge({"airport": "VABB", "start": "air", "route": {"dest": "VAPO", "wps": [w, w.merged({"id": "WPT02", "x": 9e3})]}}, true)
+	_screen.go("flight")
+	_screen.screen("flight").show_step(FlowValues.KEYS.find("route"))  # with log rows and the start-on-a-leg list
+	return _ring_problem("route step with a route")
+
+
 func test_single_page_screens_have_a_complete_ring() -> String:
 	_open()
 	for id in ["training", "saves", "options", "controls"]:

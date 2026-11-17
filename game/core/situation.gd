@@ -86,6 +86,7 @@ static func apply(root: Node, d: Dictionary) -> String:
 	var f := fn.fdm
 	var worn: Variant = Session.setup.get("livery", {})
 	apply_setup(d.setup)
+	RouteSetup.restore(Session.setup, RouteSetup.db_of(root), AirlinerNodes.wanted(AircraftDef.current()))  # user waypoints resolve again
 	if Session.setup.get("livery", {}) != worn:
 		_repaint(root)
 	var enu := Vector3(d.enu[0], d.enu[1], d.enu[2])
@@ -162,6 +163,7 @@ static func apply_setup(saved: Dictionary) -> void:
 	setup.merge(saved, true)
 	if not saved.has("air_custom"):
 		Session.legacy_air_custom(setup)
+	setup.route = RouteSetup.repair(setup.route)
 	Session.setup = setup
 
 

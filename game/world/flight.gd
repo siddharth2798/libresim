@@ -55,6 +55,7 @@ func _ready() -> void:
 			_air_ft = float(s.air_ft)
 			_air_nm = float(s.air_nm)
 			var a := AirStart.spawn(AircraftDef.current(), s)  # speed (clamped into the aircraft's safe range), gear, flaps
+			a = RouteAirStart.spawn(AircraftDef.current(), s, a)  # on a leg of the planned route: cruise speed, clean
 			_air_kt = a.kias
 			_air_gear_up = a.gear_up
 			_air_flaps = a.flaps
@@ -121,6 +122,7 @@ func _reset() -> void:
 	fdm_node._defaults()
 	AircraftControls.current().restore_defaults()
 	($Controls as KeyboardControls).reset_flight()
+	RouteSetup.apply(Session.setup, $Avionics/Nav.db, AirlinerNodes.wanted(AircraftDef.current()))  # the planned route (GPS, MCDU, ATC)
 	var p: Vector2 = _start.pos
 	var hdg: float = _start.heading_deg
 	FloatingOrigin.set_origin(p)
@@ -128,9 +130,10 @@ func _reset() -> void:
 	if AirlinerNodes.wanted(AircraftDef.current()):  # gear down, except an airborne start that wants it up
 		Props.set_v("controls/gear", 0 if _air_ft > 0.0 and _air_gear_up else 1)
 	if _air_ft > 0.0:
-		var back := Vector2(sin(deg_to_rad(hdg)), cos(deg_to_rad(hdg))) * -_air_nm * 1852.0
-		var q := p + back
-		fdm_node.place_airborne(q.x, q.y, terrain.height_at(p.x, p.y) + _air_ft * 0.3048, hdg, _air_kt, $Weather.wind_at(_air_ft * 0.3048), _air_flaps)
+		if not RouteAirStart.place(self):  # on a leg of the planned route (core/route_air_start.gd), else on final
+			var back := Vector2(sin(deg_to_rad(hdg)), cos(deg_to_rad(hdg))) * -_air_nm * 1852.0
+			var q := p + back
+			fdm_node.place_airborne(q.x, q.y, terrain.height_at(p.x, p.y) + _air_ft * 0.3048, hdg, _air_kt, $Weather.wind_at(_air_ft * 0.3048), _air_flaps)
 	elif _stand_ref != "":
 		var st: Dictionary = $AirportOps.find_stand(_apt, "" if _stand_ref == "*" else _stand_ref)
 		if not st.is_empty():

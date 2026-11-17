@@ -22,7 +22,7 @@ const DEFAULT := {
 	"failures": {},  # id -> [mode index (FailureCatalog.MODES), value]
 	"random": {"enabled": false, "count": 1, "from_min": 2.0, "to_min": 30.0,
 		"categories": ["Engine", "Fuel", "Electrical", "Vacuum & gyros", "Pitot-static", "Flight controls", "Avionics"]},
-	"notify": true,
+	"notify": true, "route": {},  # route: the Route step's plan (core/route_setup.gd), {} = none
 	"livery": {},  # aircraft id -> {colors: {region key: "#rrggbb"}} (livery.gd); missing = factory paint
 	"record": false, "record_dir": "", "record_height": 720, "record_fps": 30, "record_mp4": true,  # tell the pilot when a failure happens (off = find out yourself)
 }
@@ -84,6 +84,7 @@ func _load() -> void:
 		setup.air_kt_given = not AirStart.stale_kias(def, float(setup.air_kt))
 	apply_air_defaults()
 	setup.livery = Livery.repair_setup(setup.livery)  # a hand-edited or damaged entry never reaches the flight
+	setup.route = RouteSetup.repair(setup.route)  # damaged waypoints are dropped
 
 
 ## Nautical miles as the start screen writes them: "5", "1.5".
@@ -132,6 +133,7 @@ func begin_lesson(id: String, lesson_setup: Dictionary, assist_level: String) ->
 	setup.failures = {}
 	setup.random = {"enabled": false, "count": 1, "from_min": 2.0, "to_min": 30.0, "categories": []}
 	setup.record = false
+	setup.route = {}  # a lesson flies its own exercise, not the planned route
 	training = id
 	assist = assist_level
 
@@ -276,9 +278,9 @@ func apply_weather_preset(name: String) -> void:
 func apply_to_props() -> void:
 	LiveApply.push(setup)  # preset rules, or the live pack when the switch is on and this is not a lesson
 	FailureCatalog.clear_all()
-	for k in ["ops/stand", "ops/taxi_route", "controls/gps/target"]:
+	for k in ["ops/stand", "ops/taxi_route"]:
 		Props.set_v(k, "")
-	Props.set_v("controls/gps/route_next", [])
+	RouteSetup.clear()  # GPS route, route waypoints, MCDU INIT route of the last flight; flight.gd _reset applies the new one
 
 
 ## One-line summary for the start screen.

@@ -60,8 +60,8 @@ static func runway_end(airports: Array, icao: String, rwy: String) -> Dictionary
 			continue
 		for rw in a.get("runways", []):
 			for side in ["le", "he"]:
-				var e: Dictionary = rw.get(side, {})
-				if normalize(str(e.get("ident", ""))) == want:
+				var e: Variant = rw.get(side)
+				if e is Dictionary and normalize(str(e.get("ident", ""))) == want:  # a one-ended runway (helipad, strip) has a null end
 					return e
 	return {}
 
