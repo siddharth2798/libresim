@@ -2,7 +2,8 @@ extends HBoxContainer
 ## Start screen page (and the pause screen's Options): options in tabs (ui/menu/menu_tabs.gd), a rail at the left.
 ##   Sound            audio volume + mute per bus (core/audio_settings.gd)
 ##   Graphics         preset, renderer, post effects (options_graphics.gd; the Graphics autoload, same as F10)
-##   Display & units  UI size (UiScale), HUD at start, units (core/user_options.gd)
+##   Display & units  UI size (UiScale), units (core/user_options.gd)
+##   Screen layout    the HUD switch, and what shows where in outside views (screen_layout_tab.gd)
 ##   Flight controls  yoke keys, input smoothing, auto-coordination
 ##   Radio / ATC      call sign, radio assist, ATC voice (atc/atc_options_box.gd)
 ##   Training aids    callouts and their voice
@@ -11,7 +12,7 @@ extends HBoxContainer
 signal changed
 
 const PRESET_NOTES := OptionsGraphics.PRESET_NOTES
-const TABS := [["sound", "Sound"], ["graphics", "Graphics"], ["display", "Display & units"],
+const TABS := [["sound", "Sound"], ["graphics", "Graphics"], ["display", "Display & units"], ["screen", "Screen layout"],
 	["controls", "Flight controls"], ["radio", "Radio / ATC"], ["aids", "Training aids"]]
 const UNIT_ROWS := [["Altitude", "alt_unit"], ["Speed", "speed_unit"], ["Pressure", "pressure_unit"]]
 
@@ -31,6 +32,7 @@ func _ready() -> void:
 			"sound": body = _sound()
 			"graphics": body = gfx
 			"display": body = _display()
+			"screen": body = _screen()
 			"controls": body = _flight_controls()
 			"radio": body = _radio()
 			"aids": body = _aids()
@@ -55,12 +57,17 @@ func _display() -> Control:
 	v.add_child(OptionRows.choice("UI size", "ui_scale", func(_x):
 		UiScale.apply()
 		changed.emit()))
-	v.add_child(OptionRows.switch("Show the HUD overlay at start (H toggles in flight)", "hud_at_start", func(_on): changed.emit()))
 	v.add_child(MenuTheme.heading("Units"))
 	for u in UNIT_ROWS:
 		v.add_child(OptionRows.choice(u[0], u[1], func(_x): changed.emit()))
 	v.add_child(MenuTheme.note("Stored for later: instruments and the HUD still read ft, kt and inHg, like the real C172 panel."))
 	return v
+
+
+func _screen() -> Control:
+	var t := ScreenLayoutTab.new()
+	t.changed.connect(func(): changed.emit())
+	return t
 
 
 func _flight_controls() -> Control:

@@ -8,7 +8,7 @@ const BINDINGS := "user://test_menu_tabs_bindings.json"
 
 var _opts := {}
 
-const SWITCHES := {"Show the HUD overlay at start (H toggles in flight)": "hud_at_start", "Training callouts (K toggles in flight)": "callouts",
+const SWITCHES := {"Flight data bar at start (H toggles in flight)": "hud_at_start", "Training callouts (K toggles in flight)": "callouts",
 	"Speak them (system voice)": "callouts_voice", "Auto-coordination (rudder follows aileron)": "auto_coordination",
 	"Radio assist (tunes COM1 for you, suggests the next call)": "radio_assist", "ATC voice (system text-to-speech)": "atc_voice",
 	"Bloom (glow around bright lights)": "bloom"}
@@ -130,7 +130,7 @@ func test_options_tabs_and_one_call_sign_field() -> String:
 	var gfx: Array = p.tabs.page("graphics").find_children("*", "Button", true, false).map(func(b): return b.text)
 	var fx := p.find_children("*", "PostFxToggles", true, false).size()
 	p.free()
-	if ids != ["sound", "graphics", "display", "controls", "radio", "aids"]:
+	if ids != ["sound", "graphics", "display", "screen", "controls", "radio", "aids"]:
 		return "tabs: %s" % [ids]
 	if calls != 1:
 		return "exactly one call sign field on Options, got %d" % calls

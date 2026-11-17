@@ -4,6 +4,7 @@ extends Control
 ## (engine, fuel, switches) is on the instrument panel. F1 shows a key-help card
 ## (ui/control_help.gd: what the aircraft offers, keys as bound).
 ## Warnings, failures and damage messages are cards from ui/notifications.gd.
+## Where the bar sits and how big it is: Options > Screen layout (ScreenLayout.hud(), re-read on ui/layout_rev).
 
 const ITEMS := ["IAS", "GS", "ALT", "AGL", "VS", "HDG"]
 
@@ -11,6 +12,8 @@ var _bar: PanelContainer
 var _vals := {}
 var _cells := {}
 var _help: PanelContainer
+var _place: Dictionary = ScreenLayout.HUD_DEFAULT
+var _rev := -1
 
 
 func _ready() -> void:
@@ -26,7 +29,7 @@ func _ready() -> void:
 	s.content_margin_bottom = 5
 	_bar.add_theme_stylebox_override("panel", s)
 	_bar.mouse_filter = MOUSE_FILTER_IGNORE
-	add_child(Notifications.centered(_bar, PRESET_TOP_WIDE, 10))
+	add_child(_bar)
 	var hb := HBoxContainer.new()
 	hb.add_theme_constant_override("separation", 22)
 	_bar.add_child(hb)
@@ -88,6 +91,10 @@ func _unhandled_key_input(e: InputEvent) -> void:
 func _process(_dt: float) -> void:
 	if not _bar.visible:
 		return
+	var rev := int(Props.get_v("ui/layout_rev", 0))
+	if rev != _rev:
+		_rev = rev
+		_place = ScreenLayout.hud()
 	var p := Props
 	var agl := Units.m_to_ft(p.get_f("fdm/agl_m"))
 	_vals.IAS.text = "%d kt" % Units.shown_kt(Units.mps_to_kt(p.get_f("fdm/cas_mps")))
@@ -98,3 +105,12 @@ func _process(_dt: float) -> void:
 	var vs := Units.mps_to_fpm(p.get_f("fdm/vs_mps"))
 	_vals.VS.text = "%+d" % (roundi(vs / 10.0) * 10) if absf(vs) >= 20.0 else "0"
 	_vals.HDG.text = "%03d°" % (roundi(rad_to_deg(p.get_f("fdm/heading_rad")) + 360.0) % 360)
+	place_bar(get_viewport_rect().size)
+
+
+## Put the bar where Options > Screen layout says (centre x, top y, scale).
+func place_bar(vs: Vector2) -> void:
+	var nat := _bar.get_combined_minimum_size()
+	_bar.size = nat
+	_bar.scale = Vector2.ONE * float(_place.scale)
+	_bar.position = ScreenLayout.hud_rect(_place, nat, vs).position

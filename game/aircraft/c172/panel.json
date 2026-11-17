@@ -1,5 +1,5 @@
 {
-  "_doc": "Instrument panel layout (ui/instrument_panel.gd). cell / pad / switch_h are px at natural size; gauges sit on a cols x rows grid of cell-sized squares; radios is a column radio_w cells wide right of the grid, switches a row of switch_h along the bottom, strip an item spanning span cells. Every entry: script (ui/gauges/*.gd) + cell [col,row] + meta (set_meta on the gauge). overlay: the pieces of each 2D layout shown in outside views (panel_overlay.gd; items missing from this panel are skipped, no entry = no panel there; items [minimap] = the round mini-map, ui/mini_map.gd, height = its diameter). Where each item is in the 3D cockpit: aircraft.json cockpit.spots.",
+  "_doc": "Instrument panel layout (ui/instrument_panel.gd). cell / pad / switch_h are px at natural size; gauges sit on a cols x rows grid of cell-sized squares; radios is a column radio_w cells wide right of the grid, switches a row of switch_h along the bottom, strip an item spanning span cells. Every entry: script (ui/gauges/*.gd) + cell [col,row] + meta (set_meta on the gauge). overlay: the pieces of each 2D layout shown in outside views (panel_overlay.gd; items missing from this panel are skipped, no entry = no panel there; items [minimap] = the round mini-map, ui/mini_map.gd, height = its diameter). pieces: what the Custom layout (Options > Screen layout, ui/screen_layout.gd) offers, each with a label, items, the default anchor and height, and on = shown by default. Where each item is in the 3D cockpit: aircraft.json cockpit.spots.",
   "cell": 190,
   "pad": 12,
   "switch_h": 70,
@@ -21,6 +21,14 @@
   "strip": {"script": "res://ui/gauges/engine_strip.gd", "cell": [1, 2], "span": [2, 1]},
   "switches": {"script": "res://ui/gauges/switch_row.gd"},
   "radios": {"script": "res://ui/gauges/radio_stack.gd"},
+  "pieces": {
+    "sixpack": {"label": "Six-pack", "items": ["asi", "ai", "alt", "tc", "hi", "vsi"], "anchor": "bl", "height": 0.30, "on": true},
+    "nav": {"label": "Nav dials (VOR1, VOR2, ADF)", "items": ["vor1", "vor2", "adf"], "anchor": "br", "height": 0.42, "on": true},
+    "minimap": {"label": "Mini-map", "items": ["minimap"], "anchor": "tr", "height": 0.32, "on": true},
+    "engine": {"label": "Engine (tach and gauges)", "items": ["tach", "strip"], "anchor": "bc", "height": 0.14, "on": false},
+    "radios": {"label": "Radio stack", "items": ["radios"], "anchor": "rc", "height": 0.40, "on": false},
+    "switches": {"label": "Switch row", "items": ["switches"], "anchor": "bc", "height": 0.07, "on": false}
+  },
   "overlay": {
     "Full": [{"items": ["asi", "ai", "alt", "vor1", "tc", "hi", "vsi", "vor2", "tach", "strip", "adf", "radios", "switches"], "anchor": "bc", "height": 0.42}],
     "Split": [{"items": ["asi", "ai", "alt", "tc", "hi", "vsi"], "anchor": "bl", "height": 0.30}, {"items": ["vor1", "vor2", "adf"], "anchor": "br", "height": 0.42}, {"items": ["minimap"], "anchor": "tr", "height": 0.32}],

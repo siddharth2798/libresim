@@ -9,9 +9,16 @@
     "fcu": {"script": "res://ui/displays/fcu.gd", "kind": "display", "rect": [8, 8, 700, 170]},
     "mcdu": {"script": "res://ui/displays/mcdu.gd", "kind": "display", "rect": [8, 674, 420, 600]}
   },
+  "pieces": {
+    "pfd_nd": {"label": "PFD and ND", "items": ["pfd", "nd"], "anchor": "bl", "height": 0.34, "on": true},
+    "ewd_sd": {"label": "Engine and systems displays", "items": ["ewd", "sd"], "anchor": "br", "height": 0.40, "on": true},
+    "mcdu": {"label": "MCDU", "items": ["mcdu"], "anchor": "tr", "height": 0.42, "on": true},
+    "minimap": {"label": "Mini-map", "items": ["minimap"], "anchor": "tl", "height": 0.30, "on": true},
+    "fcu": {"label": "FCU (autopilot panel)", "items": ["fcu"], "anchor": "bc", "height": 0.10, "on": false}
+  },
   "overlay": {
     "Full": [{"items": ["pfd", "nd", "ewd", "sd", "fcu"], "anchor": "bc", "height": 0.5}, {"items": ["mcdu"], "anchor": "tr", "height": 0.42}],
-    "Split": [{"items": ["pfd", "nd"], "anchor": "bl", "height": 0.34}, {"items": ["ewd", "sd"], "anchor": "br", "height": 0.4}, {"items": ["mcdu"], "anchor": "tr", "height": 0.42}],
+    "Split": [{"items": ["pfd", "nd"], "anchor": "bl", "height": 0.34}, {"items": ["ewd", "sd"], "anchor": "br", "height": 0.4}, {"items": ["mcdu"], "anchor": "tr", "height": 0.42}, {"items": ["minimap"], "anchor": "tl", "height": 0.30}],
     "Compact": [{"items": ["pfd"], "anchor": "bl", "height": 0.3}],
     "Minimal": [{"items": ["pfd"], "anchor": "tr", "height": 0.2}]
   }

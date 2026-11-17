@@ -7,6 +7,7 @@ extends Control
 ## double-click opens the full map. Place, size, zoom and orientation are saved in user://ui.cfg.
 ## ui/minimap_grab is true while the pointer is over the disc or drags it (the mouse yoke holds still).
 ## Imagery, airports, navaids and the track come from the full map (its tiles, db, runways, track()).
+## In the Custom layout (`custom`) the layout owns the place: a drag or resize emits `arranged(rect)` instead.
 
 const CFG := "user://ui.cfg"
 const MIN_D := 160.0  # diameter limits, UI units
@@ -15,10 +16,13 @@ const ZOOM_STEP := 1.25
 const RESIZE_STEP := 1.1
 const DEFAULT_ACROSS_NM := 12.0
 
+signal arranged(rect: Rect2)  # moved or resized by the player while `custom`
+
 var source: Control  # ui/moving_map.gd
 var view := MapView.new()
 var heading_up := false
 var placed := false  # moved or resized by the player: their spot wins over the layout's anchor
+var custom := false  # the Custom layout gives the place (place() takes it as it is)
 
 var _canvas: Control
 var _centre_frac := Vector2.ZERO  # saved centre as a fraction of the screen
@@ -52,7 +56,7 @@ func _init() -> void:
 ## Put the disc in `r` (the layout's spot), or where the player left it.
 func place(r: Rect2) -> void:
 	var vs := get_viewport_rect().size
-	if placed and _d_frac > 0.0:
+	if placed and _d_frac > 0.0 and not custom:
 		var d := _clamp_d(_d_frac * vs.y)
 		r = Rect2(_centre_frac * vs - Vector2(d, d) * 0.5, Vector2(d, d))
 	size = r.size
@@ -96,6 +100,8 @@ func _gui_input(e: InputEvent) -> void:
 				_drag = false
 				source.visible = true
 			else:
+				if not e.pressed and _drag and custom:
+					arranged.emit(get_rect())
 				_drag = e.pressed
 				if not e.pressed:
 					_save()
@@ -130,10 +136,14 @@ func resize(factor: float) -> void:
 	view.size = size
 	view.set_across_nm(_across)
 	_remember_place()
+	if custom:
+		arranged.emit(get_rect())
 	_save()
 
 
 func _remember_place() -> void:
+	if custom:
+		return  # arranged() on release
 	var vs := get_viewport_rect().size
 	placed = true
 	_centre_frac = (position + size * 0.5) / vs

@@ -68,12 +68,19 @@ func test_overlay_minimap_piece_is_a_disc_at_its_anchor() -> String:
 	_screen().add_child(ov)
 	ov.map = _full_map()
 	var vs := Vector2(1280, 720)
-	ov._add_minimap([["minimap"], "tr", 0.32], vs)
+	ov.layout = 1  # Split
+	var spot := Rect2()
+	for p in ov.placements(vs):
+		if p[0] == ["minimap"]:
+			spot = p[1]
+	if spot.size.x <= 0.0:
+		return "the Split layout should place the mini-map"
+	ov._add_minimap(spot)
 	if ov._pieces.size() != 1 or not ov._pieces[0][0] is MiniMap:
 		return "the overlay should hold one MiniMap piece, got %s" % [ov._pieces]
 	var mm: MiniMap = ov._pieces[0][0]
 	mm.placed = false
-	mm.place(Rect2(ov._anchor_pos("tr", vs.y * 0.32, vs.y * 0.32, vs), Vector2.ONE * vs.y * 0.32))
+	mm.place(spot)
 	if not is_equal_approx(mm.size.x, mm.size.y) or not is_equal_approx(mm.size.y, vs.y * 0.32):
 		return "the mini-map should be a square box of 0.32 x screen height, got %s" % mm.size
 	if absf(mm.position.x + mm.size.x - (vs.x - 8.0)) > 1.0:

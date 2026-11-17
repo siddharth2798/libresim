@@ -8,7 +8,7 @@ extends RefCounted
 ##   cam, aim  free camera [forward, right, up] m in the aircraft's heading frame ("agl": true = up is above the ground)
 ##   look      [yaw_deg, pitch_deg] for cockpit / orbit; fov; dist (orbit)
 ##   ui        elements to keep ("Hud", "Map", "Panel", "training", "Atc", "Crash"); map: show the moving map
-##   panel     2D panel layout index (0 Full, 1 Split, 2 Compact, 3 Minimal, 4 Off)
+##   panel     2D panel layout index (0 Full, 1 Split, 2 Compact, 3 Minimal, 4 Custom, 5 Off)
 ##   wait      seconds before polling the streamers
 ##   props     {property path: value} set after placement; prop_deg: fixed propeller angle
 ##   lights    {name: bool} cockpit light switches (e.g. strobe)
@@ -150,6 +150,12 @@ const SCENES := {
 	"minimap": {"weather": "Fair", "view": "chase", "ui": ["Hud", "Panel"], "panel": 1, "props": {"controls/gps/target": "VAAV"},
 		"setup": {"airport": "VANM", "runway": "08", "start": "air", "air_ft": 3500.0, "air_nm": 4.0, "time_h": 10.0},
 		"cam": [-18.0, 11.0, 4.0], "aim": [0.0, 11.0, 0.0], "fov": 60.0},
+	"layout_custom": {"weather": "Fair", "view": "chase", "ui": ["Hud", "Panel"], "panel": 4, "props": {"controls/gps/target": "VAAV"},
+		"setup": {"airport": "VANM", "runway": "08", "start": "air", "air_ft": 3500.0, "air_nm": 4.0, "time_h": 10.0},
+		"cam": [-18.0, 11.0, 4.0], "aim": [0.0, 11.0, 0.0], "fov": 60.0},
+	"a320_minimap": {"weather": "Fair", "view": "chase", "ui": ["Hud", "Panel"], "panel": 1, "props": {"controls/gps/target": "VABB"},
+		"setup": {"aircraft": "a320", "airport": "VAPO", "runway": "28", "start": "air", "air_ft": 9000.0, "air_nm": 20.0, "time_h": 16.5, "visibility_m": 40000.0},
+		"cam": [-45.0, -22.0, 9.0], "aim": [0.0, 0.0, 0.0], "fov": 50.0},
 	# Trees and buildings (look: close forest, Konkan palm coast, dense city district)
 	"trees_close": {"weather": "Fair", "view": "chase",
 		"setup": {"airport": "VAAV", "runway": "14", "start": "air", "air_ft": 330.0, "air_nm": 3.0, "time_h": 16.4, "visibility_m": 30000.0},
