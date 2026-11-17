@@ -25,7 +25,7 @@ Done (details in docs/USAGE.md, plans in docs/):
 - Game is named libresim; legacy user data is migrated (core/legacy_migrate.gd). Brand: runway "09/27" mark, Fira Sans wordmark (game/branding, one brand, no variants).
 - Docs: FDM vs JSBSim in docs/FDM-VS-FLIGHTGEAR.md.
 
-Next: finish the e2e re-run; ATC A2 (circuit traffic) and A3 (Piper voice, real radio sounds); radio UI = slim bar top-left + message card + short call list + History + radio assist option (docs/ATC.md "The radio on screen"); graphics G7–G10 (docs/GRAPHICS-PLAN.md); dawn mist and light shafts (G5 notes). A320 is paused (docs/A320-PLAN.md; cockpit buttons paused; body and flight-deck finish in docs/A320-FINISH-PLAN.md).
+Next: finish the e2e re-run; ATC A2 (circuit traffic) and A3 (Piper voice, real radio sounds); radio UI = slim bar top-left + message card + short call list + History + radio assist option (docs/ATC.md "The radio on screen"); graphics G7–G10 (docs/GRAPHICS-PLAN.md); dawn mist and light shafts (G5 notes). A320 is paused (docs/A320-PLAN.md; overhead buttons with a system behind them are wired, the rest stay static; body and flight-deck finish in docs/A320-FINISH-PLAN.md).
 
 Standing reqs: PLAN.md §8b.
 

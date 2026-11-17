@@ -24,6 +24,7 @@ const PRESS := ["flaps_down", "flaps_up", "parking_brake", "magnetos_next", "mou
 	"autobrake_next", "engine_master_1", "engine_master_2", "engine_mode_next", "apu_master",
 	"fcu_ap1", "fcu_ap2", "fcu_athr", "fcu_loc", "fcu_appr", "anti_ice_wing", "anti_ice_eng_1", "anti_ice_eng_2",
 	"takeoff_light", "turnoff_lights", "wing_lights", "logo_lights", "alternate_static",
+	"elec_bat1", "elec_bat2", "elec_gen1", "elec_gen2", "elec_apu_gen", "elec_ext_pwr", "hyd_green_edp", "hyd_yellow_edp", "hyd_blue_epump", "hyd_yellow_epump", "hyd_ptu", "fuel_pump_left", "fuel_pump_centre", "fuel_pump_right", "fuel_crossfeed", "bleed_eng1", "bleed_eng2", "bleed_apu", "pack1", "pack2", "seatbelt_signs", "no_smoking_signs",
 	"jetway_toggle", "door_toggle", "passenger_doors_all", "cargo_doors_all", "door_r1_toggle", "door_l2_toggle", "door_r2_toggle", "door_cargo_fwd_toggle",
 	"door_cargo_aft_toggle", "ground_crew_toggle", "taxi_route", "pushback"]
 ## Switch-row toggles: action -> Props path (fuel_selector cycles OFF/L/R/BOTH instead).
@@ -52,6 +53,28 @@ const LABELS := {
 	"takeoff_light": "Take-off light (nose gear)", "turnoff_lights": "Runway turn-off lights",
 	"wing_lights": "Wing / engine scan lights", "logo_lights": "Logo lights",
 	"anti_ice_wing": "Wing anti-ice", "anti_ice_eng_1": "Engine 1 anti-ice", "anti_ice_eng_2": "Engine 2 anti-ice",
+	"elec_bat1": "BAT 1",
+	"elec_bat2": "BAT 2",
+	"elec_gen1": "GEN 1",
+	"elec_gen2": "GEN 2",
+	"elec_apu_gen": "APU GEN",
+	"elec_ext_pwr": "EXT PWR (ground power)",
+	"hyd_green_edp": "Green engine 1 pump",
+	"hyd_yellow_edp": "Yellow engine 2 pump",
+	"hyd_blue_epump": "Blue electric pump (AUTO)",
+	"hyd_yellow_epump": "Yellow electric pump",
+	"hyd_ptu": "PTU (AUTO)",
+	"fuel_pump_left": "Left tank pumps",
+	"fuel_pump_centre": "Centre tank pumps",
+	"fuel_pump_right": "Right tank pumps",
+	"fuel_crossfeed": "Fuel crossfeed",
+	"bleed_eng1": "Engine 1 bleed",
+	"bleed_eng2": "Engine 2 bleed",
+	"bleed_apu": "APU bleed",
+	"pack1": "Pack 1",
+	"pack2": "Pack 2",
+	"seatbelt_signs": "Seat belt signs",
+	"no_smoking_signs": "No smoking signs",
 	"rudder_trim_left": "Rudder trim left", "rudder_trim_right": "Rudder trim right",
 	"fcu_ap1": "Autopilot 1", "fcu_ap2": "Autopilot 2", "fcu_athr": "Autothrust", "fcu_loc": "FCU LOC", "fcu_appr": "FCU APPR",
 	"fcu_spd_up": "FCU speed up", "fcu_spd_down": "FCU speed down", "fcu_hdg_right": "FCU heading right",
@@ -115,6 +138,12 @@ static func defaults() -> Dictionary:
 	return t
 
 
+## Airliner overhead switches (ELEC, HYD, FUEL, AIR, SIGNS; input/control_actions.gd): no default key.
+const OVERHEAD := ["elec_bat1", "elec_bat2", "elec_gen1", "elec_gen2", "elec_apu_gen", "elec_ext_pwr", "hyd_green_edp",
+	"hyd_yellow_edp", "hyd_blue_epump", "hyd_yellow_epump", "hyd_ptu", "fuel_pump_left", "fuel_pump_centre", "fuel_pump_right",
+	"fuel_crossfeed", "bleed_eng1", "bleed_eng2", "bleed_apu", "pack1", "pack2", "seatbelt_signs", "no_smoking_signs"]
+
+
 ## Defaults of the actions only some aircraft offer (Alt / Ctrl chords and keys the C172 set leaves free).
 static func _add_airliner_defaults(t: Dictionary) -> void:
 	t.throttle_1_up = [spec(KEY_PAGEUP, false, false, true)]
@@ -163,6 +192,8 @@ static func _add_airliner_defaults(t: Dictionary) -> void:
 	t.ground_crew_toggle = [spec(KEY_U)]
 	t.taxi_route = [spec(KEY_T)]
 	t.pushback = [spec(KEY_P)]
+	for o in OVERHEAD:
+		t[o] = []  # airliner overhead switches: click them in the cockpit, or bind a key on the Controls page
 
 
 static func describe(s: Dictionary) -> String:

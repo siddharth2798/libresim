@@ -22,11 +22,13 @@ BOOTS = (("boot1", "level1", 2.0 / 14.0), ("boot2", "level2", 5.0 / 14.0), ("boo
 
 
 def _panel_rows():
-    """FCU, overhead and pedestal controls (a320_panel_*.py). Disconnect buttons are nested under the thrust levers."""
+    """FCU, overhead (lights, APU, anti-ice; ELEC, HYD, FUEL, AIR, SIGNS) and pedestal controls (a320_panel_*.py).
+    Disconnect buttons are nested under the thrust levers."""
     import a320_panel_fcu as fcu
     import a320_panel_overhead as ovh
     import a320_panel_pedestal as ped
-    return fcu.rows() + ovh.rows() + ped.rows()
+    import a320_panel_systems as sysp
+    return fcu.rows() + ovh.rows() + sysp.rows() + ped.rows()
 
 
 def rows():

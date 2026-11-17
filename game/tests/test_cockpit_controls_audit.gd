@@ -59,3 +59,53 @@ func _other_has_panel() -> bool:
 		if str(row[1]).contains("Panel lights"):
 			return true
 	return false
+
+
+## Props an action moves (key, joystick button or axis), for the audits below.
+static func _action_props(a: String) -> Array:
+	var out := []
+	for table in [ControlActions.TOGGLES, KeyBindings.SWITCHES, InputBindings.AXES]:
+		if table.has(a):
+			out.append(table[a])
+	for table in [ControlActions.CYCLES, ControlActions.STEPS, ControlActions.LEVELS, ControlActions.KNOBS]:
+		if table.has(a):
+			out.append(table[a][0])
+	for r in ControlActions.RATE_PROPS:
+		if a in [r.neg, r.pos]:
+			out.append("controls/" + r.prop)
+	for s in ControlActions.SELECTORS.values():
+		if s.positions.has(a):
+			out.append(s.prop)
+	match a:  # actions handled in code rather than through a table
+		"master": out += ["controls/electrical/master_bat", "controls/electrical/master_alt"]
+		"throttle_1_up", "throttle_1_down": out.append("controls/throttle_1")
+		"throttle_2_up", "throttle_2_down": out.append("controls/throttle_2")
+		"reverse": out += ["controls/reverse_1", "controls/reverse_2"]
+		"apu_start": out.append("controls/apu_start")
+	return out
+
+
+static func _page_props(ctl: AircraftControls) -> Dictionary:
+	var out := {}
+	for a in ctl.key_actions() + ctl.axes() + ctl.buttons():
+		for p in _action_props(a):
+			out[p] = a
+	return out
+
+
+## Every control the A320 cockpit moves, and every switch on the C172 switch row, can be worked from that aircraft's
+## Controls page (the C172 PANEL dimmer is the fixed L key on Other keys; outputs such as fdm/stabilizer_deg are not controls).
+func test_every_cockpit_control_has_a_controls_page_row() -> String:
+	var a320 := _page_props(AircraftControls.for_def(AircraftDef.load_def("a320")))
+	for pivot in AircraftDef.load_def("a320").data.cockpit.levers.values():
+		for term in CockpitLevers.parse_drive(str(pivot.drive)):
+			var p := str(term[1])
+			if p.begins_with("controls/") and not a320.has(p):
+				return "the A320 cockpit moves %s but no Controls page row does" % p
+	var c172 := _page_props(AircraftControls.for_def(AircraftDef.load_def("c172")))
+	var row: Script = load("res://ui/gauges/switch_row.gd")
+	for sw in row.ITEMS:
+		var p := str(sw[1])
+		if p != "controls/lights/panel" and not c172.has(p):
+			return "the C172 switch row has %s but no Controls page row does" % p
+	return "" if _other_has_panel() else "panel lights are not on Other keys"

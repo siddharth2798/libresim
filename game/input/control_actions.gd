@@ -23,6 +23,9 @@ extends RefCounted
 ##   controls/doors/<id> bool (the other doors of aircraft.json ground.doors: R1 L2 R2 CF CA; eases systems/doors/<id>)
 ##   controls/doors/passenger_all_req, cargo_all_req int (bumped: open every passenger / cargo door, or shut them all when all are open)
 ##   controls/lights/{takeoff, rwy_turnoff, wing, logo} bool (an airliner's extra exterior lights, aircraft_lights.gd)
+##   controls/electrical/{bat1, bat2, gen1, gen2, apu_gen, ext_pwr}, controls/hyd/{green_edp, yellow_edp, blue_epump,
+##     yellow_epump, ptu}, controls/fuel/{pump_left, pump_centre, pump_right, crossfeed}, controls/bleed/{eng1, eng2, apu,
+##     pack1, pack2}, controls/signs/{seatbelts, no_smoking} bool (airliner overhead; systems/airliner_*.gd)
 
 const DEFAULT_GROUPS := ["throttle", "mixture", "trim", "flaps", "brakes", "parking_brake",
 	"magnetos", "starter", "fuel_selector", "fuel_shutoff", "alternate_static"]
@@ -56,6 +59,11 @@ const GROUPS := {
 	"fcu": ["fcu_ap1", "fcu_ap2", "fcu_athr", "fcu_loc", "fcu_appr", "fcu_spd_up", "fcu_spd_down",
 		"fcu_hdg_right", "fcu_hdg_left", "fcu_alt_up", "fcu_alt_down", "fcu_vs_up", "fcu_vs_down"],
 	"ext_lights": ["takeoff_light", "turnoff_lights", "wing_lights", "logo_lights"],
+	"elec": ["elec_bat1", "elec_bat2", "elec_gen1", "elec_gen2", "elec_apu_gen", "elec_ext_pwr"],
+	"hyd": ["hyd_green_edp", "hyd_yellow_edp", "hyd_blue_epump", "hyd_yellow_epump", "hyd_ptu"],
+	"fuel_pumps": ["fuel_pump_left", "fuel_pump_centre", "fuel_pump_right", "fuel_crossfeed"],
+	"bleed": ["bleed_eng1", "bleed_eng2", "bleed_apu", "pack1", "pack2"],
+	"signs": ["seatbelt_signs", "no_smoking_signs"],
 }
 
 ## Press actions that flip a bool prop.
@@ -73,6 +81,29 @@ const TOGGLES := {
 	"door_r1_toggle": "controls/doors/R1", "door_l2_toggle": "controls/doors/L2", "door_r2_toggle": "controls/doors/R2",
 	"door_cargo_fwd_toggle": "controls/doors/CF", "door_cargo_aft_toggle": "controls/doors/CA",
 	"ground_crew_toggle": "controls/ground/crew_away",
+	# airliner overhead ELEC / HYD / FUEL / AIR / SIGNS (systems/airliner_*.gd read them)
+	"elec_bat1": "controls/electrical/bat1",
+	"elec_bat2": "controls/electrical/bat2",
+	"elec_gen1": "controls/electrical/gen1",
+	"elec_gen2": "controls/electrical/gen2",
+	"elec_apu_gen": "controls/electrical/apu_gen",
+	"elec_ext_pwr": "controls/electrical/ext_pwr",
+	"hyd_green_edp": "controls/hyd/green_edp",
+	"hyd_yellow_edp": "controls/hyd/yellow_edp",
+	"hyd_blue_epump": "controls/hyd/blue_epump",
+	"hyd_yellow_epump": "controls/hyd/yellow_epump",
+	"hyd_ptu": "controls/hyd/ptu",
+	"fuel_pump_left": "controls/fuel/pump_left",
+	"fuel_pump_centre": "controls/fuel/pump_centre",
+	"fuel_pump_right": "controls/fuel/pump_right",
+	"fuel_crossfeed": "controls/fuel/crossfeed",
+	"bleed_eng1": "controls/bleed/eng1",
+	"bleed_eng2": "controls/bleed/eng2",
+	"bleed_apu": "controls/bleed/apu",
+	"pack1": "controls/bleed/pack1",
+	"pack2": "controls/bleed/pack2",
+	"seatbelt_signs": "controls/signs/seatbelts",
+	"no_smoking_signs": "controls/signs/no_smoking",
 }
 ## Press actions that bump a counter prop: a request another module acts on (world/ground_ops.gd watches them).
 const PULSES := {"taxi_route": "controls/ground/taxi_req", "pushback": "controls/ground/push_req",
@@ -138,6 +169,11 @@ const SEEDS := {
 		"controls/fcu/alt_ft": 10000.0, "controls/fcu/vs_fpm": 0.0},
 	"ext_lights": {"controls/lights/takeoff": false, "controls/lights/rwy_turnoff": false, "controls/lights/wing": false,
 		"controls/lights/logo": false},
+	"elec": {"controls/electrical/bat1": true, "controls/electrical/bat2": true, "controls/electrical/gen1": true, "controls/electrical/gen2": true, "controls/electrical/apu_gen": true, "controls/electrical/ext_pwr": true},
+	"hyd": {"controls/hyd/green_edp": true, "controls/hyd/yellow_edp": true, "controls/hyd/blue_epump": true, "controls/hyd/yellow_epump": false, "controls/hyd/ptu": true},
+	"fuel_pumps": {"controls/fuel/pump_left": true, "controls/fuel/pump_centre": true, "controls/fuel/pump_right": true, "controls/fuel/crossfeed": false},
+	"bleed": {"controls/bleed/eng1": true, "controls/bleed/eng2": true, "controls/bleed/apu": true, "controls/bleed/pack1": true, "controls/bleed/pack2": true},
+	"signs": {"controls/signs/seatbelts": false, "controls/signs/no_smoking": false},
 }
 ## Held buttons (a joystick button is down or not; no press edge).
 const HELD_BUTTONS := ["reverse", "apu_start"]

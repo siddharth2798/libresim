@@ -1285,6 +1285,552 @@
    "max": 0.01,
    "note": "engine 2 anti-ice; 10 mm along the panel normal"
   },
+  "bat1": {
+   "at": [
+    -16.3607,
+    -0.0199,
+    0.9133
+   ],
+   "axis": [
+    -0.365003,
+    0.0,
+    0.931007
+   ],
+   "kind": "translate",
+   "objects": [
+    "BatteryBtn1",
+    "BatteryBtn11F",
+    "BatteryBtn12O"
+   ],
+   "children": [],
+   "min": 0.0,
+   "max": 0.01,
+   "note": "BAT 1; OFF lights when off"
+  },
+  "bat2": {
+   "at": [
+    -16.3607,
+    -0.0004,
+    0.9133
+   ],
+   "axis": [
+    -0.365003,
+    0.0,
+    0.931007
+   ],
+   "kind": "translate",
+   "objects": [
+    "BatteryBtn2",
+    "BatteryBtn21F",
+    "BatteryBtn22O"
+   ],
+   "children": [],
+   "min": 0.0,
+   "max": 0.01,
+   "note": "BAT 2; OFF lights when off"
+  },
+  "gen1": {
+   "at": [
+    -16.4192,
+    -0.1022,
+    0.8903
+   ],
+   "axis": [
+    -0.365003,
+    0.0,
+    0.931007
+   ],
+   "kind": "translate",
+   "objects": [
+    "Gen1Btn",
+    "Gen1Btn1F",
+    "Gen1Btn2O"
+   ],
+   "children": [],
+   "min": 0.0,
+   "max": 0.01,
+   "note": "GEN 1; OFF lights when off"
+  },
+  "gen2": {
+   "at": [
+    -16.4192,
+    0.1019,
+    0.8903
+   ],
+   "axis": [
+    -0.365003,
+    0.0,
+    0.931007
+   ],
+   "kind": "translate",
+   "objects": [
+    "Gen2Btn",
+    "Gen2Btn1F",
+    "Gen2Btn2O"
+   ],
+   "children": [],
+   "min": 0.0,
+   "max": 0.01,
+   "note": "GEN 2; OFF lights when off"
+  },
+  "apu_gen": {
+   "at": [
+    -16.4192,
+    -0.0423,
+    0.8903
+   ],
+   "axis": [
+    -0.365003,
+    0.0,
+    0.931007
+   ],
+   "kind": "translate",
+   "objects": [
+    "APUGenBtn",
+    "APUGenBtnA",
+    "APUGenBtnO"
+   ],
+   "children": [],
+   "min": 0.0,
+   "max": 0.01,
+   "note": "APU GEN; OFF lights when off"
+  },
+  "ext_pwr": {
+   "at": [
+    -16.4192,
+    0.0421,
+    0.8903
+   ],
+   "axis": [
+    -0.365003,
+    0.0,
+    0.931007
+   ],
+   "kind": "translate",
+   "objects": [
+    "ExtPwrBtn",
+    "ExtPwrBtn1A",
+    "ExtPwrBtn2O"
+   ],
+   "children": [],
+   "min": 0.0,
+   "max": 0.01,
+   "note": "EXT PWR; ON lights when on"
+  },
+  "green_edp": {
+   "at": [
+    -16.2594,
+    -0.1011,
+    0.953
+   ],
+   "axis": [
+    -0.365003,
+    0.0,
+    0.931007
+   ],
+   "kind": "translate",
+   "objects": [
+    "GreenEngPump2",
+    "GreenEngPump21F",
+    "GreenEngPump22O"
+   ],
+   "children": [],
+   "min": 0.0,
+   "max": 0.01,
+   "note": "GREEN ENG 1 PUMP; OFF lights when off"
+  },
+  "yellow_edp": {
+   "at": [
+    -16.2591,
+    0.1017,
+    0.9532
+   ],
+   "axis": [
+    -0.365003,
+    0.0,
+    0.931007
+   ],
+   "kind": "translate",
+   "objects": [
+    "YellowEngPump",
+    "YellowEngPump1F",
+    "YellowEngPump2O"
+   ],
+   "children": [],
+   "min": 0.0,
+   "max": 0.01,
+   "note": "YELLOW ENG 2 PUMP; OFF lights when off"
+  },
+  "blue_epump": {
+   "at": [
+    -16.2568,
+    -0.0001,
+    0.9541
+   ],
+   "axis": [
+    -0.365003,
+    0.0,
+    0.931007
+   ],
+   "kind": "translate",
+   "objects": [
+    "BlueElecPump",
+    "BlueElecPump1F",
+    "BlueElecPump2O"
+   ],
+   "children": [],
+   "min": 0.0,
+   "max": 0.01,
+   "note": "BLUE ELEC PUMP (AUTO); OFF lights when off"
+  },
+  "yellow_epump": {
+   "at": [
+    -16.2521,
+    0.1349,
+    0.9559
+   ],
+   "axis": [
+    -0.365003,
+    0.0,
+    0.931007
+   ],
+   "kind": "translate",
+   "objects": [
+    "YellowElecPump",
+    "YellowElecPump1F",
+    "YellowElecPump2O"
+   ],
+   "children": [],
+   "min": 0.0,
+   "max": 0.01,
+   "note": "YELLOW ELEC PUMP; ON lights when on"
+  },
+  "ptu": {
+   "at": [
+    -16.2401,
+    0.0506,
+    0.9606
+   ],
+   "axis": [
+    -0.365003,
+    0.0,
+    0.931007
+   ],
+   "kind": "translate",
+   "objects": [
+    "PTU2",
+    "PTU21F",
+    "PTU22O"
+   ],
+   "children": [],
+   "min": 0.0,
+   "max": 0.01,
+   "note": "PTU (AUTO); OFF lights when off"
+  },
+  "fuel_l1": {
+   "at": [
+    -16.3219,
+    -0.1171,
+    0.9285
+   ],
+   "axis": [
+    -0.365003,
+    0.0,
+    0.931007
+   ],
+   "kind": "translate",
+   "objects": [
+    "LFuelTank1Btn",
+    "LFuelTank1Btn1F",
+    "LFuelTank1Btn2O"
+   ],
+   "children": [],
+   "min": 0.0,
+   "max": 0.01,
+   "note": "L TK PUMP 1; shares the left pump switch"
+  },
+  "fuel_l2": {
+   "at": [
+    -16.3219,
+    -0.0861,
+    0.9285
+   ],
+   "axis": [
+    -0.365003,
+    0.0,
+    0.931007
+   ],
+   "kind": "translate",
+   "objects": [
+    "LFuelTank2Btn",
+    "LFuelTank2Btn1F",
+    "LFuelTank2Btn2O"
+   ],
+   "children": [],
+   "min": 0.0,
+   "max": 0.01,
+   "note": "L TK PUMP 2; shares the left pump switch"
+  },
+  "fuel_c1": {
+   "at": [
+    -16.3219,
+    -0.0315,
+    0.9285
+   ],
+   "axis": [
+    -0.365003,
+    0.0,
+    0.931007
+   ],
+   "kind": "translate",
+   "objects": [
+    "CFuelTank1Btn",
+    "CFuelTank1Btn1F",
+    "CFuelTank1Btn2O"
+   ],
+   "children": [],
+   "min": 0.0,
+   "max": 0.01,
+   "note": "CTR TK PUMP 1; shares the centre pump switch"
+  },
+  "fuel_c2": {
+   "at": [
+    -16.3219,
+    0.0313,
+    0.9285
+   ],
+   "axis": [
+    -0.365003,
+    0.0,
+    0.931007
+   ],
+   "kind": "translate",
+   "objects": [
+    "CFuelTank2Btn",
+    "CFuelTank2Btn1F",
+    "CFuelTank2Btn2O"
+   ],
+   "children": [],
+   "min": 0.0,
+   "max": 0.01,
+   "note": "CTR TK PUMP 2; shares the centre pump switch"
+  },
+  "fuel_r1": {
+   "at": [
+    -16.3219,
+    0.0859,
+    0.9285
+   ],
+   "axis": [
+    -0.365003,
+    0.0,
+    0.931007
+   ],
+   "kind": "translate",
+   "objects": [
+    "RFuelTank1Btn",
+    "RFuelTank1Btn1F",
+    "RFuelTank1Btn2O"
+   ],
+   "children": [],
+   "min": 0.0,
+   "max": 0.01,
+   "note": "R TK PUMP 1; shares the right pump switch"
+  },
+  "fuel_r2": {
+   "at": [
+    -16.3219,
+    0.1168,
+    0.9285
+   ],
+   "axis": [
+    -0.365003,
+    0.0,
+    0.931007
+   ],
+   "kind": "translate",
+   "objects": [
+    "RFuelTank2Btn",
+    "RFuelTank2Btn1F",
+    "RFuelTank2Btn2O"
+   ],
+   "children": [],
+   "min": 0.0,
+   "max": 0.01,
+   "note": "R TK PUMP 2; shares the right pump switch"
+  },
+  "xfeed": {
+   "at": [
+    -16.2889,
+    -0.0001,
+    0.9415
+   ],
+   "axis": [
+    -0.365003,
+    0.0,
+    0.931007
+   ],
+   "kind": "translate",
+   "objects": [
+    "FuelXFeedBtn",
+    "FuelXFeedBtn1O",
+    "FuelXFeedBtn2O"
+   ],
+   "children": [],
+   "min": 0.0,
+   "max": 0.01,
+   "note": "fuel X FEED; ON lights when on"
+  },
+  "bleed1": {
+   "at": [
+    -16.5276,
+    -0.0983,
+    0.8478
+   ],
+   "axis": [
+    -0.365003,
+    0.0,
+    0.931007
+   ],
+   "kind": "translate",
+   "objects": [
+    "Eng1BleedBtn",
+    "Eng1BleedBtn1F",
+    "Eng1BleedBtn2O"
+   ],
+   "children": [],
+   "min": 0.0,
+   "max": 0.01,
+   "note": "ENG 1 BLEED; OFF lights when off"
+  },
+  "bleed2": {
+   "at": [
+    -16.5272,
+    0.0994,
+    0.8479
+   ],
+   "axis": [
+    -0.365003,
+    0.0,
+    0.931007
+   ],
+   "kind": "translate",
+   "objects": [
+    "Eng2BleedBtn",
+    "Eng2BleedBtn1F",
+    "Eng2BleedBtn2O"
+   ],
+   "children": [],
+   "min": 0.0,
+   "max": 0.01,
+   "note": "ENG 2 BLEED; OFF lights when off"
+  },
+  "apu_bleed": {
+   "at": [
+    -16.5272,
+    -0.0001,
+    0.8479
+   ],
+   "axis": [
+    -0.365003,
+    0.0,
+    0.931007
+   ],
+   "kind": "translate",
+   "objects": [
+    "APUBleedBtn",
+    "APUBleedBtn1F",
+    "APUBleedBtn2O"
+   ],
+   "children": [],
+   "min": 0.0,
+   "max": 0.01,
+   "note": "APU BLEED; ON lights when on"
+  },
+  "pack1": {
+   "at": [
+    -16.4994,
+    -0.1366,
+    0.8589
+   ],
+   "axis": [
+    -0.365003,
+    0.0,
+    0.931007
+   ],
+   "kind": "translate",
+   "objects": [
+    "ACPack1Btn",
+    "ACPack1Btn1F",
+    "ACPack1Btn2O"
+   ],
+   "children": [],
+   "min": 0.0,
+   "max": 0.01,
+   "note": "PACK 1; OFF lights when off"
+  },
+  "pack2": {
+   "at": [
+    -16.4994,
+    0.1364,
+    0.8589
+   ],
+   "axis": [
+    -0.365003,
+    0.0,
+    0.931007
+   ],
+   "kind": "translate",
+   "objects": [
+    "ACPack2Btn",
+    "ACPack2Btn1F",
+    "ACPack2Btn2O"
+   ],
+   "children": [],
+   "min": 0.0,
+   "max": 0.01,
+   "note": "PACK 2; OFF lights when off"
+  },
+  "seatbelt_sw": {
+   "at": [
+    -16.6572,
+    0.0378,
+    0.7935
+   ],
+   "axis": [
+    0.0,
+    1.0,
+    0.0
+   ],
+   "kind": "rotate",
+   "objects": [
+    "SeatBeltSwtch"
+   ],
+   "children": [],
+   "min": -30.0,
+   "max": 30.0,
+   "note": "SEAT BELTS sign; OFF -30 deg, ON +30"
+  },
+  "no_smoking_sw": {
+   "at": [
+    -16.6572,
+    0.0622,
+    0.7935
+   ],
+   "axis": [
+    0.0,
+    1.0,
+    0.0
+   ],
+   "kind": "rotate",
+   "objects": [
+    "NoSmokingSwtch"
+   ],
+   "children": [],
+   "min": -30.0,
+   "max": 30.0,
+   "note": "NO SMOKING sign; OFF -30 deg, ON +30"
+  },
   "autobrake_lo": {
    "at": [
     -17.0447,
@@ -2330,6 +2876,379 @@
    ],
    "move": "translate",
    "rate": 0.05
+  },
+  "bat1": {
+   "drive": "controls/electrical/bat1",
+   "map": [
+    [
+     0.0,
+     0.0
+    ],
+    [
+     1.0,
+     0.01
+    ]
+   ],
+   "move": "translate",
+   "rate": 0.05
+  },
+  "bat2": {
+   "drive": "controls/electrical/bat2",
+   "map": [
+    [
+     0.0,
+     0.0
+    ],
+    [
+     1.0,
+     0.01
+    ]
+   ],
+   "move": "translate",
+   "rate": 0.05
+  },
+  "gen1": {
+   "drive": "controls/electrical/gen1",
+   "map": [
+    [
+     0.0,
+     0.0
+    ],
+    [
+     1.0,
+     0.01
+    ]
+   ],
+   "move": "translate",
+   "rate": 0.05
+  },
+  "gen2": {
+   "drive": "controls/electrical/gen2",
+   "map": [
+    [
+     0.0,
+     0.0
+    ],
+    [
+     1.0,
+     0.01
+    ]
+   ],
+   "move": "translate",
+   "rate": 0.05
+  },
+  "apu_gen": {
+   "drive": "controls/electrical/apu_gen",
+   "map": [
+    [
+     0.0,
+     0.0
+    ],
+    [
+     1.0,
+     0.01
+    ]
+   ],
+   "move": "translate",
+   "rate": 0.05
+  },
+  "ext_pwr": {
+   "drive": "controls/electrical/ext_pwr",
+   "map": [
+    [
+     0.0,
+     0.0
+    ],
+    [
+     1.0,
+     0.01
+    ]
+   ],
+   "move": "translate",
+   "rate": 0.05
+  },
+  "green_edp": {
+   "drive": "controls/hyd/green_edp",
+   "map": [
+    [
+     0.0,
+     0.0
+    ],
+    [
+     1.0,
+     0.01
+    ]
+   ],
+   "move": "translate",
+   "rate": 0.05
+  },
+  "yellow_edp": {
+   "drive": "controls/hyd/yellow_edp",
+   "map": [
+    [
+     0.0,
+     0.0
+    ],
+    [
+     1.0,
+     0.01
+    ]
+   ],
+   "move": "translate",
+   "rate": 0.05
+  },
+  "blue_epump": {
+   "drive": "controls/hyd/blue_epump",
+   "map": [
+    [
+     0.0,
+     0.0
+    ],
+    [
+     1.0,
+     0.01
+    ]
+   ],
+   "move": "translate",
+   "rate": 0.05
+  },
+  "yellow_epump": {
+   "drive": "controls/hyd/yellow_epump",
+   "map": [
+    [
+     0.0,
+     0.0
+    ],
+    [
+     1.0,
+     0.01
+    ]
+   ],
+   "move": "translate",
+   "rate": 0.05
+  },
+  "ptu": {
+   "drive": "controls/hyd/ptu",
+   "map": [
+    [
+     0.0,
+     0.0
+    ],
+    [
+     1.0,
+     0.01
+    ]
+   ],
+   "move": "translate",
+   "rate": 0.05
+  },
+  "fuel_l1": {
+   "drive": "controls/fuel/pump_left",
+   "map": [
+    [
+     0.0,
+     0.0
+    ],
+    [
+     1.0,
+     0.01
+    ]
+   ],
+   "move": "translate",
+   "rate": 0.05
+  },
+  "fuel_l2": {
+   "drive": "controls/fuel/pump_left",
+   "map": [
+    [
+     0.0,
+     0.0
+    ],
+    [
+     1.0,
+     0.01
+    ]
+   ],
+   "move": "translate",
+   "rate": 0.05
+  },
+  "fuel_c1": {
+   "drive": "controls/fuel/pump_centre",
+   "map": [
+    [
+     0.0,
+     0.0
+    ],
+    [
+     1.0,
+     0.01
+    ]
+   ],
+   "move": "translate",
+   "rate": 0.05
+  },
+  "fuel_c2": {
+   "drive": "controls/fuel/pump_centre",
+   "map": [
+    [
+     0.0,
+     0.0
+    ],
+    [
+     1.0,
+     0.01
+    ]
+   ],
+   "move": "translate",
+   "rate": 0.05
+  },
+  "fuel_r1": {
+   "drive": "controls/fuel/pump_right",
+   "map": [
+    [
+     0.0,
+     0.0
+    ],
+    [
+     1.0,
+     0.01
+    ]
+   ],
+   "move": "translate",
+   "rate": 0.05
+  },
+  "fuel_r2": {
+   "drive": "controls/fuel/pump_right",
+   "map": [
+    [
+     0.0,
+     0.0
+    ],
+    [
+     1.0,
+     0.01
+    ]
+   ],
+   "move": "translate",
+   "rate": 0.05
+  },
+  "xfeed": {
+   "drive": "controls/fuel/crossfeed",
+   "map": [
+    [
+     0.0,
+     0.0
+    ],
+    [
+     1.0,
+     0.01
+    ]
+   ],
+   "move": "translate",
+   "rate": 0.05
+  },
+  "bleed1": {
+   "drive": "controls/bleed/eng1",
+   "map": [
+    [
+     0.0,
+     0.0
+    ],
+    [
+     1.0,
+     0.01
+    ]
+   ],
+   "move": "translate",
+   "rate": 0.05
+  },
+  "bleed2": {
+   "drive": "controls/bleed/eng2",
+   "map": [
+    [
+     0.0,
+     0.0
+    ],
+    [
+     1.0,
+     0.01
+    ]
+   ],
+   "move": "translate",
+   "rate": 0.05
+  },
+  "apu_bleed": {
+   "drive": "controls/bleed/apu",
+   "map": [
+    [
+     0.0,
+     0.0
+    ],
+    [
+     1.0,
+     0.01
+    ]
+   ],
+   "move": "translate",
+   "rate": 0.05
+  },
+  "pack1": {
+   "drive": "controls/bleed/pack1",
+   "map": [
+    [
+     0.0,
+     0.0
+    ],
+    [
+     1.0,
+     0.01
+    ]
+   ],
+   "move": "translate",
+   "rate": 0.05
+  },
+  "pack2": {
+   "drive": "controls/bleed/pack2",
+   "map": [
+    [
+     0.0,
+     0.0
+    ],
+    [
+     1.0,
+     0.01
+    ]
+   ],
+   "move": "translate",
+   "rate": 0.05
+  },
+  "seatbelt_sw": {
+   "drive": "controls/signs/seatbelts",
+   "map": [
+    [
+     0.0,
+     -30.0
+    ],
+    [
+     1.0,
+     30.0
+    ]
+   ],
+   "rate": 240.0
+  },
+  "no_smoking_sw": {
+   "drive": "controls/signs/no_smoking",
+   "map": [
+    [
+     0.0,
+     -30.0
+    ],
+    [
+     1.0,
+     30.0
+    ]
+   ],
+   "rate": 240.0
   },
   "autobrake_lo": {
    "drive": "controls/autobrake",

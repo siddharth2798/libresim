@@ -3,7 +3,7 @@ extends RefCounted
 ## Annunciator energy for the A320 faces named lamp_<pivot> in interior.glb.
 ## Sits beside MaterialFinish.legend_energy: legends are dark in daylight, these lamps
 ## keep a day floor so an ON light still reads, and get brighter at night with the panel dimmer.
-## A face with no row here stays dark (FAULT captions, and every unkeyed overhead button).
+## A face with no row here stays dark (FAULT captions, and the overhead buttons the sim has no system for).
 
 const LAMP_DAY := 0.4  # emission with the sun up, bus powered, switch selected
 
@@ -22,6 +22,30 @@ const _ON := {
 	"lamp_autobrake_lo": ["controls/autobrake", 1.0],
 	"lamp_autobrake_med": ["controls/autobrake", 2.0],
 	"lamp_autobrake_max": ["controls/autobrake", 3.0],
+	# overhead ELEC / HYD / FUEL / AIR: an OFF caption lights at 0, an ON caption at 1 (tools/blender/a320_panel_systems.py)
+	"lamp_bat1": ["controls/electrical/bat1", 0.0],
+	"lamp_bat2": ["controls/electrical/bat2", 0.0],
+	"lamp_gen1": ["controls/electrical/gen1", 0.0],
+	"lamp_gen2": ["controls/electrical/gen2", 0.0],
+	"lamp_apu_gen": ["controls/electrical/apu_gen", 0.0],
+	"lamp_ext_pwr": ["controls/electrical/ext_pwr", 1.0],
+	"lamp_green_edp": ["controls/hyd/green_edp", 0.0],
+	"lamp_yellow_edp": ["controls/hyd/yellow_edp", 0.0],
+	"lamp_blue_epump": ["controls/hyd/blue_epump", 0.0],
+	"lamp_yellow_epump": ["controls/hyd/yellow_epump", 1.0],
+	"lamp_ptu": ["controls/hyd/ptu", 0.0],
+	"lamp_fuel_l1": ["controls/fuel/pump_left", 0.0],
+	"lamp_fuel_l2": ["controls/fuel/pump_left", 0.0],
+	"lamp_fuel_c1": ["controls/fuel/pump_centre", 0.0],
+	"lamp_fuel_c2": ["controls/fuel/pump_centre", 0.0],
+	"lamp_fuel_r1": ["controls/fuel/pump_right", 0.0],
+	"lamp_fuel_r2": ["controls/fuel/pump_right", 0.0],
+	"lamp_xfeed": ["controls/fuel/crossfeed", 1.0],
+	"lamp_bleed1": ["controls/bleed/eng1", 0.0],
+	"lamp_bleed2": ["controls/bleed/eng2", 0.0],
+	"lamp_apu_bleed": ["controls/bleed/apu", 1.0],
+	"lamp_pack1": ["controls/bleed/pack1", 0.0],
+	"lamp_pack2": ["controls/bleed/pack2", 0.0],
 }
 
 
