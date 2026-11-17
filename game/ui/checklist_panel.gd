@@ -5,7 +5,7 @@ extends ChecklistWindow
 ## when the aircraft state matches; the others tick on click (or Enter = next unticked item,
 ## Shift+Enter = take the last manual tick back). The first open item is highlighted and scrolled
 ## into view; collapsed, the window shows it as one line. Ctrl+PgUp/PgDn switch lists, F2 shows
-## and hides the window, Shift+F2 collapses it. Data: the aircraft's checklists.json.
+## and hides the window, Shift+F2 collapses it. Data: the aircraft's checklists.json (conditions: _met).
 
 const HILITE := Color(0.25, 0.5, 0.9, 0.5)
 const DONE_COL := Color(0.55, 1.0, 0.6)
@@ -70,7 +70,19 @@ func _rebuild() -> void:
 	_refresh()
 
 
+## An item ticks itself when its condition holds: {prop, eq} or {prop, range: [lo, hi]}, or "all" / "any" of a list of
+## such conditions (a step that covers several switches, or either of two ways to do it). No condition = ticked by hand.
 static func _met(item: Dictionary) -> bool:
+	if item.has("all"):
+		for c in item.all:
+			if not _met(c):
+				return false
+		return not item.all.is_empty()
+	if item.has("any"):
+		for c in item.any:
+			if _met(c):
+				return true
+		return false
 	if not item.has("prop"):
 		return false
 	var v = Props.get_v(item.prop)

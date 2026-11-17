@@ -430,9 +430,10 @@ cd game
 
 ### Checklists
 
-**F2** opens the checklist window (C172S POH, preflight to securing). Items the sim can detect tick themselves (green, locked); others tick on click or Enter. Ctrl+PgUp/PgDn (or **‹ ›**) change list, Enter ticks the next item, Shift+Enter takes the last tick back, **–** or Shift+F2 collapses the window, **×** or F2 closes it.
+**F2** opens the checklist window of the aircraft you fly. C172: ten lists from the 172S POH, preflight to securing (76 steps). A320: twelve lists, cockpit preparation to securing (90 steps), covering the overhead ELEC, HYD, FUEL, AIR and SIGNS switches, doors, lights, flaps, autobrake, engine start and the thrust levers. Items the sim can detect tick themselves (green, locked); others tick on click or Enter. Ctrl+PgUp/PgDn (or **‹ ›**) change list, Enter ticks the next item, Shift+Enter takes the last tick back, **–** or Shift+F2 collapses the window, **×** or F2 closes it.
 - The window docks at the right edge the first time. Drag it by the title bar (it snaps to screen edges with an 8 px margin and never leaves the screen); resize from any edge or corner (minimum 250 x 130 UI units). The **Opacity** slider (or the wheel over the title bar) makes the background see-through, the text stays opaque.
 - Only the window's own rectangle takes the mouse; elsewhere the mouse and mouse yoke work as before, and the yoke holds still while the cursor is over the window. It is hidden during pause.
+- Data: `aircraft/<id>/checklists.json`, `{"source", "lists": [{"name", "items": [{"text", condition}]}]}`. A condition is `"prop"` with `"eq"` (bool or number) or `"range": [lo, hi]`, or `"all"` / `"any"` of a list of those (a step covering several switches, or either of two ways); no condition = ticked by hand (`ChecklistPanel._met`). A320 flap steps read `fdm/flap_lever`, the flap setting 0, 1, 1+F, 2, 3, FULL = 0..5 (takeoff 1+F to 3, landing 3 or FULL). `tests/test_checklists.gd` checks the conditions and that every switch a step checks is on that aircraft's Controls page.
 - Position, size, opacity and collapsed state are saved in `options.cfg` (`checklist_*`; delete those keys to dock it again). Code: `ui/checklist_geom.gd` (clamp / snap / resize rules, `tests/test_checklist_window.gd`), `ui/checklist_window.gd`, `ui/checklist_panel.gd`.
 
 ### Beyond the detailed region

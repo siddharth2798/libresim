@@ -1,80 +1,119 @@
 {
- "source": "Short procedures written for libresim from the public outline of airliner normal operations. Simplified, not any airline's or the manufacturer's checklist; not for real-world flight.",
+ "source": "Short procedures written for libresim from the public outline of airliner normal operations, matched to the switches this sim models (overhead ELEC, HYD, FUEL, AIR and SIGNS; FCU; pedestal). Simplified, not any airline's or the manufacturer's checklist; not for real-world flight. fdm/flap_lever is the flap setting: 0, 1, 1+F, 2, 3, FULL = 0..5.",
  "lists": [
   {"name": "Cockpit Preparation", "items": [
-   {"text": "Parking brake - ON", "prop": "controls/parking_brake", "eq": true},
-   {"text": "Batteries - ON (bus DC BAT powered)", "prop": "systems/electrical/dc_bat_on", "eq": true},
-   {"text": "External power or APU - ON (APU master, then hold APU start; optional)", "prop": "apu/running", "eq": true},
-   {"text": "AC / DC buses - POWERED", "prop": "systems/electrical/ac1_on", "eq": true},
-   {"text": "Navigation lights - ON", "prop": "controls/lights/nav", "eq": true},
+   {"text": "Engine masters - OFF", "all": [{"prop": "controls/engine_master_1", "eq": false}, {"prop": "controls/engine_master_2", "eq": false}]},
+   {"text": "Engine mode selector - NORM", "prop": "controls/engine_mode", "eq": 0},
    {"text": "Gear lever - DOWN", "prop": "controls/gear", "eq": 1},
+   {"text": "Parking brake - ON", "prop": "controls/parking_brake", "eq": true},
+   {"text": "BAT 1 and BAT 2 - ON (no OFF lights)", "all": [{"prop": "controls/electrical/bat1", "eq": true}, {"prop": "controls/electrical/bat2", "eq": true}]},
+   {"text": "EXT PWR - ON if available (ON lit), otherwise APU master ON, then hold APU START", "any": [{"prop": "systems/electrical/ext_on", "eq": true}, {"prop": "apu/running", "eq": true}]},
+   {"text": "AC 1 and AC 2 buses - POWERED", "all": [{"prop": "systems/electrical/ac1_on", "eq": true}, {"prop": "systems/electrical/ac2_on", "eq": true}]},
+   {"text": "GEN 1, GEN 2 and APU GEN - ON (no OFF lights)", "all": [{"prop": "controls/electrical/gen1", "eq": true}, {"prop": "controls/electrical/gen2", "eq": true}, {"prop": "controls/electrical/apu_gen", "eq": true}]},
+   {"text": "Fuel pumps L, CTR, R - ON (no OFF lights)", "all": [{"prop": "controls/fuel/pump_left", "eq": true}, {"prop": "controls/fuel/pump_centre", "eq": true}, {"prop": "controls/fuel/pump_right", "eq": true}]},
+   {"text": "Fuel X FEED - OFF", "prop": "controls/fuel/crossfeed", "eq": false},
+   {"text": "Hydraulic ENG 1 and ENG 2 pumps, BLUE ELEC PUMP, PTU - ON / AUTO (no OFF lights)", "all": [{"prop": "controls/hyd/green_edp", "eq": true}, {"prop": "controls/hyd/yellow_edp", "eq": true}, {"prop": "controls/hyd/blue_epump", "eq": true}, {"prop": "controls/hyd/ptu", "eq": true}]},
+   {"text": "YELLOW ELEC PUMP - OFF", "prop": "controls/hyd/yellow_epump", "eq": false},
+   {"text": "ENG 1 and ENG 2 BLEED, PACK 1 and PACK 2 - ON (no OFF lights)", "all": [{"prop": "controls/bleed/eng1", "eq": true}, {"prop": "controls/bleed/eng2", "eq": true}, {"prop": "controls/bleed/pack1", "eq": true}, {"prop": "controls/bleed/pack2", "eq": true}]},
+   {"text": "SEAT BELTS and NO SMOKING signs - ON", "all": [{"prop": "controls/signs/seatbelts", "eq": true}, {"prop": "controls/signs/no_smoking", "eq": true}]},
+   {"text": "NAV and LOGO lights - ON", "all": [{"prop": "controls/lights/nav", "eq": true}, {"prop": "controls/lights/logo", "eq": true}]},
    {"text": "Altimeters - SET (QNH)"},
+   {"text": "MCDU - INIT FROM/TO, DEP RWY, CRZ FL; F-PLN checked"},
    {"text": "FCU - SET (speed, heading, altitude)"}
   ]},
   {"name": "Before Start", "items": [
-   {"text": "Doors and cabin - CLOSED, SECURE"},
+   {"text": "Doors - CLOSED (passenger and cargo)", "all": [{"prop": "controls/door_open", "eq": false}, {"prop": "controls/doors/R1", "eq": false}, {"prop": "controls/doors/L2", "eq": false}, {"prop": "controls/doors/R2", "eq": false}, {"prop": "controls/doors/CF", "eq": false}, {"prop": "controls/doors/CA", "eq": false}]},
+   {"text": "Jet bridge - RETRACTED, ground vehicles - CLEAR"},
    {"text": "Beacon - ON", "prop": "controls/lights/beacon", "eq": true},
-   {"text": "Fuel - CHECKED (quantity and distribution)", "prop": "fuel/total_kg", "range": [1500.0, 25000.0]},
-   {"text": "Flaps - SET for takeoff (CONF 1+F or 2)", "prop": "fdm/flap_lever", "range": [1, 3]},
-   {"text": "Speedbrake - RETRACTED, autobrake - MAX", "prop": "controls/autobrake", "eq": 3},
+   {"text": "Fuel - CHECKED (quantity and balance on the E/WD)", "prop": "fuel/total_kg", "range": [1500.0, 19500.0]},
+   {"text": "APU BLEED - ON (start air, when the APU runs)", "prop": "controls/bleed/apu", "eq": true},
    {"text": "Pushback and start clearance - OBTAINED"}
   ]},
   {"name": "Engine Start", "items": [
    {"text": "Engine mode selector - IGN / START", "prop": "controls/engine_mode", "eq": 2},
-   {"text": "Engine 2 master - ON; N2 rises, light-off, idle", "prop": "engines/2/running", "eq": true},
-   {"text": "Engine 1 master - ON; N2 rises, light-off, idle", "prop": "engines/1/running", "eq": true},
-   {"text": "Engine mode selector - NORM", "prop": "controls/engine_mode", "eq": 0},
-   {"text": "APU - OFF (APU master)"}
+   {"text": "ENG 2 master - ON; N2 rises, light-off, idle", "prop": "engines/2/running", "eq": true},
+   {"text": "ENG 1 master - ON; N2 rises, light-off, idle", "prop": "engines/1/running", "eq": true},
+   {"text": "Engine mode selector - NORM", "prop": "controls/engine_mode", "eq": 0}
   ]},
   {"name": "After Start", "items": [
-   {"text": "Hydraulics, generators - NORMAL (engine generators on)", "prop": "systems/electrical/gen1_on", "eq": true},
-   {"text": "Flight controls - CHECKED (full travel)"},
+   {"text": "GEN 1 and GEN 2 - ON LINE", "all": [{"prop": "systems/electrical/gen1_on", "eq": true}, {"prop": "systems/electrical/gen2_on", "eq": true}]},
+   {"text": "Hydraulics - GREEN, BLUE, YELLOW pressure normal (no LO PR)", "all": [{"prop": "hyd/low_g", "eq": false}, {"prop": "hyd/low_b", "eq": false}, {"prop": "hyd/low_y", "eq": false}]},
+   {"text": "APU BLEED - OFF", "prop": "controls/bleed/apu", "eq": false},
+   {"text": "APU master - OFF (keep it on for a hot or long taxi)", "prop": "controls/apu_master", "eq": false},
+   {"text": "Ground power - DISCONNECTED"},
+   {"text": "Flaps - SET for takeoff (1+F, 2 or 3)", "prop": "fdm/flap_lever", "range": [2, 4]},
+   {"text": "Pitch trim - SET for takeoff"},
    {"text": "Rudder trim - ZERO", "prop": "controls/rudder_trim", "range": [-0.05, 0.05]},
-   {"text": "Pushback complete, tow bar disconnected - CONFIRMED"}
+   {"text": "Flight controls - CHECKED (full travel)"}
   ]},
   {"name": "Taxi", "items": [
    {"text": "Parking brake - OFF", "prop": "controls/parking_brake", "eq": false},
-   {"text": "Taxi light - ON", "prop": "controls/lights/taxi", "eq": true},
+   {"text": "Nose light - TAXI", "prop": "controls/lights/taxi", "eq": true},
+   {"text": "Autobrake - MAX", "prop": "controls/autobrake", "eq": 3},
    {"text": "Brakes - CHECKED"},
    {"text": "Flight instruments - CHECKED"}
   ]},
   {"name": "Before Takeoff", "items": [
-   {"text": "Strobe lights - ON", "prop": "controls/lights/strobe", "eq": true},
-   {"text": "Landing lights - ON", "prop": "controls/lights/landing", "eq": true},
-   {"text": "Flaps - SET (CONF 1+F, 2 or 3)", "prop": "fdm/flap_lever", "range": [1, 3]},
+   {"text": "Flaps - SET (1+F, 2 or 3)", "prop": "fdm/flap_lever", "range": [2, 4]},
+   {"text": "Speedbrake lever - RETRACTED", "prop": "controls/speedbrake", "range": [0.0, 0.05]},
    {"text": "Autobrake - MAX (RTO)", "prop": "controls/autobrake", "eq": 3},
-   {"text": "Speedbrake - RETRACTED", "prop": "controls/speedbrake", "range": [0.0, 0.05]},
-   {"text": "Takeoff thrust - SET (FLX/MCT or TOGA detent)"}
+   {"text": "Strobe - ON", "prop": "controls/lights/strobe", "eq": true},
+   {"text": "Landing lights - ON", "prop": "controls/lights/landing", "eq": true},
+   {"text": "Nose light - T.O., RWY TURN OFF lights - ON", "all": [{"prop": "controls/lights/takeoff", "eq": true}, {"prop": "controls/lights/rwy_turnoff", "eq": true}]},
+   {"text": "Takeoff clearance - OBTAINED"},
+   {"text": "Thrust levers - FLX/MCT or TOGA", "all": [{"prop": "controls/throttle_1", "range": [0.77, 1.0]}, {"prop": "controls/throttle_2", "range": [0.77, 1.0]}]}
   ]},
   {"name": "After Takeoff", "items": [
    {"text": "Landing gear - UP", "prop": "controls/gear", "eq": 0},
-   {"text": "Flaps - RETRACT on schedule", "prop": "fdm/flap_lever", "eq": 0},
+   {"text": "Thrust levers - CL (at thrust reduction altitude)", "all": [{"prop": "controls/throttle_1", "range": [0.5, 0.6]}, {"prop": "controls/throttle_2", "range": [0.5, 0.6]}]},
+   {"text": "Flaps - RETRACTED on schedule", "prop": "fdm/flap_lever", "eq": 0},
    {"text": "Autobrake - OFF", "prop": "controls/autobrake", "eq": 0},
-   {"text": "Landing lights - OFF (above 10,000 ft)"}
+   {"text": "Nose light and RWY TURN OFF lights - OFF", "all": [{"prop": "controls/lights/takeoff", "eq": false}, {"prop": "controls/lights/taxi", "eq": false}, {"prop": "controls/lights/rwy_turnoff", "eq": false}]},
+   {"text": "APU - OFF if it was running", "prop": "controls/apu_master", "eq": false},
+   {"text": "Landing lights - OFF above 10,000 ft"},
+   {"text": "Seat belts - AS REQUIRED"}
   ]},
   {"name": "Approach", "items": [
-   {"text": "Altimeters - SET (QNH)"},
-   {"text": "Landing lights - ON", "prop": "controls/lights/landing", "eq": true},
-   {"text": "Autobrake - LO or MED", "prop": "controls/autobrake", "range": [1, 2]},
-   {"text": "Seat belts - ON"}
+   {"text": "Altimeters - SET (QNH) at the transition level"},
+   {"text": "MCDU - ARR RWY set; approach briefed"},
+   {"text": "Seat belts - ON", "prop": "controls/signs/seatbelts", "eq": true},
+   {"text": "Landing lights - ON (below 10,000 ft)", "prop": "controls/lights/landing", "eq": true},
+   {"text": "Autobrake - LO or MED", "prop": "controls/autobrake", "range": [1, 2]}
   ]},
   {"name": "Landing", "items": [
    {"text": "Landing gear - DOWN", "prop": "controls/gear", "eq": 1},
-   {"text": "Flaps - FULL (CONF 3 for light weights or crosswind)", "prop": "fdm/flap_lever", "range": [3, 4]},
-   {"text": "Speedbrake - ARMED / RETRACTED", "prop": "controls/speedbrake", "range": [0.0, 0.05]},
+   {"text": "Flaps - FULL (CONF 3 for light weights or a strong crosswind)", "prop": "fdm/flap_lever", "range": [4, 5]},
+   {"text": "Speedbrake lever - RETRACTED (ground spoilers deploy by themselves at touchdown)", "prop": "controls/speedbrake", "range": [0.0, 0.05]},
+   {"text": "Nose light - T.O., RWY TURN OFF lights - ON", "all": [{"prop": "controls/lights/takeoff", "eq": true}, {"prop": "controls/lights/rwy_turnoff", "eq": true}]},
    {"text": "Approach speed - Vapp, stabilised by 1,000 ft"}
   ]},
   {"name": "After Landing", "items": [
-   {"text": "Speedbrake - RETRACTED", "prop": "controls/speedbrake", "range": [0.0, 0.05]},
+   {"text": "Thrust levers - IDLE, reversers stowed", "all": [{"prop": "controls/reverse_1", "range": [0.0, 0.01]}, {"prop": "controls/reverse_2", "range": [0.0, 0.01]}, {"prop": "controls/throttle_1", "range": [0.0, 0.05]}, {"prop": "controls/throttle_2", "range": [0.0, 0.05]}]},
+   {"text": "Speedbrake lever - RETRACTED", "prop": "controls/speedbrake", "range": [0.0, 0.05]},
    {"text": "Flaps - RETRACTED", "prop": "fdm/flap_lever", "eq": 0},
-   {"text": "Landing and strobe lights - OFF"},
-   {"text": "APU - START for the gate (APU master and start)", "prop": "apu/running", "eq": true}
+   {"text": "Autobrake - OFF", "prop": "controls/autobrake", "eq": 0},
+   {"text": "Strobe and landing lights - OFF", "all": [{"prop": "controls/lights/strobe", "eq": false}, {"prop": "controls/lights/landing", "eq": false}]},
+   {"text": "Nose light - TAXI, RWY TURN OFF lights - OFF", "all": [{"prop": "controls/lights/taxi", "eq": true}, {"prop": "controls/lights/takeoff", "eq": false}, {"prop": "controls/lights/rwy_turnoff", "eq": false}]},
+   {"text": "APU - START for the gate (APU master, then hold APU START)", "prop": "apu/running", "eq": true}
   ]},
   {"name": "Parking", "items": [
    {"text": "Parking brake - ON", "prop": "controls/parking_brake", "eq": true},
-   {"text": "Engine masters - OFF", "prop": "engines/1/running", "eq": false},
-   {"text": "Beacon - OFF", "prop": "controls/lights/beacon", "eq": false},
-   {"text": "Seat belts - OFF; doors - OPEN when cleared"}
+   {"text": "APU running or EXT PWR - ON", "any": [{"prop": "apu/running", "eq": true}, {"prop": "systems/electrical/ext_on", "eq": true}]},
+   {"text": "Engine masters - OFF", "all": [{"prop": "controls/engine_master_1", "eq": false}, {"prop": "controls/engine_master_2", "eq": false}]},
+   {"text": "Beacon - OFF (engines spooled down)", "prop": "controls/lights/beacon", "eq": false},
+   {"text": "Nose light - OFF", "prop": "controls/lights/taxi", "eq": false},
+   {"text": "Fuel pumps L, CTR, R - OFF", "all": [{"prop": "controls/fuel/pump_left", "eq": false}, {"prop": "controls/fuel/pump_centre", "eq": false}, {"prop": "controls/fuel/pump_right", "eq": false}]},
+   {"text": "SEAT BELTS sign - OFF", "prop": "controls/signs/seatbelts", "eq": false},
+   {"text": "Doors - OPEN when cleared, jet bridge - DOCKED"}
+  ]},
+  {"name": "Securing the Aircraft", "items": [
+   {"text": "Parking brake - ON", "prop": "controls/parking_brake", "eq": true},
+   {"text": "APU BLEED - OFF", "prop": "controls/bleed/apu", "eq": false},
+   {"text": "APU master - OFF", "prop": "controls/apu_master", "eq": false},
+   {"text": "NO SMOKING sign - OFF", "prop": "controls/signs/no_smoking", "eq": false},
+   {"text": "NAV and LOGO lights - OFF", "all": [{"prop": "controls/lights/nav", "eq": false}, {"prop": "controls/lights/logo", "eq": false}]},
+   {"text": "EXT PWR - OFF", "prop": "controls/electrical/ext_pwr", "eq": false},
+   {"text": "BAT 1 and BAT 2 - OFF", "all": [{"prop": "controls/electrical/bat1", "eq": false}, {"prop": "controls/electrical/bat2", "eq": false}]}
   ]}
  ]
 }
