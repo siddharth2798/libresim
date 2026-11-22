@@ -110,8 +110,9 @@ func test_route_warnings_in_the_setup_checks() -> String:
 	if ids != ["route_dest"]:
 		return "unknown destination: %s" % [ids]
 	s.route = {"dest": "VAPO", "wps": [{"id": "WPT01", "kind": "user", "x": 0.0, "y": -1500000.0, "alt_ft": 4500.0}]}
-	ids = SetupChecks.checks(s).filter(func(c): return c.step == "route").map(func(c): return c.id)
-	if ids != ["route_far"] or FlowValues.level("route", s, SetupChecks.checks(s)) != "warn":
+	var far := SetupChecks.checks(s).filter(func(c): return c.step == "route" and c.id == "route_far")
+	ids = SetupChecks.checks(s).filter(func(c): return c.step == "route" and c.id != "route_fuel").map(func(c): return c.id)
+	if ids != ["route_far"] or far.size() != 1 or far[0].level != "warn":  # a 1500 km detour also runs the tank dry (test_route_checks.gd)
 		return "far waypoint: %s" % [ids]
 	s.route = {"dest": "VAPO", "air_at": 3}
 	s.start = "air"

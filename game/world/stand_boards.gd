@@ -3,7 +3,7 @@ extends RefCounted
 ## Stand number boards at contact stands: a 2 x 1 m sign on a post on the stand centre line in front of the
 ## terminal facade (the same facade ApronLightLayout puts the floods on), facing the arriving aircraft on the
 ## lead-in line, the stand's number in yellow (unshaded: backlit, reads day and night). A board whose post would
-## stand in a stand / taxiway corridor is left out (AirportLights). Only drawn within VIS_M of the camera.
+## stand in a stand / taxiway corridor is left out (AirportLights). Only drawn within VIS_M of the camera (High; VisRanges scales it).
 
 const H := 4.5  # post height (bottom of the board above the ground)
 const BOARD := Vector2(2.0, 1.0)
@@ -68,12 +68,12 @@ static func build(list: Array, hf: Callable, anchor: Vector2) -> Node3D:
 		var pole := MeshInstance3D.new()
 		pole.mesh = post
 		pole.position = Vector3(0, H * 0.5, -0.15)
-		pole.visibility_range_end = VIS_M
+		VisRanges.set_range(pole, VIS_M)  # scales with the preset, fades (world/vis_ranges.gd)
 		n.add_child(pole)
 		var q := MeshInstance3D.new()
 		q.mesh = box
 		q.position = Vector3(0, H + BOARD.y * 0.5, 0)
-		q.visibility_range_end = VIS_M
+		VisRanges.set_range(q, VIS_M)
 		n.add_child(q)
 		var l := Label3D.new()
 		l.text = b.text
@@ -83,7 +83,7 @@ static func build(list: Array, hf: Callable, anchor: Vector2) -> Node3D:
 		l.double_sided = false
 		l.modulate = YELLOW
 		l.position = Vector3(0, H + BOARD.y * 0.5, 0.1)
-		l.visibility_range_end = VIS_M
+		VisRanges.set_range(l, VIS_M)
 		n.add_child(l)
 		root.add_child(n)
 	return root

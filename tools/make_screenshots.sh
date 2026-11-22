@@ -51,14 +51,14 @@ restore() {
 }
 trap restore EXIT
 
-timeout 300 "$GODOT" --headless --path "$ROOT/game" --import > "$FREESIM_SHOTS/import.log" 2>&1
+timeout 300 "$GODOT" --audio-driver Dummy --headless --path "$ROOT/game" --import > "$FREESIM_SHOTS/import.log" 2>&1
 
 for entry in "${SHOTS[@]}"; do
 	scene="${entry%%:*}"
 	if [ $# -gt 0 ] && [[ ! " $* " == *" $scene "* ]]; then continue; fi
 	echo "screenshots: $scene"
 	rm -f "$FREESIM_SHOTS/$scene.png"
-	timeout 400 "$GODOT" --path "$ROOT/game" --resolution 1920x1080 --windowed res://tests/debug_showcase.tscn \
+	timeout 400 "$GODOT" --audio-driver Dummy --path "$ROOT/game" --resolution 1920x1080 --windowed res://tests/debug_showcase.tscn \
 		-- --scene="$scene" --quality=ultra > "$FREESIM_SHOTS/$scene.log" 2>&1
 	grep -E "SETTLED|SHOT|ERROR|WARNING" "$FREESIM_SHOTS/$scene.log" | head -5
 	[ -f "$FREESIM_SHOTS/$scene.png" ] || echo "screenshots: $scene FAILED (see $FREESIM_SHOTS/$scene.log)"

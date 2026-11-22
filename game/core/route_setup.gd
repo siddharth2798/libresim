@@ -11,8 +11,10 @@ extends RefCounted
 ##   airliners: mcdu/init/{from_to, dep_rwy, arr_rwy, cruise_fl}, controls/fms/origin, controls/fcu/alt_ft,
 ##       controls/fcu/vs_managed and controls/fcu/hdg_managed (NAV), as typing them on the INIT page does (without filing over the route again).
 ## restore() puts back what a saved flight does not hold in its props (route waypoints, route/dest, MCDU INIT).
+## update_live() takes a route edited during the flight (RouteLive.commit) without touching anything else.
 
 const DEST_PROP := "route/dest"
+const REV_PROP := "route/rev"  # +1 at every live change: the GPS and maps re-read waypoint positions (a moved WPTnn keeps its name)
 const MCDU_KEYS := ["mcdu/init/from_to", "mcdu/init/dep_rwy", "mcdu/init/arr_rwy", "controls/fms/origin"]
 const DEFAULT_CRUISE_FT := 4500.0
 
@@ -146,6 +148,40 @@ static func restore(setup: Dictionary, db: NavDatabase, airliner: bool) -> void:
 		_mcdu(setup, r, gps_plan(setup, func(id: String) -> bool: return db != null and db.position_of(id) != null))
 
 
+## A route changed during the flight (setup.route already holds it). Unlike apply(), only the route moves: no fuel,
+## position, FCU altitude or managed modes. The GPS flies `lead` (a departure runway fix still ahead), then wps from
+## `from_wp` on (the ones before were flown), the arrival fix (arr_rwy) and the destination. Its target is the first of
+## those: the active waypoint stays while it is still the first point ahead, and the next point ahead takes over when it
+## was removed or moved (or a point was put on the leg to it). Also: the route waypoints (route_fixes), route/dest for
+## ATC, route/rev, and for an airliner the MCDU INIT FROM/TO, ARR RWY and CRZ FL (cruise_fl; its F-PLN reads the GPS
+## route). DEP RWY, the FCU altitude and the managed modes are left as they are.
+static func update_live(setup: Dictionary, db: NavDatabase, airliner: bool, from_wp := 0, lead: Array = []) -> void:
+	var r := repair(setup.get("route", {}))
+	NavDatabase.route_fixes.clear()
+	register(r)
+	var ids: Array = lead.duplicate()
+	var wps: Array = r.get("wps", [])
+	for i in range(clampi(from_wp, 0, wps.size()), wps.size()):
+		ids.append(str(wps[i].id))
+	var dest := str(r.get("dest", ""))
+	var arr := ""
+	if dest != "":
+		var f := RunwayWaypoints.ident(dest, str(r.arr_rwy), "F")
+		if str(r.arr_rwy) != "" and db != null and db.position_of(f) != null:
+			ids.append(f)
+			arr = str(r.arr_rwy)
+		ids.append(dest)
+	Props.set_v("controls/gps/target", str(ids[0]) if not ids.is_empty() else "")
+	Props.set_v("controls/gps/route_next", ids.slice(1))
+	Props.set_v(DEST_PROP, dest)
+	Props.set_v(REV_PROP, int(Props.get_v(REV_PROP, 0)) + 1)
+	if airliner:  # DEP RWY stays (the aircraft is airborne); the FCU altitude and managed modes are the pilot's
+		Props.set_v("mcdu/init/from_to", "/".join([str(setup.get("airport", ""))] + idents(r)) if active(r) else "")
+		Props.set_v("mcdu/init/arr_rwy", arr)
+		if active(r):
+			Props.set_v("mcdu/init/cruise_fl", cruise_fl(r))
+
+
 ## The NavDatabase of a flight scene (null when it has none).
 static func db_of(root: Node) -> NavDatabase:
 	var nav := root.get_node_or_null("Avionics/Nav")
@@ -165,7 +201,12 @@ static func _mcdu(setup: Dictionary, r: Dictionary, plan: Dictionary) -> void:
 	Props.set_v("mcdu/init/dep_rwy", str(plan.dep_rwy))
 	Props.set_v("mcdu/init/arr_rwy", str(plan.arr_rwy))
 	Props.set_v("controls/fms/origin", dep)
-	var top := float(r.cruise_ft)
+	Props.set_v("mcdu/init/cruise_fl", cruise_fl(r))
+
+
+## CRZ FL of a route: its cruise altitude or its highest leg altitude, whichever is higher, in hundreds of feet.
+static func cruise_fl(r: Dictionary) -> float:
+	var top := float(r.get("cruise_ft", DEFAULT_CRUISE_FT))
 	for a in leg_alts(r):
 		top = maxf(top, float(a))
-	Props.set_v("mcdu/init/cruise_fl", float(roundi(top / 100.0)))
+	return float(roundi(top / 100.0))

@@ -12,7 +12,7 @@ static func busy(f: Node) -> bool:
 	if not c._tasks.is_empty() or not c._done.is_empty():
 		return true
 	var tr: Trees = f.get_node("Trees")
-	if tr.visible and (tr._in_flight > 0 or not tr._queue.is_empty() or not tr._done.is_empty() or tr._chunks.values().has(null)):
+	if tr.visible and (not tr._atlas_ready or tr._in_flight > 0 or not tr._queue.is_empty() or not tr._done.is_empty() or tr._chunks.values().has(null)):
 		return true
 	var b: Buildings = f.get_node("Buildings")
 	return b.visible and (not b._done.is_empty() or b._tiles.values().has(null))
@@ -28,7 +28,12 @@ static func state(f: Node) -> String:
 	var e: Vector3 = f.get_node("Fdm").fdm.euler()
 	var cloud := "in_cloud %s (aircraft %.2f), fog %.4f, exposure x%.2f; " % [Props.get_v("environment/in_cloud", false), Props.get_f("environment/ac_cloud_density"),
 		(f.get_node("WorldEnvironment") as WorldEnvironment).environment.fog_density, Props.get_f("environment/exposure_mult", 1.0)]
-	return cloud + "attitude roll %.1f pitch %.1f deg, terrain nodes %d, tree chunks %d (%d billboards, %d LOD0 meshes within %.0f m), building tiles %d" % [rad_to_deg(e.x), rad_to_deg(e.y), f.get_node("Terrain").visible_nodes, tr._chunks.size(), n_bb, lod.instance_count(), lod.covered, f.get_node("Buildings")._tiles.size()]
+	var cov: GroundCover = tr.get_node("Cover")
+	var proxies := 0
+	for mi in tr._chunks.values():
+		if mi != null and (mi as Node).has_node(TreeShadows.PROXY):
+			proxies += (mi.get_node(TreeShadows.PROXY) as MultiMeshInstance3D).multimesh.instance_count
+	return cloud + "attitude roll %.1f pitch %.1f deg, terrain nodes %d, tree chunks %d (%d billboards, %d LOD0 meshes within %.0f m), ground cover %d plants in %d cells (r %.0f m), %d shadow proxies, building tiles %d" % [rad_to_deg(e.x), rad_to_deg(e.y), f.get_node("Terrain").visible_nodes, tr._chunks.size(), n_bb, lod.instance_count(), lod.covered, cov.instance_count(), cov._cells.size(), cov.radius, proxies, f.get_node("Buildings")._tiles.size()]
 
 
 ## Waits (on host's tree) until the streamers of `f` have been idle for QUIET_S in a row; returns the seconds waited.

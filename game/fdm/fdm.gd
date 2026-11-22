@@ -35,12 +35,12 @@ var v_b := Vector3.ZERO
 var w_b := Vector3.ZERO
 var q := Quaternion.IDENTITY
 var wind_ned := Vector3.ZERO  # air mass velocity (m/s, NED)
+var gust_pqr := Vector3.ZERO  # rotary gusts (rad/s, body): the aerodynamics see w_b - gust_pqr (world/turbulence.gd)
 var tank_feed := PackedFloat64Array()  # share of the fuel flow drawn from each tank (fuel system), sums to 1
 var tank_leak_kgs := PackedFloat64Array()  # kg/s each tank loses to a leak
 var fuel_available := true
 var extra_burn_kgs := 0.0  # fuel burnt outside the engines (APU), kg/s, set by its system
 var time := 0.0
-
 # derived (updated every step)
 var alpha := 0.0
 var beta := 0.0
@@ -135,42 +135,14 @@ func trim_level(tas: float) -> void:
 	fcs.restart_law()
 
 
-## Trim for level flight at a calibrated airspeed (iterates TAS; atmosphere and wind as set).
+## Trim for level flight at a calibrated airspeed (iterates TAS; atmosphere and wind as set). fdm_start.gd.
 func trim_level_cas(cas_target: float) -> void:
-	var tas := cas_target
-	for i in 3:
-		trim_level(tas)
-		step(1e-4)
-		tas *= cas_target / maxf(cas, 1.0)
-		set_airborne(pos_n, pos_e, -pos_d, euler().z, tas)
-	trim_level(tas)
+	FdmStart.trim_level_cas(self, cas_target)
 
 
-## Start at rest on the ground in the natural sitting attitude (all wheels touching).
+## Start at rest on the ground in the natural sitting attitude (all wheels touching). fdm_start.gd.
 func set_on_ground(n: float, e: float, heading: float) -> void:
-	pos_n = n; pos_e = e
-	var wheels: Array = gear.contacts.filter(func(c): return c.wheel)
-	var steered: Array = gear.steered_wheels()
-	var mains: Array = gear.main_wheels()
-	if steered.is_empty() or mains.is_empty():  # a castoring wheel or a single gear line: lie level
-		steered = [wheels[0]]
-		mains = [wheels[-1]]
-	var bn := mb.body_of(steered[0].pos)
-	var bm := Vector3.ZERO
-	for c in mains:
-		bm += mb.body_of(c.pos) / mains.size()
-	# sit with both wheel lines at the same height: dz * cos(pitch) = dx * sin(pitch) (nose or tailwheel)
-	var pitch := atan((bn.z - bm.z) / (bn.x - bm.x)) if absf(bn.x - bm.x) > 1e-3 else 0.0
-	q = euler_to_quat(0.0, pitch, heading)
-	var r_bn := Basis(q)
-	var low := -INF
-	for c in wheels:
-		low = maxf(low, (r_bn * mb.body_of(c.pos)).z)
-	pos_d = -ground_height.call(n, e) - low + 0.005
-	v_b = Vector3.ZERO
-	w_b = Vector3.ZERO
-	fcs.settle()
-	fcs.restart_law()
+	FdmStart.on_ground(self, n, e, heading)
 
 
 func step(dt: float) -> void:
@@ -209,7 +181,7 @@ func step(dt: float) -> void:
 	var res: Array = aero.evaluate({
 		"vt": vt, "alpha": alpha, "alphadot": _alphadot, "beta": beta, "qbar": qbar,
 		"agl": maxf(agl, 0.0), "rho": atmo.density, "u": v_air.x,
-		"p": w_b.x, "q": w_b.y, "r": w_b.z, "v_induced": v_induced,
+		"p": w_b.x - gust_pqr.x, "q": w_b.y - gust_pqr.y, "r": w_b.z - gust_pqr.z, "v_induced": v_induced,
 		"elevator": fcs.elevator, "aileron": fcs.aileron, "rudder": fcs.rudder, "flap_deg": fcs.flap_deg,
 		"mach": mach, "temperature": atmo.temperature, "ctx": fcs.aero_ctx()})
 	var fw: Vector3 = res[0] * LBF  # (D, Y, L)

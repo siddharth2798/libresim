@@ -178,7 +178,7 @@ func _process(dt: float) -> void:
 	view.centre = _here()
 	var next: Array = Props.get_v("controls/gps/route_next", [])
 	var target := str(Props.get_v("controls/gps/target", ""))
-	var key := target + "|" + ",".join(PackedStringArray(next))
+	var key := "%s|%s|%d" % [target, ",".join(PackedStringArray(next)), int(Props.get_v(RouteSetup.REV_PROP, 0))]
 	if key != _plan_key and source.db != null:
 		_plan_key = key
 		_plan = RoutePlan.from_idents(target, next, source.db.position_of)
@@ -203,7 +203,7 @@ func _draw_map() -> void:
 	var here := _here()
 	var legs := _plan.legs(here)
 	var taken: Array = []
-	MapRouteLayer.reserve(view, legs, font, taken)
+	MapRouteLayer.reserve(view, legs, font, taken, MapFeatures.marker_rects(view, source.db))
 	MapFeatures.draw_airports(c, view, source.db, source.runways, font, taken)
 	MapFeatures.draw_navaids(c, view, source.db, font, taken)
 	MapFeatures.draw_ils(c, view, source.db, font, taken)

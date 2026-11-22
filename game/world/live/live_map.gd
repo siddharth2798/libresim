@@ -20,13 +20,13 @@ static func qnh_from_qfe(qfe_hpa: float, elev_m: float) -> float:
 	return qfe_hpa / pow(x, ISA_EXP)
 
 
-## Slider that makes weather.gd's clear-air sigma, below 300 m, match the mapped target.
+## Turbulence level (0..1, Turbulence.sigma_w) whose low-altitude vertical sigma is the mapped target: 0.1 x the wind
+## (MIL-F-8785C's sigma_w = 0.1 W20), or the gust spread / 5 if that is more.
 static func turbulence_of(wind_kt: float, gust_kt: float) -> float:
 	var wind_mps := wind_kt * Units.KT
 	var spread := maxf(gust_kt - wind_kt, 0.0) * Units.KT
 	var target := maxf(0.1 * wind_mps, spread / 5.0)
-	var factor := (1.0 + wind_mps * 0.15) * 1.4
-	return 0.0 if factor <= 0.0 else clampf(target / factor, 0.0, 1.0)
+	return clampf(target / (0.1 * Turbulence.W20_SEVERE), 0.0, 1.0)
 
 
 static func map(metar: Dictionary, model: Dictionary, last_dir := 270.0, day := true) -> Dictionary:

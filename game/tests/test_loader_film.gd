@@ -119,14 +119,58 @@ func test_every_clip_is_shot() -> String:
 		if DirAccess.dir_exists_absolute("res://ui/loader/" + gone):
 			return "the Cochin approach frames are still shipped: ui/loader/%s" % gone
 	for c in LoaderFilm.CLIPS:
-		var n := 0
-		while ResourceLoader.exists("%s/%03d.jpg" % [c.dir, n]):
-			n += 1
+		var n := LoaderFrames.count(c.dir)
 		if n < int(LoaderFilm.FPS * 3.0):
 			return "%s has %d frames" % [c.dir, n]
-		var tex := load("%s/000.jpg" % c.dir) as Texture2D
-		if tex == null or tex.get_width() < 1600:
-			return "%s frames are %s px wide" % [c.dir, tex.get_width() if tex else 0]
+		var img := LoaderFrames.decode(LoaderFrames.path(c.dir, 0))
+		if img == null or img.get_width() < 1600:
+			return "%s frames are %s px wide" % [c.dir, img.get_width() if img else 0]
+	return ""
+
+
+## The frames ship as their JPGs (import "keep", 73 MB), not as lossless textures (308 MB, decoded on the main thread):
+## every frame's .import keeps the file.
+func test_loader_frames_ship_as_jpgs() -> String:
+	for c in LoaderFilm.CLIPS:
+		for i in LoaderFrames.count(c.dir):
+			var imp := FileAccess.get_file_as_string(LoaderFrames.path(c.dir, i) + ".import")
+			if not imp.contains('importer="keep"'):
+				return "%s is imported as a texture (tools/shoot_loader_films.sh writes keep imports)" % LoaderFrames.path(c.dir, i)
+	return ""
+
+
+## The next frame is decoded on a worker: the film takes it when it is ready and holds the current frame until then.
+func test_loader_film_decodes_the_next_frame_on_a_worker() -> String:
+	var src := LoaderFrames.new()
+	var dir: String = LoaderFilm.CLIPS[0].dir
+	var a := LoaderFrames.path(dir, 1)
+	if src.take(a) != null:
+		return "nothing was asked for yet"
+	src.prefetch(a)
+	var img: Image = null
+	var t := Time.get_ticks_msec()
+	while img == null and Time.get_ticks_msec() - t < 3000:
+		OS.delay_msec(2)
+		img = src.take(a)
+	src.prefetch(LoaderFrames.path(dir, 2))
+	var other := src.take(LoaderFrames.path(dir, 3))  # not the frame being decoded
+	src.release()
+	if img == null or img.get_width() < 1600:
+		return "the worker did not decode frame 1"
+	if other != null:
+		return "take() handed out a frame that was not asked for"
+	var film := LoaderFilm.new()
+	add_child(film)
+	film.restart_for("c172", "VABB", "runway")
+	film.visible = true
+	var first := film.get("_frame") as int
+	film._process(1.0 / LoaderFilm.FPS + 0.001)  # the prefetch may still run: the film holds or moves on, never blocks
+	t = Time.get_ticks_msec()
+	while film.get("_frame") == first and Time.get_ticks_msec() - t < 3000:
+		OS.delay_msec(2)
+		film._process(1.0 / LoaderFilm.FPS + 0.001)
+	if film.get("_frame") != first + 1:
+		return "the film did not move to the next frame (%d -> %d)" % [first, film.get("_frame")]
 	return ""
 
 

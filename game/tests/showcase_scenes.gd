@@ -11,6 +11,7 @@ extends RefCounted
 ##   panel     2D panel layout index (0 Full, 1 Split, 2 Compact, 3 Minimal, 4 Custom, 5 Off)
 ##   wait      seconds before polling the streamers
 ##   props     {property path: value} set after placement; prop_deg: fixed propeller angle
+##   options   {player option: value} for this run only (UserOptions, not saved), e.g. {"depth_of_field": false}
 ##   lights    {name: bool} cockpit light switches (e.g. strobe)
 ##   pilot_lesson  fly the landing lesson's scripted pilot (fly.landing) without training UI
 ##   variants  several camera tries from one placement (files <scene>_<n>.png)

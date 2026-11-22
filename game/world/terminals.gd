@@ -5,7 +5,8 @@ extends Node3D
 ## Loaded when the camera is within LOAD_RADIUS, materials swapped by name for
 ## world/terminal.gdshader (glass curtain walls, cladding, metal / clay-tile roofs,
 ## lit coffered soffits), plus the big airport-name lettering as Label3D signs.
-## The model is also a collision solid (TerminalSolids) while it is loaded.
+## The model is also a collision solid (TerminalSolids) while it is loaded, and its walls are occluders (OccluderJobs,
+## occlusion culling). The model itself has no draw distance (a landmark, one cheap mesh); its signs do (VisRanges).
 
 const LOAD_RADIUS := 20000.0
 const KINDS := {"glass": 0, "panel": 1, "gable": 1, "roof_metal": 2, "roof_white": 2, "roof_tile": 3,
@@ -17,6 +18,7 @@ var _mats: Array[ShaderMaterial] = []
 var _shader := preload("res://world/terminal.gdshader")
 var _timer := 0.0
 var _solids := TerminalSolids.new()
+var _occ := OccluderJobs.new()
 
 
 func _ready() -> void:
@@ -35,10 +37,12 @@ func _ready() -> void:
 
 func _exit_tree() -> void:
 	_solids.stop_all()
+	_occ.stop_all()
 
 
 func _process(dt: float) -> void:
 	_solids.poll()
+	_occ.poll()
 	var night := NightSky.night_level(Props.get_f("environment/sun_elev_deg", 30.0))
 	for m in _mats:
 		m.set_shader_parameter("night", night)
@@ -59,8 +63,10 @@ func _process(dt: float) -> void:
 			s.node = _load(icao, s.meta)
 			_reposition()
 			_solids.start(icao, s.node, s.origin)
+			_occ.start(icao, s.node)
 		elif not near and s.node != null:
 			_solids.stop(icao)
+			_occ.stop(icao)
 			for m in s.node.get_meta("mats", []):
 				_mats.erase(m)
 			s.node.queue_free()
@@ -90,6 +96,7 @@ func _load(icao: String, meta: Dictionary) -> Node3D:
 		l.position = Vector3(s.pos[0], s.pos[2], -s.pos[1])
 		l.rotation.y = deg_to_rad(-float(s.heading_deg))  # sign faces this compass heading
 		root.add_child(l)
+		VisRanges.auto(l)
 	add_child(root)
 	return root
 

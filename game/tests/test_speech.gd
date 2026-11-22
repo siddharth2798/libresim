@@ -188,3 +188,15 @@ func test_speech_voice_choice_and_pitch() -> String:
 		res = "a single voice should be used for the pilot with a lower pitch: %s" % [one.said]
 	SpeechService.reset()
 	return res
+
+
+## A muted run (--audio-driver Dummy) must not reach the OS speech engine, which bypasses Godot's audio driver.
+func test_speech_backend_silent_on_dummy_audio_driver() -> String:
+	if AudioServer.get_driver_name() != "Dummy":
+		return "run the suite with --audio-driver Dummy (driver is %s)" % AudioServer.get_driver_name()
+	if not SpeechBackend.muted():
+		return "SpeechBackend.muted() is false on the Dummy driver"
+	SpeechBackend.new().say("test", "", 1.0, 1.0, true)
+	if DisplayServer.tts_is_speaking():
+		return "say() reached the OS speech engine while muted"
+	return ""

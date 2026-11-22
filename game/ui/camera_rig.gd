@@ -32,8 +32,8 @@ var _flyby_ahead := 0.0  # m ahead of the aircraft the camera was placed (FlybyP
 var _flyby_par := {}  # FlybyPlacement.params of this aircraft
 var _label: Label
 var _label_t := 0.0
-var _seat := 0.0  # cockpit eye, metres up from the design eye: lags the vertical g
-var _seat_v := 0.0
+var _seat := Vector2.ZERO  # cockpit eye dip: metres up from the design eye (lags the vertical g), and its rate
+var cockpit_local := Transform3D.IDENTITY  # cockpit eye in the aircraft frame this frame (read by CockpitPrecision)
 var _grab := ""  # cockpit left button: "look", "glass", "lever", or ""
 var _grab_item := {}  # lever item while _grab == "lever"
 
@@ -169,10 +169,9 @@ func _process(dt: float) -> void:
 			if not Input.is_mouse_button_pressed(MOUSE_BUTTON_RIGHT) and _grab != "look":
 				_look = _look.lerp(_look_goal, k)
 			fov = _fov_cockpit
-			var seat := seat_step(_seat, _seat_v, Props.get_f("fdm/load_factor", 1.0), dt)
-			_seat = seat.x
-			_seat_v = seat.y
-			global_transform = Transform3D(t.basis * Basis.from_euler(Vector3(_look.y - 0.12, _look.x, 0.0)), t * (_eye + Vector3.UP * _seat))
+			_seat = seat_step(_seat.x, _seat.y, Props.get_f("fdm/load_factor", 1.0), dt)
+			cockpit_local = CameraMotion.cockpit_eye(_eye, _look, _seat.x, fov)
+			global_transform = t * cockpit_local
 		Mode.CHASE:
 			fov = 60.0
 			var back := t.basis.z
@@ -264,6 +263,8 @@ func _cockpit_left(e: InputEventMouseButton) -> bool:
 		return false
 	if not e.pressed:
 		var was := _grab
+		if was == "lever":
+			CockpitPick.release(_grab_item, e.shift_pressed)  # a knob clicked, not turned: push / pull
 		_grab = ""
 		_grab_item = {}
 		if was == "glass":
@@ -278,9 +279,7 @@ func _cockpit_left(e: InputEventMouseButton) -> bool:
 		if not it.is_empty():
 			_grab = "lever"
 			_grab_item = it
-			var drive := str(it.get("drive", ""))
-			var map: Array = it.get("map", [])
-			if not CockpitPick.drags(drive, map, CockpitPick.read_current(drive)):
+			if not CockpitPick.item_drags(it):
 				CockpitPick.commit(it)
 			return true
 	_grab = "look"

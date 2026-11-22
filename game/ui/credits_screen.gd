@@ -45,6 +45,7 @@ func _ready() -> void:
 	attr.vertical_alignment = VERTICAL_ALIGNMENT_BOTTOM
 	attr.grow_vertical = Control.GROW_DIRECTION_BEGIN  # a third line on a narrow window grows upward
 	attr.mouse_filter = MOUSE_FILTER_IGNORE
+	attr.add_to_group(MapStrip.BOTTOM_GROUP)  # the open N map ends above it
 	add_child(attr)
 	_attr = attr
 	attr.resized.connect(_emit_attribution_height)
@@ -61,6 +62,14 @@ func _ready() -> void:
 	_text.scroll_active = true
 	_text.selection_enabled = true
 	_panel.add_child(_text)
+
+
+## While the N map is open (ui/map_open) the line spans the whole width, so it takes fewer lines under the map.
+func _process(_dt: float) -> void:
+	var wide := Props.get_b("ui/map_open")
+	if is_instance_valid(_attr) and _attr.offset_left != (24.0 if wide else margin_left):
+		_attr.offset_left = 24.0 if wide else margin_left
+		_attr.offset_right = -24.0 if wide else -margin_right
 
 
 func _emit_attribution_height() -> void:

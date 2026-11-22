@@ -5,18 +5,23 @@ extends Node3D
 ## FDM's ground height, no lift; the shaders win the depth test), anchored at a lattice point near its first
 ## point and re-positioned when the floating origin shifts. The meshes are cut on a worker thread (~1 s for
 ## every airport, with its own height cache) and appear as they finish; data is there at once.
+## Runways draw world/runway_v2.gdshader (ICAO layout from RunwayMarkings, static look baked lazily near the camera by
+## RunwayBakes); taxiways and lead-on lines draw strip.gdshaderinc. runway_material(key) finds a runway's material for
+## TouchdownMarks (key: TouchdownMarks.runway_key).
 
 
 var terrain: TerrainQuadtree
 var data: Dictionary
 var _items: Array = []  # [MeshInstance3D, anchor ENU Vector3]
-var _jobs: Array = []  # [pts Array[Vector2], width, kind (0 runway, 1 taxiway, 2 lead-on), length]
+var _jobs: Array = []  # [pts Array[Vector2], width, kind (0 runway, 1 taxiway, 2 lead-on), length, record (runway / taxiway)]
 var _done: Array = []  # [job, arrays, anchor] from the worker
 var _mutex := Mutex.new()
 var _task := -1
-var _shader := preload("res://world/runway.gdshader")
+var _shader := preload("res://world/runway_v2.gdshader")
 var _taxi_shader := preload("res://world/taxiway.gdshader")  # fades out when a few px wide
 var _lead_shader := preload("res://world/lead_on.gdshader")  # yellow line only, drawn over a runway
+var _runway_mats := {}  # TouchdownMarks.runway_key -> ShaderMaterial
+var _bakes := RunwayBakes.new(self)
 
 
 ## wait: cut the meshes now, on this thread (tests); else on a worker, added by _process.
@@ -28,13 +33,14 @@ func build(t: TerrainQuadtree, wait := false) -> void:
 	for r in data.runways:
 		var a: Dictionary = r.ends[0]
 		var b: Dictionary = r.ends[1]
-		_jobs.append([[Vector2(a.x, a.y), Vector2(b.x, b.y)], float(r.width), 0, float(r.length)])
+		_jobs.append([[Vector2(a.x, a.y), Vector2(b.x, b.y)], float(r.width), 0, float(r.length), r])
 	for tw in data.taxiways:
 		var pts: Array[Vector2] = []
 		for p in tw.pts:
 			pts.append(Vector2(p[0], p[1]))
-		_jobs.append([pts, minf(tw.width, 23.0), 1, 0.0])
+		_jobs.append([pts, minf(tw.width, 23.0), 1, 0.0, tw])
 	_lead_ons()
+	_shader_defaults()
 	FloatingOrigin.shifted.connect(func(_d): _reposition())
 	if wait:
 		_work(t.cache)
@@ -57,7 +63,11 @@ func progress() -> float:
 	return clampf(float(_items.size()) / float(_jobs.size()), 0.0, 0.99)
 
 
-func _process(_dt: float) -> void:
+func _process(dt: float) -> void:
+	var cam := get_viewport().get_camera_3d()
+	if cam:
+		var w := FloatingOrigin.to_world(cam.global_position)
+		_bakes.step(Vector2(w.x, w.y), dt)
 	if _task >= 0:
 		_flush()
 		if WorkerThreadPool.is_task_completed(_task):
@@ -67,6 +77,7 @@ func _process(_dt: float) -> void:
 
 
 func _exit_tree() -> void:
+	_bakes.stop()
 	if _task >= 0:
 		WorkerThreadPool.wait_for_task_completion(_task)
 		_task = -1
@@ -108,6 +119,14 @@ func _flush() -> void:
 		mat.set_shader_parameter("is_runway", kind == 0)
 		mat.set_shader_parameter("length_m", d[3] if kind != 0 else j[3])
 		mat.set_shader_parameter("width_m", j[1])
+		if kind == 0:
+			var u := RunwayMarkings.uniforms(j[4])
+			for k in u:
+				mat.set_shader_parameter(k, u[k])
+			_runway_mats[TouchdownMarks.runway_key(j[4])] = mat
+			_bakes.add(mat, j[4], u)
+		elif kind == 1:
+			mat.set_shader_parameter("edge_lines", bool(j[4].get("width_known", absf(float(j[4].width) - 15.0) > 0.01)))
 		var mi := MeshInstance3D.new()
 		mi.mesh = GroundDrape.to_mesh(d[1])
 		mi.material_override = mat
@@ -141,7 +160,26 @@ func _lead_ons() -> void:
 					break
 				prev = v
 			if run.size() >= 2:
-				_jobs.append([run, 1.0, 2, 0.0])
+				_jobs.append([run, 1.0, 2, 0.0, {}])
+
+
+## The material of runway `key` (TouchdownMarks.runway_key), null if it has no mesh yet.
+func runway_material(key: String) -> ShaderMaterial:
+	return _runway_mats.get(key)
+
+
+## Runways holding a bake now (tests, the preview).
+func baked_runways() -> int:
+	return _bakes.baked_count()
+
+
+## Textures every runway / taxiway material shares, bound once as shader defaults.
+func _shader_defaults() -> void:
+	TerrainDetail.apply(_shader)
+	if _shader.get_default_texture_parameter("glyphs") == null:
+		_shader.set_default_texture_parameter("glyphs", RunwayGlyphs.texture())
+		_shader.set_default_texture_parameter("rw_noise_tex", RunwayNoise.texture())
+		_taxi_shader.set_default_texture_parameter("rw_noise_tex", RunwayNoise.texture())
 
 
 func _reposition() -> void:

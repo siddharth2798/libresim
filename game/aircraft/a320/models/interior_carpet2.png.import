@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://dbit2pk35ru47"
-path="res://.godot/imported/interior_carpet2.png-76790ceb3beba4f7351f6d6c971f8693.ctex"
+path.s3tc="res://.godot/imported/interior_carpet2.png-76790ceb3beba4f7351f6d6c971f8693.s3tc.ctex"
+path.etc2="res://.godot/imported/interior_carpet2.png-76790ceb3beba4f7351f6d6c971f8693.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "749a61ca6d86f355ba2c9c999ff05efe"
@@ -14,11 +16,11 @@ generator_parameters={
 [deps]
 
 source_file="res://aircraft/a320/models/interior_carpet2.png"
-dest_files=["res://.godot/imported/interior_carpet2.png-76790ceb3beba4f7351f6d6c971f8693.ctex"]
+dest_files=["res://.godot/imported/interior_carpet2.png-76790ceb3beba4f7351f6d6c971f8693.s3tc.ctex", "res://.godot/imported/interior_carpet2.png-76790ceb3beba4f7351f6d6c971f8693.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

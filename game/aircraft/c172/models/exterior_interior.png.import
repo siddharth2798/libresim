@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://bacp0jry6exf3"
-path="res://.godot/imported/exterior_interior.png-18e1651fb94da26d19fa38d615292429.ctex"
+path.s3tc="res://.godot/imported/exterior_interior.png-18e1651fb94da26d19fa38d615292429.s3tc.ctex"
+path.etc2="res://.godot/imported/exterior_interior.png-18e1651fb94da26d19fa38d615292429.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "e86958342e20738bb1f1e17fbeb95d72"
@@ -14,11 +16,11 @@ generator_parameters={
 [deps]
 
 source_file="res://aircraft/c172/models/exterior_interior.png"
-dest_files=["res://.godot/imported/exterior_interior.png-18e1651fb94da26d19fa38d615292429.ctex"]
+dest_files=["res://.godot/imported/exterior_interior.png-18e1651fb94da26d19fa38d615292429.s3tc.ctex", "res://.godot/imported/exterior_interior.png-18e1651fb94da26d19fa38d615292429.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

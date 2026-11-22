@@ -37,6 +37,7 @@ const DEFAULTS := {
 	"depth_of_field": false,  # replay and free camera only
 	"captain_pack": "",  # offer of the Thrustmaster Captain Pack profile (core/captain_detect.gd): "" ask | "applied" | "declined"
 	"volumetric_fog": true,  # High+, Forward+ only: shafts, rain curtains, mist (world/volumetric_fog.gd)
+	"edge_smoothing": "Auto",  # screen-space AA when neither TAA nor FSR2 runs (core/screen_aa.gd); Auto = the preset's (SMAA)
 }
 const CHOICES := {
 	"alt_unit": ["ft", "m"],
@@ -45,6 +46,7 @@ const CHOICES := {
 	"keyboard_mode": ["spring", "sticky"],
 	"control_smoothing": ["off", "light", "strong"],
 	"ui_scale": ["Auto", "100%", "125%", "150%", "200%"],
+	"edge_smoothing": ["Auto", "SMAA", "FXAA", "Off"],
 }
 
 static var _v := {}
@@ -52,12 +54,19 @@ static var _v := {}
 
 static func get_v(key: String) -> Variant:
 	if _v.is_empty():
-		_v = DEFAULTS.duplicate()
 		var cf := ConfigFile.new()
-		if cf.load(CFG) == OK:
-			for k in DEFAULTS:
-				_v[k] = cf.get_value("options", k, DEFAULTS[k])
+		_v = read(cf if cf.load(CFG) == OK else null)
 	return _v.get(key, DEFAULTS.get(key))
+
+
+## The options in a loaded options.cfg (null = none saved): a key the file does not have (a file from an older
+## version) gets its default.
+static func read(cf: ConfigFile) -> Dictionary:
+	var out := DEFAULTS.duplicate()
+	if cf:
+		for k in DEFAULTS:
+			out[k] = cf.get_value("options", k, DEFAULTS[k])
+	return out
 
 
 static func set_v(key: String, value: Variant) -> void:

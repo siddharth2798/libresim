@@ -193,6 +193,7 @@ func _sync_attached() -> void:
 	if on != _attached:
 		Props.set_v("systems/jetway_attached", on)
 		_attached = on
+		VisRanges.pin(self, on)  # out at the aircraft: always drawn in full (JetwayStandin)
 
 
 func _set_canopy(k: float) -> void:

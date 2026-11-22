@@ -103,6 +103,11 @@ static func altitude(d: Display) -> void:
 		d.txt(Vector2(ALT_R.position.x + 50, CY + 2), "%02d" % absi(v % 100), 18, Display.GREEN)
 	else:
 		d.txt(Vector2(ALT_R.get_center().x, CY), "ALT", 22, Display.RED, 0)
+	if Props.get_b("controls/fcu/metric_alt"):  # FCU METRIC ALT: selected and present altitude in metres
+		if sel >= 0.0:
+			d.txt(Vector2(ALT_R.get_center().x, 92), "%d M" % roundi(Units.ft_to_m(sel)), 16, Display.CYAN, 0)
+		if ok:
+			d.txt(Vector2(ALT_R.get_center().x, CY - 30), "%d M" % roundi(Units.ft_to_m(alt)), 16, Display.GREEN, 0)
 	var std := Props.get_b("instruments/pfd/baro_std")
 	d.txt(Vector2(ALT_R.get_center().x, 372), "STD" if std else "%d" % roundi(Props.get_f("instruments/pfd/baro_hpa", 1013.25)), 20, Display.CYAN, 0)
 

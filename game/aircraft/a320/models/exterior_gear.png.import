@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://dpfkof8l48i23"
-path="res://.godot/imported/exterior_gear.png-b712092f931c1d08b08226e8c1efacce.ctex"
+path.s3tc="res://.godot/imported/exterior_gear.png-b712092f931c1d08b08226e8c1efacce.s3tc.ctex"
+path.etc2="res://.godot/imported/exterior_gear.png-b712092f931c1d08b08226e8c1efacce.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "e389efa2daa7301e03a83aa3863ef7c7"
@@ -14,11 +16,11 @@ generator_parameters={
 [deps]
 
 source_file="res://aircraft/a320/models/exterior_gear.png"
-dest_files=["res://.godot/imported/exterior_gear.png-b712092f931c1d08b08226e8c1efacce.ctex"]
+dest_files=["res://.godot/imported/exterior_gear.png-b712092f931c1d08b08226e8c1efacce.s3tc.ctex", "res://.godot/imported/exterior_gear.png-b712092f931c1d08b08226e8c1efacce.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

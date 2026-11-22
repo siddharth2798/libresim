@@ -124,7 +124,7 @@ func test_wc_texture_shares_the_lc_source() -> String:
 			c.wait_all()
 			return "tile %s has no wctex" % k
 		var wc: ImageTexture = t.wctex
-		if t.lc_src != TerrainMeta.NONE and wc.get_width() != N:
+		if t.lc_src != TerrainMeta.NONE and wc.get_width() != TerrainHelperMaps.size_for(t.lc_src.x):  # 768 at level 0, half above
 			c.wait_all()
 			return "tile %s: wc texture %d px wide with lc source %s" % [k, wc.get_width(), t.lc_src]
 		if t.lc_src != TerrainMeta.NONE and t.lctex.get_size() != wc.get_size():

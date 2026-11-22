@@ -28,6 +28,7 @@ static func build(root: Node3D, a: Dictionary, h: Callable, solids: OpsSolids, s
 		rig.position = Vector3(t.x, g, -t.y)
 		root.add_child(rig)
 		rig.start(solids, str(k), g)
+		JetwayStandin.attach(rig)  # one box far away (world/jetway_standin.gd)
 		rigs.append(rig)
 		rots.append(t)
 	var links := JetwayLinks.build(a.get("jetlinks", []), h, rots)

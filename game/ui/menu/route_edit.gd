@@ -9,11 +9,8 @@ extends RefCounted
 ## RouteBuilder (avionics/route_builder.gd). The NavDatabase is loaded once (db()).
 
 const NM := 1852.0
-const FALLBACK_KT := 100.0  # cruise speed when the aircraft names none
+const FALLBACK_KT := RouteFuel.FALLBACK_KT  # cruise speed when the aircraft names none
 const JET_KT := 250.0  # at or above this cruise speed the default cruise altitude is a flight level
-
-static var _kt := {}  # aircraft id -> cruise KTAS
-
 
 ## The navigation data (airports, VOR / NDB, airway fixes), read on first use.
 static func db() -> NavDatabase:
@@ -191,23 +188,9 @@ static func total_nm(setup: Dictionary) -> float:
 
 # ---- the aircraft ----
 
-## Cruise true airspeed (kt) for times: the "Cruise" line of aircraft.json specs ("124 KTAS", "about 450 KTAS"),
-## else FALLBACK_KT.
+## Cruise true airspeed (kt) for times (RouteFuel.cruise_kt: the "Cruise" line of aircraft.json specs).
 static func cruise_kt(aircraft: String) -> float:
-	if _kt.has(aircraft):
-		return _kt[aircraft]
-	var kt := FALLBACK_KT
-	var def := AircraftDef.load_def(aircraft) if aircraft != "" else null
-	if def != null:
-		var re := RegEx.create_from_string("(\\d+)\\s*KTAS")
-		for row in def.data.get("specs", []):
-			if row is Array and row.size() >= 2 and str(row[0]).begins_with("Cruise"):
-				var m := re.search(str(row[1]))
-				if m != null:
-					kt = float(m.get_string(1))
-					break
-	_kt[aircraft] = kt
-	return kt
+	return RouteFuel.cruise_kt(aircraft)
 
 
 ## Default cruise altitude: 4,500 ft for a light aircraft, FL240 for a jet (cruise at or above JET_KT).

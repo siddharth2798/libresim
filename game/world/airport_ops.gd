@@ -20,18 +20,21 @@ var _scenes := {}
 var _solids := {}  # icao -> OpsSolids (collision of the dressing, see ops_solids.gd)
 var _cur: OpsSolids  # the airport being built
 var _lamps: VehicleLamps  # light points of the working vehicles of the airport being built
-var _corridors := {}  # icao -> true: OpsCorridors registered
+var _here := Vector2(INF, INF)  # the aircraft at the last corridor check (world ENU)
 
 
 func setup(t: TerrainQuadtree) -> void:
 	terrain = t
 	var d = Paths.load_json("airport_ops.json")
 	data = d if d else {}
-	_register_corridors()
+	_book_corridors()
 	var crew := RampCrew.new()  # the service vehicles around the player's parked aircraft (world/ramp_crew.gd)
 	crew.name = "RampCrew"
 	add_child(crew)
 	crew.setup(self)
+	var hd := HlodDirector.new()  # draw-distance zoom and occlusion on / off (world/hlod_director.gd)
+	hd.height_at = _h
+	add_child(hd)
 	_yellow.albedo_color = Color(0.95, 0.78, 0.15)
 	_yellow.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	_bridge_mat.albedo_color = Color(0.72, 0.74, 0.76)
@@ -76,12 +79,17 @@ func _h(x: float, y: float) -> float:
 
 func _process(dt: float) -> void:
 	GroundVehicles.tick(dt)
+	CorridorBook.poll()
+	var here: Variant = _aircraft_at()
+	if here is Vector2 and here.distance_to(_here) > 1000.0:  # a jump (situation load, a debug move): corridors at once
+		corridors_near_aircraft()
 	_timer -= dt
 	if _timer <= 0.0:
 		_timer = 1.0
 		var cam := get_viewport().get_camera_3d()
+		var w := FloatingOrigin.to_world(cam.global_position) if cam else Vector3.ZERO
+		corridors_near_aircraft([Vector2(w.x, w.y)] if cam else [])
 		if cam:
-			var w := FloatingOrigin.to_world(cam.global_position)
 			for icao in data:
 				var a: Dictionary = data[icao]
 				if a.stands.is_empty() and a.taxi.nodes.is_empty():
@@ -106,6 +114,7 @@ func _process(dt: float) -> void:
 
 
 func _build(icao: String) -> void:
+	CorridorBook.ensure(icao)  # its vehicles and masts keep out of its corridors (normally planned from 15 km out)
 	var a: Dictionary = data[icao]
 	var root := Node3D.new()
 	root.name = "ops_" + icao
@@ -128,18 +137,21 @@ func _build(icao: String) -> void:
 		_place(root, "fire_truck", Vector2(tw.x + 40.0, tw.y + 25.0), 0.0, FG_YAW)
 	_lamps.attach(root)
 	_lamps = null
+	VisRanges.tag_tree(root)  # draw distances by size and preset; jetways have their own stand-ins (world/vis_ranges.gd)
 
 
 func _exit_tree() -> void:
 	GroundVehicles.release()
 	for icao in _solids:
 		_solids[icao].clear()
-	for icao in _corridors:
-		OpsCorridors.unregister(icao)
+	CorridorBook.reset()
 
 
-## Stands, taxiways and runways of every airport are corridors from the start (not only once built).
-func _register_corridors() -> void:
+## Stands, taxiways and runways are corridors (OpsCorridors), registered lazily (CorridorBook): the start airport is
+## planned on a worker from here on, while the rest of the flight scene builds; flight.gd then asks for the corridors
+## around the placed aircraft (corridors_near_aircraft), which waits for that plan. Others follow as the aircraft or
+## the camera comes within CorridorBook.LAZY_M.
+func _book_corridors() -> void:
 	var ab := get_node_or_null("../Airports") as AirportBuilder
 	var rws := {}
 	if ab and ab.data:
@@ -147,10 +159,23 @@ func _register_corridors() -> void:
 			if not rws.has(r.airport):
 				rws[r.airport] = []
 			rws[r.airport].append(r)
-	for icao in data.keys() + rws.keys():
-		if not _corridors.has(icao):
-			OpsCorridors.register(icao, data.get(icao, {}), rws.get(icao, []))
-			_corridors[icao] = true
+	CorridorBook.setup(data, rws)
+	CorridorBook.request(str(Session.setup.get("airport", "")))
+
+
+## Corridors of the airports near the aircraft: now within CorridorBook.SYNC_M, on a worker within LAZY_M (also near
+## the `near` points, e.g. the camera). flight.gd calls it with the placed aircraft (`at`, world ENU) before the first
+## physics step; then every second from fdm/position_enu.
+func corridors_near_aircraft(near: Array = [], at: Variant = null) -> void:
+	var here: Variant = Vector2(at.x, at.y) if at is Vector3 else _aircraft_at()
+	if here is Vector2:
+		_here = here
+	CorridorBook.update(here, near)
+
+
+func _aircraft_at() -> Variant:
+	var p: Variant = Props.get_v("fdm/position_enu", null)
+	return Vector2(p.x, p.y) if p is Vector3 else null
 
 
 func _scene(name: String) -> PackedScene:
@@ -248,6 +273,7 @@ func _windsock(root: Node3D, x: float, y: float) -> void:
 	pole.mesh = pm
 	pole.material_override = _bridge_mat
 	pole.position = _local(x, y, 3.0)
+	pole.set_meta("no_vis_range", true)  # a pilot looks for windsocks from far out: always drawn
 	root.add_child(pole)
 	var pivot := Node3D.new()
 	pivot.position = _local(x, y, 6.0)
@@ -262,6 +288,7 @@ func _windsock(root: Node3D, x: float, y: float) -> void:
 	mat.albedo_color = Color(1.0, 0.45, 0.1)
 	cone.material_override = mat
 	cone.position = Vector3(0, -1.8, 0)  # hangs from the pivot; pivot tilts it out
+	cone.set_meta("no_vis_range", true)
 	pivot.add_child(cone)
 	_socks.append(pivot)
 

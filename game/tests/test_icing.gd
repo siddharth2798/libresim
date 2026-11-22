@@ -12,7 +12,7 @@ const T_ICE := 263.15  # -10 C static
 static func _guard(f: Callable) -> String:
 	var snap: Dictionary = Props._p.duplicate(true)
 	for k in ["icing/airframe", "icing/pitot", "icing/pitot_blocked", "icing/static_blocked", "icing/engine_1", "icing/engine_2",
-			"environment/precip", "environment/storm_intensity", "environment/ac_cloud_density", "weather/icing", "controls/anti_ice/wing",
+			"environment/precip", "environment/ac_precip", "environment/storm_intensity", "environment/ac_cloud_density", "weather/icing", "controls/anti_ice/wing",
 			"controls/anti_ice/eng_1", "controls/anti_ice/eng_2", "controls/electrical/pitot_heat", "controls/alt_air", "engines/1/running",
 			"engines/2/running", "systems/alternate_static", "failures/pitot_blocked", "failures/static_blocked"]:
 		Props._p.erase(k)
@@ -58,7 +58,7 @@ func test_icing_temperature_band_and_factors() -> String:
 	if absf(base * IcingRates.AIRFRAME_S - 1.0) > 1e-6:
 		return "dense cumulus at availability 1 and 80 m/s should fill in AIRFRAME_S: %.3f" % (base * IcingRates.AIRFRAME_S)
 	var strat := IcingRates.cloud_rate(1.0, "stratiform", 1.0, -8.0, 80.0)
-	var storm := IcingRates.cloud_rate(1.0, "storm", 1.0, -8.0, 80.0)
+	var storm := IcingRates.cloud_rate(1.0, CloudField.CUMULONIMBUS, 1.0, -8.0, 80.0)  # the runtime kind name
 	if not (strat < base and base < storm):
 		return "liquid water: stratiform %.5f, cumulus %.5f, storm %.5f" % [strat, base, storm]
 	if IcingRates.cloud_rate(0.5, "cumulus", 1.0, -8.0, 80.0) >= base or IcingRates.cloud_rate(1.0, "cumulus", 1.0, -8.0, 160.0) <= base:
@@ -93,7 +93,7 @@ func test_icing_rates_by_cloud_kind_and_storm() -> String:
 		var strat := _ice_after(240.0)
 		_cond(T_ICE, 1.0, "cumulus", 0.5, 60.0)
 		var cu := _ice_after(240.0)
-		_cond(T_ICE, 1.0, "storm", 0.5, 60.0)
+		_cond(T_ICE, 1.0, CloudField.CUMULONIMBUS, 0.5, 60.0)  # the kind the cloud physics publishes in a storm
 		var st := _ice_after(240.0)
 		Props.set_v("environment/storm_intensity", 1.0)  # a storm cell adds availability even where the setting is 0
 		Props.set_v("weather/icing", 0.0)
@@ -106,7 +106,7 @@ func test_icing_rates_by_cloud_kind_and_storm() -> String:
 func test_icing_freezing_rain_is_fast() -> String:
 	return _guard(func():
 		_cond(268.15, 0.0, "stratiform", 0.0, 60.0)  # -5 C, no cloud, no supercooled setting
-		Props.set_v("environment/precip", 0.7)
+		Props.set_v("environment/ac_precip", 0.7)  # rain at the aircraft (Weather), not at the camera
 		var fr := _ice_after(120.0)
 		_cond(278.15, 0.0, "stratiform", 0.0, 60.0)  # +5 C: ordinary rain
 		var warm := _ice_after(120.0)

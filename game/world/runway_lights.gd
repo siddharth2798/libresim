@@ -193,6 +193,9 @@ func _update_built(c: Vector2) -> void:
 	for icao in order:  # nearest first
 		var d := c.distance_to(_airports[icao].center)
 		if d < BUILD_RADIUS and not _built.has(icao) and not built_one:
+			if not CorridorBook.is_ready(icao):  # masts and boards keep out of its corridors: plan them first (a worker)
+				CorridorBook.request(icao)
+				continue
 			built_one = true
 			var t0 := Time.get_ticks_usec()
 			var al := AirportLights.new()

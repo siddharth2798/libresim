@@ -5,9 +5,11 @@ extends RefCounted
 ## an empty list is a ready setup.
 ##   bad   over maximum takeoff weight, CG outside the envelope, runway shorter than ground.min_runway_m (runway starts
 ##         only), tailwind above TAILWIND_KT, crosswind above limits.max_crosswind_kt (the last two on runway and air
-##         starts, not stand starts). These make Fly ask "Fly anyway?".
+##         starts, not stand starts), a planned route leg under the terrain or without the fuel for trip + reserve
+##         (core/route_checks.gd). These make Fly ask "Fly anyway?".
 ##   warn  visibility under LOW_VIS_M; a planned route whose destination is not in the nav data, with a waypoint more than
-##         RouteChecks.FAR_NM from the departure, or (air start) starting on a leg it no longer has. Never asks.
+##         RouteChecks.FAR_NM from the departure, (air start) starting on a leg it no longer has, a leg less than 1000 ft
+##         above the terrain, a thin fuel margin, or a destination runway too short for the aircraft. Never asks.
 ## Values come from the aircraft (mtow_kg, cg_envelope via WeightBalance, ground.min_runway_m, limits.max_crosswind_kt) and
 ## runways.json. The runway is looked up as world/airport_builder.gd runway_start does: the ident, else the longest. Gusts
 ## are not counted.
@@ -35,8 +37,8 @@ static func checks(setup: Dictionary, rwy := {}) -> Array:
 			if start == "runway":
 				_length(ac, rwy, out)
 			_wind(ac, setup, rwy, out)
-	for p in RouteChecks.problems(setup):
-		out.append(_item("route", "warn", p[0], p[1]))
+	for p in RouteChecks.problems(setup, ac):
+		out.append(_item("route", str(p[2]) if p.size() > 2 else "warn", p[0], p[1]))
 	if float(setup.get("visibility_m", 40000.0)) < LOW_VIS_M:
 		out.append(_item("weather", "warn", "low_visibility", "Visibility under %s km" % ("%.1f" % (LOW_VIS_M / 1000.0))))
 	return out

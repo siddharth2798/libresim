@@ -127,6 +127,7 @@ vec3 ground_detail(vec3 col, vec3 wn, vec4 amp, float streak, float k) {
 #include "res://world/terrain_detail.gdshaderinc"
 #include "res://world/terrain_pavement.gdshaderinc"
 #include "res://world/terrain_bump.gdshaderinc"
+#include "res://world/terrain_canopy.gdshaderinc"
 
 void vertex() {
 	ivec2 g = ivec2(round(UV * 64.0));
@@ -179,10 +180,9 @@ void fragment() {
 	}
 	float land = 1.0 - water;
 	Pave pv = pv_fetch(ro_rect.xy + vec2(UV.x, -UV.y) * ro_rect.z, v_dist, max(ro_aa, 0.2)); pv.k *= land;  // aprons
-	// forest floor: dense tree cover (land class 1..200) darkens and greens the imagery under the canopy;
-	// with WorldCover the tree class tint does most of this, so the density term is only a hint
-	float forest = smoothstep(0.1, 0.6, texture(lc_tex, lc_uv).r * 1.275) * land;
-	col = mix(col, col * vec3(0.8, 0.95, 0.72) * 0.85, forest * (textureSize(wc_tex, 0).x > 1 ? 0.3 : 0.6));
+	// forest floor and canopy shade (terrain_canopy.gdshaderinc): darker, greener ground under dense tree cover, forest
+	// shadows on the open ground away from the sun, sunlit crown relief; stands in for the far trees' shadows
+	col = canopy_floor(col, lc_uv, lc_scale, tile_size, land, v_en, v_dist, textureSize(wc_tex, 0).x > 1);
 	// land cover: class parameters from the 4 texels around the fragment, weights smoothed and the
 	// sampling point warped by noise so 10 m class borders are neither blocky nor straight
 	float cls_k = (1.0 - smoothstep(5000.0, 12000.0, v_dist)) * land * (1.0 - pv.k);
@@ -275,6 +275,7 @@ void fragment() {
 		float puddle = smoothstep(0.62, 0.8, vnoise(v_en * 0.05) * 0.7 + vnoise(v_en * 0.31) * 0.3) * flat_ground * wet;
 		col *= mix(1.0, 0.6, wet);
 		col = mix(col, col * 0.7, puddle);
+		NORMAL = normalize(NORMAL + (VIEW_MATRIX * vec4(rr_enu(v_en, TIME, v_dist, v_dist * 0.0011) * max(pv.k, puddle) * wet, 0.0)).xyz);  // rain rings
 		rough = mix(rough, 0.5, wet);
 		rough = mix(rough, 0.08, puddle);
 		spec = mix(spec, 0.35, wet);

@@ -4,6 +4,7 @@ extends RefCounted
 ## Keys come from KeyBindings (so a rebind shows up). A path with no key says how it actually moves.
 
 const Row = preload("res://ui/gauges/switch_row.gd")
+const Fcu = preload("res://ui/cockpit_tip_fcu.gd")
 
 const NAMES := {
 	"thr_l": "Thrust lever 1", "thr_r": "Thrust lever 2", "rev_l": "Reverser 1", "rev_r": "Reverser 2",
@@ -131,7 +132,8 @@ static func title(id: String) -> String:
 		var side := "left" if "_l_" in id else "right"
 		var part := "brake" if id.ends_with("_brake") else "pedal"
 		return "%s %s %s" % [_who(id), side, part]
-	return str(NAMES.get(id, id.replace("_", " ").capitalize()))
+	var glare: String = Fcu.title(id)
+	return glare if glare != "" else str(NAMES.get(id, id.replace("_", " ").capitalize()))
 
 
 static func control_line(drive: String, bindings: Dictionary) -> String:
@@ -148,6 +150,9 @@ static func control_line(drive: String, bindings: Dictionary) -> String:
 				continue
 			seen[label] = true
 			bits.append(label)
+	var how: String = Fcu.hint(drive)
+	if how != "":
+		bits.append(how)
 	if not bits.is_empty():
 		return " · ".join(bits)
 	for t in terms:
@@ -176,6 +181,9 @@ static func _who(id: String) -> String:
 
 
 static func _one(path: String, value: Variant) -> String:
+	var glare: String = Fcu.state(path, value)
+	if glare != "":
+		return glare
 	match path:
 		"controls/parking_brake":
 			return "Set" if _on(value) else "Off"

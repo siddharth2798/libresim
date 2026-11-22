@@ -254,5 +254,14 @@ static func _gate_frame(gate: Node) -> void:
 		tree.process_frame.connect(BusyOverlay._gate_frame.bind(gate), CONNECT_ONE_SHOT)
 		return
 	var path := str(gate.get_meta("path"))
+	if path == ScenePreload.FLIGHT:  # the flight scene and the aircraft load on threads while the film plays
+		ScenePreload.begin(str(Session.setup.get("aircraft", "")))
+		if ScenePreload.busy():
+			tree.process_frame.connect(BusyOverlay._gate_frame.bind(gate), CONNECT_ONE_SHOT)
+			return
 	gate.queue_free()
-	tree.change_scene_to_file(path)
+	var ps := ScenePreload.take(path) as PackedScene if path == ScenePreload.FLIGHT else null
+	if ps != null:
+		tree.change_scene_to_packed(ps)
+	else:
+		tree.change_scene_to_file(path)

@@ -234,15 +234,15 @@ func test_missing_roughness_metal_maps_keep_numbers() -> String:
 	return ""
 
 
-## Daylight keeps a floor; night is brighter; off, a dead bus, and any other lamp are dark.
+## Daylight keeps a floor (AP1 lit by the engaged autopilot, ap/ap1); night is brighter; off, a dead bus, and any other lamp are dark.
 func test_annunciator_follows_the_switch_and_the_bus() -> String:
 	var saved := {
-		"controls/fcu/ap1": Props.get_v("controls/fcu/ap1", 0),
-		"controls/fcu/ap2": Props.get_v("controls/fcu/ap2", 0),
+		"ap/ap1": Props.get_v("ap/ap1", 0),
+		"ap/ap2": Props.get_v("ap/ap2", 0),
 		"controls/autobrake": Props.get_v("controls/autobrake", 0),
 	}
-	Props.set_v("controls/fcu/ap1", 1)
-	Props.set_v("controls/fcu/ap2", 0)
+	Props.set_v("ap/ap1", 1)
+	Props.set_v("ap/ap2", 0)
 	Props.set_v("controls/autobrake", 2)
 	var day := CockpitLamps.energy(CockpitLamps.lit("lamp_ap1"), 0.0, 0.7, true)
 	var night := CockpitLamps.energy(CockpitLamps.lit("lamp_ap1"), 1.0, 0.7, true)
@@ -251,7 +251,7 @@ func test_annunciator_follows_the_switch_and_the_bus() -> String:
 	var unknown := CockpitLamps.energy(CockpitLamps.lit("lamp_fault"), 1.0, 0.7, true)
 	var med := CockpitLamps.lit("lamp_autobrake_med")
 	var lo := CockpitLamps.lit("lamp_autobrake_lo")
-	Props.set_v("controls/fcu/ap1", 0)
+	Props.set_v("ap/ap1", 0)
 	var off := CockpitLamps.energy(CockpitLamps.lit("lamp_ap1"), 1.0, 0.7, true)
 	for k in saved:
 		Props.set_v(k, saved[k])

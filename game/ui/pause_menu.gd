@@ -1,8 +1,8 @@
 extends Control
 ## Esc: the full-screen pause screen. The flight model pauses and the frozen 3D scene stays visible behind a blurred, dimmed
 ## backdrop (nothing is reloaded; resuming is instant). A "PAUSED" title with a context line, a left column of big items and,
-## on the right, the selected page (ui/pause_pages.gd: Options, Weather & time, Controls & keys, Save / Load, Failures; the home
-## page shows where the flight stands).
+## on the right, the selected page (ui/pause_pages.gd: Options, Weather & time, Controls & keys, Save / Load, Failures,
+## Edit route; the home page shows where the flight stands).
 ## Keys: arrows move (Left / Right also cross into a page), Enter selects, Esc backs out one level (text field, page, resume);
 ## every other key is swallowed so flight hotkeys do nothing. Props ui/pause_open tells the keyboard controls to ignore held keys.
 ## Restart, Quit to main menu and Quit game ask for a second click.
@@ -138,8 +138,12 @@ func show_page(id: String) -> void:
 		_host.add_child(n)
 		_pages[id] = n
 		var p: Control = n.get_meta("page") if n.has_meta("page") else n
-		if p.has_signal("closed"):  # a load from the saves page resumes the flight
+		if p.has_signal("closed"):  # a load from the saves page resumes the flight (so does Apply on Edit route)
 			p.connect("closed", close)
+		if p.has_signal("back"):  # Cancel on Edit route
+			p.connect("back", func():
+				show_page("home")
+				_focus_nav("resume"))
 	cur = id
 	_content.size_flags_vertical = SIZE_SHRINK_BEGIN if id == "home" else SIZE_EXPAND_FILL  # home leaves the scene visible below
 	for k in _pages:

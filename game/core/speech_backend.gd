@@ -47,7 +47,15 @@ func voices() -> Array:
 	return DisplayServer.tts_get_voices_for_language("en")
 
 
+## Launched with `--audio-driver Dummy` (muted test runs): the OS speech engine bypasses Godot's audio driver, so it must be
+## silenced here too, or ATC and callouts still talk out loud.
+static func muted() -> bool:
+	return AudioServer.get_driver_name() == "Dummy"
+
+
 func say(text: String, voice: String, pitch: float, rate: float, interrupt: bool) -> void:
+	if muted():
+		return
 	DisplayServer.tts_speak(text, voice, 70, pitch, rate, 0, interrupt)
 
 

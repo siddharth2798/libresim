@@ -14,6 +14,7 @@ var db: NavDatabase
 var plan := RoutePlan.new()
 var _last_target := ""
 var _last_next: Array = []
+var _last_rev := 0  # route/rev: a route edited in flight (RouteSetup.update_live) re-reads the waypoint positions
 var _tod_key := ""  # cruise|destination once a descent has been commanded
 
 
@@ -25,12 +26,14 @@ func target_position(ident: String) -> Variant:
 func _sync(p: Vector2) -> void:
 	var ident: String = str(Props.get_v("controls/gps/target", ""))
 	var next: Array = Props.get_v("controls/gps/route_next", [])
-	if ident != _last_target or next != _last_next:
+	var rev := int(Props.get_v(RouteSetup.REV_PROP, 0))
+	if ident != _last_target or next != _last_next or rev != _last_rev:
 		var leg_from := plan.from_pos if ident == _last_target else p  # direct-to: the leg starts here
 		plan = RoutePlan.from_idents(ident, next, target_position)
 		plan.from_pos = leg_from
 		_last_target = ident
 		_last_next = next.duplicate()
+		_last_rev = rev
 	if plan.update(p):
 		_last_target = plan.active().ident
 		_last_next = plan.next_idents()

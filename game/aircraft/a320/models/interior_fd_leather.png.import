@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://dmr8nevf73wmj"
-path="res://.godot/imported/interior_fd_leather.png-8e05b23ea9f8efb921f5d5577019572b.ctex"
+path.s3tc="res://.godot/imported/interior_fd_leather.png-8e05b23ea9f8efb921f5d5577019572b.s3tc.ctex"
+path.etc2="res://.godot/imported/interior_fd_leather.png-8e05b23ea9f8efb921f5d5577019572b.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "358ebb630d13fb7d5304e20612dc8c83"
@@ -14,11 +16,11 @@ generator_parameters={
 [deps]
 
 source_file="res://aircraft/a320/models/interior_fd_leather.png"
-dest_files=["res://.godot/imported/interior_fd_leather.png-8e05b23ea9f8efb921f5d5577019572b.ctex"]
+dest_files=["res://.godot/imported/interior_fd_leather.png-8e05b23ea9f8efb921f5d5577019572b.s3tc.ctex", "res://.godot/imported/interior_fd_leather.png-8e05b23ea9f8efb921f5d5577019572b.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

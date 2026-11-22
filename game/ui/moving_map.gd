@@ -4,13 +4,17 @@ extends Control
 ## across (wider if a route is set, so the route fits). Wheel zooms around the cursor, +/- keys
 ## and buttons too; drag pans; Space follows the aircraft again; O toggles north up / heading up.
 ## Click an airport or navaid = GPS direct-to; Shift+click adds it to the route; Backspace clears.
-## Props: controls/gps/target + controls/gps/route_next (see Gps / RoutePlan), ui/map_open.
+## "Edit route" (toggle): the planned route ahead is edited on the map as on the Route step (MapRouteEdit: drag a
+## waypoint, drag a leg to add one, click to add, right-click to remove), live into the GPS; wheel zoom and pan stay.
+## Props: controls/gps/target + controls/gps/route_next (see Gps / RoutePlan), route/rev, ui/map_open.
 ## View maths in MapView, imagery in MapTiles, symbols in MapFeatures, route in MapRouteLayer.
 
 const MARGIN := 28.0  # UI units of the window left around the map
 const CLICK_SLOP := 6.0  # px of movement that turns a click into a pan
 const ZOOM_STEP := 1.25
 const RECENTER_S := 0.45  # a recentre glides for this long, then the map locks to the aircraft
+const HINT := "Wheel or +/- zoom   ·   drag to pan   ·   click airport = direct-to   ·   Shift+click = add to route   ·   N close"
+const EDIT_HINT := "Click: add a point   ·   drag a waypoint: move   ·   drag a leg: insert   ·   right-click: remove   ·   Shift+click airport: destination"
 
 var db: NavDatabase
 var runways: Array = []
@@ -33,7 +37,8 @@ var _ping_t := 99.0
 var _msg := ""
 var _msg_t := 0.0
 var _title: Label
-var _btn := {}  # name -> Button
+var _strip: MapStrip  # title line and buttons
+var _edit: MapRouteEdit  # the "Edit route" mode (editor())
 
 
 func setup(nav_db: NavDatabase, ab: AirportBuilder, c: TerrainTileCache) -> void:
@@ -61,31 +66,10 @@ func _exit_tree() -> void:
 
 
 func _build_strip() -> void:
-	var strip := PanelContainer.new()
-	strip.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
-	var sb := StyleBoxFlat.new()
-	sb.bg_color = MapStyle.PANEL
-	sb.set_content_margin_all(6.0)
-	strip.add_theme_stylebox_override("panel", sb)
-	add_child(strip)
-	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 6)
-	strip.add_child(row)
-	_title = Label.new()
-	_title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_title.clip_text = true
-	row.add_child(_title)
-	for spec in [["out", "-", "Zoom out (-)"], ["in", "+", "Zoom in (+)"], ["follow", "Follow", "Keep the aircraft in the middle (Space)"],
-			["orient", "North up", "North up / heading up (O)"], ["fit", "Fit route", "Show the whole route (G)"],
-			["clear", "Clear route", "Cancel direct-to and route (Backspace)"], ["close", "Close (N)", "Close the map (N)"]]:
-		var b := Button.new()
-		b.text = spec[1]
-		b.tooltip_text = spec[2]
-		b.focus_mode = Control.FOCUS_NONE  # Space and Enter must not press a button
-		b.toggle_mode = spec[0] in ["follow", "orient"]
-		b.pressed.connect(_on_button.bind(spec[0]))
-		row.add_child(b)
-		_btn[spec[0]] = b
+	_strip = MapStrip.new()
+	_strip.pressed.connect(_on_button)
+	add_child(_strip)
+	_title = _strip.title
 	_sync_buttons()
 
 
@@ -97,25 +81,20 @@ func _on_button(id: String) -> void:
 		"orient": heading_up = not heading_up
 		"fit": _fit_route()
 		"clear": _clear_route()
+		"edit": editor().set_on(not editor().on)
 		"close": visible = false
 	_sync_buttons()
 
 
 func _sync_buttons() -> void:
-	if _btn.is_empty():
-		return
-	_btn.follow.set_pressed_no_signal(follow)
-	_btn.orient.set_pressed_no_signal(heading_up)
-	_btn.orient.text = "Heading up" if heading_up else "North up"
-	_btn.fit.disabled = _plan.is_empty()
-	_btn.clear.disabled = _plan.is_empty()
+	if _strip != null:
+		_strip.sync(follow, heading_up, not _plan.is_empty(), editing())
 
 
 # ---- state -------------------------------------------------------------------------------------
 
 func _here() -> Vector2:
-	var p: Vector3 = Props.get_v("fdm/position_enu", Vector3.ZERO)
-	return Vector2(p.x, p.y)
+	return RouteLive.here()
 
 
 ## Breadcrumb track (ENU points, one every 2 s), shared with the mini-map.
@@ -123,19 +102,34 @@ func track() -> Array:
 	return _track
 
 
-func _view_size() -> Vector2:
-	return size if size.x > 64.0 else get_viewport_rect().size - Vector2(MARGIN, MARGIN) * 2.0
-
-
 func _on_visibility() -> void:
 	Props.set_v("ui/map_open", visible)
+	if _edit != null:
+		_edit.set_on(false)  # the map always opens in its plain mode
 	if visible:
 		_open_view()
 
 
+## The route editor of the "Edit route" mode, made on first use.
+func editor() -> MapRouteEdit:
+	if _edit == null:
+		_edit = MapRouteEdit.new(view)
+		_edit.panned.connect(func(rel):
+			view.pan_px(rel)
+			if follow:
+				follow = false
+				_sync_buttons())
+	_edit.db = db
+	return _edit
+
+
+func editing() -> bool: return _edit != null and _edit.on
+
+
 ## Centre on the aircraft at about 20 nm across, wider so a set route fits.
 func _open_view() -> void:
-	view.size = _view_size()
+	clear_top(true)
+	view.size = size if size.x > 64.0 else get_viewport_rect().size - Vector2(MARGIN, MARGIN) * 2.0
 	follow = true
 	_pressed = false
 	_glide = 0.0
@@ -166,6 +160,12 @@ func wait_imagery() -> void:
 	tiles.wait_all()
 
 
+## Edges clear of the top bars (only moves down while open; `reset` at opening) and the attribution line (MapStrip).
+func clear_top(reset := false) -> void:
+	offset_top = maxf(MARGIN if reset else offset_top, maxf(MARGIN, MapStrip.top_clear(self) + 6.0))
+	offset_bottom = -maxf(MARGIN, MapStrip.bottom_clear(self) + 4.0)
+
+
 func _set_follow(on: bool) -> void:
 	if on and not follow:
 		_glide = RECENTER_S
@@ -179,12 +179,12 @@ func _say(s: String) -> void:
 
 func _refresh_plan() -> void:
 	var next: Array = Props.get_v("controls/gps/route_next", [])
-	var key := str(Props.get_v("controls/gps/target", "")) + "|" + ",".join(PackedStringArray(next))
+	var target := str(Props.get_v("controls/gps/target", ""))
+	var key := "%s|%s|%d" % [target, ",".join(PackedStringArray(next)), int(Props.get_v(RouteSetup.REV_PROP, 0))]
 	if key != _plan_key and db != null:
 		_plan_key = key
-		_plan = RoutePlan.from_idents(str(Props.get_v("controls/gps/target", "")), next, db.position_of)
-		if _btn.has("fit"):
-			_sync_buttons()
+		_plan = RoutePlan.from_idents(target, next, db.position_of)
+		_sync_buttons()
 
 
 func _zoom(px: Vector2, factor: float) -> void:
@@ -254,6 +254,11 @@ func _unhandled_key_input(e: InputEvent) -> void:
 
 
 func _gui_input(e: InputEvent) -> void:
+	var wheel: bool = e is InputEventMouseButton and e.button_index in [MOUSE_BUTTON_WHEEL_UP, MOUSE_BUTTON_WHEEL_DOWN]
+	if editing() and not wheel and editor().input(e):
+		_pressed = false
+		accept_event()
+		return
 	if e is InputEventMouseButton:
 		if e.button_index in [MOUSE_BUTTON_WHEEL_UP, MOUSE_BUTTON_WHEEL_DOWN] and e.pressed:
 			var k := pow(ZOOM_STEP, e.factor if e.factor > 0.0 else 1.0)
@@ -290,6 +295,7 @@ func _process(dt: float) -> void:
 			_track.pop_front()
 	if not visible or tiles == null:
 		return
+	clear_top()
 	view.size = size
 	tiles.process()
 	view.step(dt)
@@ -302,7 +308,9 @@ func _process(dt: float) -> void:
 		else:
 			view.centre = _here()
 	_refresh_plan()
-	_title.text = "MAP  %s nm across  ·  %s  ·  %s" % [_nm_text(view.across_nm()), "heading up" if heading_up else "north up", "following" if follow else "free"]
+	if editing():
+		_edit.refresh(_here())
+	_title.text = ("EDIT ROUTE  ·  " if editing() else "") + "MAP  %s nm across  ·  %s  ·  %s" % [_nm_text(view.across_nm()), "heading up" if heading_up else "north up", "following" if follow else "free"]
 	_ping_t += dt
 	_msg_t -= dt
 	queue_redraw()
@@ -315,15 +323,17 @@ func _draw() -> void:
 	draw_rect(Rect2(Vector2.ZERO, size), Color(0.08, 0.1, 0.12))
 	var level := MapView.level_for(view.physical_m_per_px(UiScale.factor), tiles.cache.levels.size())
 	tiles.draw(self, view, level, Color(0.88, 0.88, 0.88))
-	var legs := _plan.legs(_here())
+	var legs := _edit.shown_legs() if editing() else _plan.legs(_here())
 	var taken: Array = []  # label rects placed so far: the route's names win, then airports, navaids, ILS
-	MapRouteLayer.reserve(view, legs, font, taken)
+	MapRouteLayer.reserve(view, legs, font, taken, MapFeatures.marker_rects(view, db) + MapRouteLayer.chrome_rects(size, _strip.get_rect() if _strip else Rect2()))
 	MapFeatures.draw_airports(self, view, db, runways, font, taken)
 	MapFeatures.draw_navaids(self, view, db, font, taken)
 	MapFeatures.draw_ils(self, view, db, font, taken)
 	MapFeatures.draw_track(self, view, _track)
 	var here := _here()
 	MapRouteLayer.draw(self, view, legs, Props.get_f("fdm/groundspeed_mps"), font, taken)
+	if editing():
+		_edit.gestures.draw_snap(self)
 	if _ping_t < 1.3:
 		var pp := view.to_px(_ping)
 		var a := 1.0 - _ping_t / 1.3
@@ -331,23 +341,11 @@ func _draw() -> void:
 	MapFeatures.draw_aircraft(self, view.to_px(here), Props.get_f("fdm/heading_rad"), view.rot)
 	MapFeatures.draw_north(self, Vector2(size.x - 44.0, 92.0), view.rot, font)
 	MapFeatures.draw_scale_bar(self, view, Vector2(24.0, size.y - 56.0), font)
-	_draw_texts(font, legs)
-	draw_rect(Rect2(Vector2.ZERO, size), Color(1, 1, 1, 0.3), false, 2.0)
-
-
-func _draw_texts(font: Font, legs: Array) -> void:
-	if not legs.is_empty():
-		var ids := PackedStringArray()
-		for l in legs:
-			ids.append(l.ident)
-		var rem: float = legs.back().cum_m
-		var s := "ROUTE  %s   %.1f nm   ETE %s" % [" > ".join(ids), rem / MapView.NM, RoutePlan.format_ete(RoutePlan.ete_s(rem, Props.get_f("fdm/groundspeed_mps")))]
-		MapStyle.pill(self, font, s, Vector2(size.x * 0.5, size.y - 46.0), 15, Color.WHITE, MapStyle.ROUTE)
-	var hint := _msg if _msg_t > 0.0 else "Wheel or +/- zoom   ·   drag to pan   ·   click airport = direct-to   ·   Shift+click = add to route   ·   N close"
-	var ts := font.get_string_size(hint, HORIZONTAL_ALIGNMENT_LEFT, -1, 13)
-	MapStyle.text(self, font, hint, Vector2((size.x - ts.x) * 0.5, size.y - 14.0), 13, Color(1, 1, 0.8) if _msg_t > 0.0 else Color(0.9, 0.9, 0.9))
-	if not db.ils.is_empty() and view.across_nm() <= MapFeatures.SHOW_ILS_NM:
-		MapStyle.text(self, font, "* ILS frequencies are simulated", Vector2(size.x - 210.0, size.y - 14.0), 12, Color(0.8, 0.8, 0.8))
+	var msg := _msg if _msg_t > 0.0 else (_edit.msg if editing() and _edit.msg != "" else "")
+	var hint := msg if msg != "" else (EDIT_HINT if editing() else HINT)
+	MapRouteLayer.draw_footer(self, size, legs, Props.get_f("fdm/groundspeed_mps"), font, hint,
+		Color(1, 1, 0.8) if msg != "" else Color(0.9, 0.9, 0.9), not db.ils.is_empty() and view.across_nm() <= MapFeatures.SHOW_ILS_NM)
+	draw_rect(Rect2(Vector2.ZERO, size), Color(MapStyle.ROUTE, 0.9) if editing() else Color(1, 1, 1, 0.3), false, 4.0 if editing() else 2.0)
 
 
 static func _nm_text(nm: float) -> String:

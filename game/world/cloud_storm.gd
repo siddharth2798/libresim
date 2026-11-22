@@ -1,15 +1,18 @@
 class_name CloudStorm
 extends RefCounted
-## Storm cells for monsoon-like (cumulonimbus) conditions: microburst downdraft at the core and
-## outflow shear around it. Pure functions. The world is cut into 10 km cells; a seeded hash decides
+## Storm cells for monsoon-like (cumulonimbus) conditions: microburst downdraft at the core,
+## outflow shear around it, and the storm's updraft core one radius to the side (up to UPDRAFT m/s, strongest in the
+## middle of the cloud, gone at its ~11 km top, a gentle inflow below the base). Pure functions. The world is cut into 10 km cells; a seeded hash decides
 ## whether a cell holds a storm (probability about 1.3 x the `storms` setting), where in the cell, its
 ## radius (1-3 km) and strength. The cells drift slowly with the wind aloft, so a place and time always
-## give the same answer. Wind vectors are NED (x north, y east, z down).
+## give the same answer. A cell's effect fades out between 2.0 and 2.6 radii, so the wind has no step at its edge.
+## Wind vectors are NED (x north, y east, z down).
 
 const CELL_M := 10000.0
 const DOWNDRAFT := 10.0  # m/s at the core of a full-strength cell
 const OUTFLOW := 13.0  # m/s at the surface ring of a full-strength cell
 const DRIFT_K := 0.6  # cells move at this fraction of the wind aloft
+const UPDRAFT := 18.0  # m/s at the updraft core of a full-strength cell, mid-cloud
 
 
 ## Deterministic 0..1 value for cell (i, j), channel k.
@@ -42,7 +45,8 @@ static func sample(p: Vector3, agl: float, t_s: float, wind_en: Vector2, storms:
 	var q := Vector2(p.x, p.y) - wind_en * (DRIFT_K * t_s)  # into the cells' frame
 	var ci := floori(q.x / CELL_M)
 	var cj := floori(q.y / CELL_M)
-	var top := CloudField.top_m(base_m)
+	var top := CloudField.top_m(base_m, CloudField.CUMULONIMBUS)
+	var up_prof := updraft_profile(p.z, agl, base_m, top)
 	var in_col := 1.0 - smoothstep(top + 300.0, top + 900.0, p.z)  # nothing high above the cloud tops
 	var dd_prof := smoothstep(0.0, 80.0, agl) * (0.55 + 0.45 * smoothstep(50.0, 500.0, agl)) * in_col
 	var of_prof := smoothstep(0.0, 30.0, agl) * exp(-maxf(agl - 100.0, 0.0) / 350.0) * in_col
@@ -60,13 +64,16 @@ static func sample(p: Vector3, agl: float, t_s: float, wind_en: Vector2, storms:
 			var x := d / (0.55 * rad)
 			var core := exp(-x * x)  # downdraft shape
 			var ring := x * exp(1.0 - x)  # outflow: zero at the core, peak at 0.55 R
-			var s: float = cl.strength
+			var s: float = cl.strength * (1.0 - smoothstep(2.0 * rad, 2.6 * rad, d))  # fades to 0 by the cut-off: no step
 			var away := r / d if d > 1.0 else Vector2.ZERO
 			var down := DOWNDRAFT * s * core * dd_prof
 			var edge_up := 0.25 * DOWNDRAFT * s * exp(-pow((d - 1.15 * rad) / (0.35 * rad), 2.0)) * dd_prof  # lift on the gust front
 			var flow := away * (OUTFLOW * s * ring * of_prof)
-			wind += Vector3(flow.y, flow.x, down - edge_up)
-			var inten := s * exp(-pow(d / (1.2 * rad), 2.0)) * in_col
+			var th := TAU * hash01(ci + di, cj + dj, 6, seed)  # where the updraft sits beside the downdraft
+			var du := (r - Vector2(cos(th), sin(th)) * rad).length() / (0.35 * rad)
+			var up := UPDRAFT * s * exp(-du * du) * up_prof
+			wind += Vector3(flow.y, flow.x, down - edge_up - up)
+			var inten := maxf(s * exp(-pow(d / (1.2 * rad), 2.0)) * in_col, s * exp(-du * du * 0.5) * minf(up_prof * 2.0, 1.0))
 			if inten > out.intensity:
 				out.intensity = inten
 				out.core = d < 0.6 * rad and in_col > 0.5
@@ -74,3 +81,13 @@ static func sample(p: Vector3, agl: float, t_s: float, wind_en: Vector2, storms:
 	out.down = maxf(wind.z, 0.0)
 	out.shear = wind.length()
 	return out
+
+
+## 0..1 height profile of the updraft core at z m AMSL (agl above the ground), cloud base and top AMSL: a quarter
+## (inflow) below the base, full in the middle of the cloud, nothing at the top; zero at the ground. Continuous.
+static func updraft_profile(z: float, agl: float, base_m: float, top_m: float) -> float:
+	var f := 0.25
+	if z > base_m:
+		var t := (z - base_m) / maxf(top_m - base_m, 1.0)
+		f = (0.25 + 0.75 * smoothstep(0.0, 0.45, t)) * (1.0 - smoothstep(0.6, 1.0, t))
+	return f * smoothstep(0.0, 400.0, agl)

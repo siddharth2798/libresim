@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://buhe5n6r88256"
-path="res://.godot/imported/exterior_glass-alpha.png-f8437c561e9931d392eb6b95b7b83f02.ctex"
+path.s3tc="res://.godot/imported/exterior_glass-alpha.png-f8437c561e9931d392eb6b95b7b83f02.s3tc.ctex"
+path.etc2="res://.godot/imported/exterior_glass-alpha.png-f8437c561e9931d392eb6b95b7b83f02.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "ba38d630fd76860d43c1e6d13bd6ab04"
@@ -14,11 +16,11 @@ generator_parameters={
 [deps]
 
 source_file="res://aircraft/c172/models/exterior_glass-alpha.png"
-dest_files=["res://.godot/imported/exterior_glass-alpha.png-f8437c561e9931d392eb6b95b7b83f02.ctex"]
+dest_files=["res://.godot/imported/exterior_glass-alpha.png-f8437c561e9931d392eb6b95b7b83f02.s3tc.ctex", "res://.godot/imported/exterior_glass-alpha.png-f8437c561e9931d392eb6b95b7b83f02.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

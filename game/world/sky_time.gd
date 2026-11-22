@@ -3,7 +3,7 @@ extends Node
 ## Time of day: sun position for the region (lat 18.75 N, lon 73.4 E, IST = UTC+5:30),
 ## light colour/energy, sky colours, haze and the visibility fog.
 ## Props: weather/time_h (local IST hours, default 10.0), weather/day_of_year (default 45),
-##        weather/time_rate (1 = real time, 0 = frozen).
+##        weather/time_rate (1 = real time, 0 = frozen). The clock and the cloud drift hold while paused or replaying.
 ## Publishes environment/sun_elev_deg, light_level, visibility_m and the global shader params
 ## haze_density / fog_color / sky_top_color. Cloud cover dims and diffuses the sun and greys the
 ## sky (world/weather_visuals.gd); rain, wet ground and lightning live in the WeatherFx child.
@@ -18,7 +18,8 @@ var _sun: DirectionalLight3D
 var _env: Environment
 var _adapt := 0.0  # 0..1 how far the eye has adapted to the sun being in view
 var _sky: ShaderMaterial  # world/sky_clouds.gdshader
-var _drift := Vector2.ZERO
+var _drift := Vector2.ZERO  # cloud field offset (environment/cloud_drift); holds while paused / replaying (SimHold)
+var _situation := int(Props.get_v("meta/situation", 0))  # bumped by a loaded save: then the saved drift is taken
 var _night: NightSky
 var auto_exposure := true  # graphics preset (off on Low): world/auto_exposure.gd
 var _ae := AutoExposure.new()
@@ -59,7 +60,8 @@ static func sun_position(hours_ist: float, day: float) -> Vector2:
 
 
 func _process(dt: float) -> void:
-	var t := fposmod(Props.get_f("weather/time_h") + dt * Props.get_f("weather/time_rate") / 3600.0, 24.0)
+	var rate := 0.0 if SimHold.active() else Props.get_f("weather/time_rate")  # the clock stops in pause and replay
+	var t := fposmod(Props.get_f("weather/time_h") + dt * rate / 3600.0, 24.0)
 	Props.set_v("weather/time_h", t)
 	var sp := sun_position(t, Props.get_f("weather/day_of_year", 45.0))
 	var el := sp.x
@@ -135,6 +137,7 @@ func _process(dt: float) -> void:
 	_sky.set_shader_parameter("horizon_dip", dip)
 	_haze.update(d, el_deg, Atmosphere.aerosol_for_visibility(rain_vis), _sun.light_color.srgb_to_linear() * _sun.light_energy * day,
 		m_hor, (1.0 - smoothstep(0.0, 0.8, occl)) * (1.0 - _inside.k), dip)  # in cloud: the in-cloud fog colour only
+	advance_drift(dt)
 	_update_clouds(dt, occl, rain, hor, day * ls.dark)  # last: in-cloud fog overrides the visibility fog
 	_update_exposure(dt, d, el_deg, hor, top, 1.0 - day)
 	_update_glare(dt, d, el_deg, occl, rain)
@@ -167,6 +170,19 @@ func _atmosphere(sun_dir: Vector3, el_deg: float, vis: float) -> Array:
 	return _atmo_cache
 
 
+## The cloud field drifts with the wind aloft (environment/cloud_drift, which the cloud physics in world/cloud_physics.gd
+## uses too). It holds while paused or replaying; after a loaded save (meta/situation bumped) it is the saved drift.
+func advance_drift(dt: float) -> void:
+	var sit := int(Props.get_v("meta/situation", 0))
+	if sit != _situation:
+		_situation = sit
+		_drift = Props.get_v("environment/cloud_drift", _drift)
+	if not SimHold.active():
+		var wind: Vector3 = Weather._from_dir_to_ned(Props.get_f("weather/aloft_dir_deg"), Props.get_f("weather/aloft_kt") * Units.KT)
+		_drift -= Vector2(wind.y, wind.x) * dt  # field moves with the wind
+	Props.set_v("environment/cloud_drift", _drift)
+
+
 ## Feed the volumetric cloud pass (CloudLayer on the camera) and detect flying inside a cloud.
 func _update_clouds(dt: float, occl: float, rain: float, hor: Color, light: float) -> void:
 	var cam := get_viewport().get_camera_3d()
@@ -176,9 +192,6 @@ func _update_clouds(dt: float, occl: float, rain: float, hor: Color, light: floa
 	if layer == null:
 		return
 	var w := FloatingOrigin.to_world(cam.global_position)
-	var wind: Vector3 = Weather._from_dir_to_ned(Props.get_f("weather/aloft_dir_deg"), Props.get_f("weather/aloft_kt") * Units.KT)
-	_drift -= Vector2(wind.y, wind.x) * dt  # field moves with the wind
-	Props.set_v("environment/cloud_drift", _drift)  # the cloud physics (world/cloud_physics.gd) uses the same field
 	var day: float = _sky.get_shader_parameter("day")
 	var sun_col := _sun.light_color * clampf(_sun.light_energy, 0.15 * (1.0 - occl) + 0.02, 1.2)
 	var light_dir := _sun.global_transform.basis.z
@@ -192,6 +205,9 @@ func _update_clouds(dt: float, occl: float, rain: float, hor: Color, light: floa
 	layer.update_layer(w, Units.ft_to_m(Props.get_f("weather/cloud_base_ft", 4500.0)), Props.get_f("weather/cloud_cover"),
 		_drift, light_dir, sun_col, amb, occl * 0.5 + rain * 0.25)
 	var d := layer.density_at(w)
+	var base_m := Units.ft_to_m(Props.get_f("weather/cloud_base_ft", 4500.0))
+	if w.z > base_m + WeatherFx.CLOUD_THICK:  # above the drawn layer: inside a cumulus / cumulonimbus tower (physics only)
+		d = maxf(d, CloudField.density_deep(w, base_m, Props.get_f("weather/cloud_cover"), _drift, str(Props.get_v("environment/cloud_kind", ""))))
 	Props.set_v("environment/in_cloud", d > 0.05)
 	# in-cloud look (fog ramping with the density, readable aircraft in outside views, light, wisps): world/cloud_inside.gd
 	_inside.update(dt, cam, _env, _sky, _sun, layer, d, _env.fog_density, light, hor, _drift, light_dir)

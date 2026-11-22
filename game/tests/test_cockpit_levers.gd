@@ -103,9 +103,13 @@ func test_levers_pivots_exist_in_interior_glb() -> String:
 
 func _check_pivots(glb: Node, lv: Dictionary) -> String:
 	for k in lv:
+		var s: Dictionary = lv[k]
+		if s.get("at") is Array:  # a hotspot on a static part of the panel: no pivot in the glb, a drive and a pick box
+			if str(s.get("drive", "")) == "" or float(s.get("half", 0.0)) <= 0.0 or (s.at as Array).size() != 3:
+				return "hotspot %s: drive / half / at" % k
+			continue
 		if glb.find_child("pivot_" + k, true, false) == null:
 			return "pivot_%s is not in interior.glb" % k
-		var s: Dictionary = lv[k]
 		if not s.get("map") is Array or s.map.size() < 2 or str(s.get("drive", "")) == "":
 			return "%s: drive / map" % k
 		for i in range(1, s.map.size()):

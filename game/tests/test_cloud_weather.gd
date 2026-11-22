@@ -136,7 +136,7 @@ func test_thermal_profile_and_structure() -> String:
 	if day_ex.y > -0.2 or day_ex.y < -1.5:
 		return "sink between thermals %.2f m/s not weak (0.3-1)" % day_ex.y
 	# above the top and above 4000 m AGL
-	var top := CloudField.top_m(c.base_m)
+	var top := CloudField.top_m(c.base_m, c.kind)  # the physics top of the cumulus towers
 	var above := extremes(c, top + 900.0)
 	if above.x > 0.05:
 		return "thermal %.2f m/s well above the cloud top" % above.x

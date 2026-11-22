@@ -132,20 +132,23 @@ func test_no_brand_or_processor_rules_in_the_graphics_code() -> String:
 	return ""
 
 
-func test_fsr2_upscale_is_not_softened_again_by_fxaa() -> String:
+func test_fsr2_upscale_is_not_softened_again_by_a_screen_filter() -> String:
 	var vp := SubViewport.new()
 	add_child(vp)
-	var s := RenderScaler.at_scale(Graphics.PRESETS.medium, 0.8)  # medium asks for FXAA
+	var keep: Variant = UserOptions.get_v("edge_smoothing")
+	UserOptions._v["edge_smoothing"] = "Auto"  # in memory only
+	var s := RenderScaler.at_scale(Graphics.PRESETS.medium, 0.8)  # medium asks for SMAA
 	Graphics._apply_viewport(vp, s, true)
 	var fsr_aa := vp.screen_space_aa
 	var mode := vp.scaling_3d_mode
-	Graphics._apply_viewport(vp, s, false)  # Mobile: bilinear, FXAA as asked
+	Graphics._apply_viewport(vp, s, false)  # Mobile: bilinear, SMAA as asked
 	var mobile_aa := vp.screen_space_aa
+	UserOptions._v["edge_smoothing"] = keep
 	vp.free()
 	if mode != Viewport.SCALING_3D_MODE_FSR2 or fsr_aa != Viewport.SCREEN_SPACE_AA_DISABLED:
-		return "Forward+ below 1 should be FSR2 with no FXAA on top"
-	if mobile_aa != Viewport.SCREEN_SPACE_AA_FXAA:
-		return "Mobile keeps FXAA when the spec asks for it"
+		return "Forward+ below 1 should be FSR2 with no screen-space filter on top"
+	if mobile_aa != Viewport.SCREEN_SPACE_AA_SMAA:
+		return "Mobile keeps the preset's SMAA"
 	return ""
 
 
@@ -241,8 +244,8 @@ func test_render_resolution_overrides_auto() -> String:
 	if not is_equal_approx(float(half.scale), 0.5) or not half.fsr:
 		return "a fixed size sets the scale and upscales with FSR"
 	var lo_native := RenderResolution.apply(Graphics.PRESETS.low, 1.0)
-	if not is_equal_approx(float(lo_native.scale), 1.0) or lo_native.fsr or not lo_native.fxaa:
-		return "native on Low draws full size without FSR and keeps FXAA"
+	if not is_equal_approx(float(lo_native.scale), 1.0) or lo_native.fsr or ScreenAA.filter_of(lo_native) != "smaa":
+		return "native on Low draws full size without FSR and keeps SMAA"
 	if not is_equal_approx(float(RenderResolution.apply(Graphics.PRESETS.max, 1.0).scale), 1.0):
 		return "a fixed native size replaces Max's supersampling"
 	return ""

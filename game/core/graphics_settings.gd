@@ -11,25 +11,25 @@ extends Node
 ## 0 = off, Forward+ only), cloud_light (light samples per cloud step), real_lights (real SpotLights on the nearest
 ## apron floodlights, world/apron_lamps.gd; Mobile lights a mesh with 8 spots, so Mobile is held to 4),
 ## apron_shadows (how many of them cast shadows, Forward+ only), vfog (volumetric fog level 0..3, Forward+ only,
-## world/vfog_rules.gd).
+## world/vfog_rules.gd), post_aa (edge filter when neither TAA nor FSR2 runs, core/screen_aa.gd).
 const PRESETS := {
-	"low": {"renderer": "mobile", "scale": 0.7, "fsr": true, "msaa": 0, "fxaa": true, "shadow": 0.0, "pssm": 0,
+	"low": {"renderer": "mobile", "scale": 0.7, "fsr": true, "msaa": 0, "post_aa": "smaa", "shadow": 0.0, "pssm": 0,
 		"atlas": 2048, "soft": 1, "pos_soft": 1, "glow": false, "lod_k": 1.2, "bld": 4000.0, "trees": 1200.0,
 		"tree_density": 0.5, "tree_lod": 0.0, "clouds": 10, "cloud_light": 1, "wisps": 0, "rain": 1500,
 		"ssao": false, "ssil": false, "ssr": 0, "taa": false, "ae": false, "real_lights": 2, "apron_shadows": 0, "vfog": 0},
-	"medium": {"renderer": "mobile", "scale": 0.85, "fsr": true, "msaa": 1, "fxaa": true, "shadow": 700.0, "pssm": 1,
-		"atlas": 4096, "soft": 2, "pos_soft": 2, "glow": true, "lod_k": 1.4, "bld": 6000.0, "trees": 1800.0,
+	"medium": {"renderer": "mobile", "scale": 0.85, "fsr": true, "msaa": 0, "post_aa": "smaa", "shadow": 700.0, "pssm": 0,
+		"atlas": 2048, "soft": 2, "pos_soft": 2, "glow": true, "lod_k": 1.4, "bld": 6000.0, "trees": 1800.0,
 		"tree_density": 0.8, "tree_lod": 90.0, "clouds": 16, "cloud_light": 1, "wisps": 40, "rain": 3000,
 		"ssao": false, "ssil": false, "ssr": 0, "taa": false, "ae": true, "real_lights": 4, "apron_shadows": 0, "vfog": 0},
-	"high": {"renderer": "forward_plus", "scale": 1.0, "fsr": false, "msaa": 1, "fxaa": false, "shadow": 1800.0, "pssm": 2,
+	"high": {"renderer": "forward_plus", "scale": 1.0, "fsr": false, "msaa": 1, "post_aa": "smaa", "shadow": 1800.0, "pssm": 2,
 		"atlas": 4096, "soft": 3, "pos_soft": 2, "glow": true, "lod_k": 1.6, "bld": 9000.0, "trees": 2200.0,
 		"tree_density": 1.0, "tree_lod": 120.0, "clouds": 24, "cloud_light": 2, "wisps": 80, "rain": 5000,
 		"ssao": true, "ssil": false, "ssr": 0, "taa": false, "ae": true, "real_lights": 10, "apron_shadows": 0, "vfog": 1},
-	"ultra": {"renderer": "forward_plus", "scale": 1.0, "fsr": false, "msaa": 2, "fxaa": false, "shadow": 4000.0, "pssm": 2,
+	"ultra": {"renderer": "forward_plus", "scale": 1.0, "fsr": false, "msaa": 2, "post_aa": "smaa", "shadow": 4000.0, "pssm": 2,
 		"atlas": 8192, "soft": 4, "pos_soft": 3, "glow": true, "lod_k": 2.0, "bld": 12000.0, "trees": 3000.0,
 		"tree_density": 1.2, "tree_lod": 150.0, "clouds": 40, "cloud_light": 3, "wisps": 120, "rain": 8000,
 		"ssao": true, "ssil": false, "ssr": 48, "taa": true, "ae": true, "real_lights": 16, "apron_shadows": 1, "vfog": 2},
-	"max": {"renderer": "forward_plus", "scale": 1.25, "fsr": false, "msaa": 2, "fxaa": false, "shadow": 6000.0, "pssm": 2,
+	"max": {"renderer": "forward_plus", "scale": 1.25, "fsr": false, "msaa": 2, "post_aa": "smaa", "shadow": 6000.0, "pssm": 2,
 		"atlas": 8192, "soft": 5, "pos_soft": 4, "glow": true, "lod_k": 2.4, "bld": 16000.0, "trees": 4000.0,
 		"tree_density": 1.4, "tree_lod": 250.0, "clouds": 64, "cloud_light": 4, "wisps": 160, "rain": 10000,
 		"ssao": true, "ssil": true, "ssr": 64, "taa": true, "ae": true, "real_lights": 24, "apron_shadows": 2, "cloud_dist": 60000.0, "vfog": 3},
@@ -186,7 +186,7 @@ func _auto_scale(dt: float) -> void:
 		_measuring = rid
 		return
 	var hz := DisplayServer.screen_get_refresh_rate(DisplayServer.window_get_current_screen())
-	if scaler.feed(RenderingServer.viewport_get_measured_render_time_gpu(rid), RenderScaler.budget_ms(hz), dt):
+	if scaler.feed_any(RenderingServer.viewport_get_measured_render_time_gpu(rid), dt * 1000.0, RenderScaler.budget_ms(hz), DisplayServer.window_get_vsync_mode() != DisplayServer.VSYNC_DISABLED, dt):
 		_apply_viewport(vp, spec_for(frame()), renderer() == "forward_plus")
 		auto_scale_changed.emit()
 
@@ -274,14 +274,14 @@ func apply_to_scene(root: Node) -> void:
 	var t := root.get_node_or_null("Terrain")
 	if t:
 		t.lod_k = s.lod_k
+	SceneryQuality.apply(root, preset)  # ground tile cache size, terrain / building shadows (world/scenery_quality.gd)
+	VisRanges.set_detail(get_tree(), s.lod_k)  # draw distances of airport dressing scale with the terrain LOD
 	var b := root.get_node_or_null("Buildings")
 	if b:
 		b.radius = s.bld
 	var tr := root.get_node_or_null("Trees")
 	if tr:
-		tr.radius = s.trees
-		tr.density_scale = s.tree_density
-		tr.lod_radius = s.tree_lod  # real tree meshes within this radius (0 = none)
+		TreeQuality.apply(tr, s, preset)  # radius, density, near meshes, impostor atlas (world/tree_quality.gd)
 	var rl := root.get_node_or_null("RunwayLights")
 	if rl and rl.has_method("set_real_lights"):
 		rl.set_real_lights(s.real_lights if forward_plus else mini(s.real_lights, 4), s.apron_shadows if forward_plus else 0)
@@ -304,11 +304,13 @@ func apply_to_scene(root: Node) -> void:
 		cam.get_node("SunGlare").enabled = preset != "low"
 	VolumetricFog.apply(root, s.vfog)  # near-field froxel fog (world/volumetric_fog.gd), Forward+ / High+ only
 	PostFx.apply(root, preset)  # bloom, motion blur and the other post effects (user options x this preset)
+	RunwayQuality.apply(preset)  # runway_detail for world/runway_v2.gdshader
+	GroundFxQuality.apply(root, preset)  # rain splashes, wheel spray, wash and dust counts (world/ground_fx_quality.gd)
 
 
 ## Supersampling above 1 is a plain bilinear downscale. Below 1, Forward+ uses FSR2, which
-## antialiases itself, so TAA and FXAA are off (FXAA on top of FSR2 only softened the upscaled image again).
-## The mobile renderer has no FSR, so it stays bilinear (with FXAA when the spec asks for it).
+## antialiases itself, so TAA and the screen-space filter are off (a filter on top only softened it again).
+## The mobile renderer has no FSR, so it stays bilinear, with the preset's filter (SMAA; ScreenAA decides).
 func _apply_viewport(vp: Viewport, s: Dictionary, forward_plus: bool) -> void:
 	var up: bool = s.fsr and s.scale < 1.0 and forward_plus
 	if up:
@@ -317,9 +319,9 @@ func _apply_viewport(vp: Viewport, s: Dictionary, forward_plus: bool) -> void:
 		vp.scaling_3d_mode = Viewport.SCALING_3D_MODE_BILINEAR
 	vp.scaling_3d_scale = s.scale
 	vp.msaa_3d = [Viewport.MSAA_DISABLED, Viewport.MSAA_2X, Viewport.MSAA_4X][s.msaa]
-	vp.screen_space_aa = Viewport.SCREEN_SPACE_AA_FXAA if s.fxaa and not up else Viewport.SCREEN_SPACE_AA_DISABLED
+	vp.screen_space_aa = ScreenAA.mode_for(s, up or (s.taa and forward_plus), UserOptions.get_v("edge_smoothing"))
 	vp.use_debanding = true  # dither before the 8-bit output: smooth dark sky gradients and fog do not band
-	vp.use_taa = s.taa and forward_plus and not (up and forward_plus)
+	vp.use_taa = s.taa and forward_plus and not up
 
 
 ## SSAO / SSIL / SSR exist only on Forward+; they are switched off elsewhere so saved scenes behave the same.

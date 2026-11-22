@@ -118,14 +118,23 @@ func _bind_deck(aircraft_id: String) -> void:
 			var d := base.duplicate() as StandardMaterial3D
 			d.resource_name = src_name
 			d.emission_enabled = false
-			d.emission = Color(1.0, 0.96, 0.88)
-			d.emission_texture = d.albedo_texture
+			d.emission = Color.BLACK  # emission ADDs this colour to the texture: any colour here lit the whole surface
+			d.emission_texture = legend_mask(d.albedo_texture)
 			d.emission_energy_multiplier = 0.0
 			made[src_name] = d
 			_legends.append(d)
 			inst.set_surface_override_material(i, d)
 	_bind_lamps(root)
 	_deck = not _legends.is_empty() or not _lamps.is_empty()
+
+
+## The texels of a legend atlas that glow: <atlas>_emit.png (tools/a320_legend_mask.py: lettering only, so knob and button
+## bodies stay dark at night), else the atlas itself.
+static func legend_mask(albedo: Texture2D) -> Texture2D:
+	if albedo == null or albedo.resource_path == "":
+		return albedo
+	var p := albedo.resource_path.get_basename() + "_emit.png"
+	return load(p) as Texture2D if ResourceLoader.exists(p) else albedo
 
 
 func _mask() -> int:
@@ -153,7 +162,7 @@ func _bind_lamps(root: Node) -> void:
 			continue
 		var d := base.duplicate() as StandardMaterial3D
 		d.emission_enabled = false
-		d.emission = Color(1.0, 1.0, 1.0)
+		d.emission = Color.BLACK  # added to the texture: white here made every lit caption a white square
 		d.emission_texture = d.albedo_texture
 		d.emission_energy_multiplier = 0.0
 		inst.set_surface_override_material(0, d)

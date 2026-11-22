@@ -80,6 +80,12 @@ func _init() -> void:
 	vb.add_child(menu)
 	_build_menu()
 	visible = false
+	add_to_group(MapStrip.CLEAR_GROUP)  # the N map's title row stays clear of the bar
+
+
+## What the N map keeps clear (MapStrip.top_clear): the bar, not the open call list.
+func map_clear_rect() -> Rect2:
+	return Rect2() if _open else get_global_rect()
 
 
 func _label(parent: Control, size_px: int, col: Color) -> Label:

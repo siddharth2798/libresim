@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://ct78odvxgvehe"
-path="res://.godot/imported/exterior_a320_spinner_tex.png-855533ab04d0233049802bdb4ab6a50b.ctex"
+path.s3tc="res://.godot/imported/exterior_a320_spinner_tex.png-855533ab04d0233049802bdb4ab6a50b.s3tc.ctex"
+path.etc2="res://.godot/imported/exterior_a320_spinner_tex.png-855533ab04d0233049802bdb4ab6a50b.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "47eb82f541660d98aae5e099910beedf"
@@ -14,11 +16,11 @@ generator_parameters={
 [deps]
 
 source_file="res://aircraft/a320/models/exterior_a320_spinner_tex.png"
-dest_files=["res://.godot/imported/exterior_a320_spinner_tex.png-855533ab04d0233049802bdb4ab6a50b.ctex"]
+dest_files=["res://.godot/imported/exterior_a320_spinner_tex.png-855533ab04d0233049802bdb4ab6a50b.s3tc.ctex", "res://.godot/imported/exterior_a320_spinner_tex.png-855533ab04d0233049802bdb4ab6a50b.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

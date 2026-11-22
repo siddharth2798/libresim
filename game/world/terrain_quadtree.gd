@@ -261,6 +261,7 @@ func _make_instance(k: Vector3i) -> MeshInstance3D:
 		mi.mesh = _mesh
 		mi.material_override = ShaderMaterial.new()
 		mi.material_override.shader = _shader
+		mi.cast_shadow = SceneryQuality.mode_for(self)
 		add_child(mi)
 	else:
 		mi = _pool.pop_back()

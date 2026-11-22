@@ -2,7 +2,8 @@ extends RefCounted
 ## What the pause screen (ui/pause_menu.gd) lists: ITEMS is the left column, in order, and build()
 ## makes the content page of a "page" item the first time it is shown. The pages are the existing
 ## ones: the start screen's Options and Controls pages, and the in-flight Weather & time (F10),
-## Failures (F9) and Saved flights panels in their embedded mode (no frame, no hotkey).
+## Failures (F9) and Saved flights panels in their embedded mode (no frame, no hotkey), and Edit route (the Route step's
+## editor on the route ahead, ui/route_live_page.gd).
 ## kind: "page" shows content on the right; "action" does something (confirm: click twice).
 
 const ITEMS := [
@@ -17,6 +18,8 @@ const ITEMS := [
 		"sub": "Save the flight as it is now, or go back to an earlier one. F11 quick-saves, Shift+F11 quick-loads."},
 	{"id": "failures", "label": "Failures", "key": "F9", "kind": "page", "title": "Failures",
 		"sub": "Fail or repair any system, live."},
+	{"id": "route", "label": "Edit route", "kind": "page", "title": "Edit route",
+		"sub": "Change the route ahead: drag a waypoint, drag a leg to add one, click to add, right-click to remove. Apply to fly it."},
 	{"sep": true},
 	{"id": "checklists", "label": "Checklists", "key": "F2", "kind": "action"},
 	{"id": "replay", "label": "Instant replay", "key": "R", "kind": "action"},
@@ -60,6 +63,9 @@ static func build(id: String, flight: Node, pause: Control) -> Control:
 			page = _script_page(PanelContainer.new(), "res://ui/failures_panel.gd")
 			page.set("embedded", true)
 			page.set("manager", flight.get_node("Systems/Failures"))
+		"route":
+			page = _script_page(VBoxContainer.new(), "res://ui/route_live_page.gd")
+			scroll = false  # the map and nav log fill the page
 		"saves":
 			page = _script_page(PanelContainer.new(), "res://ui/saves_panel.gd")
 			page.set("embedded", true)
@@ -98,4 +104,4 @@ static func refresh(id: String, node: Control, flight: Node) -> void:
 	match id:
 		"home": page.call("refresh", flight)
 		"settings", "failures": page.call("refresh")
-		"saves": page.call("open")
+		"saves", "route": page.call("open")

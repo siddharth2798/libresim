@@ -48,7 +48,7 @@ func _ready() -> void:
 	_view.own_world_3d = true
 	_view.render_target_update_mode = SubViewport.UPDATE_WHEN_VISIBLE
 	_view.msaa_3d = Viewport.MSAA_4X
-	_view.screen_space_aa = Viewport.SCREEN_SPACE_AA_FXAA
+	_view.screen_space_aa = Viewport.SCREEN_SPACE_AA_SMAA  # sharper than FXAA (core/screen_aa.gd)
 	_view.anisotropic_filtering_level = Viewport.ANISOTROPY_16X
 	# Drawn at twice the size and shrunk to the panel: sharp edges, and sharp on a Retina screen where the
 	# panel's pixels are not the display's.

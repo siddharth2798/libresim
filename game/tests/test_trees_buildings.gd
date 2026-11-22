@@ -3,7 +3,9 @@ extends Node
 
 
 func _species_counts(n: float, g: float) -> Array:
-	var counts := [0, 0, 0, 0]
+	var counts := []
+	counts.resize(TreeSpecies.COUNT)
+	counts.fill(0)
 	for j in 40:
 		for i in 40:
 			counts[TreeSpecies.of(i, j, n, g)] += 1
@@ -50,14 +52,14 @@ func test_palm_collision_disc_is_narrower_than_the_crown() -> String:
 	return "" if r < b and r > 0.5 else "palm disc %.1f vs broadleaf %.1f" % [r, b]
 
 
-func test_lod0_meshes_are_small_and_unit_sized() -> String:
+func test_near_meshes_fit_their_budgets_and_unit_size() -> String:
 	for sp in TreeSpecies.COUNT:
-		var m := TreeMeshes.build(sp)
-		var tris := TreeMeshes.triangle_count(m)
-		if tris < 150 or tris > 700:
-			return "species %d has %d triangles (want a few hundred)" % [sp, tris]
-		var box := m.get_aabb()
-		if box.position.y < -0.05 or box.end.y > 1.1 or box.size.x > 1.3 or box.size.x < 0.1:
+		var t0 := TreeMeshes.triangle_count(TreeMeshes.build(sp, 0))
+		var t1 := TreeMeshes.triangle_count(TreeMeshes.build(sp, 1))
+		if t0 > TreeMeshes.MAX_TRIS[0] or t1 > TreeMeshes.MAX_TRIS[1] or t1 >= t0 or t1 < 60:
+			return "species %d: LOD0 %d / LOD1 %d triangles (budgets %s)" % [sp, t0, t1, TreeMeshes.MAX_TRIS]
+		var box := TreeMeshes.build(sp, 0).get_aabb()
+		if box.position.y < -0.05 or box.end.y > 1.2 or box.size.x > 1.9 or box.size.x < 0.3:
 			return "species %d bounds %s are not unit tree sized" % [sp, box]
 	return ""
 
@@ -67,9 +69,11 @@ func test_atlas_bakes_in_headless_with_a_placeholder() -> String:
 	var got := []
 	atlas.baked.connect(func(a, n): got.append([a, n]))
 	add_child(atlas)
-	var ok := got.size() == 1 and got[0][0] != null and atlas.ready_ok
+	atlas.bake(64)
+	var ok := got.size() == 1 and got[0][0] != null and got[0][1] != null and atlas.ready_ok and not atlas.busy
+	ok = ok and atlas.sphere.size() == TreeSpecies.COUNT and atlas.frame_px == 64
 	atlas.queue_free()
-	return "" if ok else "the atlas should report baked at once without a renderer"
+	return "" if ok else "the atlas should report baked at once without a renderer, with a sphere per species"
 
 
 func test_tree_shaders_expose_the_lod_handover() -> String:
@@ -118,20 +122,11 @@ func test_tree_colour_hash_is_stable() -> String:
 	return ""
 
 
-func test_tree_yaw_columns_and_atlas_pixels() -> String:
-	if TreeLook.yaw_column(0.0, 1.0, TreeAtlas.YAWS) != 0:
-		return "camera on local +Z should be column 0"
-	if TreeLook.yaw_column(1.0, 0.0, TreeAtlas.YAWS) != 2:
-		return "camera on local +X should be column 2, got %d" % TreeLook.yaw_column(1.0, 0.0, TreeAtlas.YAWS)
-	if TreeLook.yaw_column(0.0, -1.0, TreeAtlas.YAWS) != 4:
-		return "camera on local -Z should be column 4"
-	if TreeLook.yaw_column(-1.0, 0.0, TreeAtlas.YAWS) != 6:
-		return "camera on local -X should be column 6, got %d" % TreeLook.yaw_column(-1.0, 0.0, TreeAtlas.YAWS)
-	var old_px: int = 128 * 4 * 256 * 4
-	if TreeAtlas.YAWS != 8 or TreeAtlas.pixel_count() != old_px * 2:
-		return "atlas %d px, %d yaws is not twice the old 4 x 4 (%d)" % [TreeAtlas.pixel_count(), TreeAtlas.YAWS, old_px]
-	if TreeAtlas.GRID != Vector2i(TreeAtlas.YAWS, TreeSpecies.COUNT):
-		return "atlas grid %s" % [TreeAtlas.GRID]
+func test_atlas_layout_and_pixels() -> String:
+	if TreeAtlas.atlas_size(128) != Vector2i(TreeSpecies.COUNT * TreeOcta.N * 128, TreeOcta.N * 128):
+		return "atlas size %s" % [TreeAtlas.atlas_size(128)]
+	if TreeAtlas.pixel_count(64) * 4 != TreeAtlas.pixel_count(128):
+		return "halving the frame should quarter the pixels"
 	return ""
 
 

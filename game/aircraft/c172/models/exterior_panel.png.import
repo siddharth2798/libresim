@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://oowpy1pdnwb"
-path="res://.godot/imported/exterior_panel.png-b61f881829bff32137fb3dff9ad87e13.ctex"
+path.bptc="res://.godot/imported/exterior_panel.png-b61f881829bff32137fb3dff9ad87e13.bptc.ctex"
+path.astc="res://.godot/imported/exterior_panel.png-b61f881829bff32137fb3dff9ad87e13.astc.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "f4940b7c4368f4f896d6c7cf35082a30"
@@ -14,12 +16,12 @@ generator_parameters={
 [deps]
 
 source_file="res://aircraft/c172/models/exterior_panel.png"
-dest_files=["res://.godot/imported/exterior_panel.png-b61f881829bff32137fb3dff9ad87e13.ctex"]
+dest_files=["res://.godot/imported/exterior_panel.png-b61f881829bff32137fb3dff9ad87e13.bptc.ctex", "res://.godot/imported/exterior_panel.png-b61f881829bff32137fb3dff9ad87e13.astc.ctex"]
 
 [params]
 
-compress/mode=0
-compress/high_quality=false
+compress/mode=2
+compress/high_quality=true
 compress/lossy_quality=0.7
 compress/uastc_level=0
 compress/rdo_quality_loss=0.0

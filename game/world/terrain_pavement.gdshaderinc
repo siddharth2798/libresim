@@ -5,6 +5,8 @@
 // asphalt, with tyre marks along the stand lead-in lines, oil stains where aircraft stand and rubber / grime
 // streaks. The satellite colour stays only as a very low-frequency tint, so the apron matches its surroundings.
 
+#include "res://world/rain_ripples.gdshaderinc"  // rain rings on wet aprons and puddles (terrain.gdshader)
+
 uniform sampler2D pv_tex : filter_linear, repeat_disable;
 uniform float pv_on = 0.0;
 

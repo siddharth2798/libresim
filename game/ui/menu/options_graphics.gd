@@ -1,21 +1,22 @@
 class_name OptionsGraphics
 extends VBoxContainer
 ## The Graphics tab of the Options page: quality preset (Graphics autoload, same as F10), the renderer for
-## the next start, and the post effect switches (ui/post_fx_toggles.gd). Presets Low / Medium run on the
+## the next start, edge smoothing (core/screen_aa.gd) and the post effect switches (ui/post_fx_toggles.gd). Presets Low / Medium run on the
 ## Mobile renderer, High and up on Forward+ (core/graphics_settings.gd); a preset on the other renderer
 ## shows "Restart libresim to apply".
 
 signal changed
 
 const PRESET_NOTES := {
-	"low": "Mobile renderer. 70 % render scale with FSR, no shadows, short scenery range. For integrated graphics.",
-	"medium": "Mobile renderer. 85 % render scale with FSR, shadows to 700 m, medium scenery range.",
-	"high": "Forward+ renderer: ambient occlusion, more apron lights. Full resolution, MSAA 2x, shadows to 1.8 km, long scenery range.",
+	"low": "Mobile renderer. 70 % render scale, SMAA edge smoothing, no shadows, short scenery range. For integrated graphics.",
+	"medium": "Mobile renderer. 85 % render scale, MSAA 2x + SMAA, shadows to 700 m, medium scenery range.",
+	"high": "Forward+ renderer: ambient occlusion, more apron lights. Full resolution, MSAA 2x + SMAA, shadows to 1.8 km, long scenery range.",
 	"ultra": "Forward+: ambient occlusion, screen-space reflections on water and wet runways, TAA. MSAA 4x, shadows to 4 km, denser trees and buildings, more cloud steps.",
 	"max": "Everything in Ultra plus indirect light (SSIL), 125 % supersampling, shadows to 6 km, 16 km buildings, the finest clouds. For a strong dedicated GPU.",
 }
 const RESTART_NOTE := "Restart libresim to apply: the next start uses the %s renderer."
 const RENDERERS := {"Mobile": "mobile", "Forward+": "forward_plus"}
+const EDGE_TIP := "Smooths jagged edges after the picture is drawn. Auto uses the preset's choice (SMAA: sharp, slightly slower than FXAA). Not used while TAA or FSR upscaling runs (Ultra, Max, or a render resolution below 100 % on Forward+): they already smooth edges."
 
 var restart_note: Label
 var advice_note: Label  # the preset is designed for the other renderer (Graphics.renderer_note)
@@ -52,6 +53,9 @@ func _ready() -> void:
 	var res := ResolutionRow.new()
 	res.changed.connect(func(): changed.emit())
 	add_child(res)
+	add_child(OptionRows.choice("Edge smoothing", "edge_smoothing", func(_x):
+		Graphics.apply_to_scene(get_tree().current_scene)
+		changed.emit(), EDGE_TIP))
 	var rr := HBoxContainer.new()
 	rr.add_theme_constant_override("separation", 14)
 	add_child(rr)

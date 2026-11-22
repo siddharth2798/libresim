@@ -112,6 +112,8 @@ func _flight_director(pitch: float, roll: float) -> void:
 
 
 func _ils() -> void:
+	if not Props.get_b("controls/efis/ls", true):  # the EFIS LS button shows the ILS scales
+		return
 	for n in [2, 1]:
 		var b := "avionics/nav%d/" % n
 		if str(Props.get_v(b + "kind", "")) != "ILS" or not Props.get_b(b + "valid"):

@@ -15,7 +15,10 @@ extends RefCounted
 ##   controls/reverse_<n> 0..1           (per engine n >= 1; reverse thrust selected, fraction of REV MAX)
 ##   controls/throttle, throttle_<n>     see engine_levers.gd (n = 1 mirrors the shared one)
 ##   controls/anti_ice/{wing, eng_<n>} bool (probe heat, controls/anti_ice/probe, stays on: systems/icing.gd)
-##   controls/fcu/ap1, ap2, athr, loc, appr (bool toggles)
+##   controls/fcu/ap1, ap2, athr, loc, appr (bool toggles); ap_disc, athr_disc (pulses the autoflight consumes);
+##   spd_mach, trk_fpa, metric_alt (FCU window / PFD display only), alt_inc_1000 (ALT knob detent 1000 ft)
+##   controls/fcu/fd, controls/efis/ls, controls/baro/{std, hpa}, controls/nd/{mode, range_nm},
+##   controls/efis/nd_filter 0 none, 1 CSTR, 2 WPT, 3 VOR.D, 4 NDB, 5 ARPT (the EFIS control panel)
 ##   controls/fcu/spd_kt, hdg_deg, alt_ft, vs_fpm (set-points in pilot units, like adf/freq_khz)
 ##   controls/ground/jetway_stowed bool (the jetway stays retracted at a gate)  controls/ground/crew_away bool (ground vehicles sent away)
 ##   controls/ground/taxi_req, push_req int (counters: each press asks world/ground_ops.gd for a taxi route / pushback)
@@ -57,7 +60,9 @@ const GROUPS := {
 		"door_cargo_fwd_toggle", "door_cargo_aft_toggle"],  # the doors after L1 (door_toggle, every aircraft)
 	"anti_ice": ["anti_ice_wing", "anti_ice_eng_1", "anti_ice_eng_2"],
 	"fcu": ["fcu_ap1", "fcu_ap2", "fcu_athr", "fcu_loc", "fcu_appr", "fcu_spd_up", "fcu_spd_down",
-		"fcu_hdg_right", "fcu_hdg_left", "fcu_alt_up", "fcu_alt_down", "fcu_vs_up", "fcu_vs_down"],
+		"fcu_hdg_right", "fcu_hdg_left", "fcu_alt_up", "fcu_alt_down", "fcu_vs_up", "fcu_vs_down", "fcu_ap_disc", "fcu_athr_disc",
+		"fcu_spd_mach", "fcu_trk_fpa", "fcu_metric_alt", "fcu_alt_1000"],
+	"efis": ["efis_fd", "efis_ls", "baro_std", "baro_up", "baro_down", "nd_mode_next", "nd_range_up", "nd_range_down", "nd_filter_next"],
 	"ext_lights": ["takeoff_light", "turnoff_lights", "wing_lights", "logo_lights"],
 	"elec": ["elec_bat1", "elec_bat2", "elec_gen1", "elec_gen2", "elec_apu_gen", "elec_ext_pwr"],
 	"hyd": ["hyd_green_edp", "hyd_yellow_edp", "hyd_blue_epump", "hyd_yellow_epump", "hyd_ptu"],
@@ -74,6 +79,9 @@ const TOGGLES := {
 	"anti_ice_wing": "controls/anti_ice/wing", "anti_ice_eng_1": "controls/anti_ice/eng_1", "anti_ice_eng_2": "controls/anti_ice/eng_2",
 	"fcu_ap1": "controls/fcu/ap1", "fcu_ap2": "controls/fcu/ap2", "fcu_athr": "controls/fcu/athr",
 	"fcu_loc": "controls/fcu/loc", "fcu_appr": "controls/fcu/appr",
+	"fcu_ap_disc": "controls/fcu/ap_disc", "fcu_athr_disc": "controls/fcu/athr_disc", "fcu_spd_mach": "controls/fcu/spd_mach",
+	"fcu_trk_fpa": "controls/fcu/trk_fpa", "fcu_metric_alt": "controls/fcu/metric_alt", "fcu_alt_1000": "controls/fcu/alt_inc_1000",
+	"efis_fd": "controls/fcu/fd", "efis_ls": "controls/efis/ls", "baro_std": "controls/baro/std",
 	"takeoff_light": "controls/lights/takeoff", "turnoff_lights": "controls/lights/rwy_turnoff",
 	"wing_lights": "controls/lights/wing", "logo_lights": "controls/lights/logo",
 	# every aircraft: the ramp (world/jetway_rig.gd, world/ramp_crew.gd, world/cabin_door.gd)
@@ -116,8 +124,10 @@ const GROUND := ["taxi_route", "pushback", "jetway_toggle", "door_toggle", "pass
 const CYCLES := {
 	"magnetos_next": ["controls/magnetos", 4, 3], "fuel_selector": ["controls/fuel/selector", 4, 3],
 	"autobrake_next": ["controls/autobrake", 4, 0], "engine_mode_next": ["controls/engine_mode", 3, 0],
-	"gear_toggle": ["controls/gear", 2, 1],
+	"gear_toggle": ["controls/gear", 2, 1], "nd_mode_next": ["controls/nd/mode", 2, 0], "nd_filter_next": ["controls/efis/nd_filter", 6, 0],
 }
+## ND range steps (nm) for nd_range_up / nd_range_down (ControlSteps) and the EFIS range knob.
+const ND_RANGES := [10.0, 20.0, 40.0, 80.0, 160.0, 320.0]
 ## Press actions that move a 0..1 prop by a fixed step: action -> [prop, step].
 const STEPS := {"speedbrake_out": ["controls/speedbrake", 0.25], "speedbrake_in": ["controls/speedbrake", -0.25]}
 
@@ -126,12 +136,14 @@ const RATE_PROPS := [
 	{"prop": "pitch_trim", "neg": "trim_down", "pos": "trim_up", "rate": 0.15, "lo": -1.0, "hi": 1.0},
 	{"prop": "rudder_trim", "neg": "rudder_trim_left", "pos": "rudder_trim_right", "rate": 0.1, "lo": -1.0, "hi": 1.0},
 ]
-## FCU knobs (held, repeating): action -> [prop, step, lo, hi, wraps].
+## FCU knobs (held, repeating): action -> [prop, step, lo, hi, wraps, prop read while unset (optional)].
 const KNOBS := {
 	"fcu_spd_up": ["controls/fcu/spd_kt", 1.0, 100.0, 399.0, false], "fcu_spd_down": ["controls/fcu/spd_kt", -1.0, 100.0, 399.0, false],
 	"fcu_hdg_right": ["controls/fcu/hdg_deg", 1.0, 0.0, 359.0, true], "fcu_hdg_left": ["controls/fcu/hdg_deg", -1.0, 0.0, 359.0, true],
 	"fcu_alt_up": ["controls/fcu/alt_ft", 100.0, 100.0, 39000.0, false], "fcu_alt_down": ["controls/fcu/alt_ft", -100.0, 100.0, 39000.0, false],
 	"fcu_vs_up": ["controls/fcu/vs_fpm", 100.0, -6000.0, 6000.0, false], "fcu_vs_down": ["controls/fcu/vs_fpm", -100.0, -6000.0, 6000.0, false],
+	"baro_up": ["controls/baro/hpa", 1.0, 945.0, 1050.0, false, "weather/qnh_hpa"],
+	"baro_down": ["controls/baro/hpa", -1.0, 945.0, 1050.0, false, "weather/qnh_hpa"],
 }
 ## Latching switches (a joystick button that stays down): action -> [prop, value when off, value when on, sync].
 ## They act on both edges. `sync` is what the hardware position does when first seen (flight start, pad plugged in):
@@ -167,6 +179,8 @@ const SEEDS := {
 	"fcu": {"controls/fcu/ap1": false, "controls/fcu/ap2": false, "controls/fcu/athr": false, "controls/fcu/loc": false,
 		"controls/fcu/appr": false, "controls/fcu/spd_kt": 250.0, "controls/fcu/hdg_deg": 0.0,
 		"controls/fcu/alt_ft": 10000.0, "controls/fcu/vs_fpm": 0.0},
+	"efis": {"controls/fcu/fd": true, "controls/efis/ls": true, "controls/baro/std": false, "controls/nd/mode": 0,
+		"controls/nd/range_nm": 40.0, "controls/efis/nd_filter": 0},
 	"ext_lights": {"controls/lights/takeoff": false, "controls/lights/rwy_turnoff": false, "controls/lights/wing": false,
 		"controls/lights/logo": false},
 	"elec": {"controls/electrical/bat1": true, "controls/electrical/bat2": true, "controls/electrical/gen1": true, "controls/electrical/gen2": true, "controls/electrical/apu_gen": true, "controls/electrical/ext_pwr": true},

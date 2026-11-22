@@ -35,18 +35,18 @@ trap restore EXIT
 
 # refresh the import / class_name cache first: new class_name files from other work
 # would otherwise give "Could not find type" parse errors in a non-editor run
-timeout 300 "$GODOT" --headless --path "$ROOT/game" --import > "$OUT/logs/import.log" 2>&1
+timeout 300 "$GODOT" --audio-driver Dummy --headless --path "$ROOT/game" --import > "$OUT/logs/import.log" 2>&1
 
 if [ -z "$FILTER" ] || [ "$FILTER" = unit ]; then
 	echo "e2e: unit tests"
-	timeout 900 "$GODOT" --headless --path "$ROOT/game" res://tests/run_tests.tscn > "$OUT/logs/unit_tests.log" 2>&1
+	timeout 900 "$GODOT" --audio-driver Dummy --headless --path "$ROOT/game" res://tests/run_tests.tscn > "$OUT/logs/unit_tests.log" 2>&1
 	echo $? > "$OUT/logs/unit_tests.exit"
 fi
 if [ -z "$FILTER" ] || [ "$FILTER" = menu ]; then
 	echo "e2e: start screen"
-	E2E_OUT="$OUT" E2E_PHASE=1 timeout 180 "$GODOT" --path "$ROOT/game" res://tests/e2e/e2e_menu.tscn > "$OUT/logs/menu_phase1.log" 2>&1
+	E2E_OUT="$OUT" E2E_PHASE=1 timeout 180 "$GODOT" --audio-driver Dummy --path "$ROOT/game" res://tests/e2e/e2e_menu.tscn > "$OUT/logs/menu_phase1.log" 2>&1
 	cp "$OUT/logs/menu_phase1.log" "$OUT/logs/menu_fly.log"
-	E2E_OUT="$OUT" E2E_PHASE=2 timeout 120 "$GODOT" --path "$ROOT/game" res://tests/e2e/e2e_menu.tscn > "$OUT/logs/menu_phase2.log" 2>&1
+	E2E_OUT="$OUT" E2E_PHASE=2 timeout 120 "$GODOT" --audio-driver Dummy --path "$ROOT/game" res://tests/e2e/e2e_menu.tscn > "$OUT/logs/menu_phase2.log" 2>&1
 fi
 
 "$PY" "$ROOT/tools/e2e_jobs.py" ${FILTER:+"$FILTER"} > "$OUT/jobs.tsv"
@@ -54,7 +54,7 @@ run_job() {  # tag expect args(|-separated)
 	local tag="$1" args="$3"
 	IFS='|' read -r -a a <<< "$args"
 	local t0=$(date +%s)
-	timeout 600 "$GODOT" --path "$ROOT/game" res://tests/e2e/e2e_runner.tscn -- "${a[@]}" \
+	timeout 600 "$GODOT" --audio-driver Dummy --path "$ROOT/game" res://tests/e2e/e2e_runner.tscn -- "${a[@]}" \
 		--e2e_out="$OUT" --e2e_tag="$tag" > "$OUT/logs/$tag.log" 2>&1
 	local rc=$?
 	echo "$rc $(( $(date +%s) - t0 ))" > "$OUT/logs/$tag.exit"

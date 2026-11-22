@@ -10,7 +10,8 @@ const BAND_BOTTOM_C := -20.0
 const CLOUD_MIN := 0.05  # environment/ac_cloud_density above which the aircraft is in cloud
 const AIRFRAME_S := 300.0  # seconds to full airframe ice in dense cumulus, availability 1, at 80 m/s
 const FREEZING_RAIN_S := 120.0  # seconds to full ice in steady freezing rain
-const LIQUID := {"stratiform": 0.4, "cumulus": 1.0, "storm": 1.5}  # liquid-water factor by cloud kind
+## Liquid-water factor by cloud kind (environment/cloud_kind, CloudField's names); any other kind counts as stratiform.
+const LIQUID := {CloudField.STRATIFORM: 0.4, CloudField.CUMULUS: 1.0, CloudField.CUMULONIMBUS: 1.5}
 const SUBLIMATION_S := 1800.0  # clear, cold air: ice goes away this slowly
 const WARM_MELT_S := 150.0  # at +5 C and above
 const HOT_MELT_S := 60.0  # at +15 C and above, on top of the above

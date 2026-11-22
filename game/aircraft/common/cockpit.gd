@@ -11,6 +11,7 @@ extends Node3D
 ##               A spot whose item (or "screen") names one gets a quad of that size and tilt; other spots are upright
 ##               quads of "size" wide.
 ##   levers      {pivot: {drive, map, ...}} moving controls of the interior glb (cockpit_levers.gd); absent = static
+##   bar_lamps   the FCU / EFIS green bars (cockpit_bar_lamps.gd);  fcu_lcd  the FCU's LCD strip (fcu_lcd.gd)
 ## Item names are the InstrumentPanel ones (panel.json): gauges, "radios", "strip", "switches".
 
 const REFRESH := 1.0 / 30.0
@@ -42,7 +43,7 @@ func build(model: AircraftModel, fallback_eye: Vector3) -> void:
 	_panel_mesh = str(cfg.get("panel_mesh", ""))
 	eye = fallback_eye
 	if ResourceLoader.exists(def.path("interior")):
-		interior = (load(def.path("interior")) as PackedScene).instantiate()
+		interior = ScenePreload.scene(def.path("interior")).instantiate()  # loaded in the background since Fly (ui/scene_preload.gd)
 		interior.transform = model.fg_transform()
 		add_child(interior)
 		AircraftModel.fix_glass(interior)
@@ -81,6 +82,25 @@ func build(model: AircraftModel, fallback_eye: Vector3) -> void:
 	var lighting := CockpitLighting.new()
 	add_child(lighting)
 	lighting.setup(_quads, [rects["radios"]] if interior != null and not spots.is_empty() and rects.has("radios") else [], eye, def.id)
+	var precision := CockpitPrecision.new()  # after the lighting has made its materials: rigid to the eye in cruise
+	add_child(precision)
+	precision.build(model, self)
+	if interior != null:
+		_build_glareshield(model, cfg)
+
+
+## The FCU / EFIS green bars (CockpitBarLamps) and the FCU's LCD strip (FcuLcd), after the lighting has bound its materials.
+func _build_glareshield(model: AircraftModel, cfg: Dictionary) -> void:
+	if cfg.get("bar_lamps") is Dictionary:
+		var bars := CockpitBarLamps.new()
+		bars.name = "BarLamps"
+		add_child(bars)
+		bars.build(interior, cfg.bar_lamps)
+	if cfg.get("fcu_lcd") is Dictionary:
+		var lcd := FcuLcd.new()
+		lcd.name = "FcuLcd"
+		add_child(lcd)
+		lcd.build(model, interior, cfg.fcu_lcd)
 
 
 ## A model-frame direction (x aft, y right, z up) in the aircraft's local frame (x right, y up, z aft).

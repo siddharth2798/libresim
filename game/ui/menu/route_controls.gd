@@ -28,6 +28,7 @@ var text_box: LineEdit
 var note: Label
 var _rwy_for := "-"  # destination the runway chips were built for
 var _note_t := 0.0
+var _text := ""  # the route as text, as refresh() last showed it
 
 
 func _init() -> void:
@@ -80,7 +81,7 @@ func _init() -> void:
 	text_box.placeholder_text = "Type a route, e.g. VABB DCT PAPRI W15 VAPO, and press Enter"
 	text_box.tooltip_text = "Idents separated by spaces or /, DCT is ignored, airway names are expanded between their fixes.\nThe last ident is the destination when it is an airport. Free map waypoints (WPTnn) cannot be typed."
 	text_box.text_submitted.connect(func(t): text_entered.emit(t))
-	text_box.focus_exited.connect(func(): text_box.text = RouteEdit.as_text(Session.setup))  # an edit not entered is dropped
+	text_box.focus_exited.connect(func(): text_box.text = _text)  # an edit not entered is dropped
 	tools.add_child(text_box)
 	note = MenuTheme.note(HINT)
 	add_child(note)
@@ -116,8 +117,9 @@ func refresh(s: Dictionary, r: Dictionary, airports: Array) -> void:
 	auto_seg.select(r.kind)
 	clear_btn.disabled = not RouteEdit.planned(r)
 	clear_btn.focus_mode = Control.FOCUS_NONE if clear_btn.disabled else Control.FOCUS_ALL  # Tab skips it while greyed
+	_text = RouteEdit.as_text(s)
 	if not text_box.has_focus():
-		text_box.text = RouteEdit.as_text(s)
+		text_box.text = _text
 
 
 ## A message in the note line (amber when `warn`); the hint comes back after NOTE_S seconds.

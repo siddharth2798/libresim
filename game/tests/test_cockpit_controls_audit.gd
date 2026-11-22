@@ -82,6 +82,7 @@ static func _action_props(a: String) -> Array:
 		"throttle_2_up", "throttle_2_down": out.append("controls/throttle_2")
 		"reverse": out += ["controls/reverse_1", "controls/reverse_2"]
 		"apu_start": out.append("controls/apu_start")
+		"nd_range_up", "nd_range_down": out.append("controls/nd/range_nm")
 	return out
 
 

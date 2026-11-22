@@ -7,6 +7,10 @@
 #   libresim-<v>-macos-universal.zip      .app with data in Contents/Resources (ad-hoc signed)
 #   libresim-<v>-source.tar.gz            exact source of this build (GPL corresponding source)
 # Flatpak: see packaging/flatpak/ (builds from the tar.gz).
+# Shader baker (export_presets.cfg shader_baker/enabled): the exports pre-compile the shaders into the .pck so the first
+# start does not compile them. Godot can only bake with a GPU, so the exports run windowed (a short editor window opens)
+# on the Forward+ renderer, the default the packages start on; on a machine with no display or GPU set HEADLESS=1
+# (exports work, nothing is baked). macOS bakes Metal (macOS) and Vulkan (Linux); docs/USAGE.md "Packaging".
 set -euo pipefail
 cd "$(dirname "$0")/../.."
 ROOT=$PWD
@@ -15,6 +19,20 @@ GODOT="${GODOT:-$HOME/.local/bin/godot}"
 B="$ROOT/build"
 DATA="$ROOT/data/processed"
 rm -rf "$B" && mkdir -p "$B/linux/libresim" "$B/macos"
+
+# game/override.cfg is this checkout's own renderer choice (Graphics.set_renderer). Godot loads it into the project
+# settings (without --rendering-method the editor would run and bake that renderer): keep it aside while exporting.
+# The windowed editor also re-saves game/project.godot in its own format (defaults dropped, same meaning): put it back.
+OVR="$ROOT/game/override.cfg"
+PG="$ROOT/game/project.godot"
+[ -f "$OVR" ] && mv "$OVR" "$OVR.release-keep"
+cp "$PG" "$PG.release-keep"
+trap '[ -f "$OVR.release-keep" ] && mv "$OVR.release-keep" "$OVR"; mv "$PG.release-keep" "$PG"' EXIT
+EXPORT=(--audio-driver Dummy --path game --rendering-method forward_plus)
+if [ -n "${HEADLESS:-}" ]; then
+	EXPORT=(--headless "${EXPORT[@]}")
+	echo "make_release: HEADLESS=1, shaders are not baked (Godot needs a GPU to bake)" >&2
+fi
 
 # 1. runtime data subset (no intermediate OSM files the game doesn't read)
 stage_data() {  # $1 = destination data dir
@@ -36,7 +54,7 @@ stage_docs() {  # $1 = destination folder
 }
 
 # 2. Linux
-"$GODOT" --headless --path game --export-release "Linux" "$B/linux/libresim/libresim.x86_64"
+"$GODOT" "${EXPORT[@]}" --export-release "Linux" "$B/linux/libresim/libresim.x86_64"
 stage_data "$B/linux/libresim/data"
 stage_docs "$B/linux/libresim"
 cp packaging/linux/libresim.sh packaging/linux/libresim.desktop packaging/linux/libresim.png "$B/linux/libresim/"
@@ -55,7 +73,7 @@ cp packaging/linux/AppRun "$APPDIR/AppRun" && chmod +x "$APPDIR/AppRun"
 ARCH=x86_64 "$AIT" --appimage-extract-and-run "$APPDIR" "$B/libresim-$V-x86_64.AppImage" >/dev/null
 
 # 4. macOS (universal .app; data + docs inside Contents/Resources)
-"$GODOT" --headless --path game --export-release "macOS" "$B/macos/libresim.zip"
+"$GODOT" "${EXPORT[@]}" --export-release "macOS" "$B/macos/libresim.zip"
 (cd "$B/macos" && unzip -q libresim.zip && rm libresim.zip)
 APP=$(ls -d "$B/macos/"*.app | head -1)
 stage_data "$APP/Contents/Resources/data"

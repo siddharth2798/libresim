@@ -97,6 +97,7 @@ func refresh_chrome() -> void:
 	rail.refresh(setup, list, cur, _visited)
 	chips.refresh(setup, list)
 	fly_btn.text = FlowValues.fly_label(list)
+	ScenePreload.begin(str(setup.get("aircraft", "")))  # the flight scene and this aircraft's models load meanwhile
 	var bad := SetupChecks.worst(list) == "bad"
 	MenuTheme.style_primary(fly_btn, true, MenuTheme.WARN if bad else MenuTheme.ACCENT)
 	fly_btn.tooltip_text = ("Fly anyway: %s (Ctrl+Enter asks first)" % "; ".join(SetupChecks.reasons(list))) if bad else "Start flying with this setup (Ctrl+Enter)"

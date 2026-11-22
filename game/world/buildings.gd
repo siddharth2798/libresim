@@ -129,7 +129,7 @@ func _add(k: Vector2i, mesh: ArrayMesh) -> void:
 	var mi := MeshInstance3D.new()
 	mi.mesh = mesh
 	mi.material_override = _mat
-	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+	mi.cast_shadow = SceneryQuality.mode_for(self)  # graphics presets (world/scenery_quality.gd)
 	mi.set_meta("tile", k)
 	add_child(mi)
 	_tiles[k] = mi

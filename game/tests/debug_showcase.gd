@@ -19,6 +19,8 @@ const FlybyScenes := preload("res://tests/showcase_flyby_scenes.gd")
 const FogScenes := preload("res://tests/showcase_fog_scenes.gd")
 const TerminalScenes := preload("res://tests/showcase_terminal_scenes.gd")
 const FilmScenes := preload("res://tests/showcase_film_scenes.gd")
+const HlodScenes := preload("res://tests/showcase_hlod_scenes.gd")
+const TreeScenes := preload("res://tests/showcase_tree_scenes.gd")
 const Setup := preload("res://tests/showcase_setup.gd")
 const Views := preload("res://tests/showcase_views.gd")
 const Aim := preload("res://tests/showcase_camera.gd")
@@ -26,7 +28,7 @@ const Stream := preload("res://tests/showcase_stream.gd")
 const FLIGHT := "res://world/flight.tscn"
 
 var f: Node  # the flight scene
-var _all: Dictionary = Scenes.SCENES.merged(CloudScenes.scenes()).merged(LightScenes.scenes()).merged(VehicleScenes.scenes()).merged(JetwayScenes.scenes()).merged(FlybyScenes.scenes()).merged(FogScenes.scenes()).merged(TerminalScenes.scenes()).merged(FilmScenes.scenes())  # every scene by name
+var _all: Dictionary = Scenes.SCENES.merged(CloudScenes.scenes()).merged(LightScenes.scenes()).merged(VehicleScenes.scenes()).merged(JetwayScenes.scenes()).merged(FlybyScenes.scenes()).merged(FogScenes.scenes()).merged(TerminalScenes.scenes()).merged(FilmScenes.scenes()).merged(HlodScenes.scenes()).merged(TreeScenes.scenes())  # every scene by name
 var _out := ""
 var _name := ""
 var _fov := 0.0  # free-camera field of view override (degrees), 0 = the rig's own
@@ -137,6 +139,11 @@ func _flight(def: Dictionary) -> void:
 		Props.set_v("controls/lights/" + k, def.lights[k])
 	for k in def.get("props", {}):  # any property-tree value, e.g. "controls/gear": 1.0
 		Props.set_v(k, def.props[k])
+	if def.has("options"):  # player options for this run only, e.g. {"depth_of_field": false}
+		Session.interactive_override = 0  # in memory: the player's own file is not touched
+		for k in def.options:
+			UserOptions.set_v(k, def.options[k])
+		PostFx.apply(f, Graphics.preset)
 	var fdm: FdmNode = f.get_node("Fdm")
 	if def.has("fly"):
 		await Setup.fly(self, def.fly)

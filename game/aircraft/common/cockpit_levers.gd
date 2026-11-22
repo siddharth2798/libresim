@@ -11,6 +11,11 @@ extends Node
 ##   lag     first-order low pass;  rate: travel limit, so a lever never jumps further than a person could move it
 ## Pivots are nested in the glb where one part sits on another (reverser flap on a thrust lever, pitch then roll of a
 ## sidestick): each keeps its own base transform and is turned about its own axis.
+##   at      [x, y, z] FlightGear model frame (x aft, y right, z up): a hotspot for a part of the panel the glb does not
+##           split out (an EFIS button, the BARO knob). An empty pivot_<name> is made there; "half" (m) is its pick box.
+##   momentary  true: a pushbutton that springs back. The pivot pressed in for CockpitPick.PRESS_S after a click,
+##           whatever the latched value (an FCU button lights for the mode, it does not stay pushed in).
+## Other keys (kind, value, push, pull, step ...) are for CockpitPick / CockpitKnob and kept on the item.
 
 var _items: Array = []  # {node, basis, pos, drive, terms, map, move, sign, lag, rate, value}
 var _active := false
@@ -19,16 +24,32 @@ var _active := false
 ## Pivot nodes found in `interior` for the entries of `cfg` (missing nodes are skipped).
 func build(interior: Node, cfg: Dictionary) -> int:
 	for k in cfg:
-		var node := interior.find_child("pivot_" + str(k), true, false) as Node3D
 		var s = cfg[k]
-		if node == null or not s is Dictionary or not s.get("map") is Array or (s.map as Array).size() < 2:
+		if not s is Dictionary:
+			continue
+		var node := interior.find_child("pivot_" + str(k), true, false) as Node3D
+		if node == null and s.get("at") is Array:
+			node = _hotspot(interior, str(k), s.at)
+		var map: Variant = s.get("map", [[0.0, 0.0], [1.0, 0.0]] if s.has("at") else null)
+		if node == null or not map is Array or (map as Array).size() < 2:
 			continue
 		var drive := str(s.get("drive", ""))
-		_items.append({"node": node, "basis": node.transform.basis, "pos": node.position, "drive": drive, "terms": parse_drive(drive),
-			"map": s.map, "move": str(s.get("move", "rotate")), "sign": float(s.get("sign", 1.0)), "lag": float(s.get("lag", 0.0)),
-			"rate": float(s.get("rate", 0.0)), "value": NAN})
+		var it: Dictionary = (s as Dictionary).duplicate(true)
+		it.merge({"node": node, "basis": node.transform.basis, "pos": node.position, "drive": drive, "terms": parse_drive(drive),
+			"map": map, "move": str(s.get("move", "rotate")), "sign": float(s.get("sign", 1.0)), "lag": float(s.get("lag", 0.0)),
+			"rate": float(s.get("rate", 0.0)), "value": NAN, "press_t": 0.0}, true)
+		_items.append(it)
 	set_process(not _items.is_empty())
 	return _items.size()
+
+
+## An empty pivot at a FlightGear model-frame point, in the glb's own frame (x aft, y up, z left).
+static func _hotspot(interior: Node, k: String, at: Array) -> Node3D:
+	var n := Node3D.new()
+	n.name = "pivot_" + k
+	n.position = Vector3(float(at[0]), float(at[2]), -float(at[1]))
+	interior.add_child(n)
+	return n
 
 
 ## "controls/throttle_1 - controls/reverse_1" -> [[1, path], [-1, path]].
@@ -52,8 +73,10 @@ static func read_drive(terms: Array) -> float:
 	return v
 
 
-## Degrees (or metres) the lever wants now.
+## Degrees (or metres) the lever wants now. A momentary button is in (map at 1) only while its press lasts.
 static func target(item: Dictionary) -> float:
+	if item.get("momentary", false):
+		return ModelDrives.table(item.map, 1.0 if float(item.get("press_t", 0.0)) > 0.0 else 0.0) * float(item.sign)
 	return ModelDrives.table(item.map, read_drive(item.terms)) * float(item.sign)
 
 
@@ -81,6 +104,8 @@ func _process(dt: float) -> void:
 		for it in _items:
 			it.value = NAN
 	for it in _items:
+		if it.press_t > 0.0:
+			it.press_t = maxf(it.press_t - dt, 0.0)
 		var v := step(it.value, target(it), it.lag, it.rate, dt)
 		if v == it.value:
 			continue

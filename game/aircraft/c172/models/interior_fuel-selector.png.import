@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://cu4xfftamk750"
-path="res://.godot/imported/interior_fuel-selector.png-363a98068771b3160dd56d3ac398bb91.ctex"
+path.s3tc="res://.godot/imported/interior_fuel-selector.png-363a98068771b3160dd56d3ac398bb91.s3tc.ctex"
+path.etc2="res://.godot/imported/interior_fuel-selector.png-363a98068771b3160dd56d3ac398bb91.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "aa643b291c564985e1a036c6ff9ba7f2"
@@ -14,11 +16,11 @@ generator_parameters={
 [deps]
 
 source_file="res://aircraft/c172/models/interior_fuel-selector.png"
-dest_files=["res://.godot/imported/interior_fuel-selector.png-363a98068771b3160dd56d3ac398bb91.ctex"]
+dest_files=["res://.godot/imported/interior_fuel-selector.png-363a98068771b3160dd56d3ac398bb91.s3tc.ctex", "res://.godot/imported/interior_fuel-selector.png-363a98068771b3160dd56d3ac398bb91.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

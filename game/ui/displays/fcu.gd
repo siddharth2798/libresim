@@ -4,7 +4,8 @@ extends Display
 ## LOC, AP1, AP2, A/THR, APPR buttons. WRITES the pilot's selections, Props controls/fcu/{spd_kt,
 ## hdg_deg, alt_ft, vs_fpm} (pilot units, like the keyboard actions in input/control_actions.gd) and
 ## the button toggles controls/fcu/{ap1, ap2, athr, loc, appr}; middle click on a knob toggles
-## controls/fcu/{spd,hdg,vs}_managed (window shows dashes). READS the autopilot state to light the
+## controls/fcu/{spd,hdg,vs}_managed. The windows show what the glareshield FCU shows (FcuWindows: dashes and dots for
+## managed, V/S dashes outside V/S mode). READS the autopilot state to light the
 ## buttons: ap/{ap1, ap2, athr, loc, appr} (falls back to the control prop while the autoflight does
 ## not publish them).
 ## Knobs: click the left / right half of a window (or the wheel) = -/+ one step, right click = ten steps.
@@ -71,18 +72,15 @@ func _lit(k: String) -> bool:
 func _paint() -> void:
 	fill(Rect2(Vector2.ZERO, design), Color(0.1, 0.11, 0.13))
 	frame(Rect2(2, 2, design.x - 4, design.y - 4), Color(0.3, 0.32, 0.36), 2.0)
-	var names := ["SPD", "HDG", "ALT", "V/S"]
+	var shown := [FcuWindows.spd(), FcuWindows.hdg(), FcuWindows.alt(), FcuWindows.vs()]  # the glareshield's own rules
 	for i in 4:
 		var key: String = KNOBS.keys()[i]
-		var k: Array = KNOBS[key]
-		txt(Vector2(WIN[i].get_center().x, 20), names[i], 16, WHITE, 0)
-		var dashed: bool = k[5] != "" and Props.get_b(k[5])
-		var v := Props.get_f(k[0], k[2])
-		var s := "---" if dashed else window_text(key, v)
-		window(WIN[i], s, AMBER if not dashed else Color(0.5, 0.35, 0.05))
-		if key in ["spd", "hdg", "vs"]:
-			var managed: bool = Props.get_b(k[5])
-			dot(Vector2(WIN[i].end.x - 10, WIN[i].position.y + 8), 4.0, AMBER if managed else Color(0.25, 0.2, 0.05))
+		var w: Dictionary = shown[i]
+		txt(Vector2(WIN[i].get_center().x, 20), str(w.label), 16, WHITE, 0)
+		var dashed := str(w.text).begins_with("--")
+		window(WIN[i], str(w.text) if FcuWindows.powered() else "", AMBER if not dashed else Color(0.5, 0.35, 0.05))
+		if key != "vs":
+			dot(Vector2(WIN[i].end.x - 10, WIN[i].position.y + 8), 4.0, AMBER if bool(w.dot) else Color(0.25, 0.2, 0.05))
 		hot(WIN[i], "knob_" + key)
 	for i in BUTTONS.size():
 		var b: String = BUTTONS[i]

@@ -161,10 +161,11 @@ func go(id: String) -> void:
 		_screens[id].enter()
 
 
-## Another modal is up (the "Fly anyway?" question, the live-weather question) or a flight is loading:
+## Another modal is up (the "Fly anyway?" question, the live-weather question, the Route step's plan dialog) or a flight is loading:
 ## nothing else may open over it.
 func modal_open() -> bool:
-	return _confirm != null or BusyOverlay.root_veil(get_tree()) != null or get_node_or_null("LiveWeatherNotice") != null
+	return _confirm != null or BusyOverlay.root_veil(get_tree()) != null or get_node_or_null("LiveWeatherNotice") != null \
+		or get_node_or_null("RoutePlanDialog") != null  # the Route step's Save / Load plan
 
 
 func screen(id: String) -> Control:

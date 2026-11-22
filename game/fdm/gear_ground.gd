@@ -84,6 +84,15 @@ static func _role(g: Dictionary, wheel: bool, main_x: float) -> String:
 
 
 ## Wheels on the steered end (nose or tail) and on the fixed mains, for placing the aircraft.
+## How far (m) the lowest wheel hangs below the CG at attitude r_bn (body -> NED); CG height minus this = wheel height.
+func wheel_depth(mb: MassBalance, r_bn: Basis) -> float:
+	var low := 0.0
+	for c in contacts:
+		if c.wheel:
+			low = maxf(low, (r_bn * mb.body_of(c.pos)).z)
+	return low
+
+
 func steered_wheels() -> Array:
 	return contacts.filter(func(c): return c.wheel and c.steer > 0.0)
 

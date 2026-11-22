@@ -32,12 +32,17 @@ static func wheels(aircraft: AircraftDef) -> PackedVector2Array:
 ## taxi: one airport's airport_ops.json "taxi". side: +1 tail to the right. prefer: GroundParams.pushback.
 ## lock_side keeps `side` (corridors sweep both); otherwise the side that lands on the strip wins.
 ## pave walks the wheels and stops the arc at the edge. Returns {side, straight, radius, turn, limit}.
-static func plan(p0: Vector2, h0: float, taxi: Dictionary, side: float, prefer: Dictionary, aircraft: AircraftDef = null, lock_side := false, pave := true, wheel_pts: PackedVector2Array = PackedVector2Array()) -> Dictionary:
+## taxi_segs: segments(taxi) worked out once by a caller that plans many stands of one airport (OpsCorridors);
+## memo: that caller's own Dictionary, so both sides of a stand share the taxiway they aim at (only with pave off).
+static func plan(p0: Vector2, h0: float, taxi: Dictionary, side: float, prefer: Dictionary, aircraft: AircraftDef = null, lock_side := false, pave := true, wheel_pts: PackedVector2Array = PackedVector2Array(), taxi_segs: Array = [], memo: Dictionary = {}) -> Dictionary:
 	var straight := float(prefer.get("straight_m", PushbackPath.STRAIGHT))
 	var radius := float(prefer.get("radius_m", PushbackPath.RADIUS))
 	var nominal := {"side": side, "straight": straight, "radius": radius, "turn": PI / 2.0, "limit": PushbackPath.length(straight, radius)}
-	var segs := _segments(taxi)
-	var tgt := _target(p0, h0, segs)
+	var segs := taxi_segs if not taxi_segs.is_empty() else segments(taxi)
+	var key := Vector3(p0.x, p0.y, h0)
+	var tgt: Dictionary = memo[key] if not pave and memo.has(key) else _target(p0, h0, segs)
+	if not pave:
+		memo[key] = tgt
 	if tgt.is_empty():
 		return nominal
 	var gear := wheel_pts if not wheel_pts.is_empty() else wheels(aircraft)
@@ -129,7 +134,8 @@ static func _solve(p0: Vector2, h0: float, side: float, turn: float, tgt: Dictio
 	return {"side": side, "straight": s, "radius": rho, "turn": turn, "limit": PushbackPath.length(s, rho, turn)}
 
 
-static func _segments(taxi: Dictionary) -> Array:
+## The taxiway, taxilane and runway pieces of one airport's taxi graph that an arc can aim at (read only by plan()).
+static func segments(taxi: Dictionary) -> Array:
 	var nodes: Dictionary = taxi.get("nodes", {})
 	var out: Array = []
 	for e in taxi.get("edges", []):

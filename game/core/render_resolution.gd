@@ -45,13 +45,13 @@ static func nearest(opts: Array, frac: float) -> int:
 
 
 ## The preset spec with the player's choice applied. `frac` 0 keeps the spec (Auto). A fixed choice
-## replaces the scale, upscales with FSR (Forward+) below 1 and keeps FXAA when there is no MSAA.
+## replaces the scale, upscales with FSR (Forward+) below 1 and keeps an edge filter (ScreenAA) when there is no MSAA.
 static func apply(spec: Dictionary, frac: float) -> Dictionary:
 	if frac <= 0.0:
 		return spec
 	var s := spec.duplicate()
 	s.scale = clampf(frac, MIN_FRAC, 1.0)
 	s.fsr = s.scale < 1.0
-	if int(s.msaa) == 0:
-		s.fxaa = true
+	if int(s.msaa) == 0 and ScreenAA.filter_of(s) == "off":
+		s.post_aa = ScreenAA.DEFAULT
 	return s

@@ -9,7 +9,8 @@ extends Node
 ## Protection (aircraft.json "icing"): "protection" is "none", "pitot_only" (pitot / static heat and engine "alt air"
 ## lever; C172) or "wing_and_engine" (also wing and engine anti-ice, bleed air from running engines; A320). Probe heat
 ## needs the electrical bus. Bleed anti-ice costs thrust (icing/bleed_penalty).
-## Reads: atmosphere/temperature_k, fdm/tas_mps, environment/{ac_cloud_density, cloud_kind, storm_intensity, precip},
+## Holds while paused or replaying (SimHold).
+## Reads: atmosphere/temperature_k, fdm/tas_mps, environment/{ac_cloud_density, cloud_kind, storm_intensity, ac_precip},
 ##   weather/icing, systems/electrical/powered, engines/<n>/running, the switch Props named in the section (default
 ##   controls/electrical/pitot_heat; airliner: controls/anti_ice/{probe, wing, eng_<n>}).
 ## Publishes icing/{airframe, pitot, static, engine_<n>, rate, conditions, ice_detected, pitot_blocked, static_blocked,
@@ -102,13 +103,15 @@ func load_state(d: Dictionary) -> void:
 
 
 func _physics_process(dt: float) -> void:
+	if SimHold.active():  # paused or replaying: no accretion, no melting
+		return
 	var t_c := Props.get_f("atmosphere/temperature_k", 288.15) - 273.15
 	var tas := Props.get_f("fdm/tas_mps")
 	var storm := Props.get_f("environment/storm_intensity")
 	var avail := clampf(Props.get_f("weather/icing") + 0.6 * storm, 0.0, 1.0)
 	var kind := str(Props.get_v("environment/cloud_kind", "stratiform"))
 	var rate := IcingRates.cloud_rate(Props.get_f("environment/ac_cloud_density"), kind, avail, t_c, tas) \
-		+ IcingRates.freezing_rate(Props.get_f("environment/precip"), t_c, tas)
+		+ IcingRates.freezing_rate(Props.get_f("environment/ac_precip"), t_c, tas)
 	var acc := rate > 0.0
 	var melt := IcingRates.melt_rate(t_c, acc)
 	var running := _running()

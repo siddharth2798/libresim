@@ -3,19 +3,21 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://bas6bo87cw45w"
-path="res://.godot/imported/exterior_panels.png-4282dfb5370f87c7f19b3237bf93e34d.ctex"
+path.s3tc="res://.godot/imported/exterior_panels.png-4282dfb5370f87c7f19b3237bf93e34d.s3tc.ctex"
+path.etc2="res://.godot/imported/exterior_panels.png-4282dfb5370f87c7f19b3237bf93e34d.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 
 [deps]
 
 source_file="res://aircraft/a320/models/exterior_panels.png"
-dest_files=["res://.godot/imported/exterior_panels.png-4282dfb5370f87c7f19b3237bf93e34d.ctex"]
+dest_files=["res://.godot/imported/exterior_panels.png-4282dfb5370f87c7f19b3237bf93e34d.s3tc.ctex", "res://.godot/imported/exterior_panels.png-4282dfb5370f87c7f19b3237bf93e34d.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

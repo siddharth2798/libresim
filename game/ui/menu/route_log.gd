@@ -4,7 +4,8 @@ extends VBoxContainer
 ## distance so far, planned altitude) and the totals. Waypoint rows have an altitude box and move up / down / remove
 ## buttons; the destination row shows the altitude it inherits. Pressing a row's name selects it (the map rings it).
 ## Rows are rebuilt only when the waypoints change (so typing an altitude keeps the focus); otherwise refreshed in place.
-## It owns no route: show() takes RouteEdit.legs(), the signals go to the page.
+## It owns no route: show() takes RouteEdit.legs(), the signals go to the page. Under the totals, the fuel line
+## (show_fuel, RouteFuel): amber when the margin is thin, red when the fuel on board is short of trip + reserve.
 
 signal row_selected(wp: int)  # wps index, -2 = the destination
 signal alt_changed(wp: int, alt_ft: float)
@@ -16,6 +17,7 @@ const ROW_H := 34
 
 var rows: Array = []  # [{panel, ident, crs, dist, ete, cum, alt, up, down, del, wp}]
 var total: Label
+var fuel: Label
 var empty_note: Label
 var _list: VBoxContainer
 var _sig := ""
@@ -50,6 +52,10 @@ func _init() -> void:
 	total = Label.new()
 	MenuTheme.use_font(total, "semibold", 14)
 	add_child(total)
+	fuel = Label.new()
+	fuel.add_theme_font_size_override("font_size", 13)
+	fuel.mouse_filter = Control.MOUSE_FILTER_PASS
+	add_child(fuel)
 
 
 ## Show `legs` (RouteEdit.legs); `sel` is the selected wps index; `n_wps` the number of waypoints; `tas_kt` the speed of
@@ -68,6 +74,19 @@ func show_legs(legs: Array, sel: int, n_wps: int, tas_kt: float) -> void:
 		var last: Dictionary = legs.back()
 		total.text = "Total  %.1f nm  ·  %s  at %d kt" % [last.cum_m / RouteEdit.NM, RoutePlan.format_ete(last.cum_s), roundi(tas_kt)]
 	total.tooltip_text = "Still air, at the aircraft's cruise true airspeed."
+
+
+## The fuel line of RouteFuel.for_setup ({} hides it).
+func show_fuel(f: Dictionary) -> void:
+	fuel.visible = not f.is_empty()
+	if f.is_empty():
+		return
+	fuel.text = "Fuel  " + RouteFuel.text(f)
+	fuel.add_theme_color_override("font_color", {"bad": MenuTheme.BAD, "warn": MenuTheme.WARN}.get(f.level, MenuTheme.DIM))
+	var verdict := {"bad": "Not enough: on board is less than trip + reserve.", "warn": "Thin: you would land with less than twice the reserve."}
+	fuel.tooltip_text = "%s%s at %s per hour, still air, at the cruise speed. Change the fuel on the Aircraft step." % [
+		verdict.get(f.level, "") + ("\n" if f.level != "ok" else ""), RoutePlan.format_ete(float(f.hours) * 3600.0),
+		RouteFuel.amount(f.burn, f.unit)]
 
 
 func _rebuild(legs: Array, n_wps: int) -> void:

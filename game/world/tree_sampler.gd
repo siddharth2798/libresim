@@ -15,6 +15,7 @@ var _h_offset: float
 var _img_n: int
 var _mutex := Mutex.new()
 var _lc := {}  # Vector3i source tile -> PackedByteArray (IMG_N^2, row 0 = north) or empty
+var _wc := {}  # the same tile's WorldCover classes (tools/19_worldcover.py), or empty
 var _h := {}  # Vector2i level-0 tile -> PackedByteArray (r16) or empty
 
 
@@ -48,9 +49,10 @@ static func cell_tree(ci: int, cj: int, lc: int, px: float, density: float) -> P
 ## chunk's SW corner.
 func build(x0: float, y0: float, chunk: float, px: float, src: Vector3i, src_size: float, density: float) -> PackedFloat32Array:
 	var out := PackedFloat32Array()
-	var lc := _lc_bytes(src)
+	var lc := _mask_bytes(_lc, "lc", src)
 	if lc.is_empty():
 		return out
+	var wc := _mask_bytes(_wc, "wc", src)
 	var n := int(chunk / px)
 	var sx0 := src.y * src_size
 	var sy0 := src.z * src_size
@@ -63,12 +65,12 @@ func build(x0: float, y0: float, chunk: float, px: float, src: Vector3i, src_siz
 			var cx := clampi(int((e - sx0) / src_size * _img_n), 0, _img_n - 1)
 			var cy := clampi(int((1.0 - (no - sy0) / src_size) * _img_n), 0, _img_n - 1)
 			var t := cell_tree(ci0 + i, cj0 + j, lc[cy * _img_n + cx], px, density)
-			if t.is_empty():
+			if t.is_empty() or TreeClear.blocked(t[0], t[1]):
 				continue
 			var gi := ci0 + i
 			var gj := cj0 + j
 			var h := height_at(t[0], t[1])
-			var sh := TreeSpecies.shape(gi, gj, t[1], h)  # [species, variant, height, width]
+			var sh := TreeSpecies.shape(gi, gj, t[1], h, wc[cy * _img_n + cx] if not wc.is_empty() else 0)  # [species, variant, height, width]
 			var b := Basis(Vector3.UP, hash3(gi, gj, 6) * TAU).scaled(Vector3(sh[3], sh[2], sh[3]))
 			out.append_array([b.x.x, b.y.x, b.z.x, t[0] - x0,
 				b.x.y, b.y.y, b.z.y, h - 0.3,
@@ -99,19 +101,20 @@ func height_at(east: float, north: float) -> float:
 	return lerpf(lerpf(h00, h10, u), lerpf(h01, h11, u), v) * _h_scale + _h_offset
 
 
-func _lc_bytes(src: Vector3i) -> PackedByteArray:
+## Land-class (dir "lc") or WorldCover (dir "wc") bytes of source tile src, cached in d.
+func _mask_bytes(d: Dictionary, dir: String, src: Vector3i) -> PackedByteArray:
 	_mutex.lock()
-	var b = _lc.get(src)
+	var b = d.get(src)
 	_mutex.unlock()
 	if b != null:
 		return b
-	var p := Paths.data("terrain/lc/%d/%d_%d.r8.gz" % [src.x, src.y, src.z])
+	var p := Paths.data("terrain/%s/%d/%d_%d.r8.gz" % [dir, src.x, src.y, src.z])
 	var out := PackedByteArray()
 	if FileAccess.file_exists(p):
 		out = FileAccess.get_file_as_bytes(p).decompress_dynamic(-1, FileAccess.COMPRESSION_GZIP)
 		if out.size() != _img_n * _img_n:
 			out = PackedByteArray()
-	_store(_lc, src, out)
+	_store(d, src, out)
 	return out
 
 

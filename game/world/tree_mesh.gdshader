@@ -1,20 +1,27 @@
 shader_type spatial;
-render_mode cull_disabled, fog_disabled;
-// LOD0 tree mesh (TreeMeshes), instanced by TreeLod within lod_r metres of the camera; it casts and
-// receives sun shadows. COLOR.rgb = base colour with baked occlusion, COLOR.a = part (0 bark, 0.5 leaf
-// lumps, 1 palm frond). INSTANCE_CUSTOM: r = hue seed, b = value seed, a = seed (shapes differ per tree
-// through a noise displacement of the crown lumps). Same tint as the impostor. Dithers in with the
-// opposite pattern to tree.gdshader.
+render_mode cull_disabled, fog_disabled, alpha_to_coverage_and_one;
+// Near tree mesh (TreeMeshes / TreeParts), instanced by TreeLod within lod_r metres of the camera; it casts and receives
+// sun shadows (the leaf cards are alpha-tested in the shadow pass too, so the shadows are dappled).
+// COLOR.rgb = base colour with baked occlusion, COLOR.a = part (0 bark, 0.5 leaf card, 1 frond); UV = leaf-card atlas;
+// CUSTOM0.xyz = the point a part collapses to, CUSTOM0.w = 1 for LOD0-only detail, which shrinks away between 0.7 and
+// 1.0 x detail_r (TreeLod switches a cell to LOD1 beyond detail_r, where nothing of it is left to pop).
+// INSTANCE_CUSTOM: r = hue seed, g = species * variant_n + variant, b = value seed, a = seed (each tree's cards shift a
+// little, so no two crowns are alike). Same tint and season as the impostor; dithers in with the opposite pattern.
 
 global uniform vec3 fog_color;
 global uniform float haze_density;
 #include "res://world/curvature.gdshaderinc"  // Earth curvature (G4)
 #include "res://world/haze_sky.gdshaderinc"  // view-dependent haze colour (G4)
 #include "res://world/tree_tint.gdshaderinc"
+#include "res://world/tree_parts.gdshaderinc"
 global uniform float wetness;
 
+uniform sampler2D leaf_tex : source_color, filter_linear_mipmap_anisotropic, repeat_disable;
 uniform float lod_r = 0.0;
 uniform float lod_band = 8.0;
+uniform float detail_r = 60.0;
+uniform float season_dry = 0.0;  // TreeLook.dryness
+uniform float variant_n = 4.0;
 
 varying vec4 v_col;
 varying vec4 v_cust;
@@ -22,30 +29,26 @@ varying vec3 v_local;
 varying float v_dist;
 varying float v_od;
 
-float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
-float vnoise(vec2 p) {
-	vec2 i = floor(p), f = fract(p);
-	f = f * f * (3.0 - 2.0 * f);
-	return mix(mix(hash(i), hash(i + vec2(1, 0)), f.x), mix(hash(i + vec2(0, 1)), hash(i + vec2(1, 1)), f.x), f.y);
-}
-
 void vertex() {
 	v_col = COLOR;
 	v_cust = INSTANCE_CUSTOM;
-	v_local = VERTEX;
-	float seed = INSTANCE_CUSTOM.a;
-	if (COLOR.a > 0.25 && COLOR.a < 0.75) {  // lumpy crowns: no two trees alike
-		float d = vnoise(VERTEX.xz * 5.0 + VERTEX.y * 3.1 + seed * 37.0) - 0.5;
-		VERTEX += NORMAL * (d * 0.2 + (vnoise(VERTEX.xz * 14.0 + VERTEX.y * 9.0 + seed * 5.0) - 0.5) * 0.06);
-	}
 	vec3 wp = (MODEL_MATRIX * vec4(0.0, 0.0, 0.0, 1.0)).xyz;
-	float ph = TIME * 1.3 + wp.x * 0.05 + wp.z * 0.07;
+	v_od = distance(terrain_eye, wp);  // the camera's, also in the shadow pass
+	if (CUSTOM0.w > 0.5) {
+		VERTEX = mix(CUSTOM0.xyz, VERTEX, 1.0 - smoothstep(detail_r * 0.7, detail_r, v_od));
+	}
+	float seed = INSTANCE_CUSTOM.a;
+	if (COLOR.a > 0.25) {  // whole cards shift with a noise of their anchor: crowns differ per tree
+		vec2 q = CUSTOM0.xz * 6.0 + CUSTOM0.y * 4.0 + seed * 31.0;
+		VERTEX += (vec3(tree_vnoise(q), tree_vnoise(q + 17.0), tree_vnoise(q + 41.0)) - 0.5) * vec3(0.08, 0.05, 0.08);
+	}
+	v_local = VERTEX;
+	float ph = TIME * 1.3 + seed * 6.2831853;  // seed phase, not the render position: no jump at an origin shift
 	VERTEX.x += sin(ph) * 0.012 * VERTEX.y * VERTEX.y;
-	if (COLOR.a > 0.75) {
-		VERTEX.y += sin(TIME * 2.1 + VERTEX.x * 9.0 + seed * 20.0) * 0.006 * UV.y;
+	if (COLOR.a > 0.25) {  // leaves flutter
+		VERTEX += NORMAL * sin(TIME * 3.1 + dot(CUSTOM0.xyz, vec3(41.0, 23.0, 37.0)) + seed * 20.0) * 0.004 * VERTEX.y;
 	}
 	v_dist = length((MODELVIEW_MATRIX * vec4(VERTEX, 1.0)).xyz);
-	v_od = distance(terrain_eye, MODEL_MATRIX[3].xyz);
 	VERTEX += curve_local(MODEL_MATRIX, curve_drop(wp));  // whole tree, from its base
 }
 
@@ -54,37 +57,22 @@ void fragment() {
 	if (dn < smoothstep(lod_r - lod_band, lod_r, v_od)) {
 		discard;
 	}
-	float kind = v_col.a;
-	vec3 col = v_col.rgb;
+	vec4 leaf = texture(leaf_tex, UV);
+	vec4 alb = tree_part_albedo(v_col, leaf, v_local, tree_leaf_boost(UV));
+	vec3 col = alb.rgb;
 	float bl = 0.0;
-	if (kind > 0.75) {
-		float comb = 0.55 + 0.45 * abs(sin(UV.y * 34.0));
-		float edge = abs(UV.x * 2.0 - 1.0);
-		if (edge > comb * (1.0 - 0.35 * UV.y) && edge > 0.07) {
-			discard;
-		}
-		col *= 0.85 + 0.3 * vnoise(vec2(UV.y * 40.0, UV.x * 6.0));
-		col = tree_tint(col, v_cust.r, v_cust.b);
-		bl = 0.4;
-	} else if (kind > 0.25) {
-		// leaf clumps: mottle fading to its mean with distance, tinted per tree
-		float m = vnoise(v_local.xz * 24.0 + v_local.y * 17.0 + v_cust.a * 9.0) * vnoise(v_local.xy * 11.0 + v_cust.a * 3.0);
-		m = mix(0.55 + 0.9 * m, 0.85, smoothstep(40.0, 130.0, v_dist));
-		// ragged silhouette: leaf gaps eat into the rim of a lump (also in the shadow, so shadows are dappled)
-		float rim = 1.0 - abs(dot(NORMAL, normalize(VIEW)));
-		if (vnoise(v_local.xz * 34.0 + v_local.y * 29.0 + v_cust.a * 7.0) < smoothstep(0.5, 1.0, rim) * 0.85 * (1.0 - smoothstep(60.0, 140.0, v_dist))) {
-			discard;
-		}
-		col = tree_tint(col, v_cust.r, v_cust.b) * m;
-		bl = 0.45;
-	} else {
-		col *= 0.75 + 0.5 * vnoise(v_local.xy * vec2(160.0, 18.0) + v_local.z * 100.0);
+	ALPHA = alb.a;
+	ALPHA_SCISSOR_THRESHOLD = 0.5;
+	if (v_col.a > 0.25) {
+		col = tree_season(tree_tint(col, v_cust.r, v_cust.b), tree_species_of(v_cust.g, variant_n), season_dry, v_cust.r);
+		NORMAL = FRONT_FACING ? NORMAL : -NORMAL;  // crown normals point out of the crown on both faces of a card
+		bl = 0.6;  // light through the leaves: the shade side of a card glows a little, not a flat paper back
 	}
 	col *= mix(1.0, 0.8, wetness);
 	float haze = 1.0 - exp(-v_dist * haze_density);
 	ALBEDO = col * (1.0 - haze);
 	EMISSION = haze_color(-(INV_VIEW_MATRIX * vec4(VIEW, 0.0)).xyz) * haze;
-	ROUGHNESS = mix(0.9, 0.55, wetness);
-	SPECULAR = mix(0.05, 0.25, wetness) * (1.0 - haze);
+	ROUGHNESS = mix(0.85, 0.55, wetness);
+	SPECULAR = mix(0.08, 0.25, wetness) * (1.0 - haze);
 	BACKLIGHT = col * bl;
 }

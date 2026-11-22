@@ -38,27 +38,40 @@ func test_preset_precip() -> String:
 
 
 func test_showers() -> String:
-	# Broken: occasional showers -> sometimes dry, sometimes raining
-	var p := float(_preset("Broken").precip)
+	# Broken: showers under the thick clouds, dry between them, and they drift with the cloud field
+	var br: Dictionary = _preset("Broken")
 	var wet := 0
-	var n := 600
-	for i in n:
-		if WeatherVisuals.shower_rate(p, i * 10.0, 3.0) > 0.02:
+	var under := 0
+	var n := 0
+	for x in range(0, 18000, 150):
+		var r := WeatherVisuals.rain_rate(float(br.precip), Vector2(x, 2500.0), float(br.cloud_cover), Vector2.ZERO)
+		n += 1
+		if r > 0.02:
 			wet += 1
+			var dens := 0.0
+			for h in [0.15, 0.3, 0.5]:  # anywhere in the column above
+				dens = maxf(dens, CloudField.density(Vector3(x, 2500.0, 762.0 + 900.0 * h), 762.0, float(br.cloud_cover), Vector2.ZERO))
+			under += 1 if dens > CloudField.IN_CLOUD else 0
 	if wet == 0 or wet == n:
-		return "Broken showers should come and go (raining %d of %d samples)" % [wet, n]
+		return "Broken showers should be here and not there (raining at %d of %d points)" % [wet, n]
+	if under < wet * 0.8:
+		return "showers should fall from the cloud: %d of %d wet points have cloud overhead" % [under, wet]
+	var a := WeatherVisuals.rain_rate(float(br.precip), Vector2(3000.0, 2500.0), float(br.cloud_cover), Vector2.ZERO)
+	var moved := WeatherVisuals.rain_rate(float(br.precip), Vector2(3000.0, 2500.0) + Vector2(1500.0, 0.0), float(br.cloud_cover), Vector2(-1500.0, 0.0))
+	if absf(a - moved) > 1e-6:
+		return "rain should drift with the cloud field"
 	# Monsoon: steady heavy rain
 	var mo := float(_preset("Monsoon").precip)
 	for i in 100:
-		if WeatherVisuals.shower_rate(mo, i * 37.0, 1.0) < 0.6:
+		if WeatherVisuals.rain_rate(mo, Vector2(i * 370.0, i * 113.0), 1.0, Vector2.ZERO) < 0.6:
 			return "Monsoon rain should be steady and heavy"
-	if WeatherVisuals.shower_rate(0.0, 100.0) != 0.0:
+	if WeatherVisuals.rain_rate(0.0, Vector2(100.0, 0.0), 1.0, Vector2.ZERO) != 0.0:
 		return "no rain setting must give no rain"
 	# no rain above the cloud tops
 	var base := 400.0
-	if WeatherFx.local_rate(mo, 0.0, 1.0, base + WeatherFx.CLOUD_THICK + 50.0, base) != 0.0:
+	if WeatherFx.local_rate(mo, Vector3(0.0, 0.0, base + WeatherFx.CLOUD_THICK + 50.0), base, 1.0, Vector2.ZERO) != 0.0:
 		return "rain above the cloud tops"
-	if WeatherFx.local_rate(mo, 0.0, 1.0, 100.0, base) < 0.6:
+	if WeatherFx.local_rate(mo, Vector3(0.0, 0.0, 100.0), base, 1.0, Vector2.ZERO) < 0.6:
 		return "no rain below the base"
 	return ""
 

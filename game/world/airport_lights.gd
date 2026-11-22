@@ -98,8 +98,12 @@ func build(icao: String, runways: Array, taxiways: Array, ils: Array, ops: Dicti
 	var hs := Papi.housings(boxes, anchor)
 	if hs:
 		root.add_child(hs)
-	for m in ApronFloodlights.meshes(masts, hf, anchor, mats.get("pool")):
-		root.add_child(m)
+	# per 400 m cell (VisChunks): masts and lamp frames get draw distances; the light pools stay (the night look from afar)
+	for cell in VisChunks.cells(masts, func(m): return m.p):
+		for m in ApronFloodlights.meshes(cell, hf, anchor, mats.get("pool")):
+			if m.name != "flood_pools":
+				VisRanges.set_range(m, VisChunks.cell_range(VisChunks.mast_size(cell)))
+			root.add_child(m)
 	var boards := StandBoards.boards(ops.get("stands", []), ops).filter(func(b): return OpsSolids.add_pole(
 		"masts:" + icao, b.p, 0.3, StandBoards.H + StandBoards.BOARD.y, hf.call(b.p.x, b.p.y), "a stand number board"))
 	root.add_child(StandBoards.build(boards, hf, anchor))

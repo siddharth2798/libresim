@@ -1,7 +1,9 @@
 class_name TreeLod
 extends Node3D
-## LOD0 trees: real low-poly meshes (TreeMeshes, tree_mesh.gdshader) for the trees within `radius`
-## metres of the camera, which cast and receive sun shadows. Beyond that the billboards of Trees draw
+## Near trees: real meshes (TreeMeshes, tree_mesh.gdshader) for the trees within `radius` metres of the camera, which
+## cast and receive sun shadows. A cell whose nearest point is within detail_radius draws the LOD0 meshes (detail cards and
+## twigs that shrink away towards detail_radius), others LOD1; the switch is a mesh swap on the cell's MultiMeshes, with
+## DETAIL_HYST metres of hysteresis, at a distance where LOD0 has nothing left that LOD1 lacks. Beyond that the billboards of Trees draw
 ## the same trees (same TreeSampler.cell_tree / TreeSpecies rules, same tint and yaw), and the swap is
 ## a dither over lod_band metres: `covered` tells Trees how far the built cells reach, so a tree is
 ## never dropped from both. Cells of CELL metres are built on the main thread, one per frame, from
@@ -12,15 +14,24 @@ const CELL := 80.0
 const PX := 10.0
 const HIDE_AGL := 450.0
 const MAX_TRIES := 3  # a cell whose land-class mask never loads is given up as empty
+const DETAIL_HYST := 6.0
 
 var terrain: TerrainQuadtree
 var radius := 130.0  # graphics presets
 var density_scale := 1.0
 var covered := 0.0  # metres around the camera whose trees all exist as meshes
+var detail_radius := 60.0:  # graphics presets (TreeQuality)
+	set(v):
+		detail_radius = v
+		_mat.set_shader_parameter("detail_r", v)
+var season_dry := 0.0:
+	set(v):
+		season_dry = v
+		_mat.set_shader_parameter("season_dry", v)
 
-var _meshes: Array[ArrayMesh] = []
 var _mat := ShaderMaterial.new()
 var _cells := {}  # Vector2i -> Array of MultiMeshInstance3D (empty: no trees there)
+var _cell_lod := {}  # Vector2i -> 0 or 1, the mesh LOD the cell draws
 var _tries := {}
 var _queue: Array[Vector2i] = []
 var _timer := 0.0
@@ -30,8 +41,9 @@ var _low_enough := true  # the camera is below HIDE_AGL above the ground
 
 func _ready() -> void:
 	_mat.shader = preload("res://world/tree_mesh.gdshader")
-	for sp in TreeSpecies.COUNT:
-		_meshes.append(TreeMeshes.build(sp))
+	_mat.set_shader_parameter("leaf_tex", preload("res://world/textures/trees/leaf_cards.png"))
+	_mat.set_shader_parameter("variant_n", float(TreeSpecies.VARIANTS))
+	_mat.set_shader_parameter("detail_r", detail_radius)
 	FloatingOrigin.shifted.connect(func(_d): _reposition())
 
 
@@ -71,6 +83,7 @@ func clear() -> void:
 		for mi in _cells[k]:
 			mi.queue_free()
 	_cells.clear()
+	_cell_lod.clear()
 	_queue.clear()
 	_tries.clear()
 
@@ -95,6 +108,13 @@ func _refresh() -> void:
 			for mi in _cells[k]:
 				mi.queue_free()
 			_cells.erase(k)
+			_cell_lod.erase(k)
+			continue
+		var lod := mesh_lod(cell_distance(_cam_w, k), detail_radius, _cell_lod.get(k, 1))
+		if lod != _cell_lod.get(k, 1):
+			_cell_lod[k] = lod
+			for mi in _cells[k]:
+				mi.multimesh.mesh = TreeMeshes.get_mesh(mi.get_meta("sp"), lod)
 	_queue = _queue.filter(func(k): return want.has(k))
 	_queue.sort_custom(func(a, b): return (Vector2(a) * CELL).distance_to(_cam_w) < (Vector2(b) * CELL).distance_to(_cam_w))
 	covered = reach
@@ -114,23 +134,25 @@ func _build_cell(k: Vector2i) -> bool:
 			if lc < 0:
 				return false  # land-class mask still loading
 			var t := TreeSampler.cell_tree(ci, cj, lc, PX, density_scale)
-			if t.is_empty():
+			if t.is_empty() or TreeClear.blocked(t[0], t[1]):
 				continue
 			var g := terrain.cache.height_at(t[0], t[1])
-			var sh := TreeSpecies.shape(ci, cj, t[1], g)
+			var sh := TreeSpecies.shape(ci, cj, t[1], g, maxi(terrain.cache.worldcover_at((ci + 0.5) * PX, (cj + 0.5) * PX), 0))
 			var b := Basis(Vector3.UP, TreeSampler.hash3(ci, cj, 6) * TAU).scaled(Vector3(sh[3], sh[2], sh[3]))
 			bufs[int(sh[0])].append_array([b.x.x, b.y.x, b.z.x, t[0] - k.x * CELL,
 				b.x.y, b.y.y, b.z.y, g - 0.3,
 				b.x.z, b.y.z, b.z.z, -(t[1] - k.y * CELL),
 				TreeLook.colour_unit(ci, cj, 0), sh[0] * TreeSpecies.VARIANTS + sh[1], TreeLook.colour_unit(ci, cj, 1), TreeSampler.hash3(ci, cj, 10)])
 	var made := []
+	var lod := mesh_lod(cell_distance(_cam_w, k), detail_radius, 1)
+	_cell_lod[k] = lod
 	for sp in TreeSpecies.COUNT:
 		if bufs[sp].is_empty():
 			continue
 		var mm := MultiMesh.new()
 		mm.transform_format = MultiMesh.TRANSFORM_3D
 		mm.use_custom_data = true
-		mm.mesh = _meshes[sp]
+		mm.mesh = TreeMeshes.get_mesh(sp, lod)
 		mm.instance_count = bufs[sp].size() / 16
 		mm.buffer = bufs[sp]
 		var mi := MultiMeshInstance3D.new()
@@ -138,11 +160,27 @@ func _build_cell(k: Vector2i) -> bool:
 		mi.material_override = _mat
 		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
 		mi.set_meta("cell", k)
+		mi.set_meta("sp", sp)
 		add_child(mi)
 		_place(mi, k)
 		made.append(mi)
 	_cells[k] = made
 	return true
+
+
+## Distance (m) from world point w to the nearest point of cell k.
+static func cell_distance(w: Vector2, k: Vector2i) -> float:
+	var lo := Vector2(k) * CELL
+	return w.distance_to(w.clamp(lo, lo + Vector2(CELL, CELL)))
+
+
+## Mesh LOD of a cell at distance d: 0 within the detail radius, 1 beyond, `current` inside the hysteresis band.
+static func mesh_lod(d: float, detail_r: float, current: int) -> int:
+	if d < detail_r - DETAIL_HYST:
+		return 0
+	if d > detail_r + DETAIL_HYST:
+		return 1
+	return current
 
 
 func instance_count() -> int:

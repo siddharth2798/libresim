@@ -344,6 +344,9 @@ func test_pushback_path_is_continuous_and_ends_sideways() -> String:
 
 
 class StubCache extends TerrainTileCache:
+	func worldcover_at(_e: float, _n: float) -> int:
+		return 0
+
 	func landclass_at(_e: float, _n: float) -> int:
 		return 200
 

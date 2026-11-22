@@ -140,5 +140,7 @@ func _process(_dt: float) -> void:
 		var unit: String = _labels[p][1]
 		if p == "weather/time_h":
 			_labels[p][0].text = "%02d:%02d" % [int(v), int(fmod(v, 1.0) * 60.0)]
+		elif p == "weather/turbulence":  # a MIL-F-8785C level
+			_labels[p][0].text = "%s %.2f" % [Turbulence.level_name(v), v]
 		else:
 			_labels[p][0].text = ("%.2f" if v < 2.0 and v != 0.0 else "%.0f") % v + " " + unit

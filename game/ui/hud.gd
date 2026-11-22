@@ -29,6 +29,7 @@ func _ready() -> void:
 	s.content_margin_bottom = 5
 	_bar.add_theme_stylebox_override("panel", s)
 	_bar.mouse_filter = MOUSE_FILTER_IGNORE
+	_bar.add_to_group(MapStrip.CLEAR_GROUP)  # the N map's title row stays clear of it
 	add_child(_bar)
 	var hb := HBoxContainer.new()
 	hb.add_theme_constant_override("separation", 22)

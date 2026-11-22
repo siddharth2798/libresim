@@ -2,9 +2,10 @@ class_name NdFeed
 extends Node
 ## Publishes what the navigation display draws, from the nav database and the GPS route, so the ND
 ## itself only reads Props. Out (twice a second): instruments/nd/route [{id, x, y}] (active waypoint
-## first, ENU metres), instruments/nd/near [{id, x, y, kind: "apt" | "vor" | "ndb"}] (within
+## first, ENU metres), instruments/nd/near [{id, x, y, kind: "apt" | "vor" | "ndb" | "wpt"}] (within
 ## `RANGE_M` of the aircraft), instruments/nd/wind_dir_deg / wind_kt (from environment/wind_ned,
-## where the wind blows FROM).
+## where the wind blows FROM). Which kinds go in follows the EFIS option buttons (controls/efis/nd_filter, kinds()):
+## none selected = airports and VORs as before; CSTR = none (no altitude constraints in the lite FMS).
 
 const RANGE_M := 200000.0
 const PERIOD := 0.5
@@ -20,6 +21,11 @@ func _physics_process(dt: float) -> void:
 		return
 	_t = 0.0
 	publish()
+
+
+## The near kinds an EFIS option shows: 0 none selected (airports and VORs), 1 CSTR, 2 WPT, 3 VOR.D, 4 NDB, 5 ARPT.
+static func kinds(filter: int) -> Array:
+	return [["apt", "vor"], [], ["wpt"], ["vor"], ["ndb"], ["apt"]][clampi(filter, 0, 5)]
 
 
 ## Wind blowing from (deg true) and speed (kt) for a NED wind vector (m/s, the way the air moves).
@@ -42,12 +48,21 @@ func publish() -> void:
 		if pos != null:
 			route.append({"id": id, "x": pos.x, "y": pos.y})
 	var near := []
-	for a in db.airports:
-		if Vector2(a.x, a.y).distance_to(p) < RANGE_M and str(a.get("type", "")) != "closed":
-			near.append({"id": a.icao if a.icao != "" else a.ident, "x": a.x, "y": a.y, "kind": "apt"})
-	for v in db.vors:
-		if Vector2(v.x, v.y).distance_to(p) < RANGE_M:
-			near.append({"id": v.ident, "x": v.x, "y": v.y, "kind": "vor"})
+	var want := kinds(int(Props.get_f("controls/efis/nd_filter")))
+	if "apt" in want:
+		for a in db.airports:
+			if Vector2(a.x, a.y).distance_to(p) < RANGE_M and str(a.get("type", "")) != "closed":
+				near.append({"id": a.icao if a.icao != "" else a.ident, "x": a.x, "y": a.y, "kind": "apt"})
+	for pair in [["vor", db.vors], ["ndb", db.ndbs]]:
+		if pair[0] in want:
+			for v in pair[1]:
+				if Vector2(v.x, v.y).distance_to(p) < RANGE_M:
+					near.append({"id": v.ident, "x": v.x, "y": v.y, "kind": pair[0]})
+	if "wpt" in want:
+		for id in db.fixes:
+			var f: Vector2 = db.fixes[id]
+			if f.distance_to(p) < RANGE_M:
+				near.append({"id": id, "x": f.x, "y": f.y, "kind": "wpt"})
 	near.sort_custom(func(a, b): return Vector2(a.x, a.y).distance_squared_to(p) < Vector2(b.x, b.y).distance_squared_to(p))
 	Props.set_v("instruments/nd/route", route)
 	Props.set_v("instruments/nd/near", near.slice(0, MAX_POINTS))

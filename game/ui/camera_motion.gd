@@ -25,3 +25,11 @@ static func seat_step(offset: float, vel: float, nz: float, dt: float) -> Vector
 	vel += acc * dt
 	offset = clampf(offset + vel * dt, -0.045, 0.02)
 	return Vector2(offset, vel)
+
+
+## The cockpit eye in the aircraft frame: the mouse-look offset on the -0.12 rad rest pitch, raised by the seat dip.
+## Zoomed in, the dip shrinks with the field of view (full at 70 deg and wider). A 2 mm head movement would otherwise
+## sweep a 15 deg view of the overhead by about 10 px, a bob the eye does not see while it studies one panel.
+static func cockpit_eye(eye: Vector3, look: Vector2, seat: float, fov_deg: float) -> Transform3D:
+	var k := clampf(fov_deg / 70.0, 0.0, 1.0)
+	return Transform3D(Basis.from_euler(Vector3(look.y - 0.12, look.x, 0.0)), eye + Vector3.UP * seat * k)

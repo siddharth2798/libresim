@@ -50,3 +50,11 @@ docs/ui-rework/
 
 # graphify knowledge graph output (local)
 graphify-out/
+
+#internal todos
+todo.md
+# Claude Code project permissions (local)
+.claude/settings.json
+
+# Screenshots for review (local)
+review_screenshots/

@@ -61,15 +61,17 @@ static func overcast_sky(top: Color, hor: Color, day: float, occl: float, dark: 
 	return [top.lerp(g_top, occl), hor.lerp(g_hor, occl)]
 
 
-## Intermittent showers: a light setting (< 0.3) rains on and off (minutes), heavier rain
-## is steady with some variation. t = seconds, seed varies the pattern.
-static func shower_rate(precip: float, t: float, seed := 0.0) -> float:
+## Rain rate 0..1 under the cloud field at ground position p2 (ENU east, north m; cover, drift as CloudField): rain
+## falls where the cloud is thick and drifts with it. A light setting (< 0.3) rains only as showers under the thickest
+## clouds; heavier rain is steady, heavier under the thick parts. Same field for the drawn rain and the physics.
+static func rain_rate(precip: float, p2: Vector2, cover: float, drift: Vector2) -> float:
 	if precip <= 0.0:
 		return 0.0
-	var n := 0.5 + 0.3 * sin(t / 97.0 + seed) + 0.2 * sin(t / 41.0 + seed * 2.3)
-	if precip >= 0.3:
-		return clampf(precip * (0.85 + 0.3 * n), 0.0, 1.0)
-	return clampf(precip * 2.5 * smoothstep(0.55, 0.75, n), 0.0, 1.0)
+	var field := CloudField.lo((p2 + drift) / CloudField.TILE_M) - (1.0 - cover) * 0.82  # as CloudField.density's coverage
+	var thick := smoothstep(0.1, 0.35, field)
+	var shower := precip * 3.0 * thick
+	var steady := precip * (0.75 + 0.25 * thick)
+	return clampf(lerpf(shower, steady, smoothstep(0.2, 0.4, precip)), 0.0, 1.0)
 
 
 ## Surface wetness target for a rain rate (the actual value lags in WeatherFx).

@@ -11,7 +11,7 @@ extends Control
 ##   drag a leg            leg_dragged(insert_at, world, ident): a new waypoint on that leg
 ##   right click waypoint  wp_removed(i)
 ##   wheel / + -           zoom at the cursor;  drag empty map / arrows: pan;  F or the Fit button: show the whole route
-## View maths: MapView. Drawing helpers: MapStyle, RouteMapLayers.
+## The gestures are RouteGestures (shared with the N map's edit mode). View maths: MapView. Drawing: MapStyle, RouteMapLayers.
 
 signal clicked(world: Vector2, ident: String, shift: bool)
 signal wp_selected(index: int)
@@ -19,9 +19,6 @@ signal wp_dragged(index: int, world: Vector2, ident: String)
 signal leg_dragged(insert_at: int, world: Vector2, ident: String)
 signal wp_removed(index: int)
 
-const CLICK_SLOP := 6.0
-const WP_HIT := 13.0  # px: a press this close to a waypoint grabs it
-const LEG_HIT := 8.0  # px: this close to a leg (away from its ends) grabs the leg
 const ZOOM_STEP := 1.25
 const PAN_STEP := 60.0
 const BG := Color(0.035, 0.05, 0.075)
@@ -34,14 +31,11 @@ var dep := {}  # {id, pos, label} of the departure, {} when unknown
 var dest := {}  # {id, pos} of the destination, {} when none
 var selected := -1  # wps index of the selected waypoint (-2 = destination)
 var tas_mps := 60.0  # ETE speed of the leg labels
+var aircraft := {}  # {pos, hdg (rad)}: the aircraft symbol (the in-flight editor), {} = none
 var fit_btn: Button
+var gestures := RouteGestures.new(view)  # mouse -> the signals above (shared with the N map's edit mode)
 
 var _tiles: MapTiles
-var _grab := {}  # what the left button pressed on: {kind: "wp" | "leg" | "pan", index}
-var _press := Vector2.ZERO
-var _pressed := false
-var _dragging := false
-var _drag_px := Vector2.ZERO
 var _want_fit := true
 
 
@@ -64,6 +58,12 @@ func _init() -> void:
 	fit_btn.pressed.connect(fit)
 	add_child(fit_btn)
 	resized.connect(_on_resized)
+	gestures.clicked.connect(func(w, id, sh): clicked.emit(w, id, sh))
+	gestures.wp_selected.connect(func(i): wp_selected.emit(i))
+	gestures.wp_dragged.connect(func(i, w, id): wp_dragged.emit(i, w, id))
+	gestures.leg_dragged.connect(func(i, w, id): leg_dragged.emit(i, w, id))
+	gestures.wp_removed.connect(func(i): wp_removed.emit(i))
+	gestures.panned.connect(func(rel): view.pan_px(rel))
 
 
 func _exit_tree() -> void:
@@ -95,6 +95,17 @@ func fit() -> void:
 	queue_redraw()
 
 
+## The legs as drawn now: the latest show_route() legs (not the ones of the last mouse event), bent while dragging.
+func drawn_legs() -> Array:
+	gestures.legs = legs
+	return gestures.shown_legs(selected)
+
+
+## The departure to ring: none when the aircraft symbol marks the start (in flight the route starts at PPOS, no airport).
+func ring_dep() -> Dictionary:
+	return {} if not aircraft.is_empty() else dep
+
+
 func route_points() -> Array:
 	var pts := []
 	if not dep.is_empty():
@@ -113,86 +124,38 @@ func _on_resized() -> void:
 		fit()
 
 
-## Airport, navaid or (when shown) fix under `px`, "" if none.
+## Airport, navaid or (when shown) fix under `px`, "" if none (RouteGestures.pick).
 func pick(px: Vector2) -> String:
-	if db == null:
-		return ""
-	var id := MapFeatures.pick(view, db, px, 16.0)
-	if id != "" or view.across_nm() > RouteMapLayers.SHOW_FIX_NM:
-		return id
-	var bd := 10.0
-	for f in db.fixes:
-		var d := view.to_px(db.fixes[f]).distance_to(px)
-		if d < bd:
-			bd = d
-			id = f
-	return id
+	gestures.db = db
+	return gestures.pick(px)
 
 
-## What a press at `px` takes hold of: a waypoint (not the departure or destination), a leg away from its ends, or the map.
+## What a press at `px` takes hold of (RouteGestures.hit).
 func hit(px: Vector2) -> Dictionary:
-	for l in legs:
-		if int(l.wp) >= 0 and view.to_px(l.b).distance_to(px) < WP_HIT:
-			return {"kind": "wp", "index": int(l.wp)}
-	for l in legs:
-		var a := view.to_px(l.a)
-		var b := view.to_px(l.b)
-		var c := Geometry2D.get_closest_point_to_segment(px, a, b)
-		if c.distance_to(px) < LEG_HIT and c.distance_to(a) > WP_HIT and c.distance_to(b) > WP_HIT:
-			return {"kind": "leg", "index": int(l.insert_at)}
-	return {"kind": "pan", "index": -1}
+	gestures.legs = legs
+	return gestures.hit(px)
 
 
 func _gui_input(e: InputEvent) -> void:
+	gestures.db = db
+	gestures.legs = legs
 	if e is InputEventMouseButton:
 		var mb := e as InputEventMouseButton
 		if mb.button_index in [MOUSE_BUTTON_WHEEL_UP, MOUSE_BUTTON_WHEEL_DOWN] and mb.pressed:
 			var k := pow(ZOOM_STEP, mb.factor if mb.factor > 0.0 else 1.0)
 			zoom_at(mb.position, 1.0 / k if mb.button_index == MOUSE_BUTTON_WHEEL_UP else k)
-		elif mb.button_index == MOUSE_BUTTON_RIGHT and mb.pressed:
-			var h := hit(mb.position)
-			if h.kind == "wp":
-				wp_removed.emit(h.index)
-		elif mb.button_index == MOUSE_BUTTON_LEFT:
-			if mb.pressed:
+		else:
+			if mb.button_index == MOUSE_BUTTON_LEFT and mb.pressed:
 				grab_focus()
-				_press = mb.position
-				_grab = hit(mb.position)
-				_pressed = true
-				_dragging = false
-			elif _pressed:
-				_release(mb.position, mb.shift_pressed)
-		accept_event()
-	elif e is InputEventMouseMotion and _pressed:
-		var mm := e as InputEventMouseMotion
-		if not _dragging and mm.position.distance_to(_press) > CLICK_SLOP:
-			_dragging = true
-		if _dragging:
-			if _grab.kind == "pan":
-				view.pan_px(mm.relative)
-			_drag_px = mm.position
+			gestures.input(mb)
 			queue_redraw()
+		accept_event()
+	elif e is InputEventMouseMotion and gestures.pressed:
+		gestures.input(e)
+		queue_redraw()
 		accept_event()
 	elif e is InputEventKey and e.pressed:
 		_key(e as InputEventKey)
-
-
-func _release(px: Vector2, shift: bool) -> void:
-	var g := _grab
-	var dragged := _dragging
-	_pressed = false
-	_dragging = false
-	_grab = {}
-	queue_redraw()
-	if not dragged:
-		if g.kind == "wp":
-			wp_selected.emit(g.index)
-		else:
-			clicked.emit(view.to_world(px), pick(px), shift)
-	elif g.kind == "wp":
-		wp_dragged.emit(g.index, view.to_world(px), pick(px))
-	elif g.kind == "leg":
-		leg_dragged.emit(g.index, view.to_world(px), pick(px))
 
 
 func _key(k: InputEventKey) -> void:
@@ -249,46 +212,17 @@ func _draw() -> void:
 		tiles.draw(self, view, level, Color(0.42, 0.45, 0.5))
 	if db == null:
 		return
-	var shown := _shown_legs()
+	var shown := drawn_legs()
 	var taken: Array = []
-	MapRouteLayer.reserve(view, shown, font, taken)
+	MapRouteLayer.reserve(view, shown, font, taken, MapFeatures.marker_rects(view, db) + [fit_btn.get_rect()])
 	RouteMapLayers.draw_airways(self, view, db)
 	RouteMapLayers.draw_fixes(self, view, db, font, taken)
-	RouteMapLayers.draw_ends(self, view, dep, dest)  # under the labels, so the ring never hides the airport's name
+	RouteMapLayers.draw_ends(self, view, ring_dep(), dest)  # under the labels, so the ring never hides the airport's name
 	MapFeatures.draw_airports(self, view, db, runways, font, taken)
 	MapFeatures.draw_navaids(self, view, db, font, taken)
 	MapRouteLayer.draw(self, view, shown, tas_mps, font, taken)
-	if _dragging and _grab.get("kind", "") != "pan":
-		RouteMapLayers.draw_snap(self, view.to_world(_drag_px), view, pick(_drag_px), db)
+	gestures.draw_snap(self)
+	if not aircraft.is_empty():
+		MapFeatures.draw_aircraft(self, view.to_px(aircraft.pos), float(aircraft.hdg), 0.0)
 	MapFeatures.draw_scale_bar(self, view, Vector2(18.0, size.y - 22.0), font)
 	draw_rect(Rect2(Vector2.ZERO, size), Color(1, 1, 1, 0.14) if not has_focus() else Color(MenuTheme.ACCENT, 0.8), false, 1.5 if not has_focus() else 2.0)
-
-
-## The legs as drawn: the selected waypoint's leg is the "active" (bold, ringed) one; a waypoint or leg being dragged
-## follows the cursor.
-func _shown_legs() -> Array:
-	var out := []
-	var to := view.to_world(_drag_px)
-	var kind: String = _grab.get("kind", "") if _dragging else ""
-	var idx: int = int(_grab.get("index", -1))
-	for l in legs:
-		var c: Dictionary = l.duplicate()
-		c.active = int(l.wp) == selected and selected != -1
-		if kind == "wp":
-			if int(l.wp) == idx:
-				c.b = to
-			elif out.size() > 0 and int(out.back().wp) == idx:
-				c.a = to
-		if kind == "leg" and int(l.insert_at) == idx:
-			var first := c.duplicate()
-			first.b = to
-			first.ident = "+"
-			out.append(first)
-			c.a = to
-		out.append(c)
-	var cum := 0.0
-	for c in out:
-		c.dist_m = (c.a as Vector2).distance_to(c.b)
-		cum += c.dist_m
-		c.cum_m = cum
-	return out

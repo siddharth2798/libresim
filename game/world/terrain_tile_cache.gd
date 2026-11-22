@@ -8,7 +8,7 @@ extends RefCounted
 
 const MAX_UPLOADS_PER_FRAME := 6
 const TILE_SIZE_DEFAULT := 7680.0  # level-0 tile size (tools/common.py TILE_SIZE)
-const MAX_ENTRIES := 400  # per kind (heights, textures)
+const MAX_ENTRIES := 400  # per kind (heights, textures): the default; graphics presets set max_entries (world/scenery_quality.gd)
 const EVICT_MS := 3000
 const MAX_CPU := 160  # CPU-side height / land-class tiles kept for queries
 const IMG_N := 768
@@ -19,6 +19,7 @@ var tile_n: int
 var h_scale: float
 var h_offset: float
 var levels: Array = []  # TerrainMeta.levels (merged base + regions)
+var max_entries := MAX_ENTRIES
 
 var _h := {}  # Vector3i -> {state, htex, used}
 var _t := {}  # Vector3i -> {state, itex, lctex, lcimg, wctex, sdtex, used}   (texture source tiles)
@@ -146,6 +147,7 @@ func _load_t(key: Vector3i, fl: int) -> void:
 		var sb := FileAccess.get_file_as_bytes(sdp).decompress_dynamic(-1, FileAccess.COMPRESSION_GZIP)
 		if sb.size() == IMG_N * IMG_N * 2:
 			sd = Image.create_from_data(IMG_N, IMG_N, false, Image.FORMAT_RG8, sb)
+	TerrainHelperMaps.shrink(key.x, lc, wc, sd)  # half size above level 0 (world/terrain_helper_maps.gd)
 	_finish([1, key, img, lc, wc, sd])
 
 
@@ -176,13 +178,15 @@ func process() -> int:
 		else:
 			e.itex = ImageTexture.create_from_image(item[2]) if item[2] else null
 			e.lctex = ImageTexture.create_from_image(item[3]) if item[3] else null
-			e.lcimg = item[3]  # CPU copy for landclass_at()
+			var cpu := TerrainHelperMaps.cpu_source(tmeta, key)  # main thread: tex_source memoises
+			e.lcimg = item[3] if cpu else null  # CPU copy for landclass_at(), only where it reads
+			e.wcimg = item[4] if cpu else null  # and worldcover_at()
 			e.wctex = ImageTexture.create_from_image(item[4]) if item[4] else null
 			e.sdtex = ImageTexture.create_from_image(item[5]) if item[5] else null
 		e.state = 1
 	if _frame % 60 == 0:
 		for store in [_h, _t, _tiles]:
-			if store.size() > MAX_ENTRIES:
+			if store.size() > max_entries:
 				_evict(store)
 	return batch.size()
 
@@ -192,7 +196,7 @@ func process() -> int:
 func _evict(store: Dictionary) -> void:
 	var keys := store.keys()
 	keys.sort_custom(func(a, b): return store[a].used < store[b].used)
-	for i in range(store.size() - MAX_ENTRIES * 3 / 4):
+	for i in range(store.size() - max_entries * 3 / 4):
 		var e = store[keys[i]]
 		if e.get("state", 1) == 1 and _now - e.used > EVICT_MS:
 			store.erase(keys[i])
@@ -254,6 +258,16 @@ static func key_level(k: Vector3i) -> int:
 ## Land-class value (0 other, 1..200 tree density, 255 water) at world (east, north), from the finest tile that has a
 ## land-class mask (level 0, else nearest ancestor). -1 while that mask is loading; 0 where no tile has one.
 func landclass_at(east: float, north: float) -> int:
+	return _mask_at(east, north, "lcimg")
+
+
+## WorldCover class code (tools/19_worldcover.py: 1 trees, 2 shrub, 3 grass, 4 crop, 5 built-up, ...; 0 unknown) at world
+## (east, north), from the same tile as landclass_at. -1 while it is loading.
+func worldcover_at(east: float, north: float) -> int:
+	return _mask_at(east, north, "wcimg")
+
+
+func _mask_at(east: float, north: float, field: String) -> int:
 	var size: float = tmeta.tile_size_m
 	var src := tmeta.tex_source(0, floori(east / size), floori(north / size), TerrainMeta.HAS_LC)
 	if src == NONE:
@@ -261,10 +275,11 @@ func landclass_at(east: float, north: float) -> int:
 	var e := _request(_t, src, 1)
 	if e.state != 1:
 		return -1
-	var img: Image = e.lcimg
+	var img: Image = e.get(field)
 	if img == null:
 		return 0
 	var ss := tmeta.level_size(src.x)
-	var px := clampi(int((east - src.y * ss) / ss * IMG_N), 0, IMG_N - 1)
-	var py := clampi(int((1.0 - (north - src.z * ss) / ss) * IMG_N), 0, IMG_N - 1)
+	var n := img.get_width()  # IMG_N at level 0, smaller above (TerrainHelperMaps)
+	var px := clampi(int((east - src.y * ss) / ss * n), 0, n - 1)
+	var py := clampi(int((1.0 - (north - src.z * ss) / ss) * n), 0, n - 1)
 	return int(img.get_pixel(px, py).r * 255.0 + 0.5)

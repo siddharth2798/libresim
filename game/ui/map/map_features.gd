@@ -106,6 +106,26 @@ static func draw_scale_bar(ci: CanvasItem, view: MapView, origin: Vector2, font:
 	MapStyle.text(ci, font, sc.label, a + Vector2(0, -12), 14, Color.WHITE)
 
 
+## Screen rects of the airport and VOR / NDB symbols drawn in the view (draw_airports / draw_navaids rules, outline
+## included): the route labels keep off them (MapRouteLayer.reserve).
+static func marker_rects(view: MapView, db: NavDatabase) -> Array:
+	var out: Array = []
+	if db == null:
+		return out
+	var rect := Rect2(Vector2.ZERO, view.size).grow(40.0)
+	var across := view.across_nm()
+	for a in db.airports:
+		var p := view.to_px(Vector2(a.x, a.y))
+		if rect.has_point(p) and _airport_visible(a, across):
+			var r := 9.0 if a.type == "heliport" else 13.0
+			out.append(Rect2(p - Vector2(r, r), Vector2(r, r) * 2.0))
+	for v in db.vors + db.ndbs:
+		var q := view.to_px(Vector2(v.x, v.y))
+		if rect.has_point(q):
+			out.append(Rect2(q - Vector2(9, 9), Vector2(18, 18)))
+	return out
+
+
 ## Ident of the airport or navaid within `radius_px` of a click, "" if none (nearest wins).
 static func pick(view: MapView, db: NavDatabase, px: Vector2, radius_px := 26.0) -> String:
 	var best := ""

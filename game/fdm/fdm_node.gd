@@ -42,12 +42,17 @@ func _ready() -> void:
 			trees.near(e, n, r, lo, out)
 		return out
 	fdm.in_corridor = ObstacleRegistry.in_corridor
+	SimHold.publish(false, false)  # a new flight: the weather runs
 	_defaults()
 	if fdm.cfg.has("apu"):
 		var apu := Apu.new()
 		apu.fdm = fdm
 		apu.model = ApuModel.new(fdm.cfg.apu)
 		add_child(apu)
+
+
+func _exit_tree() -> void:
+	SimHold.publish(false, false)
 
 
 func _defaults() -> void:
@@ -112,6 +117,7 @@ func _snap() -> void:
 
 
 func _physics_process(delta: float) -> void:
+	SimHold.publish(paused, replaying)  # weather, cloud drift and icing hold with the FDM
 	if paused or replaying or fdm.damage.crashed:
 		return
 	_prev_pos = PackedFloat64Array([fdm.pos_e, fdm.pos_n, -fdm.pos_d])
@@ -163,7 +169,7 @@ func _read_controls(dt: float) -> void:
 	FdmAirlinerProps.read(fdm)
 	if env_fx == null:
 		env_fx = EnvironmentEffects.new(Icing.params(fdm.def))
-	env_fx.update(fdm)  # icing/* and environment/precip -> drag, lift, power scales
+	env_fx.update(fdm)  # icing/* and environment/ac_precip -> drag, lift, power scales
 	c.flaps_powered = Props.get_b("systems/electrical/flaps_powered", true) and not Props.get_b("failures/flaps")
 	var feed = Props.get_v("fuel/feed", null)  # per tank, from the fuel system
 	var leak = Props.get_v("fuel/leak_kgs", null)
@@ -173,18 +179,7 @@ func _read_controls(dt: float) -> void:
 		if leak is Array and i < leak.size():
 			fdm.tank_leak_kgs[i] = float(leak[i])
 	fdm.fuel_available = Props.get_b("fuel/available", true)
-	if Props.has("environment/wind_ned"):
-		fdm.wind_ned = Props.get_v("environment/wind_ned")
-	if Props.has("environment/qnh_pa"):
-		fdm.atmo.qnh_pa = Props.get_f("environment/qnh_pa")
-		fdm.atmo.delta_t = Props.get_f("environment/delta_t")
-		fdm.atmo.humidity_k = 0.0
-		if Props.get_b("weather/use_humidity", false):
-			var h := maxf(Props.get_f("fdm/alt_m", 0.0), 0.0)
-			var t_c := Props.get_f("weather/temp_c", 15.0) - AtmosphereISA.L * h
-			var p_hpa := Props.get_f("weather/qnh_hpa", 1013.25) * pow(maxf(1.0 - AtmosphereISA.L * h / AtmosphereISA.T0, 0.2), AtmosphereISA.EXP)
-			fdm.atmo.humidity_k = AtmosphereISA.virtual_extra_k(t_c, Props.get_f("weather/dewpoint_c"), p_hpa)
-
+	FdmAir.read(fdm)  # wind, rotary gusts, QNH, temperature, humidity
 
 ## Lever of engine i: controls/<name> for engine 1 (and for any engine without its own),
 ## controls/<name>_<i+1> to move engines separately.
@@ -214,6 +209,7 @@ func _publish() -> void:
 	Props.set_v("fdm/vs_mps", -v_ned.z)
 	Props.set_v("fdm/alt_m", f.altitude())
 	Props.set_v("fdm/agl_m", f.agl)
+	Props.set_v("fdm/wheel_depth_m", f.gear.wheel_depth(f.mb, Basis(f.q)))  # lowest wheel below the CG (Weather)
 	Props.set_v("fdm/alpha_rad", f.alpha)
 	Props.set_v("fdm/beta_rad", f.beta)
 	Props.set_v("fdm/load_factor", f.load_factor)

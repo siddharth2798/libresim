@@ -80,10 +80,15 @@ func _ready() -> void:
 	_refresh()
 
 
-## The aircraft step may have changed the aircraft since this page was last shown.
+## The aircraft step may have changed the aircraft since this page was last shown, and the Route step the airport (a
+## loaded plan that starts elsewhere).
 func _when_shown() -> void:
 	if visible:
 		_sync_air()
+		if str(_cur.get("icao", "")) != str(Session.setup.airport):
+			for a in _airports:
+				if a.icao == Session.setup.airport:
+					_cur = a
 		if not _cur.is_empty():
 			_select(_cur, false)  # keeps the runway and stand, re-filters the lists for the aircraft
 		_refresh()  # the diagram marks the distance

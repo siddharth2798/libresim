@@ -2,7 +2,9 @@ class_name WeatherFx
 extends Node
 ## Rain, wet surfaces and lightning. Created by SkyTime.
 ## Reads weather/precip (0..1 setting), weather/cloud_cover, weather/cloud_base_ft.
-## Publishes environment/precip (local rain rate: showers, none above the cloud tops),
+## Publishes environment/precip (rain rate at the camera, for the visuals and sounds: under the thick parts of the
+## cloud field, drifting with it, none above the cloud tops; the physics uses environment/ac_precip, the same field
+## (local_rate) worked out by Weather at the aircraft),
 ## environment/wetness (lags the rain), environment/lightning (0..1 flash), and the
 ## global shader params precip, wetness, rain_airspeed (windshield drops, wet terrain).
 
@@ -12,8 +14,6 @@ const DRY := 1.0 / 900.0  # drying per second
 
 var rain_max := 6000  # particles at full rain, set by the graphics preset
 var _rain: RainParticles
-var _t := 0.0
-var _seed := 0.0
 var _wet := -1.0
 var _flash := 0.0
 var _next_strike := 10.0
@@ -23,7 +23,6 @@ var _rng := RandomNumberGenerator.new()
 
 func _ready() -> void:
 	_rng.randomize()
-	_seed = _rng.randf_range(0.0, 100.0)
 	_rain = RainParticles.new()
 	_rain.name = "Rain"
 	_rain.max_count = rain_max
@@ -36,19 +35,19 @@ func set_rain_max(n: int) -> void:
 		_rain.set_max(n)
 
 
-## Rain rate at altitude alt_m (AMSL) from the setting, time and cloud geometry.
-static func local_rate(precip: float, t: float, seed: float, alt_m: float, base_m: float) -> float:
-	var r := WeatherVisuals.shower_rate(precip, t, seed)
-	return r * (1.0 - smoothstep(base_m + CLOUD_THICK * 0.6, base_m + CLOUD_THICK, alt_m))
+## Rain rate at ENU p (east, north, up AMSL) from the setting and the cloud field (WeatherVisuals.rain_rate): none
+## above the drawn layer, fading out over its upper 40 %.
+static func local_rate(precip: float, p: Vector3, base_m: float, cover: float, drift: Vector2) -> float:
+	var r := WeatherVisuals.rain_rate(precip, Vector2(p.x, p.y), cover, drift)
+	return r * (1.0 - smoothstep(base_m + CLOUD_THICK * 0.6, base_m + CLOUD_THICK, p.z))
 
 
 func _process(dt: float) -> void:
-	_t += dt
 	var cam := get_viewport().get_camera_3d()
 	var cam_w := FloatingOrigin.to_world(cam.global_position) if cam else Vector3(0, 0, 500)
 	var base_m := Units.ft_to_m(Props.get_f("weather/cloud_base_ft", 4500.0))
 	var precip := Props.get_f("weather/precip")
-	var rain := local_rate(precip, _t, _seed, cam_w.z, base_m)
+	var rain := local_rate(precip, cam_w, base_m, Props.get_f("weather/cloud_cover"), Props.get_v("environment/cloud_drift", Vector2.ZERO))
 	rain = minf(rain * (1.0 + 0.6 * Props.get_f("environment/storm_intensity")), 1.0)  # heavier under a storm cell
 	Props.set_v("environment/precip", rain)
 	# wet ground lags the rain: starts wet if the weather was set rainy

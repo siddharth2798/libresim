@@ -164,6 +164,11 @@ func _map() -> void:
 			"vor":
 				poly(PackedVector2Array([s + Vector2(0, -7), s + Vector2(6, 0), s + Vector2(0, 7), s + Vector2(-6, 0)]), CYAN)
 				txt(s + Vector2(8, 0), str(n.id), 14, CYAN)
+			"ndb", "wpt":  # EFIS NDB / WPT options
+				poly(PackedVector2Array([s + Vector2(0, -7), s + Vector2(6, 5), s + Vector2(-6, 5)]) if n.kind == "ndb" \
+					else PackedVector2Array([s + Vector2(0, -6), s + Vector2(2, -2), s + Vector2(6, 0), s + Vector2(2, 2),
+						s + Vector2(0, 6), s + Vector2(-2, 2), s + Vector2(-6, 0), s + Vector2(-2, -2)]), MAGENTA)
+				txt(s + Vector2(8, 0), str(n.id), 14, MAGENTA)
 	var prev := _c
 	var first := true
 	for w in Array(Props.get_v("instruments/nd/route", [])):

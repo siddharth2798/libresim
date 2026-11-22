@@ -150,3 +150,87 @@ func test_route_page_start_on_leg_only_for_air_starts() -> String:
 	if _route().air_at != -1 or p.start_opt.item_count != 2:
 		return "a start leg that went away resets: %d" % _route().air_at
 	return ""
+
+
+func test_route_page_shows_the_profile_and_the_fuel_line() -> String:
+	var p := _open()
+	if p.profile == null or not p.profile.samples.is_empty() or p.nav_log.fuel.visible:
+		return "no route: an empty profile and no fuel line"
+	if not p.plans.save_btn.disabled or not p.plans.export_btn.disabled or p.plans.load_btn.disabled:
+		return "no route: Save and Export greyed, Load open"
+	p.set_destination("VAPO")
+	p.auto_route("direct")
+	if p.profile.samples.size() < 100 or not p.profile.caption.begins_with("Highest ground"):
+		return "VABB-VAPO (62 nm) sampled every half mile: %d samples, '%s'" % [p.profile.samples.size(), p.profile.caption]
+	if not p.nav_log.fuel.visible or not p.nav_log.fuel.text.begins_with("Fuel  Trip ") or not p.nav_log.fuel.text.contains("on board 34 gal"):
+		return "fuel line: " + p.nav_log.fuel.text
+	if p.plans.save_btn.disabled or p.plans.export_btn.disabled:
+		return "a route: Save and Export open"
+	Session.setup.fuel_gal = 3.0
+	p._refresh(false)
+	if p.nav_log.fuel.get_theme_color("font_color") != MenuTheme.BAD:
+		return "6 gal for trip + reserve: the fuel line is red"
+	return ""
+
+
+func test_route_page_plans_save_load_and_a_new_departure() -> String:
+	var keep_dir := PlanStore.dir
+	PlanStore.dir = "user://test_page_plans/"
+	var p := _open()
+	p.set_destination("VAPO")
+	p.auto_route("direct")
+	p.plans.open_save()
+	var d: RoutePlanDialog = p.plans.dialog
+	var err := ""
+	if d == null or d.name_box.text != "VABB to VAPO":
+		err = "the save dialog suggests the route's name"
+	else:
+		p.plans.save_as(d.name_box.text)
+		if p.plans.dialog != null or not PlanStore.exists("VABB to VAPO"):
+			err = "saved and closed"
+	if err == "":
+		Session.setup.airport = "VAPO"
+		p.clear_route()
+		var msgs := []
+		p.plans.loaded.connect(func(t, _w): msgs.append(t))
+		p.plans.load_plan("vabb_to_vapo")
+		if Session.setup.airport != "VABB" or Session.setup.runway != "" or _route().dest != "VAPO":
+			err = "loading puts back the departure and the route: %s %s" % [Session.setup.airport, _route()]
+		elif msgs.is_empty() or not str(msgs[0]).contains("departure is now VABB") or p.controls.from_label.text.begins_with("VAPO"):
+			err = "tells the player and repaints: %s / %s" % [msgs, p.controls.from_label.text]
+	for f in DirAccess.get_files_at(PlanStore.dir):
+		DirAccess.remove_absolute(PlanStore.dir.path_join(f))
+	PlanStore.dir = keep_dir
+	return err
+
+
+func test_route_page_pln_export_then_import() -> String:
+	var p := _open()
+	p.set_destination("VAPO")
+	p.auto_route("vor")
+	var want := _ids()
+	var text: String = p.plans.export_text()
+	if not text.contains("<DepartureID>VABB</DepartureID>") or not text.contains("<DestinationID>VAPO</DestinationID>"):
+		return "export: " + text.left(300)
+	p.clear_route()
+	var r: Dictionary = p.plans.import_text(text, "x.pln")
+	if not r.ok or _ids() != want or _route().dest != "VAPO":
+		return "import gives the same route: %s vs %s (%s)" % [_ids(), want, r]
+	if p.plans.import_text("<nope/>", "bad.pln").ok:
+		return "a file that is not a plan is refused"
+	return ""
+
+
+func test_airport_page_follows_a_departure_set_by_a_plan() -> String:
+	_open()
+	var ap: Control = PageFrame.make_page("res://ui/menu/airport_page.gd")
+	add_child(ap)
+	ap.visible = false
+	Session.setup.airport = "VAPO"  # what PlanStore.apply does when a plan starts elsewhere
+	Session.setup.runway = ""
+	ap.visible = true
+	var got := str(ap._cur.get("icao", ""))
+	ap.free()
+	if got != "VAPO" or Session.setup.airport != "VAPO":
+		return "shown again, the Airport step shows the plan's departure: %s" % got
+	return ""

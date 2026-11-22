@@ -82,7 +82,7 @@ func _ready() -> void:
 	if AirlinerNodes.wanted(AircraftDef.current()):  # glass-cockpit instrument feeds and autoflight
 		AirlinerNodes.add($Instruments, $Systems, $Avionics/Nav.db)
 	$Systems/Failures.fdm_node = fdm_node
-	$TouchdownFx.setup(fdm_node)
+	$TouchdownFx.setup(fdm_node, null, airports)  # airports: where tyre marks go (TouchdownMarks)
 	$Training.setup(fdm_node, airports, terrain)
 	$UI/Failures.manager = $Systems/Failures
 	$UI/Pause.flight = self
@@ -114,6 +114,7 @@ func _ready() -> void:
 		var live := LiveRun.new()
 		live.name = "LiveWeather"
 		add_child(live)
+	$AirportOps.corridors_near_aircraft([], fdm_node.position_enu())  # the placed aircraft's airport, before the first physics step
 
 
 func _reset() -> void:

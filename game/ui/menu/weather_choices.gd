@@ -13,7 +13,7 @@ const SLIDERS := {  # key: [label, min, max, step, format, hover text]
 	"cloud_base_ft": ["Cloud base", 800.0, 12000.0, 100.0, "%d ft", "Cloud base height above sea level."],
 	"visibility_m": ["Visibility", 800.0, 40000.0, 200.0, "%.1f km", ""],
 	"precip": ["Rain", 0.0, 1.0, 0.05, "%d %%", "Broken = passing showers, Overcast = drizzle, Monsoon = heavy rain."],
-	"turbulence": ["Turbulence", 0.0, 1.0, 0.05, "%d %%", ""],
+	"turbulence": ["Turbulence", 0.0, 1.0, 0.05, "%d %%", "Military-standard levels: a third is light, two thirds moderate, the end severe. Near the ground it is the gustiness of a 15, 30 or 45 kt wind. Cumulus and storm cloud are rough whatever it says."],
 	"convection": ["Thermals", 0.0, 1.0, 0.05, "%d %%", "The sun lifts the air under cumulus and sinks it between. Not at night, weak over water."],
 	"storms": ["Storm cells", 0.0, 1.0, 0.05, "%d %%", "Microbursts with outflow shear. Only in heavy, monsoon-like rain."],
 	"icing": ["Icing", 0.0, 1.0, 0.05, "%d %%", "Supercooled water in cloud. Ice forms between +2 and -20 °C: above about 5,000 m in the tropics. C172: pitot heat only; A320: anti-ice."],
@@ -58,7 +58,8 @@ static func value_text(key: String, x: float) -> String:
 	var f: String = SLIDERS[key][4]
 	match key:
 		"time_h": return DayMath.clock(x)
-		"cloud_cover", "turbulence", "precip", "icing", "convection", "storms": return f % int(x * 100.0)
+		"turbulence": return Turbulence.level_name(x) if x < 0.04 else "%s %d %%" % [Turbulence.level_name(x), int(x * 100.0)]
+		"cloud_cover", "precip", "icing", "convection", "storms": return f % int(x * 100.0)
 		"visibility_m": return f % (x / 1000.0)
 	return f % int(x)
 

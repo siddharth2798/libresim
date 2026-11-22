@@ -6,8 +6,8 @@ extends RefCounted
 
 const R := 6371000.0
 const SHADERS := ["res://world/terrain.gdshader", "res://world/building.gdshader", "res://world/terminal.gdshader",
-	"res://world/tree.gdshader", "res://world/tree_mesh.gdshader", "res://world/strip.gdshaderinc",
-	"res://world/ground_paint.gdshader", "res://world/light_point.gdshaderinc"]  # everything drawn far away
+	"res://world/tree.gdshader", "res://world/tree_mesh.gdshader", "res://world/ground_cover.gdshader", "res://world/tree_shadow.gdshader", "res://world/strip.gdshaderinc",
+	"res://world/ground_paint.gdshader", "res://world/light_point.gdshaderinc", "res://world/runway_v2.gdshader"]  # everything drawn far away
 
 
 ## Metres a point at render-space wp is drawn below its true height.

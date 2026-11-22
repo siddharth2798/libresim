@@ -12,6 +12,10 @@ Outputs:
   engine.png    Liveries/CFM/2k/CFM56-white.png unchanged (clean white engine, generic placards).
   fd_*.png      flight-deck textures reduced to <= 2048 px; the "Airbus A320 Family" legend on
                 fd_main.png is painted over with the panel colour.
+  game/aircraft/a320/models/interior_fd_glare_4k.png
+                fd_glare (the transparent legend overlay: every panel, overhead and pedestal placard) at
+                its full 4096 px, same UV layout: the lettering twice as sharp. The game swaps it in on every graphics preset but Low (aircraft.json
+                cockpit.detail_textures, aircraft/common/cockpit_precision.gd); VRAM-compressed (BPTC / ASTC).
 Change-log class: "textures".
 Usage: tools/.venv/bin/python -I tools/24_a320_textures.py
 """
@@ -22,6 +26,8 @@ from PIL import Image
 
 ROOT = Path(__file__).resolve().parents[1]
 RAW = ROOT / "data/raw/fg/a320/Models"
+DETAIL = ROOT / "game/aircraft/a320/models"  # full-size flight-deck atlases the game loads directly
+DETAIL_STEMS = ["fd_glare"]  # the placard lettering of every panel lives on this overlay atlas
 OUT = ROOT / "data/processed/a320/tex"  # derived (gitignored); the glb embeds them
 # registration areas in fuselage.png pixels (x, y, w, h): where the template's N680AW was (both sides)
 REG_RECTS = {"left": (2640, 440, 220, 80), "right": (2640, 1250, 220, 80)}
@@ -123,6 +129,9 @@ def flightdeck():
             patch = a[box[1] - 12:box[1], box[0]:box[2]].reshape(-1, 3)
             a[box[1]:box[3], box[0]:box[2]] = np.median(patch, axis=0).astype(np.uint8)
             im = Image.fromarray(a, "RGB")
+        if stem in DETAIL_STEMS:
+            im.save(DETAIL / ("interior_%s_4k.png" % stem), optimize=True)
+            print("wrote", "interior_%s_4k.png" % stem, im.size)
         if max(im.size) > 2048:
             im = im.resize((2048, 2048 * im.size[1] // im.size[0]), Image.LANCZOS)
         save(im, stem.lower() + ".png")

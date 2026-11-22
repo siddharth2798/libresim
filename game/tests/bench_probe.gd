@@ -26,7 +26,8 @@ class _Clock:
 
 
 ## Samples `secs` seconds of frames after `warm` frames of warm-up; returns
-## {frames, fps, ms_avg, ms_p95, ms_p99, gpu_avg, gpu_p95 (-1 = not available), cpu_avg}.
+## {frames, fps, ms_avg, ms_p95, ms_p99, gpu_avg, gpu_p95 (-1 = not available), cpu_avg, objects, draws, prims}: the last three are
+## the main viewport's visible objects, draw calls and primitives per frame (averages; shadow passes not counted).
 static func measure(n: Node, secs: float, warm := 30) -> Dictionary:
 	var vp := n.get_viewport()
 	var rid := vp.get_viewport_rid()
@@ -45,6 +46,8 @@ static func measure(n: Node, secs: float, warm := 30) -> Dictionary:
 	var ft: Array[float] = []
 	var gpu: Array[float] = []
 	var cpu: Array[float] = []
+	var passes := {}  # GPU ms of the edge filter / tonemap passes (tests/bench_passes.gd)
+	var info := [0.0, 0.0, 0.0]  # objects, draw calls, primitives (summed, averaged below)
 	var start := Time.get_ticks_usec()
 	var last := start
 	while float(Time.get_ticks_usec() - start) < secs * 1e6:
@@ -53,8 +56,13 @@ static func measure(n: Node, secs: float, warm := 30) -> Dictionary:
 		ft.append(float(now - last) / 1000.0)
 		last = now
 		gpu.append(RenderingServer.viewport_get_measured_render_time_gpu(rid))
+		BenchPasses.sample(passes)
 		var game: float = clock.game_us.back() / 1000.0 if not clock.game_us.is_empty() else 0.0
 		cpu.append(game + RenderingServer.viewport_get_measured_render_time_cpu(rid) + RenderingServer.get_frame_setup_time_cpu())
+		for k in 3:
+			info[k] += RenderingServer.viewport_get_render_info(rid, RenderingServer.VIEWPORT_RENDER_INFO_TYPE_VISIBLE,
+				[RenderingServer.VIEWPORT_RENDER_INFO_OBJECTS_IN_FRAME, RenderingServer.VIEWPORT_RENDER_INFO_DRAW_CALLS_IN_FRAME,
+				RenderingServer.VIEWPORT_RENDER_INFO_PRIMITIVES_IN_FRAME][k])
 	tree.physics_frame.disconnect(clock.on_step)
 	tree.process_frame.disconnect(clock.on_step)
 	RenderingServer.frame_pre_draw.disconnect(clock.on_pre_draw)
@@ -68,14 +76,18 @@ static func measure(n: Node, secs: float, warm := 30) -> Dictionary:
 	var has_gpu := gpu.any(func(v: float) -> bool: return v > 0.0)
 	return {"frames": ft.size(), "fps": ft.size() / maxf(total / 1000.0, 1e-3), "ms_avg": _mean(ft), "ms_p95": _pct(ft, 0.95),
 		"ms_p99": _pct(ft, 0.99), "gpu_avg": _mean(gpu) if has_gpu else -1.0, "gpu_p95": _pct(gpu, 0.95) if has_gpu else -1.0,
-		"cpu_avg": _mean(cpu)}
+		"cpu_avg": _mean(cpu), "objects": info[0] / maxf(ft.size() + 1, 1.0), "draws": info[1] / maxf(ft.size() + 1, 1.0),
+		"prims": info[2] / maxf(ft.size() + 1, 1.0), "passes": BenchPasses.text(passes)}
 
 
 ## One line for the log, parsed by tools/bench.sh ("n/a" where the GPU time is not available).
+## Ends with what the main viewport drew with: 3D scale, edge filter (core/screen_aa.gd), TAA, MSAA.
 static func line(scene: String, preset: String, renderer: String, r: Dictionary) -> String:
-	return "BENCH scene=%s preset=%s renderer=%s driver=%s fps=%.1f ms_avg=%.2f ms_p95=%.2f ms_p99=%.2f gpu_avg=%s gpu_p95=%s cpu_avg=%.2f frames=%d" % [
+	var vp := (Engine.get_main_loop() as SceneTree).root
+	return "BENCH scene=%s preset=%s renderer=%s driver=%s fps=%.1f ms_avg=%.2f ms_p95=%.2f ms_p99=%.2f gpu_avg=%s gpu_p95=%s cpu_avg=%.2f frames=%d objects=%d draws=%d prims=%d scale=%.2f aa=%s taa=%s msaa=%d passes=%s" % [
 		scene, preset, renderer, RenderingServer.get_current_rendering_driver_name(), r.fps, r.ms_avg, r.ms_p95, r.ms_p99,
-		_ms(r.gpu_avg), _ms(r.gpu_p95), r.cpu_avg, r.frames]
+		_ms(r.gpu_avg), _ms(r.gpu_p95), r.cpu_avg, r.frames, int(r.get("objects", 0)), int(r.get("draws", 0)), int(r.get("prims", 0)),
+		vp.scaling_3d_scale, ScreenAA.MODES.find_key(vp.screen_space_aa), vp.use_taa, vp.msaa_3d, r.get("passes", "n/a")]
 
 
 static func _ms(v: float) -> String:

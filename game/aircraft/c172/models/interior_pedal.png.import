@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://ckhoc01wgyd1n"
-path="res://.godot/imported/interior_pedal.png-b75fee648b25e017c42d883c42e21189.ctex"
+path.s3tc="res://.godot/imported/interior_pedal.png-b75fee648b25e017c42d883c42e21189.s3tc.ctex"
+path.etc2="res://.godot/imported/interior_pedal.png-b75fee648b25e017c42d883c42e21189.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "7b9a74524a63abe3b8b923d8d44ce293"
@@ -14,11 +16,11 @@ generator_parameters={
 [deps]
 
 source_file="res://aircraft/c172/models/interior_pedal.png"
-dest_files=["res://.godot/imported/interior_pedal.png-b75fee648b25e017c42d883c42e21189.ctex"]
+dest_files=["res://.godot/imported/interior_pedal.png-b75fee648b25e017c42d883c42e21189.s3tc.ctex", "res://.godot/imported/interior_pedal.png-b75fee648b25e017c42d883c42e21189.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

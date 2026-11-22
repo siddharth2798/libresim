@@ -1,7 +1,10 @@
 """Merged OSM runways + taxiways -> data/processed/runways.json (for rendering and start positions).
 
-runways:  [{airport, ends: [{ident, x, y, h, heading_true}, {...}], width, length}]
-taxiways: [{width, pts: [[x, y, h], ...]}]   (heights sampled from the flattened DEM)
+runways:  [{airport, ends: [{ident, x, y, h, heading_true}, {...}], width, length, surface}]
+          surface: "asphalt" | "concrete", from the OurAirports runway nearest this one (airports.json, 05); the game
+          reads r.get("surface", "asphalt") so files written before this key still load
+taxiways: [{width, width_known, pts: [[x, y, h], ...]}]   (heights sampled from the flattened DEM; width_known: OSM
+          gave a width, so the game paints edge lines; else width is TAXI_W)
 Run after 02_dem_tiles.py (both regions: re-run once the corridor level-0 heights exist).
 """
 import json
@@ -71,6 +74,22 @@ def drop_shadow_runways(merged, max_offset=300.0, max_angle_deg=5.0):
     return keep, drop
 
 
+def surface_of(ap, p0, p1, max_off=600.0):
+    """"concrete" or "asphalt" for the OSM runway p0-p1 from the OurAirports runway of airport ap whose ends are
+    nearest (OurAirports codes: CON / CONC / PEM / "concrete" ... are concrete; anything else paved is asphalt)."""
+    best, best_d = None, max_off
+    for r in ap.get("runways", []):
+        le, he = r.get("le"), r.get("he")
+        if not le or not he:
+            continue
+        d = min(math.hypot(le["x"] - p0[0], le["y"] - p0[1]) + math.hypot(he["x"] - p1[0], he["y"] - p1[1]),
+                math.hypot(le["x"] - p1[0], le["y"] - p1[1]) + math.hypot(he["x"] - p0[0], he["y"] - p0[1])) / 2
+        if d < best_d:
+            best, best_d = r, d
+    code = (best or {}).get("surface", "").upper()
+    return "concrete" if code.startswith(("CON", "PEM")) or "CONCRETE" in code else "asphalt"
+
+
 def main():
     h = load_heights()
     osm = json.loads((c.OUT / "osm" / "aeroways.json").read_text())
@@ -99,18 +118,19 @@ def main():
             ends.append({"ident": name, "x": round(float(a[0]), 1), "y": round(float(a[1]), 1),
                          "h": round(h(*a), 2), "heading_true": round(hdg, 2)})
         runways.append({"airport": ap["icao"] or ap["ident"], "width": w,
-                        "length": round(float(np.hypot(*(p1 - p0))), 1), "ends": ends})
+                        "length": round(float(np.hypot(*(p1 - p0))), 1), "ends": ends, "surface": surface_of(ap, p0, p1)})
     taxiways = []
     for p0, p1, w in shadows:  # mis-tagged parallel taxiways: keep them paved, as taxiways
-        taxiways.append({"width": min(w, 23.0), "pts": [[round(float(x), 1), round(float(y), 1), round(h(x, y), 2)]
+        taxiways.append({"width": min(w, 23.0), "width_known": True, "pts": [[round(float(x), 1), round(float(y), 1), round(h(x, y), 2)]
                                                          for x, y in (p0, p1)]})
     for l in osm["lines"]:
         if l["kind"] == "taxiway":
             taxiways.append({"width": flatten._width(l["width"], TAXI_W),
+                             "width_known": flatten._width(l["width"], -1.0) > 0.0,
                              "pts": [[x, y, round(h(x, y), 2)] for x, y in l["pts"]]})
     (c.OUT / "runways.json").write_text(json.dumps({"runways": runways, "taxiways": taxiways}))
     for r in runways:
-        print(r["airport"], "/".join(e["ident"] for e in r["ends"]), f'{r["length"]:.0f} m x {r["width"]:.0f} m')
+        print(r["airport"], "/".join(e["ident"] for e in r["ends"]), f'{r["length"]:.0f} m x {r["width"]:.0f} m', r["surface"])
     print("taxiways:", len(taxiways))
     if MISSING:
         print(f"WARNING: {len(MISSING)} level-0 height tiles missing, heights there are 0; re-run after 02: "

@@ -5,12 +5,12 @@ extends RefCounted
 ## power (piston) or thrust (turbine) and raise a turbine's EGT. Neutral at level 0 (active = false: Aero and the engines give
 ## the clean-air numbers).
 ## Levels come from systems/icing.gd (Props icing/airframe, icing/engine_<n>, icing/bleed_penalty_<n>) and the rain rate
-## (environment/precip); per-aircraft factors from aircraft.json "icing" (Icing.params). Aero.evaluate calls shape_forces();
+## at the aircraft (environment/ac_precip, Weather); per-aircraft factors from aircraft.json "icing" (Icing.params). Aero.evaluate calls shape_forces();
 ## update() / apply() set the engine fields.
 ## At full airframe ice (C172 numbers): CD0 + 0.011 (about +35 %), lift near the stall x(1 - 0.22 - up to 0.09 past the stall
 ## alpha), stall alpha x0.89 (about -26 % CLmax, +16 % stall speed), lift slope -3 %.
 
-const RAIN_FROM := 0.6  # environment/precip above which rain affects the airframe
+const RAIN_FROM := 0.6  # environment/ac_precip above which rain affects the airframe
 const SLOPE_K := 0.15  # lift-slope loss at full ice, as a fraction of clmax_k
 const ALPHA_K := 0.5  # stall alpha loss at full ice, as a fraction of clmax_k
 const POST_STALL_K := 0.4  # extra lift loss past the stall alpha, as a fraction of the CLmax loss
@@ -46,7 +46,7 @@ func update(f: FDM) -> void:
 	for i in f.units.size():
 		ice.append(Props.get_f("icing/engine_%d" % (i + 1)))
 		bleed.append(Props.get_f("icing/bleed_penalty_%d" % (i + 1)))
-	apply(f, Props.get_f("icing/airframe"), Props.get_f("environment/precip"), ice, bleed)
+	apply(f, Props.get_f("icing/airframe"), Props.get_f("environment/ac_precip"), ice, bleed)
 
 
 ## airframe: ice level 0..1; precip: local rain rate 0..1; engine_ice / bleed: per engine (0..1 / fraction).

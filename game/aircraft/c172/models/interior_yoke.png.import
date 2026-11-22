@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://crhdfrvw0rmte"
-path="res://.godot/imported/interior_yoke.png-b3536d7866f638022e51c403272fc587.ctex"
+path.s3tc="res://.godot/imported/interior_yoke.png-b3536d7866f638022e51c403272fc587.s3tc.ctex"
+path.etc2="res://.godot/imported/interior_yoke.png-b3536d7866f638022e51c403272fc587.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "eec9820c83ea02181ca1acc964bb2f36"
@@ -14,11 +16,11 @@ generator_parameters={
 [deps]
 
 source_file="res://aircraft/c172/models/interior_yoke.png"
-dest_files=["res://.godot/imported/interior_yoke.png-b3536d7866f638022e51c403272fc587.ctex"]
+dest_files=["res://.godot/imported/interior_yoke.png-b3536d7866f638022e51c403272fc587.s3tc.ctex", "res://.godot/imported/interior_yoke.png-b3536d7866f638022e51c403272fc587.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

@@ -16,13 +16,14 @@ const HELD := ["pitch_down", "pitch_up", "roll_left", "roll_right", "yaw_left", 
 	# twin-jet / airliner actions (offered per aircraft: input/control_actions.gd)
 	"throttle_1_up", "throttle_1_down", "throttle_2_up", "throttle_2_down", "reverse", "apu_start",
 	"rudder_trim_left", "rudder_trim_right", "fcu_spd_up", "fcu_spd_down", "fcu_hdg_right", "fcu_hdg_left",
-	"fcu_alt_up", "fcu_alt_down", "fcu_vs_up", "fcu_vs_down", "tiller_left", "tiller_right"]
+	"fcu_alt_up", "fcu_alt_down", "fcu_vs_up", "fcu_vs_down", "tiller_left", "tiller_right", "baro_up", "baro_down"]
 const PRESS := ["flaps_down", "flaps_up", "parking_brake", "magnetos_next", "mouse_yoke",
 	"master", "avionics", "fuel_selector", "fuel_shutoff", "beacon", "nav_lights", "strobes",
 	"landing_light", "taxi_light", "pitot_heat",
 	"throttle_detent_up", "throttle_detent_down", "speedbrake_out", "speedbrake_in", "gear_toggle",
 	"autobrake_next", "engine_master_1", "engine_master_2", "engine_mode_next", "apu_master",
-	"fcu_ap1", "fcu_ap2", "fcu_athr", "fcu_loc", "fcu_appr", "anti_ice_wing", "anti_ice_eng_1", "anti_ice_eng_2",
+	"fcu_ap1", "fcu_ap2", "fcu_athr", "fcu_loc", "fcu_appr", "fcu_ap_disc", "fcu_athr_disc", "fcu_spd_mach", "fcu_trk_fpa",
+	"fcu_metric_alt", "fcu_alt_1000", "efis_fd", "efis_ls", "baro_std", "nd_mode_next", "nd_range_up", "nd_range_down", "nd_filter_next", "anti_ice_wing", "anti_ice_eng_1", "anti_ice_eng_2",
 	"takeoff_light", "turnoff_lights", "wing_lights", "logo_lights", "alternate_static",
 	"elec_bat1", "elec_bat2", "elec_gen1", "elec_gen2", "elec_apu_gen", "elec_ext_pwr", "hyd_green_edp", "hyd_yellow_edp", "hyd_blue_epump", "hyd_yellow_epump", "hyd_ptu", "fuel_pump_left", "fuel_pump_centre", "fuel_pump_right", "fuel_crossfeed", "bleed_eng1", "bleed_eng2", "bleed_apu", "pack1", "pack2", "seatbelt_signs", "no_smoking_signs",
 	"jetway_toggle", "door_toggle", "passenger_doors_all", "cargo_doors_all", "door_r1_toggle", "door_l2_toggle", "door_r2_toggle", "door_cargo_fwd_toggle",
@@ -80,6 +81,11 @@ const LABELS := {
 	"fcu_spd_up": "FCU speed up", "fcu_spd_down": "FCU speed down", "fcu_hdg_right": "FCU heading right",
 	"fcu_hdg_left": "FCU heading left", "fcu_alt_up": "FCU altitude up", "fcu_alt_down": "FCU altitude down",
 	"fcu_vs_up": "FCU vertical speed up", "fcu_vs_down": "FCU vertical speed down",
+	"fcu_ap_disc": "Autopilot disconnect", "fcu_athr_disc": "Autothrust disconnect", "fcu_spd_mach": "FCU SPD/MACH",
+	"fcu_trk_fpa": "FCU HDG-V/S / TRK-FPA", "fcu_metric_alt": "FCU metric altitude", "fcu_alt_1000": "FCU altitude step 100 / 1000",
+	"efis_fd": "Flight director (FD)", "efis_ls": "Landing system (LS)", "baro_std": "Baro STD / QNH", "baro_up": "Baro up",
+	"baro_down": "Baro down", "nd_mode_next": "ND mode ARC / ROSE", "nd_range_up": "ND range up", "nd_range_down": "ND range down",
+	"nd_filter_next": "ND option (CSTR WPT VOR.D NDB ARPT)",
 	"tiller_left": "Tiller left", "tiller_right": "Tiller right", "alternate_static": "Alternate static",
 	"jetway_toggle": "Retract / dock bridge", "door_toggle": "Door L1 (front left)",
 	"passenger_doors_all": "All passenger doors", "cargo_doors_all": "All cargo doors",
@@ -141,7 +147,9 @@ static func defaults() -> Dictionary:
 ## Airliner overhead switches (ELEC, HYD, FUEL, AIR, SIGNS; input/control_actions.gd): no default key.
 const OVERHEAD := ["elec_bat1", "elec_bat2", "elec_gen1", "elec_gen2", "elec_apu_gen", "elec_ext_pwr", "hyd_green_edp",
 	"hyd_yellow_edp", "hyd_blue_epump", "hyd_yellow_epump", "hyd_ptu", "fuel_pump_left", "fuel_pump_centre", "fuel_pump_right",
-	"fuel_crossfeed", "bleed_eng1", "bleed_eng2", "bleed_apu", "pack1", "pack2", "seatbelt_signs", "no_smoking_signs"]
+	"fuel_crossfeed", "bleed_eng1", "bleed_eng2", "bleed_apu", "pack1", "pack2", "seatbelt_signs", "no_smoking_signs",
+	"fcu_ap_disc", "fcu_athr_disc", "fcu_spd_mach", "fcu_trk_fpa", "fcu_metric_alt", "fcu_alt_1000", "efis_fd", "efis_ls", "baro_std",
+	"baro_up", "baro_down", "nd_mode_next", "nd_range_up", "nd_range_down", "nd_filter_next"]  # and the FCU / EFIS extras
 
 
 ## Defaults of the actions only some aircraft offer (Alt / Ctrl chords and keys the C172 set leaves free).

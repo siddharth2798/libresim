@@ -2,8 +2,8 @@ class_name LoaderFilm
 extends TextureRect
 ## Scenic frames behind a loading screen, the way a flight sim plays a film while the
 ## world streams in. The clips are short camera moves shot at the Max preset
-## (tests/debug_showcase.gd --film=). Each frame is the imported texture, loaded
-## on its own so an export can play it and only one frame stays in memory.
+## (tests/debug_showcase.gd --film=). Each frame is its JPG, decoded on a worker one frame
+## ahead (LoaderFrames) into one ImageTexture, so only a frame or two stay in memory.
 
 
 const FPS := 24.0  # the clips are shot at this rate with game time locked to it (tools/shoot_loader_films.sh)
@@ -20,10 +20,12 @@ var _frame := 0
 var _acc := 0.0
 var _count := 0
 var _hold: bool = false  # a flight stays with its aircraft's clips; either way the next clip plays when one ends
+var _src := LoaderFrames.new()
+var _tex: ImageTexture
 
 
 static func available() -> bool:
-	return ResourceLoader.exists(CLIPS[0].dir + "/000.jpg")
+	return FileAccess.file_exists(LoaderFrames.path(CLIPS[0].dir, 0))
 
 
 static func _clips() -> Array:
@@ -83,16 +85,27 @@ func _process(dt: float) -> void:
 	_acc += dt
 	if _acc < 1.0 / FPS:
 		return
+	var clip := _clip
+	var nxt := _frame + 1
+	if nxt >= _count:
+		clip = next_clip(_clip, _hold)
+		nxt = 0
+	var img := _src.take(LoaderFrames.path(str(CLIPS[clip].dir), nxt))
+	if img == null and nxt > 0:  # still decoding (a busy machine): hold this frame, never wait for it
+		_acc = minf(_acc, 1.0 / FPS)
+		_src.prefetch(LoaderFrames.path(str(CLIPS[clip].dir), nxt))
+		return
 	_acc = 0.0
-	_frame += 1
-	if _frame >= _count:
-		_clip = next_clip(_clip, _hold)
-		_show_frame(0)
-	else:
-		_show_frame(_frame)
+	_clip = clip
+	_show_frame(nxt, img)
 
 
-func _show_frame(i: int) -> void:
+func _exit_tree() -> void:
+	_src.release()
+
+
+## Frame i of the current clip (the next clip that has frames). img: already decoded, else decoded here.
+func _show_frame(i: int, img: Image = null) -> void:
 	var dir := ""
 	var hops := 0
 	while hops < CLIPS.size():
@@ -105,16 +118,19 @@ func _show_frame(i: int) -> void:
 	if _count == 0:
 		return
 	_frame = i % _count
-	var res: Resource = ResourceLoader.load("%s/%03d.jpg" % [dir, _frame], "", ResourceLoader.CACHE_MODE_IGNORE)
-	var tex := res as Texture2D
-	if tex == null:
+	if img == null:
+		img = LoaderFrames.decode(LoaderFrames.path(dir, _frame))
+	if img == null:
 		return
-	texture = tex
+	if _tex != null and _tex.get_size() == Vector2(img.get_size()) and _tex.get_format() == img.get_format():
+		_tex.update(img)
+	else:
+		_tex = ImageTexture.create_from_image(img)
+	texture = _tex
 	caption = str(CLIPS[_clip].title)
+	var last := _frame + 1 >= _count
+	_src.prefetch(LoaderFrames.path(str(CLIPS[next_clip(_clip, _hold)].dir) if last else dir, 0 if last else _frame + 1))
 
 
 func _frames(dir: String) -> int:
-	var n := 0
-	while ResourceLoader.exists("%s/%03d.jpg" % [dir, n]):
-		n += 1
-	return n
+	return LoaderFrames.count(dir)

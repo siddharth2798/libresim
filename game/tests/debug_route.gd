@@ -6,6 +6,9 @@ extends Node
 ##   ROUTE_TEXT="VABB ... VAPO"  a typed route instead
 ##   FREESIM_START=air        start-at choice (shows the "start on a leg" list)
 ##   FREESIM_AIRCRAFT=a320    choose that aircraft first
+##   FREESIM_UISCALE=150%     UI size (as tests/debug_ui_walk.gd: the system scale counts as 1)
+##   ROUTE_LOW=1              also: the second leg at 2,500 ft (into the Ghats) and 6 gal of fuel (red profile, red fuel line), shot "low"
+##   ROUTE_PLANS=1            also: the Save plan and Load plan dialogs (plans in user://_debug_plans/), shots "save", "load"
 ## Shots: route_empty (no route), route_planned (the route, second waypoint selected).
 
 var _s: Control
@@ -26,6 +29,16 @@ func _ready() -> void:
 		Session.apply_payload_defaults(AircraftDef.load_def(Session.setup.aircraft))
 	if OS.get_environment("FREESIM_START") != "":
 		Session.setup.start = OS.get_environment("FREESIM_START")
+	var choice := OS.get_environment("FREESIM_UISCALE")
+	if choice != "":
+		if get_window().size_changed.is_connected(UiScale.apply):
+			get_window().size_changed.disconnect(UiScale.apply)
+		UserOptions.set_v("ui_scale", choice)  # in memory only
+		await get_tree().process_frame
+		var f := UiScale.factor_for(Vector2(get_window().size), choice, 1.0)
+		get_window().content_scale_factor = f
+		UiScale.factor = f
+		UiScale.changed.emit(f)
 	_out = OS.get_environment("FREESIM_SHOTS")
 	if _out == "":
 		_out = OS.get_user_data_dir()
@@ -62,6 +75,20 @@ func _ready() -> void:
 		mv.position = mid + Vector2(30, 60)
 		m._gui_input(mv)
 		await _shot("drag")
+	if OS.get_environment("ROUTE_LOW") != "":
+		page.set_altitude(1, 2500.0)
+		Session.setup.fuel_gal = 3.0
+		page._refresh(false)
+		await _shot("low")
+	if OS.get_environment("ROUTE_PLANS") != "":
+		PlanStore.dir = "user://_debug_plans/"
+		PlanStore.save("Mumbai to Goa coast", Session.setup)
+		page.plans.open_save()
+		await _shot("save")
+		page.plans.save_as("Ghats crossing")
+		page.plans.open_load()
+		await _shot("load")
+		page.plans.dialog.close()
 	get_tree().quit()
 
 

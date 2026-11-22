@@ -68,7 +68,7 @@ func build(node: FdmNode) -> void:
 
 
 func _build_glb(path: String) -> void:
-	var inst: Node3D = (load(path) as PackedScene).instantiate()
+	var inst: Node3D = ScenePreload.scene(path).instantiate()  # loaded in the background since Fly, else now (ui/scene_preload.gd)
 	inst.transform = fg_transform()
 	add_child(inst)
 	_glb = inst
@@ -90,7 +90,7 @@ func _build_glb(path: String) -> void:
 		add_child(finish)
 		finish.follow(inst, _cg, def)  # cabin-window glow and the fuselage stain; roughness is stamped inside apply()
 		var probe := SkinProbe.make(inst, self, _s)  # the panels lie on the measured skin
-		var doors: PackedScene = load(def.path("door_model")) if def.has_file("door_model") else null  # modelled passenger doors
+		var doors: PackedScene = ScenePreload.scene(def.path("door_model")) if def.has_file("door_model") else null  # modelled passenger doors
 		for door in CabinDoorPanel.make_all(def.section("ground"), _cg, _s, probe, doors):  # every door painted on the skin
 			add_child(door)
 		var blur := FanBlur.new()

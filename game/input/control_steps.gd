@@ -10,7 +10,7 @@ const KNOB_REPEAT := 0.08  # s between repeats
 
 ## True when `action` is one of the shared press actions (flaps, toggles, cycles, steps).
 static func handles(action: String) -> bool:
-	return action in ["flaps_up", "flaps_down"] or ControlActions.TOGGLES.has(action) \
+	return action in ["flaps_up", "flaps_down", "nd_range_up", "nd_range_down"] or ControlActions.TOGGLES.has(action) \
 		or ControlActions.CYCLES.has(action) or ControlActions.STEPS.has(action) or ControlActions.PULSES.has(action)
 
 
@@ -20,6 +20,10 @@ static func press(action: String) -> bool:
 		var flaps: int = Props.get_v("controls/flaps", 0)
 		var top := int(Props.get_v("fdm/flap_detents", 4)) - 1
 		Props.set_v("controls/flaps", mini(flaps + 1, top) if action == "flaps_down" else maxi(flaps - 1, 0))
+	elif action == "nd_range_up" or action == "nd_range_down":
+		var r: Array = ControlActions.ND_RANGES
+		var i := r.find(Props.get_f("controls/nd/range_nm", 40.0))
+		Props.set_v("controls/nd/range_nm", r[clampi((i if i >= 0 else 2) + (1 if action == "nd_range_up" else -1), 0, r.size() - 1)])
 	elif ControlActions.TOGGLES.has(action):
 		var p: String = ControlActions.TOGGLES[action]
 		Props.set_v(p, not Props.get_b(p))
@@ -74,6 +78,7 @@ static func knob(action: String, down: bool, dt: float, state: Dictionary) -> bo
 			state[action] -= KNOB_REPEAT
 			due = true
 	if due:
-		var v: float = Props.get_f(k[0]) + float(k[1])
+		var unset: float = Props.get_f(k[5], k[2]) if k.size() > 5 else 0.0
+		var v: float = Props.get_f(k[0], unset) + float(k[1])
 		Props.set_v(k[0], wrapf(v, k[2], k[3] + 1.0) if k[4] else clampf(v, k[2], k[3]))
 	return due

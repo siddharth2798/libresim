@@ -91,6 +91,9 @@ static func apply(root: Node, d: Dictionary) -> String:
 		_repaint(root)
 	var enu := Vector3(d.enu[0], d.enu[1], d.enu[2])
 	FloatingOrigin.set_origin(Vector2(enu.x, enu.y))
+	var apt_ops := root.get_node_or_null("AirportOps")
+	if apt_ops != null and apt_ops.has_method("corridors_near_aircraft"):  # a save at another airport: its corridors before the next physics step
+		apt_ops.call("corridors_near_aircraft", [], enu)
 	# Props: failure flags are cleared first so ones repaired since the save stay off
 	FailureCatalog.clear_all()
 	var props := {}

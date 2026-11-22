@@ -1,8 +1,9 @@
 class_name Trees
 extends Node3D
 ## Forests from the land-class mask (tools/11_landclass.py, 1..200 = tree density). The world is split into CHUNK-metre cells;
-## cells within radius of the camera get a MultiMesh of crossed-quad impostor trees (TreeAtlas sprites baked at startup:
-## eight yaw angles by four species), placed deterministically. Trees within lod_radius are real meshes (TreeLod, dither swap).
+## cells within radius of the camera get a MultiMesh of one-quad hemi-octahedral impostors (tree.gdshader; TreeAtlas bakes
+## every species from 64 directions at startup), placed deterministically; species from TreeSpecies (region, height,
+## WorldCover). Trees within lod_radius are real meshes (TreeLod, dither swap). TreeQuality sets the per-preset numbers.
 ## Generation runs on worker threads (TreeSampler reads the data files); the main thread uploads finished buffers, BUDGET per
 ## frame. Hidden above HIDE_AGL.
 
@@ -30,12 +31,48 @@ var lod_radius := 130.0:
 		if _lod:
 			_lod.radius = v
 
+## Impostor atlas frame size (px) and whether three frames are blended (TreeQuality, per preset).
+var atlas_px := 128
+var blend_frames := true:
+	set(v):
+		blend_frames = v
+		_mat.set_shader_parameter("blend_frames", v)
+## LOD0 detail of the near meshes shrinks away towards this distance (m), where cells switch to LOD1.
+var detail_radius := 60.0:
+	set(v):
+		detail_radius = v
+		if _lod:
+			_lod.detail_radius = v
+
+## Ground cover (GroundCover child) radius and grid step, m; 0 = none.
+var cover_radius := 0.0:
+	set(v):
+		cover_radius = v
+		if _cover:
+			_cover.radius = v
+var cover_step := 1.6:
+	set(v):
+		cover_step = v
+		if _cover:
+			_cover.step = v
+
+## Impostor trees cast proxy shadows within this radius (TreeShadows), m; 0 = none.
+var shadow_radius := 0.0:
+	set(v):
+		shadow_radius = v
+		if _shadows:
+			_shadows.radius = v
+
 var terrain: TerrainQuadtree:
 	set(t):
 		terrain = t
 		if _lod:
 			_lod.terrain = t
+		if _cover:
+			_cover.terrain = t
 var _lod: TreeLod
+var _cover: GroundCover
+var _shadows: TreeShadows
 var _atlas: TreeAtlas
 var _atlas_ready := false
 var _chunks := {}  # Vector2i -> MultiMeshInstance3D (or null = mask not loaded yet)
@@ -52,18 +89,32 @@ var _col := {}  # land cell Vector2i -> collision disc record, or false (no tree
 
 
 func _ready() -> void:
+	TreeClear.ensure_loaded()  # before any worker reads it
 	_mat.shader = preload("res://world/tree.gdshader")
 	_mat.set_shader_parameter("sway_crown_m", TreeLook.SWAY_CROWN_M)
 	_mat.set_shader_parameter("sway_omega", TAU / TreeLook.SWAY_PERIOD_S)
-	_mat.set_shader_parameter("atlas_grid", Vector2(float(TreeAtlas.YAWS), float(TreeSpecies.COUNT)))
+	_mat.set_shader_parameter("species_n", float(TreeSpecies.COUNT))
 	_mat.set_shader_parameter("variant_n", float(TreeSpecies.VARIANTS))
-	_mesh = _crossed_quads()
+	_mat.set_shader_parameter("sp_aspect", PackedFloat32Array(TreeSpecies.ASPECT))
+	_mat.set_shader_parameter("blend_frames", blend_frames)
+	_mesh = TreeAtlas.quad()
 	_lod = TreeLod.new()
 	_lod.name = "Lod"
 	_lod.radius = lod_radius
+	_lod.detail_radius = detail_radius
 	_lod.density_scale = density_scale
 	_lod.terrain = terrain
 	add_child(_lod)
+	_cover = GroundCover.new()
+	_cover.name = "Cover"
+	_cover.radius = cover_radius
+	_cover.step = cover_step
+	_cover.terrain = terrain
+	add_child(_cover)
+	_shadows = TreeShadows.new()
+	_shadows.trees = self
+	_shadows.radius = shadow_radius
+	add_child(_shadows)
 	_atlas = TreeAtlas.new()
 	_atlas.baked.connect(_on_atlas)
 	add_child(_atlas)
@@ -73,31 +124,21 @@ func _ready() -> void:
 func _on_atlas(albedo: Texture2D, normal: Texture2D) -> void:
 	_mat.set_shader_parameter("atlas_albedo", albedo)
 	_mat.set_shader_parameter("atlas_normal", normal)
+	_mat.set_shader_parameter("sp_sphere", _atlas.sphere)
+	_mat.set_shader_parameter("sp_half", _atlas.half)
+	_mat.set_shader_parameter("frame_px", float(_atlas.frame_px))
 	_atlas_ready = true
-
-
-## Two crossed quads, front faces towards +z / -x, with the plane normal and the tangent along the sprite's x.
-static func _crossed_quads() -> ArrayMesh:
-	var st := SurfaceTool.new()
-	st.begin(Mesh.PRIMITIVE_TRIANGLES)
-	for k in 2:
-		var a := Vector3(0.5, 0, 0) if k == 0 else Vector3(0, 0, 0.5)
-		var nrm := Vector3(0, 0, 1) if k == 0 else Vector3(-1, 0, 0)
-		var v := [-a, a, a + Vector3.UP, -a + Vector3.UP]
-		var uv := [Vector2(0, 1), Vector2(1, 1), Vector2(1, 0), Vector2(0, 0)]
-		for i in [0, 2, 1, 0, 3, 2]:
-			st.set_uv(uv[i])
-			st.set_normal(nrm)
-			st.set_tangent(Plane(a.normalized(), 1.0))
-			st.add_vertex(v[i])
-	return st.commit()
+	print("TREE ATLAS %d px, %.1f MB on the GPU%s" % [_atlas.frame_px, _atlas.mem_bytes / 1048576.0, " (block-compressed)" if _atlas.compressed else ""])
 
 
 func _process(dt: float) -> void:
 	visible = Props.get_f("fdm/agl_m", 0.0) < HIDE_AGL or not Props.has("fdm/agl_m")
+	if not _atlas.busy and (_atlas.frame_px != atlas_px or not _atlas_ready):
+		_atlas.bake(atlas_px)  # first frame (after the preset is applied) and on a preset change
 	if terrain == null or not visible or not _atlas_ready:
 		return
 	_mat.set_shader_parameter("lod_r", _lod.covered)
+	_shadows.lod_r = _lod.covered
 	_mutex.lock()
 	var done := _done.slice(0, BUDGET)
 	_done = _done.slice(BUDGET)
@@ -115,6 +156,10 @@ func _process(dt: float) -> void:
 	if _timer > 0.0:
 		return
 	_timer = 0.4
+	var dry := TreeLook.dryness(Props.get_f("weather/day_of_year", 45.0))
+	_mat.set_shader_parameter("season_dry", dry)
+	_lod.season_dry = dry
+	_cover.season_dry = dry
 	var cam := get_viewport().get_camera_3d()
 	if cam == null:
 		return
@@ -224,9 +269,9 @@ func _tree_cell(ci: int, cj: int) -> Variant:
 		return false  # land-class mask still loading: ask again next step
 	var t := TreeSampler.cell_tree(ci, cj, lc, PX, density_scale)
 	rec = false
-	if not t.is_empty():
+	if not t.is_empty() and not TreeClear.blocked(t[0], t[1]):
 		var g := terrain.cache.height_at(t[0], t[1])
-		var sh := TreeSpecies.shape(ci, cj, t[1], g)  # [species, variant, height, width]
+		var sh := TreeSpecies.shape(ci, cj, t[1], g, maxi(terrain.cache.worldcover_at((ci + 0.5) * PX, (cj + 0.5) * PX), 0))
 		var sp := int(sh[0])
 		rec = ObstacleShapes.disc(Vector2(t[0], t[1]), TreeSpecies.hit_radius(sp, sh[3]), g - 0.3, g + TreeSpecies.hit_top(sp, sh[2]), "trees", true)
 	if _col.size() > COL_CACHE:

@@ -55,7 +55,7 @@ func test_storm_cell_shape() -> String:
 		return "surface outflow %.1f m/s not in 8-16 m/s" % best_out
 	if CloudStorm.sample(Vector3(ctr.x, ctr.y, 300.0), 300.0, 0.0, Vector2.ZERO, 0.0, base).shear != 0.0:
 		return "no storms setting, no shear"
-	var high := CloudStorm.sample(Vector3(ctr.x, ctr.y, base + 4000.0), 4000.0, 0.0, Vector2.ZERO, 0.9, base)
+	var high := CloudStorm.sample(Vector3(ctr.x, ctr.y, 12000.0), 12000.0, 0.0, Vector2.ZERO, 0.9, base)  # above the ~11 km tops
 	if high.wind.length() > 0.5:
 		return "storm wind far above the tops: %.1f" % high.wind.length()
 	var ground := CloudStorm.sample(Vector3(ctr.x, ctr.y, 0.0), 0.0, 0.0, Vector2.ZERO, 0.9, base)

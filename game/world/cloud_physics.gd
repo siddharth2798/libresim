@@ -10,7 +10,8 @@ extends RefCounted
 
 const LAND_EVERY := 0.5  # s between land-class lookups under the aircraft
 
-var _t := 0.0  # storm clock (s)
+var _t := 0.0  # storm clock (s), environment/storm_clock_s; it stops while Weather holds (pause, replay)
+var _situation := int(Props.get_v("meta/situation", 0))  # bumped by a loaded save: then the saved clock is taken
 var _land := 1.0
 var _land_timer := 0.0
 
@@ -49,9 +50,9 @@ static func evaluate(c: Dictionary, p: Vector3, agl: float, t_s: float) -> Dicti
 	var base: float = c.base_m
 	var cover: float = c.cover
 	var drift: Vector2 = c.drift
-	var dens := CloudField.density(p, base, cover, drift)
-	var near := CloudField.proximity(p, base, cover, drift) if dens < CloudField.IN_CLOUD and cover > 0.0 else 0.0
 	var kind_name: String = c.kind
+	var dens := CloudField.density_deep(p, base, cover, drift, kind_name)  # towers above the drawn layer count
+	var near := CloudField.proximity(p, base, cover, drift, kind_name) if dens < CloudField.IN_CLOUD and cover > 0.0 else 0.0
 	var under := CloudField.under_base(p.z, base, kind_name, float(c.convection) * float(c.heat))
 	var scale := CloudField.turbulence_scale(kind_name, dens, near, under)
 	var th := CloudConvection.thermal(p, agl, c, dens)
@@ -60,14 +61,19 @@ static func evaluate(c: Dictionary, p: Vector3, agl: float, t_s: float) -> Dicti
 		st = CloudStorm.sample(p, agl, t_s, c.wind_en, float(c.storms), base)
 	var wind: Vector3 = st.wind + Vector3(0.0, 0.0, -th)
 	return {
-		"density": dens, "in_cloud": dens > CloudField.IN_CLOUD, "base_m": base, "top_m": CloudField.top_m(base),
-		"kind": kind_name, "turb_scale": maxf(scale, 1.0 + 3.0 * st.intensity), "turb_floor": 3.0 * st.intensity,
+		"density": dens, "in_cloud": dens > CloudField.IN_CLOUD, "base_m": base, "top_m": CloudField.top_m(base, kind_name),
+		"kind": kind_name, "turb_scale": maxf(scale, 1.0 + 3.0 * st.intensity),
+		"turb_floor": maxf(3.0 * st.intensity, CloudField.turbulence_floor(kind_name, dens, near)),
 		"thermal": th, "wind": wind, "storm_intensity": st.intensity, "storm_core": st.core, "shear": st.shear,
 	}
 
 
 ## Called by Weather each physics tick: evaluate at the aircraft, publish, return the result.
 func update(dt: float, pos: Vector3, agl: float, terrain: TerrainQuadtree) -> Dictionary:
+	var sit := int(Props.get_v("meta/situation", 0))
+	if sit != _situation:  # a saved flight was loaded (Situation.apply): the storm cells where they were
+		_situation = sit
+		_t = Props.get_f("environment/storm_clock_s", _t)
 	_t += dt
 	Props.set_v("environment/storm_clock_s", _t)  # the radar paints the same drifting cells
 	var c := conditions()
