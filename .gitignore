@@ -58,3 +58,6 @@ todo.md
 
 # Screenshots for review (local)
 review_screenshots/
+
+# test launcher timings, worker homes and logs (tools/test_all.sh)
+.cache/

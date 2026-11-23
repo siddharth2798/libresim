@@ -5,7 +5,7 @@
 #   tools/e2e.sh [run-name] [filter]     e.g. tools/e2e.sh run1 ; tools/e2e.sh dbg rwy_VABB
 # Output: /tmp/e2e/<run>/ (logs, results, shots), report /tmp/e2e/report.md
 # (also /tmp/e2e/<run>/report.md). Reference screenshots: /tmp/e2e/ref (made on first run).
-# Env: E2E_JOBS=3 parallel game instances; GODOT=~/.local/bin/godot.
+# Env: E2E_JOBS=3 parallel game instances; GODOT=~/.local/bin/godot; TEST_JOBS=N workers for the unit tests.
 set -u
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 RUN="${1:-run$(date +%H%M)}"
@@ -38,8 +38,8 @@ trap restore EXIT
 timeout 300 "$GODOT" --audio-driver Dummy --headless --path "$ROOT/game" --import > "$OUT/logs/import.log" 2>&1
 
 if [ -z "$FILTER" ] || [ "$FILTER" = unit ]; then
-	echo "e2e: unit tests"
-	timeout 900 "$GODOT" --audio-driver Dummy --headless --path "$ROOT/game" res://tests/run_tests.tscn > "$OUT/logs/unit_tests.log" 2>&1
+	echo "e2e: unit tests (parallel launcher, tools/test_all.sh; TEST_JOBS=N to size it)"
+	GODOT="$GODOT" timeout 3600 "$ROOT/tools/test_all.sh" > "$OUT/logs/unit_tests.log" 2>&1
 	echo $? > "$OUT/logs/unit_tests.exit"
 fi
 if [ -z "$FILTER" ] || [ "$FILTER" = menu ]; then

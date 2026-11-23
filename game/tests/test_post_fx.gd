@@ -329,9 +329,12 @@ func test_post_fx_exhaust_plumes_follow_engines() -> String:
 			Props.set_v("engines/%d/running" % (i + 1), false)
 		sh.update_shimmer(0.0, 120.0, 4000.0)
 		var cold := sh.visible
-		for i in saved.size():
-			Props.set_v("engines/%d/running" % (i + 1), saved[i][0])
-			Props.set_v("engines/%d/egt_k" % (i + 1), saved[i][1])
+		for i in saved.size():  # a property that was not set goes back to not set (a null would break Props.get_b)
+			for kv in [["engines/%d/running" % (i + 1), saved[i][0]], ["engines/%d/egt_k" % (i + 1), saved[i][1]]]:
+				if kv[1] == null:
+					Props._p.erase(kv[0])
+				else:
+					Props.set_v(kv[0], kv[1])
 		sh.free()
 		m.free()
 		if hot != (n > 0) or cold:

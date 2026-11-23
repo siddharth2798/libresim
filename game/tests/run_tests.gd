@@ -1,6 +1,12 @@
 extends Node
 ## Headless test runner (a scene, so autoloads such as Props exist):
-##   godot --headless --path game res://tests/run_tests.tscn [-- --only=<prefix>] [--leaks]
+##   godot --headless --audio-driver Dummy --path game res://tests/run_tests.tscn [-- --only=<prefix>] [--leaks]
+## This one process is the reference run; tests/parallel/run_parallel.gd (tools/test_all.sh) spreads the same suites over
+## several of these processes, using the job options: --suite=<substring>[,...], --file=<exact suite path>[,...],
+## --test=<exact name>, --parts=k/n (a test declared test_x(part := 0, parts := 1) checks only its share k of n and
+## prints "part k/n covered A of B <cases>, C of D <checked>"; run alone it gets 0/1, the whole set), --skip-parted
+## (leave those tests to their own jobs), --list (print every suite and test, run nothing) and --mark (print
+## SUITE <path> before a suite's lines, SUITE_END <path> <ms> after them).
 ## --leaks lists the tests that leave orphan nodes or objects behind (they show up as "resources
 ## still in use at exit" and fail the e2e sweep's "no script errors" check). A test that adds objects
 ## is run a second time and only reported when it adds them again: the first run also pays for
@@ -14,7 +20,7 @@ extends Node
 ## Each test_* method returns "" on success or a failure message (returning nothing, which is what a script error does, fails).
 ## Test suites: tests/test_core.gd (M2), tests/test_fdm_cards.gd (M3 POH test cards).
 
-const SUITES := ["res://tests/test_core.gd", "res://tests/test_fdm_cards.gd", "res://tests/test_flight.gd", "res://tests/test_instruments.gd", "res://tests/test_systems.gd", "res://tests/test_landing.gd", "res://tests/test_nav.gd", "res://tests/test_failures.gd", "res://tests/test_input.gd", "res://tests/test_weight_balance.gd", "res://tests/test_situation.gd", "res://tests/test_replay.gd", "res://tests/test_replay_generic.gd", "res://tests/test_situation_systems.gd", "res://tests/test_terrain_regions.gd", "res://tests/test_airport_lights.gd", "res://tests/test_approach_lights.gd", "res://tests/test_weather_visuals.gd", "res://tests/test_cloud_weather.gd", "res://tests/test_cloud_storms.gd", "res://tests/test_aircraft_lights.gd", "res://tests/test_aircraft_light_placement.gd", "res://tests/test_touchdown_fx.gd", "res://tests/test_callouts.gd", "res://tests/test_training.gd", "res://tests/test_menu.gd", "res://tests/test_menu_order.gd", "res://tests/test_atc.gd", "res://tests/test_atc_flow.gd", "res://tests/test_atc_rules.gd", "res://tests/test_atc_session.gd", "res://tests/test_atc_assist.gd", "res://tests/test_atc_radio_ui.gd", "res://tests/test_atc_airline.gd", "res://tests/test_obstacles.gd", "res://tests/test_speech.gd", "res://tests/test_engine_start.gd", "res://tests/test_fdm_handsoff.gd", "res://tests/test_airport_ops_stands.gd", "res://tests/test_attribution.gd", "res://tests/test_apron_flat.gd", "res://tests/test_ui_scale.gd", "res://tests/test_graphics_presets.gd", "res://tests/test_worldcover.gd", "res://tests/test_pause_screen.gd", "res://tests/test_atmosphere.gd", "res://tests/test_auto_exposure.gd", "res://tests/test_trees_buildings.gd", "res://tests/test_tree_look.gd", "res://tests/test_ground_cover.gd", "res://tests/test_map.gd", "res://tests/test_mini_map.gd", "res://tests/test_screen_layout.gd", "res://tests/test_taxi_banner.gd", "res://tests/test_checklist_window.gd", "res://tests/test_reflection_policy.gd", "res://tests/test_vehicles.gd", "res://tests/test_roads.gd", "res://tests/test_generic_aircraft.gd", "res://tests/test_registration.gd", "res://tests/test_ground_ops_aircraft.gd", "res://tests/test_pushback_pavement.gd", "res://tests/test_controls_data.gd", "res://tests/test_flight_restart.gd", "res://tests/test_fdm_a320.gd", "res://tests/test_a320_surfaces.gd", "res://tests/test_aileron_model.gd", "res://tests/test_fdm_a320_engine.gd", "res://tests/test_fdm_a320_stall.gd", "res://tests/test_fbw_a320.gd", "res://tests/test_fbw_a320_systems.gd", "res://tests/test_displays.gd", "res://tests/test_audio_layers.gd", "res://tests/test_gpws.gd", "res://tests/test_flight_plan.gd", "res://tests/test_autoflight.gd", "res://tests/test_airliner_systems.gd", "res://tests/test_airliner_fuel.gd", "res://tests/test_a320_integration.gd", "res://tests/test_cockpit_levers.gd", "res://tests/test_cockpit_pick.gd", "res://tests/test_camera_look.gd", "res://tests/test_cockpit_tip.gd", "res://tests/test_cockpit_controls_audit.gd", "res://tests/test_a320_overhead.gd", "res://tests/test_cockpit_precision.gd", "res://tests/test_a320_fcu_controls.gd", "res://tests/test_fcu_lamps.gd", "res://tests/test_fcu_windows.gd", "res://tests/test_checklists.gd", "res://tests/test_renderer_restart.gd", "res://tests/test_icing.gd", "res://tests/test_icing_protection.gd", "res://tests/test_icing_effects.gd", "res://tests/test_air_start_defaults.gd", "res://tests/test_jetway_dock.gd", "res://tests/test_jetway_terminal.gd", "res://tests/test_session_save_guard.gd", "res://tests/test_cloud_lighting.gd", "res://tests/test_cloud_temporal.gd", "res://tests/test_post_fx.gd", "res://tests/test_volumetric_fog.gd", "res://tests/test_ground_contact.gd", "res://tests/test_tyre_contact.gd", "res://tests/test_ramp_service.gd", "res://tests/test_apron_lights.gd", "res://tests/test_horizon.gd", "res://tests/test_flyby_placement.gd", "res://tests/test_a320_engine_out.gd", "res://tests/test_terrain_detail.gd", "res://tests/test_terrain_bump.gd", "res://tests/test_livery.gd", "res://tests/test_livery_struts.gd", "res://tests/test_paint_pipeline.gd", "res://tests/test_livery_session.gd", "res://tests/test_livery_builder.gd", "res://tests/test_livery_a320.gd", "res://tests/test_livery_mockup.gd", "res://tests/test_menu_theme.gd", "res://tests/test_setup_checks.gd", "res://tests/test_fly_confirm.gd", "res://tests/test_flow_chrome.gd", "res://tests/test_wind_dial.gd", "res://tests/test_day_strip.gd", "res://tests/test_home_shortcuts.gd", "res://tests/test_callsign.gd", "res://tests/test_airport_search.gd", "res://tests/test_stand_names.gd", "res://tests/test_airport_map.gd", "res://tests/test_menu_tabs.gd", "res://tests/test_segmented_switch.gd", "res://tests/test_failures_page.gd", "res://tests/test_recording_page.gd", "res://tests/test_training_page.gd", "res://tests/test_saves_page.gd", "res://tests/test_font_glyphs.gd", "res://tests/test_controls_filter.gd", "res://tests/test_focus_order.gd", "res://tests/test_real_flight_start.gd", "res://tests/test_flow_reasons.gd", "res://tests/test_stand_display.gd", "res://tests/test_input_captain_pack.gd", "res://tests/test_input_captain_a320.gd", "res://tests/test_input_captain_switches.gd", "res://tests/test_captain_check.gd", "res://tests/test_captain_detect.gd", "res://tests/test_captain_offer.gd", "res://tests/test_graphics_override.gd", "res://tests/test_material_finish.gd", "res://tests/test_fan_blur.gd", "res://tests/test_control_tower.gd", "res://tests/test_live_map.gd", "res://tests/test_live_fetch.gd", "res://tests/test_live_weather_notice.gd", "res://tests/test_loader_film.gd", "res://tests/test_ramp_keys.gd", "res://tests/test_doors.gd", "res://tests/test_a320_model_fit.gd", "res://tests/test_live_physics.gd", "res://tests/test_weather_physics.gd", "res://tests/test_weather_hold.gd", "res://tests/test_weather_levels.gd", "res://tests/test_terrain_flow.gd", "res://tests/test_route_edit.gd", "res://tests/test_route_page.gd", "res://tests/test_route_builder.gd", "res://tests/test_route_setup.gd", "res://tests/test_runway_markings.gd", "res://tests/test_runway_shader.gd", "res://tests/test_touchdown_marks.gd", "res://tests/test_route_checks.gd", "res://tests/test_route_plans.gd", "res://tests/test_route_live.gd", "res://tests/test_route_live_ui.gd", "res://tests/test_screen_aa.gd", "res://tests/test_shader_baker.gd", "res://tests/test_hlod.gd", "res://tests/test_occlusion.gd", "res://tests/test_ground_fx.gd", "res://tests/test_perf_settings.gd", "res://tests/test_load_time.gd", "res://tests/test_terrain_helper_maps.gd"]
+const SUITES := ["res://tests/test_core.gd", "res://tests/test_fdm_cards.gd", "res://tests/test_flight.gd", "res://tests/test_instruments.gd", "res://tests/test_systems.gd", "res://tests/test_landing.gd", "res://tests/test_nav.gd", "res://tests/test_failures.gd", "res://tests/test_input.gd", "res://tests/test_weight_balance.gd", "res://tests/test_situation.gd", "res://tests/test_replay.gd", "res://tests/test_replay_generic.gd", "res://tests/test_situation_systems.gd", "res://tests/test_terrain_regions.gd", "res://tests/test_airport_lights.gd", "res://tests/test_approach_lights.gd", "res://tests/test_weather_visuals.gd", "res://tests/test_cloud_weather.gd", "res://tests/test_cloud_storms.gd", "res://tests/test_aircraft_lights.gd", "res://tests/test_aircraft_light_placement.gd", "res://tests/test_touchdown_fx.gd", "res://tests/test_callouts.gd", "res://tests/test_training.gd", "res://tests/test_menu.gd", "res://tests/test_menu_order.gd", "res://tests/test_atc.gd", "res://tests/test_atc_flow.gd", "res://tests/test_atc_rules.gd", "res://tests/test_atc_session.gd", "res://tests/test_atc_assist.gd", "res://tests/test_atc_radio_ui.gd", "res://tests/test_atc_airline.gd", "res://tests/test_obstacles.gd", "res://tests/test_speech.gd", "res://tests/test_engine_start.gd", "res://tests/test_fdm_handsoff.gd", "res://tests/test_airport_ops_stands.gd", "res://tests/test_attribution.gd", "res://tests/test_apron_flat.gd", "res://tests/test_ui_scale.gd", "res://tests/test_graphics_presets.gd", "res://tests/test_worldcover.gd", "res://tests/test_pause_screen.gd", "res://tests/test_atmosphere.gd", "res://tests/test_auto_exposure.gd", "res://tests/test_trees_buildings.gd", "res://tests/test_tree_look.gd", "res://tests/test_ground_cover.gd", "res://tests/test_map.gd", "res://tests/test_mini_map.gd", "res://tests/test_screen_layout.gd", "res://tests/test_taxi_banner.gd", "res://tests/test_checklist_window.gd", "res://tests/test_reflection_policy.gd", "res://tests/test_vehicles.gd", "res://tests/test_roads.gd", "res://tests/test_generic_aircraft.gd", "res://tests/test_registration.gd", "res://tests/test_ground_ops_aircraft.gd", "res://tests/test_pushback_pavement.gd", "res://tests/test_controls_data.gd", "res://tests/test_flight_restart.gd", "res://tests/test_fdm_a320.gd", "res://tests/test_a320_surfaces.gd", "res://tests/test_aileron_model.gd", "res://tests/test_fdm_a320_engine.gd", "res://tests/test_fdm_a320_stall.gd", "res://tests/test_fbw_a320.gd", "res://tests/test_fbw_a320_systems.gd", "res://tests/test_displays.gd", "res://tests/test_audio_layers.gd", "res://tests/test_gpws.gd", "res://tests/test_flight_plan.gd", "res://tests/test_autoflight.gd", "res://tests/test_airliner_systems.gd", "res://tests/test_airliner_fuel.gd", "res://tests/test_a320_integration.gd", "res://tests/test_cockpit_levers.gd", "res://tests/test_cockpit_pick.gd", "res://tests/test_camera_look.gd", "res://tests/test_cockpit_tip.gd", "res://tests/test_cockpit_controls_audit.gd", "res://tests/test_a320_overhead.gd", "res://tests/test_cockpit_precision.gd", "res://tests/test_a320_fcu_controls.gd", "res://tests/test_fcu_lamps.gd", "res://tests/test_fcu_windows.gd", "res://tests/test_checklists.gd", "res://tests/test_renderer_restart.gd", "res://tests/test_icing.gd", "res://tests/test_icing_protection.gd", "res://tests/test_icing_effects.gd", "res://tests/test_air_start_defaults.gd", "res://tests/test_jetway_dock.gd", "res://tests/test_jetway_terminal.gd", "res://tests/test_session_save_guard.gd", "res://tests/test_cloud_lighting.gd", "res://tests/test_cloud_temporal.gd", "res://tests/test_post_fx.gd", "res://tests/test_volumetric_fog.gd", "res://tests/test_ground_contact.gd", "res://tests/test_tyre_contact.gd", "res://tests/test_ramp_service.gd", "res://tests/test_apron_lights.gd", "res://tests/test_horizon.gd", "res://tests/test_flyby_placement.gd", "res://tests/test_a320_engine_out.gd", "res://tests/test_terrain_detail.gd", "res://tests/test_terrain_bump.gd", "res://tests/test_livery.gd", "res://tests/test_livery_struts.gd", "res://tests/test_paint_pipeline.gd", "res://tests/test_livery_session.gd", "res://tests/test_livery_builder.gd", "res://tests/test_livery_a320.gd", "res://tests/test_livery_mockup.gd", "res://tests/test_menu_theme.gd", "res://tests/test_setup_checks.gd", "res://tests/test_fly_confirm.gd", "res://tests/test_flow_chrome.gd", "res://tests/test_wind_dial.gd", "res://tests/test_day_strip.gd", "res://tests/test_home_shortcuts.gd", "res://tests/test_callsign.gd", "res://tests/test_airport_search.gd", "res://tests/test_stand_names.gd", "res://tests/test_airport_map.gd", "res://tests/test_menu_tabs.gd", "res://tests/test_segmented_switch.gd", "res://tests/test_failures_page.gd", "res://tests/test_recording_page.gd", "res://tests/test_training_page.gd", "res://tests/test_saves_page.gd", "res://tests/test_font_glyphs.gd", "res://tests/test_controls_filter.gd", "res://tests/test_focus_order.gd", "res://tests/test_real_flight_start.gd", "res://tests/test_flow_reasons.gd", "res://tests/test_stand_display.gd", "res://tests/test_input_captain_pack.gd", "res://tests/test_input_captain_a320.gd", "res://tests/test_input_captain_switches.gd", "res://tests/test_captain_check.gd", "res://tests/test_captain_detect.gd", "res://tests/test_captain_offer.gd", "res://tests/test_graphics_override.gd", "res://tests/test_material_finish.gd", "res://tests/test_fan_blur.gd", "res://tests/test_control_tower.gd", "res://tests/test_live_map.gd", "res://tests/test_live_fetch.gd", "res://tests/test_live_weather_notice.gd", "res://tests/test_loader_film.gd", "res://tests/test_ramp_keys.gd", "res://tests/test_doors.gd", "res://tests/test_a320_model_fit.gd", "res://tests/test_live_physics.gd", "res://tests/test_weather_physics.gd", "res://tests/test_weather_hold.gd", "res://tests/test_weather_levels.gd", "res://tests/test_terrain_flow.gd", "res://tests/test_route_edit.gd", "res://tests/test_route_page.gd", "res://tests/test_route_builder.gd", "res://tests/test_route_setup.gd", "res://tests/test_runway_markings.gd", "res://tests/test_runway_shader.gd", "res://tests/test_touchdown_marks.gd", "res://tests/test_route_checks.gd", "res://tests/test_route_plans.gd", "res://tests/test_route_live.gd", "res://tests/test_route_live_ui.gd", "res://tests/test_screen_aa.gd", "res://tests/test_shader_baker.gd", "res://tests/test_hlod.gd", "res://tests/test_occlusion.gd", "res://tests/test_ground_fx.gd", "res://tests/test_perf_settings.gd", "res://tests/test_load_time.gd", "res://tests/test_terrain_helper_maps.gd", "res://tests/test_parallel_runner.gd"]
 
 
 func _ready() -> void:
@@ -27,32 +33,52 @@ func _run() -> void:
 	var root0 := get_tree().root.get_children()
 	var only := ""
 	var suite_filter := ""
+	var files := ""
+	var exact := ""
+	var parts := []
 	var leaks := false
-	for a in OS.get_cmdline_user_args():
+	var flags := OS.get_cmdline_user_args()
+	for a in flags:
 		if a.begins_with("--only="):
 			only = a.substr(7)
 		if a.begins_with("--suite="):  # only the suite files whose name contains this
 			suite_filter = a.substr(8)
+		if a.begins_with("--file="):  # only these suite files (exact paths)
+			files = a.substr(7)
+		if a.begins_with("--test="):  # only the test of this exact name
+			exact = a.substr(7)
+		if a.begins_with("--parts="):  # k/n: the share of a parted test
+			parts = Array(a.substr(8).split("/")).map(func(x): return int(x))
 		leaks = leaks or a == "--leaks"
+	if "--list" in flags:
+		_list(suite_filter, files)
+		return
 	var fails := 0
 	var total := 0
 	for path in SUITES:
-		if not ResourceLoader.exists(path) or (suite_filter != "" and not _matches(path, suite_filter)):
+		if not ResourceLoader.exists(path) or (suite_filter != "" and not _matches(path, suite_filter)) \
+				or (files != "" and not path in files.split(",")):
 			continue
+		var t_suite := Time.get_ticks_msec()
+		if "--mark" in flags:  # the launcher attributes the lines that follow to this suite, and times it
+			print("SUITE %s" % path)
 		var suite = load(path).new()
 		if suite is Node:
 			add_child(suite)
 		for m in suite.get_method_list():
 			var name: String = m.name
-			if not name.begins_with("test_") or not name.begins_with("test_" + only):
+			if not name.begins_with("test_") or not name.begins_with("test_" + only) or (exact != "" and name != exact):
+				continue
+			var parted: bool = m.args.size() == 2
+			if parted and "--skip-parted" in flags:
 				continue
 			total += 1
 			var t := Time.get_ticks_msec()
-			var d := _measure(suite, name)
+			var d := _measure(suite, name, parts if parted and parts.size() == 2 else [])
 			var err: String = d.err
 			var ms := Time.get_ticks_msec() - t
 			if leaks and (d.nodes > 0.0 or d.objs > 0.0):
-				d = _measure(suite, name)  # second run: only what is added again is a leak
+				d = _measure(suite, name, parts if parted and parts.size() == 2 else [])  # second run: only what is added again is a leak
 				if d.nodes > 0.0 or d.objs > 0.0:
 					print("  LEAK  %s: +%d orphan nodes, +%d objects" % [name, d.nodes, d.objs])
 			if err.is_empty():
@@ -60,6 +86,8 @@ func _run() -> void:
 			else:
 				fails += 1
 				print("  FAIL  %s: %s" % [name, err])
+		if "--mark" in flags:
+			print("SUITE_END %s %d" % [path, Time.get_ticks_msec() - t_suite])
 	# What the exit frees anyway: the runner's children (the suites that are nodes, and what tests hung on the current
 	# scene, which is this runner) and what the tests put on the window root. Their _exit_tree cleanup runs
 	# (VolumetricFog frees its composite), so only nodes nothing will ever free are left.
@@ -76,6 +104,26 @@ func _run() -> void:
 			% [left.size(), ", ".join(left.slice(0, 12).map(_describe))])
 	print("%d/%d passed" % [total - fails, total])
 	get_tree().quit(1 if fails > 0 else 0)
+
+
+## --list: "LIST <suite path> <test> <argument count>" for every test of every suite (or of the suites --suite /
+## --file pick), then "LIST_END <tests>". A suite that does not load is listed as "LIST <path> - -1", so the launcher
+## reports it instead of skipping it.
+func _list(suite_filter: String, files: String) -> void:
+	var n := 0
+	for path in SUITES:
+		if (suite_filter != "" and not _matches(path, suite_filter)) or (files != "" and not path in files.split(",")):
+			continue
+		var scr = load(path) if ResourceLoader.exists(path) else null
+		if not scr is Script:
+			print("LIST %s - -1" % path)
+			continue
+		for m in (scr as Script).get_script_method_list():
+			if str(m.name).begins_with("test_"):
+				n += 1
+				print("LIST %s %s %d" % [path, m.name, m.args.size()])
+	print("LIST_END %d" % n)
+	get_tree().quit(0)
 
 
 ## Ids of the nodes outside the tree that nothing will free: not queued for deletion, and the top of their branch
@@ -105,10 +153,11 @@ func _matches(path: String, filter: String) -> bool:
 
 
 ## Runs one test (then the suite's teardown); returns its message and the orphan nodes / objects it added.
-func _measure(suite: Object, name: String) -> Dictionary:
+## part: [k, n] for a parted test run as one share; empty = call it plainly (a parted test then checks everything).
+func _measure(suite: Object, name: String, part := []) -> Dictionary:
 	var orphans0 := Performance.get_monitor(Performance.OBJECT_ORPHAN_NODE_COUNT)
 	var objs0 := Performance.get_monitor(Performance.OBJECT_COUNT)
-	var r = suite.call(name)
+	var r = suite.callv(name, part)
 	var err: String = "aborted: a script error ended the test (see SCRIPT ERROR above) or it returned nothing" if r == null else str(r)
 	if suite.has_method("teardown"):
 		suite.teardown()

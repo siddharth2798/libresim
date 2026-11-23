@@ -1220,7 +1220,7 @@ flatpak run org.freesim.FreeSim</code></pre><button class="copy" type="button">C
   <li>The flight model runs at a fixed 120 Hz. Everything the systems say to each other is a property, such as <code>/fdm/ias_mps</code>. Aircraft behaviour is JSON under <code>game/aircraft/&lt;id&gt;/</code>, read through <code>AircraftDef</code>. Adding an aircraft is a folder, not a new simulation.</li>
   <li>The C172 and the A320 are both loaded that way. Generic cockpit, lights, livery, replay and save code is in <code>game/aircraft/common/</code>.</li>
   <li>SI inside. Convert only at the instruments and the menus.</li>
-  <li>Tests, before a commit that changes behaviour: <code>~/.local/bin/godot --headless --path game res://tests/run_tests.tscn</code>. A new failure blocks the commit.</li>
+  <li>Tests, before a commit that changes behaviour: <code>tools/test_all.sh</code> (the whole suite in parallel, sized to your computer; <code>TEST_JOBS=N</code> forces N workers). The single process <code>~/.local/bin/godot --headless --audio-driver Dummy --path game res://tests/run_tests.tscn</code> is the reference run. A new failure blocks the commit.</li>
   <li>Contracts for <code>aircraft.json</code>, the flight-control law, liveries, displays and the Captain Pack are in <code>docs/USAGE.md</code>. This handbook does not copy them, so they have one place to go stale.</li>
 </ul>
 </section>

@@ -634,11 +634,21 @@ A free camera without an aircraft, for inspecting scenery:
 ### Automated tests
 
 ```bash
+tools/test_all.sh                      # all tests, in parallel, sized to this computer (use this before a commit)
+TEST_JOBS=2 tools/test_all.sh          # force 2 workers; TEST_JOBS=1 = the plain single process below
+tools/test_all.sh --suite=test_replay  # only the suite files whose name contains this
 cd game
-~/.local/bin/godot --headless --audio-driver Dummy --path . res://tests/run_tests.tscn               # all tests
+~/.local/bin/godot --headless --audio-driver Dummy --path . res://tests/run_tests.tscn               # all tests, one process (the reference run)
 ~/.local/bin/godot --headless --audio-driver Dummy --path . res://tests/run_tests.tscn -- --only=fdm  # tests named test_fdm*
 ~/.local/bin/godot --headless --audio-driver Dummy --path . res://tests/run_tests.tscn -- --suite=test_replay  # suite files whose name contains this
 ```
+
+**Parallel launcher** (`tools/test_all.sh`, which runs `godot --headless --audio-driver Dummy --path game -s res://tests/parallel/run_parallel.gd`; on Windows or without bash run that command yourself). It runs the same suites as the single process (`SUITES` in `tests/run_tests.gd`) spread over several headless, muted Godot workers, and prints one summary: every FAIL with its suite, every SCRIPT ERROR line, crashed or timed-out workers, the engine's ERROR / WARNING lines once each with a count (the exit-time leak lines among them), then `passed/total passed` in the single run's format. Exit code 0 only when every test passed and no worker printed a SCRIPT ERROR, crashed or timed out. Measured on an Apple M4 only (10 cores, 4 fast + 6 efficiency; about 5 GB free memory with other apps open): the single process took about 14.5 min before the launcher came (12 min now that the every-stand pushback check reads each airport's taxi graph once), the launcher 3.4 min with 8 workers and 6.6 min with `TEST_JOBS=2`. Expect it to scale with the workers until the longest single suite (about 1 min, `test_real_flight_start.gd`) is the floor; on a 2-core machine it runs one worker, about as long as the single process.
+- **How many workers:** the logical cores minus one (`OS.get_processor_count()`), no more than the free memory the OS reports holds (minus 0.5 GB), and never more than there are jobs. The memory figure per worker is the typical (75th percentile) peak of the queued jobs, measured on earlier runs (`ps` on macOS, `/proc` on Linux, `tasklist` on Windows); with no history 1.2 GB is assumed (the heaviest suite peaked at about 1.1 GB, light ones at 0.2-0.3 GB). A heavy job also waits until the running jobs' peaks plus its own fit that memory. The first line of the output says what it chose and why. `TEST_JOBS=N` (or `-- --jobs=N`) overrides the count.
+- **The queue:** first one worker lists every suite and test (`run_tests --list`; a suite that does not load fails the run). Each suite then runs once in a fresh process with its own empty user folder (HOME / XDG / APPDATA point under `.cache/tests/homes/`, so a worker never touches your saves, options or another worker's files); suites that took a few seconds last time are packed into batches in `SUITES` order. A test declared `test_x(part := 0, parts := 1)` is cut into parts: part k of n checks the cases with index i % n == k (the single runner calls it with 0/1, all of them). `test_pushback_stays_on_the_pavement_at_every_stand` is such a test; its parts print how many of the 1922 stand-aircraft pairs they covered and the launcher fails the test unless every part reported and the counts add up to the whole set. Jobs start longest first, a worker takes the next job as soon as it is free. `leak_check` runs in every worker and passes only when it passed in all of them. A listed test that no worker reported fails as "not run", so nothing is skipped silently (`tests/test_parallel_runner.gd` also checks the queue holds every suite and test exactly once).
+- **Timings cache:** `.cache/tests/timings.json` (gitignored, this computer only): each suite's time, each parted test's total, each job's memory peak and the cost of starting a worker, averaged over runs. Without it the defaults apply (4 s a suite, 5 min a parted test, each new suite alone) and the first run is slower; delete it to start over. A job is killed after 4x its usual time plus a minute (at least 2 min; 15 min with no history) and reported as TIMEOUT. Each job's full output is in `.cache/tests/logs/` until the next run.
+
+Because the launcher runs suites in another order and in separate processes, a test must put back what it changed (a Props value it found unset goes back to unset, not to null) and must not rely on an earlier suite having set something up.
 
 The runner prints PASS/FAIL per test and exits non-zero on failure. The tests start one call after the runner's `_ready` (in `_ready` the window root still refuses `add_child`, so code that puts a node on the root, such as `BusyOverlay.cover`, left it orphaned). The run must end without "ObjectDB instances leaked", "resources still in use at exit" or "RID allocations ... leaked at exit" (the e2e "no script errors" check fails on the ERROR lines): a test that builds a Node must free it (also on its early returns), and a callback that captures `self` makes a reference cycle. The last check, `leak_check`, guards this: after the last test the runner frees its own children and what the tests put on the window root (what the exit would free), then fails if any node the run built is still outside the tree and not queued for deletion, naming it; `-- --leaks` then finds the test (a test that adds orphan nodes or objects twice in a row). Leaks of plain resources (a static cache) and RIDs print only after the runner has quit, so check the end of a full run by hand:
 
@@ -852,7 +862,7 @@ Debug scenes (windowed; scratch data only, they never write your files; run `god
 
 **The real start path:** `godot --headless --fixed-fps 120 --audio-driver Dummy --path game res://tests/probe_real_start.tscn -- --flow=fly_now|fly_again|continue|fly_anyway` presses the start screen's own buttons, waits for the flight scene, runs 2 s of physics, counts logged errors and prints `REAL START PASS|FAIL` (about 5 s each). `tests/test_real_flight_start.gd` runs the four flows in child processes, checks that your own files were not touched (a failed flow is retried once: the headless renderer sometimes logs a one-off "wrong RID" error) and passes with a note when `data/processed` is missing.
 
-**e2e on macOS:** `tools/e2e.sh` backs up and restores `~/.local/share/godot/app_userdata/libresim` (the Linux user folder). On macOS the game's folder is `~/Library/Application Support/Godot/app_userdata/libresim`, so a plain run changes your options, last flight and saves. Use a scratch home and muted audio: `HOME=<scratch dir> GODOT=<script that runs godot --audio-driver Dummy "$@"> tools/e2e.sh <run> menu` (`menu` runs only the start-screen part).
+**e2e on macOS:** `tools/e2e.sh` backs up and restores `~/.local/share/godot/app_userdata/libresim` (the Linux user folder). On macOS the game's folder is `~/Library/Application Support/Godot/app_userdata/libresim`, so a plain run changes your options, last flight and saves. Use a scratch home and muted audio: `HOME=<scratch dir> GODOT=<script that runs godot --audio-driver Dummy "$@"> tools/e2e.sh <run> menu` (`menu` runs only the start-screen part). Its unit-test step runs `tools/test_all.sh` (workers use their own user folders; `TEST_JOBS=N` sizes it).
 
 ### Aircraft data: FDM props
 
@@ -1082,12 +1092,13 @@ See `docs/FLIGHTGEAR_NOTES.md`. The FlightGear c172p model and cockpit (GPL-2.0-
 tools/        offline Python pipeline (section 3); common.py holds region/grid constants
 data/raw      downloaded sources (gitignored)
 data/processed generated tiles/JSON (gitignored)
+.cache/tests  test launcher timings, worker user folders and logs (gitignored)
 game/         Godot project
   core/       floating_origin + props (autoloads), geo (lat/lon <-> ENU), units, paths
   world/      flight scene (main), weather, sky_time, clouds, runway_lights, terrain quadtree/cache/shader, airport_builder + runway shader, terrain_viewer scene
   input/      free_camera, keyboard_controls
   fdm/        flight model: aero (JSBSim tables), engine, propeller, gear, atmosphere
-  tests/      headless test runner + suites
+  tests/      headless test runner + suites; tests/parallel/ the parallel launcher (tools/test_all.sh)
   ui/         hud, camera_rig, perf_overlay, instrument_panel + gauges/, panel_overlay
   systems/    pitot_static, vacuum, electrical, fuel
   instruments/ air-data, gyro, compass, engine gauge models (publish instruments/* props)
