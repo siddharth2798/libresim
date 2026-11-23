@@ -120,3 +120,18 @@ func test_airport_builder_uses_runway_v2_with_the_layout() -> String:
 	if FileAccess.get_file_as_string("res://world/strip.gdshaderinc").contains("sin(along * 0.37"):
 		return "the old sine tyre term is gone"
 	return ""
+
+
+## A pass whose viewport already went with its host (the builder left the tree) still gives its RenderingServer
+## canvas item back: it is a bare RID, nothing else frees it, and it was reported as leaked at exit.
+func test_cancelled_bake_frees_its_canvas_item_after_the_viewport_is_gone() -> String:
+	var vp := SubViewport.new()
+	var ci := RenderingServer.canvas_item_create()
+	var job := {"vp": vp, "ci": ci, "mat": null}
+	vp.free()
+	RunwayBake.cancel(job)
+	if job.ci.is_valid():
+		RenderingServer.free_rid(ci)
+		return "the canvas item of a pass whose viewport is gone was kept (leaks until exit)"
+	RunwayBake.cancel(job)  # twice is harmless
+	return ""

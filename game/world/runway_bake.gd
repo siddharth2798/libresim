@@ -81,10 +81,15 @@ static func read(job: Dictionary) -> Image:
 	return img
 
 
-## Frees a pass that was begun.
+## Frees a pass that was begun. The canvas item is a bare RenderingServer RID: it is freed even when the viewport
+## already went with its host, or it would leak until exit.
 static func cancel(job: Dictionary) -> void:
-	if job.is_empty() or not is_instance_valid(job.vp):
+	if job.is_empty():
 		return
-	RenderingServer.free_rid(job.ci)
+	if job.ci.is_valid():
+		RenderingServer.free_rid(job.ci)
+		job.ci = RID()
+	if not is_instance_valid(job.vp):
+		return
 	job.vp.get_parent().remove_child(job.vp)
 	job.vp.free()

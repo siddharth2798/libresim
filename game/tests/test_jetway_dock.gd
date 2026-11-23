@@ -294,7 +294,10 @@ func test_jetway_rig_rest_layout_stub_and_wheels() -> String:
 func test_jetway_canopy_reaches_the_fuselage_all_round() -> String:
 	var r := 1.98
 	var axis := 0.9
-	if JetwayCanopy.build(Node3D.new(), {}) != null:
+	var bare := Node3D.new()
+	var none := JetwayCanopy.build(bare, {})
+	bare.free()
+	if none != null:
 		return "no fuselage radius, no canopy"
 	var host := Node3D.new()
 	add_child(host)

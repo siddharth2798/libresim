@@ -179,6 +179,20 @@ func test_unknown_airport_is_ready() -> String:
 ## The flight scene and the aircraft's models load on threads; take() hands over the loaded resource once, after that
 ## (and for anything never preloaded) the caller loads it the normal way. Another aircraft drops the first one's models.
 func test_flight_scene_and_models_preload() -> String:
+	# The flight scene's scripts and both aircraft's models are loaded first, on this thread; the flight scene itself
+	# still loads on a loader thread, and the bookkeeping (requested, take once, drop, clear) is what this test is about.
+	# Godot 4.7.2 leaks one ResourceLoader load token (a RefCounted with reference count 0, "N ObjectDB instances were
+	# leaked at exit") for each preload() compiled inside a threaded load and for a texture two threaded loads fetch at
+	# once, and the headless dummy renderer's mesh store is not safe for two glbs loading at once ("Attempting to
+	# initialize the wrong RID", a mesh RID leaked at exit). docs/USAGE.md "Automated tests".
+	var warm := []
+	for dep in ResourceLoader.get_dependencies(ScenePreload.FLIGHT):
+		warm.append(load(dep.get_slice("::", dep.get_slice_count("::") - 1)))
+	for id in ["c172", "a320"]:
+		var d := AircraftDef.load_def(id)
+		for f in ScenePreload.MODEL_FILES:
+			if d.has_file(f):
+				warm.append(load(d.path(f)))
 	var was := ScenePreload.enabled
 	ScenePreload.enabled = true
 	ScenePreload.begin("c172")

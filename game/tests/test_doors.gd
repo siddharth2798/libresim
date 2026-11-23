@@ -222,3 +222,19 @@ func test_passenger_doors_are_the_modelled_door_with_a_hinge_arm_on_the_frame() 
 	for d in panels:
 		d.free()
 	return msg
+
+
+## make() hands back L1 only: the other doors make_all() built for it are freed, not left as nodes outside the tree
+## (the A320's five were reported as leaked at exit, with their meshes and materials).
+func test_door_panel_make_keeps_only_l1_and_frees_the_rest() -> String:
+	var g: Dictionary = AircraftDef.load_def("a320").section("ground")
+	var s := func(p: Vector3): return Vector3(p.y, p.z, p.x + 2.5)
+	var before := Performance.get_monitor(Performance.OBJECT_ORPHAN_NODE_COUNT)
+	var d := CabinDoorPanel.make(g, Vector3(-2.5, 0.0, 0.0), s)
+	var msg := "" if d != null and d.id == "L1" else "make() must give the L1 door"
+	if d != null:
+		d.free()
+	var left := Performance.get_monitor(Performance.OBJECT_ORPHAN_NODE_COUNT) - before
+	if msg == "" and left > 0.0:
+		msg = "%d nodes of the other doors were left behind" % left
+	return msg

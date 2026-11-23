@@ -635,12 +635,18 @@ A free camera without an aircraft, for inspecting scenery:
 
 ```bash
 cd game
-~/.local/bin/godot --headless --path . res://tests/run_tests.tscn               # all tests
-~/.local/bin/godot --headless --path . res://tests/run_tests.tscn -- --only=fdm  # tests named test_fdm*
-~/.local/bin/godot --headless --path . res://tests/run_tests.tscn -- --suite=test_replay  # suite files whose name contains this
+~/.local/bin/godot --headless --audio-driver Dummy --path . res://tests/run_tests.tscn               # all tests
+~/.local/bin/godot --headless --audio-driver Dummy --path . res://tests/run_tests.tscn -- --only=fdm  # tests named test_fdm*
+~/.local/bin/godot --headless --audio-driver Dummy --path . res://tests/run_tests.tscn -- --suite=test_replay  # suite files whose name contains this
 ```
 
-The runner prints PASS/FAIL per test and exits non-zero on failure. The run must end without "ObjectDB instances leaked" / "resources still in use at exit" (the e2e "no script errors" check fails on them): a test that builds a Node must free it, and a callback that captures `self` makes a reference cycle. `-- --leaks` lists the tests that leave orphan nodes. A pad plugged in is seen by the headless run too, so a test of
+The runner prints PASS/FAIL per test and exits non-zero on failure. The tests start one call after the runner's `_ready` (in `_ready` the window root still refuses `add_child`, so code that puts a node on the root, such as `BusyOverlay.cover`, left it orphaned). The run must end without "ObjectDB instances leaked", "resources still in use at exit" or "RID allocations ... leaked at exit" (the e2e "no script errors" check fails on the ERROR lines): a test that builds a Node must free it (also on its early returns), and a callback that captures `self` makes a reference cycle. The last check, `leak_check`, guards this: after the last test the runner frees its own children and what the tests put on the window root (what the exit would free), then fails if any node the run built is still outside the tree and not queued for deletion, naming it; `-- --leaks` then finds the test (a test that adds orphan nodes or objects twice in a row). Leaks of plain resources (a static cache) and RIDs print only after the runner has quit, so check the end of a full run by hand:
+
+```bash
+~/.local/bin/godot --headless --audio-driver Dummy --path . res://tests/run_tests.tscn 2>&1 | grep -E "passed$|FAIL|leaked|still in use|SCRIPT ERROR"
+```
+
+Add `--verbose` to name the leaked objects and resources. Code that creates a RenderingServer RID directly (`canvas_item_create`, ...) frees it with `RenderingServer.free_rid` when its owner goes away, also when that owner's node is already gone (`RunwayBake.cancel`). Two Godot 4.7.2 leaks remain outside the suite and are not ours: `ResourceLoader.load_threaded_request` leaks one load token (a RefCounted with reference count 0, "N ObjectDB instances were leaked at exit") for each `preload()` compiled during a threaded load and for a texture two threaded loads fetch at once (ScenePreload in the game; `tests/test_load_time.gd` loads the flight scene's scripts and the aircraft models first, which also keeps two glbs from loading at once under the headless dummy renderer: its mesh store once failed with "Attempting to initialize the wrong RID" and a mesh RID leaked at exit), and any ReflectionProbe (the aircraft's ReflectionRig, Medium and up) leaves "7 RIDs of type Texture were leaked" at exit, on Mobile and Forward+, even when the probe is freed first. A normal session from the start screen to "Quit game" on the pause screen: `~/.local/bin/godot --path . --audio-driver Dummy --windowed --resolution 1280x720 res://tests/debug_exit_leaks.tscn [-- --menu --aircraft=a320 --airport=VABB] 2>&1 | grep -E "^EXIT|leaked|still in use|SCRIPT ERROR"` (flies with the player's user data and writes last_flight.json). A pad plugged in is seen by the headless run too, so a test of
 "no pad" fakes it (`fake_axes` / `fake_buttons` in `input/joystick_controls.gd`). The airport tests read data/processed: after
 pulling a change to tools/, run `./run.sh` (or `--setup-only`) before the suite.
 

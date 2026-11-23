@@ -6,6 +6,11 @@ extends Node
 ## is run a second time and only reported when it adds them again: the first run also pays for
 ## one-time loads and static caches (scenes, themes, noise, AircraftDef), which are no leak.
 ## A suite may define teardown(), called after every test (frees the nodes the test built).
+## After the last test the runner frees its children (the suites that are nodes) and what the tests put on the root,
+## then lists every node the run built that nothing will free (not in the tree, not queued for deletion) and fails the
+## run on it (leak_check): such a node, with its meshes and materials, is reported as leaked at exit.
+## The tests run one call after _ready: in _ready the window root is still adding the runner and refuses add_child,
+## so code under test that puts a node on the root (BusyOverlay.cover, the restart prompt) would leave it orphaned.
 ## Each test_* method returns "" on success or a failure message (returning nothing, which is what a script error does, fails).
 ## Test suites: tests/test_core.gd (M2), tests/test_fdm_cards.gd (M3 POH test cards).
 
@@ -13,7 +18,13 @@ const SUITES := ["res://tests/test_core.gd", "res://tests/test_fdm_cards.gd", "r
 
 
 func _ready() -> void:
+	_run.call_deferred()
+
+
+func _run() -> void:
 	Session.setup = Session.DEFAULT.duplicate(true)  # not the user's last flight (user://last_flight.json): the suites expect the default C172
+	var orphans0 := _orphans()
+	var root0 := get_tree().root.get_children()
 	var only := ""
 	var suite_filter := ""
 	var leaks := false
@@ -49,8 +60,41 @@ func _ready() -> void:
 			else:
 				fails += 1
 				print("  FAIL  %s: %s" % [name, err])
+	# What the exit frees anyway: the runner's children (the suites that are nodes, and what tests hung on the current
+	# scene, which is this runner) and what the tests put on the window root. Their _exit_tree cleanup runs
+	# (VolumetricFog frees its composite), so only nodes nothing will ever free are left.
+	for n in get_children() + get_tree().root.get_children().filter(func(c): return not c in root0):
+		if is_instance_valid(n):
+			n.free()
+	var left := _orphans().filter(func(id): return not id in orphans0)
+	total += 1
+	if left.is_empty():
+		print("  PASS  leak_check: every node the tests built was freed")
+	else:
+		fails += 1
+		print("  FAIL  leak_check: %d node trees built by the tests were never freed (leaked at exit; find the test with -- --leaks): %s"
+			% [left.size(), ", ".join(left.slice(0, 12).map(_describe))])
 	print("%d/%d passed" % [total - fails, total])
 	get_tree().quit(1 if fails > 0 else 0)
+
+
+## Ids of the nodes outside the tree that nothing will free: not queued for deletion, and the top of their branch
+## (a leaked node's children are not listed again).
+static func _orphans() -> Array:
+	var out := []
+	for id in Node.get_orphan_node_ids():
+		var n := instance_from_id(id) as Node
+		if n != null and not n.is_inside_tree() and n.get_parent() == null and not n.is_queued_for_deletion():
+			out.append(id)
+	return out
+
+
+static func _describe(id: int) -> String:
+	var n := instance_from_id(id) as Node
+	if n == null:
+		return "(freed)"
+	var scr: Script = n.get_script()
+	return "%s '%s'%s" % [n.get_class(), n.name, (" (%s)" % scr.resource_path) if scr != null else ""]
 
 
 func _matches(path: String, filter: String) -> bool:

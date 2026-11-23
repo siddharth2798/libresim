@@ -187,14 +187,17 @@ func test_unreported_lever_2_does_not_copy_lever_1() -> String:
 	j.fake_axes = {"throttle": -1.0, "throttle_2": null}  # lever 1 at TOGA, lever 2 has not reported
 	j._levers(c)
 	if not _near(c.levers.pos(0), 1.0) or not _near(c.levers.pos(1), 0.0):
+		j.free()
 		return "lever 1 TOGA with lever 2 unreported gave %.3f / %.3f, want 1 / 0" % [c.levers.pos(0), c.levers.pos(1)]
 	j.fake_axes = {"throttle": 0.47, "throttle_2": -1.0}  # lever 1 back at idle, lever 2 now at TOGA
 	j._levers(c)
 	if not _near(c.levers.pos(0), 0.0) or not _near(c.levers.pos(1), 1.0):
+		j.free()
 		return "independent levers gave %.3f / %.3f, want 0 / 1" % [c.levers.pos(0), c.levers.pos(1)]
 	j.table["throttle_2"].axis = -1  # no lever-2 axis bound at all: the throttle axis moves every lever
 	j.fake_axes = {"throttle": -1.0}
 	j._levers(c)
+	j.free()
 	return "" if _near(c.levers.pos(0), 1.0) and _near(c.levers.pos(1), 1.0) else "unbound lever 2 did not follow lever 1"
 
 

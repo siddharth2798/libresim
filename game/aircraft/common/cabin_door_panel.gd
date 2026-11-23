@@ -36,12 +36,15 @@ var _model: CabinDoorModel  # the modelled door, or null (grid panel)
 
 
 ## The L1 panel. g: the ground section; cg: structural CG; s: Callable(structural Vector3) -> local Vector3. Null without the data.
+## The other doors make_all() built are freed (they are nodes outside the tree: kept, they would leak).
 static func make(g: Dictionary, cg: Vector3, s: Callable, probe: SkinProbe = null, model: PackedScene = null) -> CabinDoorPanel:
-	var all := make_all(g, cg, s, probe, model)
-	for d: CabinDoorPanel in all:
-		if d.id == "L1":
-			return d
-	return null
+	var l1: CabinDoorPanel = null
+	for d: CabinDoorPanel in make_all(g, cg, s, probe, model):
+		if d.id == "L1" and l1 == null:
+			l1 = d
+		else:
+			d.free()
+	return l1
 
 
 ## A panel for every door of the ground section (empty without a fuselage radius and a sill). model: the door glb, or null.
