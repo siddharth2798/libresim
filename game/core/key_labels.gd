@@ -52,6 +52,7 @@ const LABELS := {
 	"fcu_hdg_left": "FCU heading left", "fcu_alt_up": "FCU altitude up", "fcu_alt_down": "FCU altitude down",
 	"fcu_vs_up": "FCU vertical speed up", "fcu_vs_down": "FCU vertical speed down",
 	"fcu_ap_disc": "Autopilot disconnect", "fcu_athr_disc": "Autothrust disconnect", "fcu_spd_mach": "FCU SPD/MACH",
+	"master_warn": "MASTER WARN / CAUT (silence the chime)",
 	"fcu_trk_fpa": "FCU HDG-V/S / TRK-FPA", "fcu_metric_alt": "FCU metric altitude", "fcu_alt_1000": "FCU altitude step 100 / 1000",
 	"efis_fd": "Flight director (FD)", "efis_ls": "Landing system (LS)", "baro_std": "Baro STD / QNH", "baro_up": "Baro up",
 	"baro_down": "Baro down", "nd_mode_next": "ND mode ARC / ROSE", "nd_range_up": "ND range up", "nd_range_down": "ND range down",

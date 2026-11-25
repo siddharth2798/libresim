@@ -68,6 +68,18 @@ func flap_detents() -> int:
 	return _dets.size()
 
 
+## The lever detent after the flap auto-retraction: config controls.flaps.auto_retract {from, to, above_kt} (A320: 1+F
+## goes to CONF 1 above 210 kt in flight). cmd unchanged otherwise, and always on the ground.
+static func auto_retract(rule: Dictionary, cmd: int, cas_kt: float, wow: bool) -> int:
+	if rule.is_empty() or wow or cmd != int(rule.get("from", -1)) or cas_kt <= float(rule.get("above_kt", INF)):
+		return cmd
+	return int(rule.to)
+
+
+func auto_retract_rule() -> Dictionary:
+	return _fl.get("auto_retract", {})
+
+
 func snap_flaps() -> void:
 	var d: Dictionary = _dets[clampi(flap_cmd, 0, _dets.size() - 1)]
 	flap_deg = d.flap_deg

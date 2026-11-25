@@ -100,18 +100,20 @@ Each step lists its test (`game/tests/test_audio_layers.gd`, `test_audio_space.g
    hydrant pump run while the ramp crew is out), `jetway_sound.gd` (drive motor and warning beeper at the cab while the
    bridge or canopy moves). Generated `diesel_loop`, `car_loop`, `jetway_motor_loop`, `thunder` in `world/sounds/`.
    Parked vehicles at other stands stay silent (dozens of players for sounds nobody hears).
-9. **Docs (done)**: `docs/USAGE.md` (sound section, schema), `SOURCES.md`, `/CREDITS.md`.
+9. **Follow-ups done 2026-11-25**: tyres on grass and dirt (`ground/unpaved` from `world/ground_fx.gd`, a generated
+   `grass_roll_loop`, the asphalt roll fading off the pavement), brake squeal at walking pace (`brake_squeal_loop`),
+   MASTER WARN / CAUT acknowledgement (Ctrl+M) silencing the chimes until a new warning, and OVERSPEED from VFE / VLE.
+10. **Docs (done)**: `docs/USAGE.md` (sound section, schema), `SOURCES.md`, `/CREDITS.md`.
 
 ## 3. Not done (follow-ups)
 
-- Surface-dependent tyre sound (grass / dirt rumble): needs the FDM to publish the surface under each wheel.
 - Real turbofan recordings for the A320 engines (the engine layers are a turbojet; Freesound candidates with licences are
   listed in `a320/sounds/SOURCES.md`, they need an API key).
 - Engine roughness (carb ice, lean mixture) and the C172 primer and door sounds: no property publishes them yet;
   `coughing.wav`, `primer-*.wav`, `door-*.wav` stay unused.
-- Brake squeal at low speed, nose-wheel thump over centre-line lights, cabin announcements.
+- Nose-wheel thump over centre-line lights, cabin announcements.
 - Radio bus: radio static / squelch tail for ATC (with ATC A3).
-- A320 MASTER WARN / MASTER CAUT pushbuttons to silence the chimes (the E/WD has no acknowledge yet): the continuous
-  repetitive chime runs until the warning clears.
+- A clickable MASTER WARN / CAUT button on the glareshield (the key exists, Ctrl+M; the button's place on the interior
+  model still has to be measured).
 - Airport ambience bed (distant jets, apron hum) near terminals; taxiing AI traffic has no sound (there is none yet).
 - Thunder from the actual strike position (WeatherFx has none: the flash lights the whole scene).

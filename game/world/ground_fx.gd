@@ -7,6 +7,7 @@ extends Node3D
 ##   any aircraft works: the C172's three, the A320's nose and two bogies)
 ##   per engine: wash mist over wet ground at high power, or dust over dry grass (EngineWash)
 ## No splashes where the aircraft shelters the ground (fuselage and wing boxes, world/rain_splash.gdshader).
+## Publishes ground/unpaved: the share of the wheels on the ground that stand off the pavement (the tyre sounds).
 ## Wetness is environment/wetness and the rain environment/precip (WeatherFx). Paved or not: GroundSurface. Particle
 ## counts per graphics preset (GroundFxQuality, set_counts): an effect at 0 has no emitter at all (Low: none).
 ## Paused or in a replay no new spray, wash or dust starts. clear() (a new flight, F5) drops every live particle.
@@ -115,6 +116,8 @@ func _process(dt: float) -> void:
 	var check := _surface_t <= 0.0
 	if check:
 		_surface_t = SURFACE_S
+	var n_on := 0
+	var n_off := 0
 	for name in wheels:
 		var w: WheelSpray = wheels[name]
 		var on := not halt and float(fd.gear.info.get(name, {}).get("depth", 0.0)) > 0.0
@@ -122,6 +125,9 @@ func _process(dt: float) -> void:
 		if on and (check or not _paved.has(name)):
 			_paved[name] = surface.paved(p.x, p.y)
 		w.update(on, FloatingOrigin.to_render_d(p.x, p.y, p.z), vel, fwd, gs, wet, _paved.get(name, true), drift, dt)
+		n_on += 1 if on else 0
+		n_off += 1 if on and not _paved.get(name, true) else 0
+	Props.set_v("ground/unpaved", float(n_off) / float(n_on) if n_on > 0 else 0.0)  # tyre sounds (aircraft.json audio)
 	for i in washes.size():
 		var e: EngineWash = washes[i]
 		if halt:

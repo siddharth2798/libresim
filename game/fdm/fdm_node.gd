@@ -149,6 +149,11 @@ func _read_controls(dt: float) -> void:
 	if not Props.get_b("failures/trim"):  # jammed trim stays where it was
 		c.pitch_trim = Props.get_f("controls/pitch_trim")
 	c.flap_cmd = Props.get_v("controls/flaps", 0)
+	if c is AirlinerControls:  # the lever setting moves too (A320 1+F -> 1 above 210 kt), so the panel and ECAM follow
+		var to := AirlinerControls.auto_retract(c.auto_retract_rule(), c.flap_cmd, Units.mps_to_kt(Props.get_f("fdm/cas_mps")), Props.get_b("fdm/wow", true))
+		if to != c.flap_cmd:
+			c.flap_cmd = to
+			Props.set_v("controls/flaps", to)
 	fdm.gear.brake_left = 0.0 if Props.get_b("failures/brake_left") else Props.get_f("controls/brake_left")
 	fdm.gear.brake_right = 0.0 if Props.get_b("failures/brake_right") else Props.get_f("controls/brake_right")
 	var mags: int = Props.get_v("controls/magnetos", 3)  # bit 1 = L, bit 2 = R

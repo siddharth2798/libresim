@@ -15,6 +15,8 @@ Writes 16-bit mono 44.1 kHz WAVs, peak -3 dBFS, seeded (the same bytes every run
     car_loop.wav             petrol car engine at idle (follow-me car)
     jetway_motor_loop.wav    jetway drive motor whine and gearbox with its moving-warning beeper
     thunder.wav              thunder: crack and rolling rumble
+    grass_roll_loop.wav      tyres rolling on grass / dirt: brushing swish and irregular bumps (both aircraft)
+    brake_squeal_loop.wav    brakes squealing / moaning at walking pace (both aircraft)
 
 Loops join seamlessly: tones hold a whole number of cycles in the loop, noise beds are cross-faded end into start.
 
@@ -207,6 +209,31 @@ def thunder(rng):
     return _fades(_norm(0.5 * crack / np.abs(crack).max() + rumble), 0.002, 0.8)
 
 
+def grass_roll(rng):
+    sec = 4.0
+    t = _t(sec)
+    swish = _band(_pink(len(t), rng), 300, 5000) * (0.7 + 0.3 * _band(rng.standard_normal(len(t)), 0.5, 6))
+    bumps = np.zeros_like(t)
+    for _ in range(26):
+        s0 = rng.random() * sec
+        u = (t - s0) % sec
+        bumps += (0.4 + rng.random()) * np.exp(-u / 0.035) * np.sin(2 * np.pi * (35 + 30 * rng.random()) * u)
+    x = 0.55 * swish / np.abs(swish).max() + bumps / np.abs(bumps).max()
+    return _norm(_band(x, 25, 7000))
+
+
+def brake_squeal(rng):
+    sec = 3.0
+    t = _t(sec)
+    wob = _whole(5.0, sec)
+    ph = 2 * np.pi * np.cumsum(_whole(1850.0, sec) * (1 + 0.012 * np.sin(2 * np.pi * wob * t))) / RATE
+    ph -= ph[-1] * t / t[-1] - 2 * np.pi * round(ph[-1] / (2 * np.pi)) * t / t[-1]  # whole cycles over the loop
+    tone = np.sin(ph) + 0.35 * np.sin(2 * ph) + 0.15 * np.sin(3.02 * ph)
+    amp = 0.6 + 0.4 * np.sin(2 * np.pi * _whole(1.7, sec) * t) ** 2
+    moan = _band(rng.standard_normal(len(t)), 150, 700) * 0.6
+    return _norm(tone * amp / np.abs(tone).max() + moan / np.abs(moan).max() * 0.5)
+
+
 FILES = [
     (A320, "ptu_bark_loop.wav", lambda r: ptu_bark(r)),
     (A320, "apu_loop.wav", lambda r: apu_loop(r)),
@@ -218,6 +245,8 @@ FILES = [
     (WORLD, "car_loop.wav", lambda r: car(r)),
     (WORLD, "jetway_motor_loop.wav", lambda r: jetway_motor(r)),
     (WORLD, "thunder.wav", lambda r: thunder(r)),
+    (WORLD, "grass_roll_loop.wav", lambda r: grass_roll(r)),
+    (WORLD, "brake_squeal_loop.wav", lambda r: brake_squeal(r)),
 ]
 
 

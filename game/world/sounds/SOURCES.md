@@ -9,6 +9,8 @@ Used by `world/world_sound.gd`, `vehicle_sound.gd`, `jetway_sound.gd`, `thunder.
 | diesel_loop | firing thumps at 27 Hz with valve-train rattle and intake noise, 3 s loop | pushback tug, baggage tractor, apron bus, fire truck, GPU generator |
 | car_loop | a smoother petrol idle at 33 Hz with exhaust noise, 2 s loop | follow-me car |
 | jetway_motor_loop | electric drive whine (420 Hz), gearbox noise and a 2.9 kHz warning beeper (0.3 s each second), 2 s loop | jetway moving |
+| grass_roll_loop | brushing swish of pink noise with irregular low bumps, 4 s loop | tyres on grass or dirt (`ground/unpaved`), both aircraft |
+| brake_squeal_loop | a 1.85 kHz squeal with harmonics, wobble and swell over a low moan, 3 s loop | brakes at walking pace, both aircraft |
 | thunder | a crack and a rolling low rumble with random swells, 7 s | thunder after lightning |
 
 Reused from the A320 pack: `res://aircraft/a320/sounds/hyd_pump_loop.wav` ("Pump", Work With Sounds, CC BY 4.0, see

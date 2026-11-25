@@ -3,7 +3,8 @@ extends Node
 ## E/WD memo and warning lines of an airliner, built from Props (ui/displays/ewd.gd reads them), ten times a second.
 ## Warnings sort red before amber, each by priority; memo lines are green.
 ## Red: ENG n FIRE, ELEC EMER CONFIG, STALL, CONFIG (take-off: park brake / flaps / speed brake), L/G GEAR NOT DOWN (below
-## gear_warn_ft RA with flaps 3 or more, or thrust at idle), OVERSPEED. Amber: ENG n FAIL (latched once the engine ran, cleared
+## gear_warn_ft RA with flaps 3 or more, or thrust at idle), OVERSPEED (4 kt over VMO, VFE or VLE: the PFD's
+## instruments/pfd/vmax_kt; or MMO + 0.01). Amber: ENG n FAIL (latched once the engine ran, cleared
 ## by its master off), HYD G / B / Y SYS LO PR, ELEC AC BUS n FAULT, ELEC GEN n FAULT, FUEL L / R WING TK LO LVL. Hydraulic and
 ## electrical faults only show with an engine running or in the air.
 ## aircraft.json "systems.warnings" over DEFAULTS: vmo_kt, mmo, takeoff_lever (thrust lever position that counts as take-off
@@ -13,7 +14,9 @@ extends Node
 ##   mach, gear_pos, flap_lever, speedbrake, stall_warning}, hyd/low_{g, b, y}, icing/ice_detected, controls/anti_ice/{wing,
 ##   eng_1, eng_2}, systems/electrical/{ac1_on, ac2_on, gen1_on, gen2_on, emer}, fuel/low_{left, right}, apu/running.
 ## Publishes ewd/warnings and ewd/memo (arrays of [text, colour]), ewd/warnings_text and ewd/memo_text (joined with "\n"),
-##   ewd/master_warning (any red), ewd/master_caution (any amber).
+##   ewd/master_warning (a red not yet acknowledged), ewd/master_caution (an amber not yet acknowledged): the MASTER
+##   lights and the chimes. controls/ewd/master_ack (MASTER WARN / CAUT, key master_warn) acknowledges what shows now
+##   and is consumed; a warning that clears and comes back lights them again.
 
 const DEFAULTS := {
 	"vmo_kt": 350.0, "mmo": 0.82, "takeoff_lever": 0.7, "gear_warn_ft": 1000.0, "gen_n2_min": 50.0, "engine_run_n2": 20.0,
@@ -25,6 +28,7 @@ var _p := DEFAULTS.duplicate(true)
 var _n := 2
 var _was_running: Array = []  # per engine: ran since its master went on
 var _t := 0.0
+var acked := {}  # warning text -> true: acknowledged by MASTER WARN / CAUT while it still shows
 
 
 func _ready() -> void:
@@ -66,18 +70,40 @@ func update() -> void:
 	w.sort_custom(func(a, b): return a[0] > b[0])
 	var lines := []
 	var memo := _memo()
-	var red := false
-	var amber := false
+	var ack := Props.get_b("controls/ewd/master_ack")
+	if ack:
+		Props.set_v("controls/ewd/master_ack", false)
+	var flags := master_flags(w, acked, ack)
+	var red: bool = flags[0]
+	var amber: bool = flags[1]
 	for e in w:
 		lines.append([e[1], e[2]])
-		red = red or e[2] == "red"
-		amber = amber or e[2] == "amber"
 	Props.set_v("ewd/warnings", lines)
 	Props.set_v("ewd/memo", memo)
 	Props.set_v("ewd/warnings_text", "\n".join(lines.map(func(l): return l[0])))
 	Props.set_v("ewd/memo_text", "\n".join(memo.map(func(l): return l[0])))
 	Props.set_v("ewd/master_warning", red)
 	Props.set_v("ewd/master_caution", amber)
+
+
+## [red, amber] master lights for warnings w ([priority, text, colour]); `acked` (text -> true) is pruned to what still
+## shows, and takes everything showing when `ack` (a MASTER WARN / CAUT press).
+static func master_flags(w: Array, acked: Dictionary, ack: bool) -> Array:
+	var now := {}
+	for e in w:
+		now[e[1]] = true
+	for k in acked.keys():
+		if not now.has(k):
+			acked.erase(k)
+	if ack:
+		acked.merge(now, true)
+	var red := false
+	var amber := false
+	for e in w:
+		if not acked.has(e[1]):
+			red = red or e[2] == "red"
+			amber = amber or e[2] == "amber"
+	return [red, amber]
 
 
 func _running(n: int) -> bool:
@@ -123,7 +149,8 @@ func _warnings() -> Array:
 func _flight_warnings(wow: bool) -> Array:
 	var out := []
 	var cas_kt := Props.get_f("fdm/cas_mps") / Units.KT
-	if cas_kt > _p.vmo_kt + 4.0 or Props.get_f("fdm/mach") > _p.mmo + 0.01:
+	var vmax := Props.get_f("instruments/pfd/vmax_kt")  # VMO / MMO, VFE of the flap setting, VLE with the gear down
+	if cas_kt > _p.vmo_kt + 4.0 or Props.get_f("fdm/mach") > _p.mmo + 0.01 or (vmax > 0.0 and cas_kt > vmax + 4.0):
 		out.append([70, "OVERSPEED", "red"])
 	var flap := roundi(Props.get_f("fdm/flap_lever"))
 	if wow and Props.get_f("controls/throttle_1") >= _p.takeoff_lever:
