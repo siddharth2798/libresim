@@ -464,7 +464,7 @@ footer { margin-top: 2.5rem; padding-top: 0.7rem; border-top: 1px solid var(--ru
       <ol class="toc" id="toc">
         <li class="part">GEN · Before you fly</li>
         <li><a href="#overview" data-k="about region mumbai pune kochi aircraft c172 a320"><span class="no">GEN 1</span><span>Overview</span></a></li>
-        <li><a href="#whats-new" data-k="new changes added updated release notes since route planner runways weather graphics loading controls macos 14"><span class="no">NEW</span><span>What's new</span></a></li>
+        <li><a href="#whats-new" data-k="new changes added updated release notes since route planner runways weather graphics loading controls macos 14 sound audio damage shadow recording"><span class="no">NEW</span><span>What's new</span></a></li>
         <li><a href="#install" data-k="install run.sh macos linux apple silicon a320 download"><span class="no">GEN 2</span><span>Install and run</span></a></li>
         <li><a href="#start-screen" data-k="start screen livery registration fly anyway weather live menu route waypoints flight plan"><span class="no">GEN 3</span><span>Start a flight</span></a></li>
         <li><a href="#training" data-ac="c172" data-k="training lessons takeoff cruise landing c172"><span class="no">GEN 4</span><span>Training</span></a></li>
@@ -569,6 +569,7 @@ footer { margin-top: 2.5rem; padding-top: 0.7rem; border-top: 1px solid var(--ru
 <h2><span class="no">NEW</span>What's new</h2>
 <nav class="subnav" aria-label="In this chapter">
   <a href="#new-fly">Flying</a>
+  <a href="#new-sound">Sound</a>
   <a href="#new-route">Routes</a>
   <a href="#new-world">Airports and runways</a>
   <a href="#new-gfx">Graphics</a>
@@ -586,6 +587,15 @@ footer { margin-top: 2.5rem; padding-top: 0.7rem; border-top: 1px solid var(--ru
   <li><strong>Landing system on the PFD.</strong> With LS on, the ident, the tuned frequency and the DME show at the bottom left of the primary flight display. A needle more than two dots off the centre shows as a half diamond at the end of the scale.</li>
   <li><strong>Gear.</strong> The airliner's gear no longer detaches in a hard bank.</li>
   <li><strong>Cockpit.</strong> The airliner's cockpit stays steady at altitude, and its placard text is sharper. See <a href="#controls-views">Cameras</a>.</li>
+  <li><strong>Overspeed is closer to the real aircraft.</strong> A couple of seconds over the never-exceed or flap limit is written up for an inspection. Damage needs the design dive speed, or about 15 % over the flap limit, and the airliner's CONF 1 has its own 230 kt limit. See <a href="#limits-land">Landing and the airframe</a>.</li>
+  <li><strong>Airliner warnings.</strong> OVERSPEED also covers the flap and gear limits. 1+F goes to CONF 1 by itself above 210 kt. A red warning chimes until you press MASTER WARN (<kbd>Ctrl</kbd>+<kbd>M</kbd>). See <a href="#a320-deck">The flight deck</a>.</li>
+</ul>
+
+<h3 id="new-sound">Sound</h3>
+<ul>
+  <li><strong>Every system is heard</strong>: on the airliner the hydraulic pumps, the PTU, the APU, the packs, the avionics fan and the warning chimes; on the Cessna the turn-coordinator gyro and an engine that works harder under throttle; on both, flap and gear airflow, turbulence, tyres on grass and squealing brakes. See <a href="#controls-sound">Sound</a>.</li>
+  <li><strong>Outside views</strong> hear the aircraft quieter the further away they are, and a fly-by hears its pitch drop. Thunder follows lightning.</li>
+  <li><strong>Airports</strong>: the pushback tug and the follow-me car run their engines, the ground power unit and the fuel truck hum, and jet bridges whine and beep while they move.</li>
 </ul>
 
 <h3 id="new-route">Routes and navigation</h3>
@@ -612,6 +622,7 @@ footer { margin-top: 2.5rem; padding-top: 0.7rem; border-top: 1px solid var(--ru
   <li><strong>Rain and ground effects.</strong> Rain splashes and rings on wet pavement, wheel spray, propeller wash and dust.</li>
   <li><strong>Trees and grass of the region.</strong> Palms, banyan, teak and thorn scrub, up close and in far forests, with shadows. Grass and undergrowth near the ground.</li>
   <li><strong>Sharper pictures.</strong> High and Ultra are sharp again, and Auto resolution now works on Macs. Changing the renderer offers to restart for you.</li>
+  <li><strong>A shadow on every preset.</strong> Your aircraft casts a shadow on Low too, and keeps it on Medium when the camera is far back. Every preset darkens the ground softly under the aircraft. See <a href="#graphics">Graphics</a>.</li>
   <li><strong>Very old graphics chips.</strong> The OpenGL fallback now draws clouds and vehicles. See <a href="#install-req">Requirements</a>.</li>
 </ul>
 
@@ -631,6 +642,8 @@ footer { margin-top: 2.5rem; padding-top: 0.7rem; border-top: 1px solid var(--ru
 <h3 id="new-keys">Keys and install</h3>
 <ul>
   <li><strong>New keys.</strong> <kbd>E</kbd> edits the route while the map is open. Each FCU knob has a pull key and a push key (<kbd>Shift</kbd>+<kbd>Alt</kbd> plus the turn key). Autopilot disconnect, autothrust disconnect, FD and LS are actions with no default key: bind them on the Controls page. All are in the <a href="#keys">key table</a>.</li>
+  <li><strong>MASTER WARN / CAUT</strong> is <kbd>Ctrl</kbd>+<kbd>M</kbd> on the airliner.</li>
+  <li><strong>Quitting while recording</strong> (<kbd>F8</kbd>) no longer crashes the game on a Mac. The recording is finished properly first.</li>
   <li><strong>macOS 14 (Sonoma) or newer</strong> for the Mac build. See <a href="#install-packages">Release packages</a>.</li>
   <li><strong>After an update</strong>, <code>./run.sh</code> re-imports the game's scripts by itself when it finds new ones, so a missing-class error at launch no longer needs a manual import.</li>
 </ul>
