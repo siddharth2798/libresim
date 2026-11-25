@@ -129,7 +129,7 @@ func _top_bar() -> Control:
 	gap.size_flags_horizontal = SIZE_EXPAND_FILL
 	gap.size_flags_stretch_ratio = 0.01
 	hb.add_child(gap)
-	for item in [["Handbook", _open_handbook], ["Credits", func(): _press(KEY_F12)], ["Quit", func(): get_tree().quit()]]:
+	for item in [["Handbook", _open_handbook], ["Credits", func(): _press(KEY_F12)], ["Quit", func(): GameQuit.quit(get_tree())]]:
 		var b := Button.new()
 		b.text = item[0]
 		b.custom_minimum_size = Vector2(100, 40)

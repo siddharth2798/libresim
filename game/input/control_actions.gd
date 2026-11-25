@@ -16,6 +16,7 @@ extends RefCounted
 ##   controls/throttle, throttle_<n>     see engine_levers.gd (n = 1 mirrors the shared one)
 ##   controls/anti_ice/{wing, eng_<n>} bool (probe heat, controls/anti_ice/probe, stays on: systems/icing.gd)
 ##   controls/fcu/ap1, ap2, athr, loc, appr (bool toggles); ap_disc, athr_disc (pulses the autoflight consumes);
+##   controls/ewd/master_ack (MASTER WARN / CAUT press: a pulse systems/airliner_warnings.gd consumes);
 ##   spd_mach, trk_fpa, metric_alt (FCU window / PFD display only), alt_inc_1000 (ALT knob detent 1000 ft)
 ##   controls/fcu/vert_select "VS" (V/S knob pulled: fly the V/S set) / "LEVEL" (pushed: V/S 0), consumed by systems/autoflight.gd
 ##   controls/fcu/fd, controls/efis/ls, controls/baro/{std, hpa}, controls/nd/{mode, range_nm},
@@ -62,7 +63,7 @@ const GROUPS := {
 	"anti_ice": ["anti_ice_wing", "anti_ice_eng_1", "anti_ice_eng_2"],
 	"fcu": ["fcu_ap1", "fcu_ap2", "fcu_athr", "fcu_loc", "fcu_appr", "fcu_spd_up", "fcu_spd_down",
 		"fcu_hdg_right", "fcu_hdg_left", "fcu_alt_up", "fcu_alt_down", "fcu_vs_up", "fcu_vs_down", "fcu_ap_disc", "fcu_athr_disc",
-		"fcu_spd_mach", "fcu_trk_fpa", "fcu_metric_alt", "fcu_alt_1000", "fcu_vs_pull", "fcu_vs_push",
+		"master_warn", "fcu_spd_mach", "fcu_trk_fpa", "fcu_metric_alt", "fcu_alt_1000", "fcu_vs_pull", "fcu_vs_push",
 		"fcu_spd_pull", "fcu_spd_push", "fcu_hdg_pull", "fcu_hdg_push", "fcu_alt_pull", "fcu_alt_push"],
 	"efis": ["efis_fd", "efis_ls", "baro_std", "baro_up", "baro_down", "nd_mode_next", "nd_range_up", "nd_range_down", "nd_filter_next"],
 	"ext_lights": ["takeoff_light", "turnoff_lights", "wing_lights", "logo_lights"],
@@ -81,7 +82,7 @@ const TOGGLES := {
 	"anti_ice_wing": "controls/anti_ice/wing", "anti_ice_eng_1": "controls/anti_ice/eng_1", "anti_ice_eng_2": "controls/anti_ice/eng_2",
 	"fcu_ap1": "controls/fcu/ap1", "fcu_ap2": "controls/fcu/ap2", "fcu_athr": "controls/fcu/athr",
 	"fcu_loc": "controls/fcu/loc", "fcu_appr": "controls/fcu/appr",
-	"fcu_ap_disc": "controls/fcu/ap_disc", "fcu_athr_disc": "controls/fcu/athr_disc", "fcu_spd_mach": "controls/fcu/spd_mach",
+	"fcu_ap_disc": "controls/fcu/ap_disc", "fcu_athr_disc": "controls/fcu/athr_disc", "master_warn": "controls/ewd/master_ack", "fcu_spd_mach": "controls/fcu/spd_mach",
 	"fcu_trk_fpa": "controls/fcu/trk_fpa", "fcu_metric_alt": "controls/fcu/metric_alt", "fcu_alt_1000": "controls/fcu/alt_inc_1000",
 	"efis_fd": "controls/fcu/fd", "efis_ls": "controls/efis/ls", "baro_std": "controls/baro/std",
 	"takeoff_light": "controls/lights/takeoff", "turnoff_lights": "controls/lights/rwy_turnoff",

@@ -7,12 +7,18 @@ extends RefCounted
 ## - Prop strike: lowest propeller tip below the ground while turning -> engine destroyed.
 ## - Structure contacts (tail, wingtips, nose skid, collapsed gear) with high vertical speed, or sliding at speed -> crash.
 ## - Water contact (land class 255) -> ditching (crash). Trees / terrain impact -> crash.
-## - Overspeed: IAS > VNE (structural damage after 2 s), > VD (failure, crash). Flaps above VFE -> jammed after 2 s.
+## - Overspeed (limits: vne_kias, vd_kias, vd_fail_k): over VNE / VMO for OVER_S -> "inspection due" note, no damage
+##   (the structure is designed and flight-tested to VD, CS/FAR 23/25.335, .629); over VD for OVER_S -> airframe damaged;
+##   over VD x vd_fail_k (flutter margin: 1.15 VD for part 25, 1.2 VD for part 23, .629) -> structural failure (crash).
+## - Flaps (limits: vfe_kias, vfe_by, flap_damage_k): over VFE for OVER_S -> "inspection due" note, no damage; over
+##   VFE x flap_damage_k for OVER_S -> flaps damaged and jammed. vfe_by "flap" keys vfe_kias by flap deg (C172),
+##   "slat_flap" by slat + flap deg (A320: CONF 1 = slats 18 / flaps 0 has its own VFE).
 ## - Load factor (aero + thrust) beyond +3.8 / -1.52 g -> overstress; beyond 1.5x -> failure. Ground loads are judged by
 ##   the gear rules.
 ## Publishes via the arrays below; FdmNode copies them into Props "damage/*".
 
 const KT := 0.514444
+const OVER_S := 2.0  # s over a speed limit before it counts (a gust or a slat / flap transition is not an exceedance)
 const REARM_S := 0.5  # a contact must be off the ground this long before it counts as a new touch
                       # (debounces touchdown / tail-strike events while a skid or wheel chatters)
 const DEFAULTS := {
@@ -27,8 +33,11 @@ const DEFAULTS := {
 }
 const LIMIT_DEFAULTS := {
 	"vne_kias": 163.0,
-	"vd_kias": 185.0,  # design dive speed: beyond this the structure fails
+	"vd_kias": 185.0,  # design dive speed: sustained flight beyond it damages the airframe
+	"vd_fail_k": 1.2,  # structural failure at VD x this (flutter-free margin the structure is shown to, part 23 .629)
 	"vfe_kias": [[10.5, 110.0], [1000.0, 85.0]],  # [max flap deg, KIAS]: flap speed for the current setting
+	"vfe_by": "flap",  # "flap": vfe_kias rows keyed by flap deg; "slat_flap": by slat + flap deg
+	"flap_damage_k": 1.15,  # flaps damaged at VFE x this (flap load ~ IAS^2: 1.32x the load at VFE)
 	"g_pos": 3.8,
 	"g_neg": -1.52,
 }
@@ -47,8 +56,12 @@ var hard_landings := 0
 var last_touchdown := {}  # stats of the latest touchdown (for the debrief)
 var _was_touching := {}
 var _clear_t := {}  # contact name -> seconds off the ground (absent = never touched)
-var _overspeed_t := 0.0
-var _flap_t := 0.0
+var _overspeed_t := 0.0  # s over VD
+var _flap_t := 0.0  # s over the flap damage speed
+var _vne_t := 0.0  # s over VNE
+var _vfe_t := 0.0  # s over VFE
+var vne_noted := false  # an over-VNE inspection note was logged
+var vfe_noted := false  # an over-VFE inspection note was logged
 var _air_time := 0.0
 
 
@@ -71,6 +84,12 @@ func reset() -> void:
 	flaps_jammed = false
 	structure_damaged = false
 	hard_landings = 0
+	vne_noted = false
+	vfe_noted = false
+	_overspeed_t = 0.0
+	_flap_t = 0.0
+	_vne_t = 0.0
+	_vfe_t = 0.0
 	last_touchdown = {}
 	_was_touching.clear()
 	_clear_t.clear()
@@ -199,20 +218,10 @@ func _fail_gear(c: Dictionary, msg: String) -> void:
 
 
 func _check_air_limits(f: FDM, dt: float) -> void:
-	var ias := f.cas
-	var vne: float = lim.vne_kias * KT
-	if ias > float(lim.vd_kias) * KT:
-		_crash("in-flight structural failure at %.0f KIAS (VNE %d)" % [ias / KT, int(vne / KT)])
+	_check_speed(f, dt)
+	if crashed:
 		return
-	_overspeed_t = _overspeed_t + dt if ias > vne else 0.0
-	if _overspeed_t > 2.0 and not structure_damaged:
-		structure_damaged = true
-		_event("Exceeded VNE (%.0f kt) — airframe damaged" % (ias / KT))
-	var vfe := _vfe(f.fcs.flap_deg) * KT
-	_flap_t = _flap_t + dt if f.fcs.flap_deg > 1.0 and ias > vfe else 0.0
-	if _flap_t > 2.0 and not flaps_jammed:
-		flaps_jammed = true
-		_event("Flaps over-sped above VFE (%d kt) — flaps damaged and jammed" % int(vfe / KT))
+	_check_flaps(f, dt)
 	var n := f.flight_load_factor  # gear loads are judged by the gear rules
 	var n_pos: float = lim.g_pos
 	var n_neg: float = lim.g_neg
@@ -223,10 +232,53 @@ func _check_air_limits(f: FDM, dt: float) -> void:
 		_event("Overstress: %.1f g (limits %+.1f / %+.2f g) — airframe damaged" % [n, n_pos, n_neg])
 
 
-## Flap limit speed (KIAS) for the current flap angle: the first row of limits.vfe_kias whose flap
+## VNE: a note; VD: damage; VD x vd_fail_k: failure.
+func _check_speed(f: FDM, dt: float) -> void:
+	var kias := f.cas / KT
+	var vne := float(lim.vne_kias)
+	var vd := float(lim.vd_kias)
+	if kias > vd * float(lim.vd_fail_k):
+		_crash("in-flight structural failure at %.0f KIAS (VD %d)" % [kias, int(vd)])
+		return
+	_overspeed_t = _overspeed_t + dt if kias > vd else 0.0
+	if _overspeed_t > OVER_S and not structure_damaged:
+		structure_damaged = true
+		_event("Exceeded dive speed VD (%.0f kt, VD %d) — airframe damaged" % [kias, int(vd)])
+	_vne_t = _vne_t + dt if kias > vne else 0.0
+	if _vne_t > OVER_S and not vne_noted and not structure_damaged:
+		vne_noted = true
+		_event("Over the speed limit: %.0f kt (VNE / VMO %d) — airframe inspection due, no damage" % [kias, int(vne)])
+
+
+## VFE: a note; VFE x flap_damage_k: flaps damaged and jammed.
+func _check_flaps(f: FDM, dt: float) -> void:
+	var ext := high_lift_deg(f)
+	var kias := f.cas / KT
+	var vfe := vfe_at(ext)
+	var out := ext > 1.0
+	var v_dmg := vfe * float(lim.flap_damage_k)
+	_flap_t = _flap_t + dt if out and kias > v_dmg else 0.0
+	if _flap_t > OVER_S and not flaps_jammed:
+		flaps_jammed = true
+		_event("Flaps over-sped far above VFE (%.0f kt, VFE %d) — flaps damaged and jammed" % [kias, int(vfe)])
+	_vfe_t = _vfe_t + dt if out and kias > vfe else 0.0
+	if _vfe_t > OVER_S and not vfe_noted and not flaps_jammed:
+		vfe_noted = true
+		_event("Flaps over-sped: %.0f kt (VFE %d) — inspection due, no damage" % [kias, int(vfe)])
+
+
+## The angle vfe_kias is keyed by: flap deg, or slat + flap deg with limits.vfe_by "slat_flap".
+func high_lift_deg(f: FDM) -> float:
+	var ext: float = f.fcs.flap_deg
+	if str(lim.vfe_by) == "slat_flap" and "slat_deg" in f.fcs:
+		ext += float(f.fcs.get("slat_deg"))
+	return ext
+
+
+## Flap limit speed VFE (KIAS) at high-lift angle `ext` (see high_lift_deg): the first row of limits.vfe_kias whose
 ## angle is not exceeded.
-func _vfe(flap_deg: float) -> float:
+func vfe_at(ext: float) -> float:
 	for row in lim.vfe_kias:
-		if flap_deg <= float(row[0]):
+		if ext <= float(row[0]):
 			return float(row[1])
 	return float(lim.vfe_kias[-1][1])

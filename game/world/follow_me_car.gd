@@ -71,6 +71,7 @@ func _init() -> void:
 	mi.mesh = _shell
 	_body.add_child(mi)
 	_lights.build(_body)
+	VehicleSound.attach(self, "follow_me")
 	_add_sign_text()
 	for i in 4:
 		var front := i < 2

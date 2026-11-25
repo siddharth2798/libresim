@@ -1,6 +1,6 @@
 class_name WeatherFx
 extends Node
-## Rain, wet surfaces and lightning. Created by SkyTime.
+## Rain, wet surfaces, lightning and its thunder (thunder.gd). Created by SkyTime.
 ## Reads weather/precip (0..1 setting), weather/cloud_cover, weather/cloud_base_ft.
 ## Publishes environment/precip (rain rate at the camera, for the visuals and sounds: under the thick parts of the
 ## cloud field, drifting with it, none above the cloud tops; the physics uses environment/ac_precip, the same field
@@ -27,6 +27,7 @@ func _ready() -> void:
 	_rain.name = "Rain"
 	_rain.max_count = rain_max
 	add_child(_rain)
+	add_child(Thunder.new())
 
 
 func set_rain_max(n: int) -> void:

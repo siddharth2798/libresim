@@ -1,0 +1,10 @@
+{
+ "x0": -2.059,
+ "x1": 8.171,
+ "y0": -6.636,
+ "y1": 6.654,
+ "z_mid": 0.408,
+ "z_low": -0.39,
+ "res_m": 0.03,
+ "note": "tools/30_planform.py: top-down silhouette of models/exterior.glb for aircraft/common/ground_shadow.gd"
+}

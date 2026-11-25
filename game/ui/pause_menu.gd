@@ -212,7 +212,7 @@ func _act(id: String) -> void:
 			close()
 			Session.skip_menu = false
 			BusyOverlay.load_scene(get_tree(), MENU, "Loading the menu…")
-		"quit": get_tree().quit()
+		"quit": GameQuit.quit(get_tree())  # a running recording finishes first (core/game_quit.gd)
 
 
 func _arm(id: String) -> void:

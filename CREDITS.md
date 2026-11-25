@@ -21,7 +21,7 @@ libresim itself is licensed under **GPL-2.0-or-later** (see `LICENSE`). Licence 
 - **Flight-model data:** JSBSim `c172p` aircraft, `engIO360C` engine and `prop_75in2f` propeller, by the JSBSim Team and contributors (https://github.com/JSBSim-Team/jsbsim), LGPL-2.1. libresim converted them to JSON and retuned them (`tools/06_jsbsim_to_json.py`).
 - **JSBSim authors:** the JSBSim project names Jon S. Berndt (primary architect), Agostino De Marco, Tony Peden and David Megginson among its principal authors (see its `AUTHORS` file). The header of the `c172p` aircraft file gives its author as unknown.
 - **Flight-model code written from JSBSim's published design:** `game/fdm/aero.gd`, `game/fdm/table.gd` and `game/fdm/propeller.gd` re-implement how JSBSim evaluates aerodynamic function trees, lookup tables and propeller thrust, torque and P-factor. They are libresim's own GDScript; no JSBSim source code was copied. JSBSim is LGPL-2.1.
-- **Tuning values from the c172p team's files:** the control actuator travel times (elevator 0.30 s, aileron and rudder 0.15 s) from `c172p.xml`, and the engine and wind sound volume and pitch curves in `game/aircraft/c172/aircraft_audio.gd` from `c172-sound.xml`. Numbers only, no code. Source and licence as for the c172p model above (GPL-2.0-or-later).
+- **Tuning values from the c172p team's files:** the control actuator travel times (elevator 0.30 s, aileron and rudder 0.15 s) from `c172p.xml`, and the engine and wind sound volume and pitch curves (now the C172's `aircraft.json` "audio.layers" tables) from `c172-sound.xml`. Numbers only, no code. Source and licence as for the c172p model above (GPL-2.0-or-later).
 
 ### Airport vehicles and jetways
 - **From FlightGear fgdata** (https://gitlab.com/flightgear/fgdata, release/2024.1), FlightGear contributors, GPL-2.0. Converted to glTF; the original is in `third_party/fgdata/`:
@@ -36,7 +36,7 @@ libresim itself is licensed under **GPL-2.0-or-later** (see `LICENSE`). Licence 
   - rescue fire truck
 
 ### Sounds
-All sounds are real recordings, listed file by file in `game/aircraft/c172/sounds/SOURCES.md`:
+The C172 sounds are real recordings (except the turn-coordinator whine, below), listed file by file in `game/aircraft/c172/sounds/SOURCES.md`:
 - **C172 engine** (start, crank, idle, run, cut): "small plane cessna engine start idle and takeoff" by **JLWSound** (freesound.org/s/322321), CC0, via the c172p team.
 - **Stall horn:** from "Stalling and spinning with a Cessna 152" by **Morsule**, CC-BY.
 - **Gyro spin:** from "Starting C172N" by **algefaen**, CC-BY.
@@ -56,7 +56,9 @@ All sounds are real recordings, listed file by file in `game/aircraft/c172/sound
 - **Spoiler buffet:** the landing roll of "LAX AIRPORT! LANDING SOUND LA CITY SOUNDS" by **freetousesounds** (Marcel), CC BY 4.0 (the same recording as the reverse-thrust roar, a later section).
 - **Seat-belt chime:** "Airplane Chime Sound Effect" by **Sharelk**, CC0, https://commons.wikimedia.org/wiki/File:Airplane_Chime_Sound_Effect.ogg
 - **Stall horn, altitude blip, sink-rate beep, autopilot-disconnect beep:** original tones (`stall_horn_loop.wav`, `gpws_alt.wav`, `gpws_sink.wav`, `gpws_ap.wav`), generated 2026-11-06 by `tools/a320_tones.py`. Not a recording and not an Airbus or Honeywell voice.
-- The A320 also reuses C172 sound files (wind, rain, tyres, the flap-lever click, the parking-brake lever), credited above. No sound from the A320-family upstream project is used.
+- The A320 also reuses C172 sound files (wind, rain, tyres, switch clicks, the flap-lever click, the parking-brake lever), credited above. No sound from the A320-family upstream project is used.
+
+**Generated sounds** (libresim's own work, no upstream audio; `tools/29_generated_sounds.py`, numpy, seeded): the A320 PTU bark, APU, master warning chime, master caution chime and avionics ventilation fan; the C172 turn-coordinator gyro whine; the airport diesel and car engines, the jetway motor and beeper, and thunder (`game/world/sounds/SOURCES.md`). The fuel truck pump reuses the A320 "Pump" recording above.
 
 ### Terrain detail textures
 Tiling ground materials from **ambientCG** (https://ambientcg.com), all **CC0 1.0** (public domain), packed into texture arrays by `tools/26_terrain_textures.py` (high-passed albedo modulation, normal / roughness / AO; list with layers in `game/world/textures/terrain/SOURCES.md`):

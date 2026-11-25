@@ -6,6 +6,8 @@ extends Label
 ## Frames are read back on the main thread and JPEG-encoded on worker threads; sound is
 ## tapped from the Master bus with an AudioEffectCapture. If ffmpeg is installed the
 ## file is converted to a much smaller MP4 when recording stops.
+## Quitting waits for it (core/game_quit.gd): finish() stops and lets the frame read-backs still on the GPU come back, and
+## while it records the window's close button / Cmd+Q go through GameQuit too (auto_accept_quit off).
 
 var recording := false
 var path := ""
@@ -20,9 +22,12 @@ var _cap: AudioEffectCapture
 var _cap_idx := -1
 var _samples := 0
 var _key := 0
+var _pending := 0  # frame read-backs asked of the GPU whose callback has not run yet
+const FINISH_FRAMES := 30  # finish() gives the read-backs at most this many frames
 
 
 func _ready() -> void:
+	add_to_group(GameQuit.GROUP)
 	add_theme_color_override("font_color", Color(1, 0.25, 0.2))
 	add_theme_color_override("font_outline_color", Color.BLACK)
 	add_theme_constant_override("outline_size", 5)
@@ -81,6 +86,8 @@ func start() -> void:
 	_next_frame = 0.0
 	_samples = 0
 	recording = true
+	if is_inside_tree():
+		get_tree().auto_accept_quit = false  # the close button / Cmd+Q: GameQuit (_notification)
 
 
 func stop() -> void:
@@ -90,6 +97,8 @@ func stop() -> void:
 	_drain(true)
 	_mkv.close()
 	AudioServer.remove_bus_effect(0, _cap_idx)
+	if is_inside_tree():
+		get_tree().auto_accept_quit = true
 	text = "saved %s" % path
 	if Session.setup.get("record_mp4", true) and ffmpeg_available():
 		var mp4 := path.get_basename() + ".mp4"
@@ -107,8 +116,31 @@ func _unhandled_key_input(e: InputEvent) -> void:
 
 
 func _notification(what: int) -> void:
-	if what == NOTIFICATION_WM_CLOSE_REQUEST or what == NOTIFICATION_PREDELETE or what == NOTIFICATION_EXIT_TREE:
+	if what == NOTIFICATION_WM_CLOSE_REQUEST and recording:
+		GameQuit.quit(get_tree())  # finish, then quit (auto_accept_quit is off while recording)
+	elif what == NOTIFICATION_PREDELETE or what == NOTIFICATION_EXIT_TREE:
 		stop()
+
+
+## Stop recording and wait (at most FINISH_FRAMES frames) for the frame read-backs still on the GPU: GameQuit.quit.
+func finish() -> void:
+	stop()
+	var frames := 0
+	while should_wait(pending(), frames) and is_inside_tree():
+		await get_tree().process_frame
+		frames += 1
+
+
+## Keep waiting with `pending` read-backs out after `frames` frames of waiting? (pure)
+static func should_wait(pending_n: int, frames: int) -> bool:
+	return pending_n > 0 and frames < FINISH_FRAMES
+
+
+func pending() -> int:
+	_mutex.lock()
+	var n := _pending
+	_mutex.unlock()
+	return n
 
 
 func _process(_dt: float) -> void:
@@ -140,7 +172,13 @@ func _capture(ms: int) -> void:
 		return
 	var w: int = fmt.width
 	var h: int = fmt.height
+	_mutex.lock()
+	_pending += 1
+	_mutex.unlock()
 	rd.texture_get_data_async(tex, 0, func(data: PackedByteArray):
+		_mutex.lock()
+		_pending -= 1
+		_mutex.unlock()
 		if recording:
 			_encode(entry, Image.create_from_data(w, h, false, Image.FORMAT_RGBA8, data)))
 

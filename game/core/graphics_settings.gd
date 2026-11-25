@@ -6,7 +6,9 @@ extends Node
 ## restart: set_renderer() writes override.cfg and restart_needed() tells the menus. A change the player made asks
 ## "Restart now?" (ui/menu/restart_prompt.gd); yes relaunches libresim and resumes a flight (core/renderer_restart.gd).
 ## Preset keys: scale (3D render scale, > 1 supersample, < 1 bilinear on Mobile / FSR2 on Forward+), msaa (index into
-## [off, 2x, 4x]), shadow (sun shadow distance, m), pssm (directional_shadow_mode), atlas / soft / pos_soft (shadow
+## [off, 2x, 4x]), shadow (sun shadow distance, m), pssm (directional_shadow_mode), split1 (first split's share of the
+## shadow distance, default SPLIT1: Medium's two splits need 0.12, or past 21 m the aircraft fell into a split too coarse
+## to keep its own shadow), atlas / soft / pos_soft (shadow
 ## atlas size, soft filter quality of sun and omni / spot lights), ssao / ssil / taa (Forward+ only), ssr (ray steps,
 ## 0 = off, Forward+ only), cloud_light (light samples per cloud step), real_lights (real SpotLights on the nearest
 ## apron floodlights, world/apron_lamps.gd; Mobile lights a mesh with 8 spots, so Mobile is held to 4),
@@ -17,7 +19,7 @@ const PRESETS := {
 		"atlas": 2048, "soft": 1, "pos_soft": 1, "glow": false, "lod_k": 1.2, "bld": 4000.0, "trees": 1200.0,
 		"tree_density": 0.5, "tree_lod": 0.0, "clouds": 10, "cloud_light": 1, "wisps": 0, "rain": 1500,
 		"ssao": false, "ssil": false, "ssr": 0, "taa": false, "ae": false, "real_lights": 2, "apron_shadows": 0, "vfog": 0},
-	"medium": {"renderer": "mobile", "scale": 0.85, "fsr": true, "msaa": 0, "post_aa": "smaa", "shadow": 700.0, "pssm": 0,
+	"medium": {"renderer": "mobile", "scale": 0.85, "fsr": true, "msaa": 0, "post_aa": "smaa", "shadow": 700.0, "pssm": 1, "split1": 0.12,
 		"atlas": 2048, "soft": 2, "pos_soft": 2, "glow": true, "lod_k": 1.4, "bld": 6000.0, "trees": 1800.0,
 		"tree_density": 0.8, "tree_lod": 90.0, "clouds": 16, "cloud_light": 1, "wisps": 40, "rain": 3000,
 		"ssao": false, "ssil": false, "ssr": 0, "taa": false, "ae": true, "real_lights": 4, "apron_shadows": 0, "vfog": 0},
@@ -35,6 +37,7 @@ const PRESETS := {
 		"ssao": true, "ssil": true, "ssr": 64, "taa": true, "ae": true, "real_lights": 24, "apron_shadows": 2, "cloud_dist": 60000.0, "vfog": 3},
 }
 const ORDER := ["low", "medium", "high", "ultra", "max"]
+const SPLIT1 := 0.03  # world/flight.tscn Sun: the first split's share of the shadow distance
 const CFG := "user://graphics.cfg"
 const OVERRIDE := "override.cfg"
 
@@ -268,6 +271,7 @@ func apply_to_scene(root: Node) -> void:
 		sun.shadow_enabled = s.shadow > 0.0
 		sun.directional_shadow_max_distance = maxf(s.shadow, 10.0)
 		sun.directional_shadow_mode = s.pssm  # 0 one orthogonal split, 1 two splits, 2 four (cascades)
+		sun.directional_shadow_split_1 = float(s.get("split1", SPLIT1))
 	var we := root.get_node_or_null("WorldEnvironment") as WorldEnvironment
 	if we:
 		_apply_environment(we.environment, s, forward_plus)

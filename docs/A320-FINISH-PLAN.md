@@ -18,6 +18,7 @@ Everything stays generic (shared code in `game/aircraft/common/`, per-aircraft d
 6. **Weathering.** Done as a transparent next pass (`weathering.gdshader`): a leading-edge dirt line and soot along the two engine exhausts. No APU stain and no gear-bay grime.
 7. **Jetway `Support` pole.** Already done (`world/jetway_legs.gd`: the bogie stays on the ground and the columns meet the tunnel).
 8. **Fly-by camera.** Already scaled by aircraft size (`ui/flyby_placement.gd`).
+9. **Ground shadow on every preset.** Done 2026-11-25 (`aircraft/common/ground_shadow.gd`, `tools/30_planform.py`, both aircraft). Renders at the stand (Low, Medium, High, Ultra; chase, wing, side at 25 to 300 m) showed Low with no aircraft shadow at all and Medium losing it from about 40 m (one split, then two with a 21 m first split). Now a contact darkening under the aircraft on every preset, a decal sun shadow from the planform where the real one is missing (Low, and Medium past its 84 m first split), and Medium's first split widened to 84 m (`Graphics` preset key `split1`). The dot pattern on Medium's wing root went with the second split.
 
 ## Flight deck
 1. **Baked AO and shading.** Roughness is in: leather 0.65, glareshield 0.7. The flight deck has the same UV2 bake (`interior_ao.png`, 2048 px, rays 0.4 m so the panels keep local contact shadow). Glass and screens are skipped.

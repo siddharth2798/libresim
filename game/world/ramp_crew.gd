@@ -93,6 +93,8 @@ func serve(k: String, st: Dictionary) -> void:
 		n.position = Vector3(v.pos.x, h, -v.pos.y)
 		n.rotation.y = -float(v.heading)
 		_root.add_child(n, true)
+		if working and not WorldSound.KINDS.get(v.kind, {}).get("moving", true):
+			VehicleSound.attach(n, v.kind)  # the GPU's generator, the fuel pump
 		# solid where RampLayout put it (in its own stand's corridor by design, so not OpsSolids.add_model's keep-out)
 		ObstacleRegistry.add(_solids.group, ObstacleShapes.poly(v.poly, h - 0.5, h + float(v.top), OpsSolids.LABELS.get(v.kind, "a parked vehicle")))
 		if working:

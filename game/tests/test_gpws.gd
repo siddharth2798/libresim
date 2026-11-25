@@ -116,15 +116,15 @@ func test_gpws_player_only_on_a320() -> String:
 	var on := _spawn({"audio": {"gpws": true}})
 	var off_has: bool = off.get_children().any(func(c): return c is GpwsPlayer)
 	var on_has: bool = on.get_children().any(func(c): return c is GpwsPlayer)
-	var on_proc := on.is_processing()
+	var on_layers := on.layers != null  # no audio.layers: no layer engine, the GPWS player still runs
 	_dispose(off)
 	_dispose(on)
 	if off_has:
 		return "a player was added without audio.gpws"
 	if not on_has:
 		return "audio.gpws did not add a player"
-	if not on_proc:
-		return "gpws without audio.layers should keep the aircraft audio process"
+	if on_layers:
+		return "gpws without audio.layers builds no layer engine (the aircraft is otherwise silent)"
 	return ""
 
 

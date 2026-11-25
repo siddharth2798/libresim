@@ -23,7 +23,7 @@ const PRESS := ["flaps_down", "flaps_up", "parking_brake", "magnetos_next", "mou
 	"throttle_detent_up", "throttle_detent_down", "speedbrake_out", "speedbrake_in", "gear_toggle",
 	"autobrake_next", "engine_master_1", "engine_master_2", "engine_mode_next", "apu_master",
 	"fcu_ap1", "fcu_ap2", "fcu_athr", "fcu_loc", "fcu_appr", "fcu_ap_disc", "fcu_athr_disc", "fcu_spd_mach", "fcu_trk_fpa",
-	"fcu_metric_alt", "fcu_alt_1000", "efis_fd", "efis_ls", "baro_std", "nd_mode_next", "nd_range_up", "nd_range_down", "nd_filter_next", "anti_ice_wing", "anti_ice_eng_1", "anti_ice_eng_2",
+	"master_warn", "fcu_metric_alt", "fcu_alt_1000", "efis_fd", "efis_ls", "baro_std", "nd_mode_next", "nd_range_up", "nd_range_down", "nd_filter_next", "anti_ice_wing", "anti_ice_eng_1", "anti_ice_eng_2",
 	"takeoff_light", "turnoff_lights", "wing_lights", "logo_lights", "alternate_static",
 	"elec_bat1", "elec_bat2", "elec_gen1", "elec_gen2", "elec_apu_gen", "elec_ext_pwr", "hyd_green_edp", "hyd_yellow_edp", "hyd_blue_epump", "hyd_yellow_epump", "hyd_ptu", "fuel_pump_left", "fuel_pump_centre", "fuel_pump_right", "fuel_crossfeed", "bleed_eng1", "bleed_eng2", "bleed_apu", "pack1", "pack2", "seatbelt_signs", "no_smoking_signs",
 	"jetway_toggle", "door_toggle", "passenger_doors_all", "cargo_doors_all", "door_r1_toggle", "door_l2_toggle", "door_r2_toggle", "door_cargo_fwd_toggle",
@@ -110,6 +110,7 @@ static func _add_airliner_defaults(t: Dictionary) -> void:
 	t.engine_master_2 = [spec(KEY_D, false, true)]
 	t.engine_mode_next = [spec(KEY_I, false, true)]
 	t.apu_master = [spec(KEY_U, false, true)]
+	t.master_warn = [spec(KEY_M, false, true)]  # Ctrl+M: MASTER WARN / CAUT (M = magnetos, Shift+M = master switch)
 	t.apu_start = [spec(KEY_U, false, false, true)]
 	t.anti_ice_wing = [spec(KEY_W, false, true)]
 	t.anti_ice_eng_1 = [spec(KEY_E, false, false, true)]

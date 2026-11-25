@@ -1257,6 +1257,7 @@
    "slat_max_deg": 27.0,
    "flap_rate_deg_s": 1.16666666,
    "slat_rate_deg_s": 1.35,
+   "auto_retract": {"from": 2, "to": 1, "above_kt": 210.0, "note": "FCOM: CONF 1+F retracts to CONF 1 automatically at 210 kt (lever detent 2 = 1+F, 1 = CONF 1)"},
    "full_flap_deg_for_this_engine_set": 35.0,
    "note": "JSBSim fcs/flap-pos-deg and fcs/slat-pos-deg; aero tables use them (+ slat-pos-norm)"
   },
