@@ -65,6 +65,7 @@ func build(node: FdmNode) -> void:
 	add_child(lights)
 	lights.build(_s, def.section("lights"), _glb)
 	ReflectionRig.attach(self)  # reflection probe: surroundings on the glass and paint (reflection_rig.gd)
+	GroundShadow.attach(self)  # its shadow and contact darkening on the ground, every preset (ground_shadow.gd)
 
 
 func _build_glb(path: String) -> void:
@@ -163,6 +164,11 @@ func fg_to_local(p: Vector3) -> Vector3:
 
 
 ## JSBSim structural point -> local render offset from the CG.
+## Model-local position of a structural point (metres: x aft, y right, z up).
+func structural(p: Vector3) -> Vector3:
+	return _s(p)
+
+
 func _s(p: Vector3) -> Vector3:
 	return Vector3(p.y - _cg.y, p.z - _cg.z, p.x - _cg.x)
 

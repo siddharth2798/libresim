@@ -17,10 +17,13 @@ func test_medium_has_no_msaa_but_smaa() -> String:
 	return ""
 
 
-func test_medium_shadows_are_one_split_small_atlas_no_terrain() -> String:
+## Two splits since 2026-11-25: with one, the aircraft lost its own shadow from about 40 m (tests/test_ground_shadow.gd).
+## Measured on an Apple M4 (tools/bench.sh, medium / mobile): vabb_final_golden 8.68 ms vs 8.64 with one split,
+## ghats_chase 7.33 vs 7.39, the same within noise.
+func test_medium_shadows_are_two_splits_small_atlas_no_terrain() -> String:
 	var m: Dictionary = Graphics.PRESETS.medium
-	if int(m.pssm) != 0 or int(m.atlas) != 2048 or float(m.shadow) <= 0.0:
-		return "Medium should draw sun shadows with one split on a 2048 atlas: pssm=%d atlas=%d" % [int(m.pssm), int(m.atlas)]
+	if int(m.pssm) != 1 or int(m.atlas) != 2048 or float(m.shadow) <= 0.0:
+		return "Medium should draw sun shadows with two splits on a 2048 atlas: pssm=%d atlas=%d" % [int(m.pssm), int(m.atlas)]
 	for p in Graphics.ORDER:
 		var want: bool = p in ["high", "ultra", "max"]
 		if bool(SceneryQuality.for_preset(p).terrain_shadow) != want:

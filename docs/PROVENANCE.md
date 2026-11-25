@@ -69,7 +69,7 @@ Counts are for tracked files. "Code" is non-blank, non-comment lines.
 Reading the table:
 - B1 and B2 are the unmodified originals of C1 and C3 (shipped to satisfy the GPL's corresponding-source rule), so the converted and original forms are counted twice. That is why the headline gives the figure with and without them.
 - FlightGear/JSBSim origin = B1 + B2 + C1 + C2 + C3 + C4 = 83.8 MB (96.7 %), 98 of 487 files.
-- Within C1, the 18 textures are byte-identical to `third_party/c172p`; the two `.glb` files are modified conversions (hinge pivots, FlightGear-only parts removed, normal maps). Three textures are stored twice (interior 4.0 MB, panel 3.1 MB, panel_parts 1.1 MB, once as `exterior_*` and once as `interior_*`), which is repository bloat, not an extra derivation.
+- Within C1, the 18 textures are byte-identical to `third_party/c172p`; the two `.glb` files are modified conversions (hinge pivots, FlightGear-only parts removed, normal maps). `planform_cast.png`, `planform_ao.png` and `planform.json` (2026-11-25, `tools/30_planform.py`) are the exterior glb's top-down silhouette, derived from it and under the same licence. Three textures are stored twice (interior 4.0 MB, panel 3.1 MB, panel_parts 1.1 MB, once as `exterior_*` and once as `interior_*`), which is repository bloat, not an extra derivation.
 - Within C2, all 30 `.wav` files are byte-identical to files in the c172p repository (23) or fgdata (7). Some are third-party recordings that the c172p team already licensed (CC0, CC-BY); see `sounds/SOURCES.md`.
 - The own-art files in D contain no upstream material, but D3 is a screenshot of the sim (see "Gaps").
 

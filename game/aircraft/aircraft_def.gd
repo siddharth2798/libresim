@@ -51,7 +51,7 @@ const DEFAULT_ID := "c172"
 const FILES := {
 	"config": "config.json", "aero": "aero.json", "hull": "hull.json", "checklists": "checklists.json",
 	"panel": "panel.json", "exterior": "models/exterior.glb", "interior": "models/interior.glb",
-	"sounds": "sounds/", "preview": "preview.jpg",
+	"sounds": "sounds/", "preview": "preview.jpg", "planform": "models/planform.json",
 }
 
 static var _cache := {}

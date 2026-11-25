@@ -469,14 +469,14 @@ footer { margin-top: 2.5rem; padding-top: 0.7rem; border-top: 1px solid var(--ru
         <li><a href="#start-screen" data-k="start screen livery registration fly anyway weather live menu route waypoints flight plan"><span class="no">GEN 3</span><span>Start a flight</span></a></li>
         <li><a href="#training" data-ac="c172" data-k="training lessons takeoff cruise landing c172"><span class="no">GEN 4</span><span>Training</span></a></li>
         <li class="part">OPS · Flying</li>
-        <li><a href="#controls" data-k="keyboard mouse joystick gamepad keys cameras pause"><span class="no">OPS 1</span><span>Controls, views, pause</span></a></li>
+        <li><a href="#controls" data-k="keyboard mouse joystick gamepad keys cameras pause sound audio volume"><span class="no">OPS 1</span><span>Controls, views, pause</span></a></li>
         <li><a href="#c172" data-ac="c172" data-k="cessna 172 skyhawk walkthrough how to fly start to finish no autopilot trim cold start mixture magnetos starter taxi takeoff landing shutdown"><span class="no">OPS 2</span><span>Cessna 172S</span></a></li>
         <li><a href="#a320" data-ac="a320" data-k="a320 airliner walkthrough how to fly start to finish autopilot ap1 ap2 fcu fma autothrust a/thr flight director fd ls loc appr nav hdg alt v/s open climb managed selected push pull mcdu route ils approach cold start apu engine master ign start taxi takeoff landing"><span class="no">OPS 3</span><span>A320-family</span></a></li>
         <li><a href="#navigation" data-k="vor ils gps map radar atc radio checklist mcdu airway"><span class="no">OPS 4</span><span>Navigation and the radio</span></a></li>
         <li><a href="#airports" data-k="airports stands taxi pushback jetway jet bridge doors cargo lights terminals"><span class="no">OPS 5</span><span>Airports and the ground</span></a></li>
         <li><a href="#weather" data-k="weather live metar wind rain icing night moon splash spray wet runway"><span class="no">OPS 6</span><span>Weather, time and night</span></a></li>
         <li><a href="#systems" data-k="failures electrical fuel hydraulics f9 pitot vacuum apu"><span class="no">OPS 7</span><span>Systems and failures</span></a></li>
-        <li><a href="#limits" data-k="damage crash landing hard gear weight balance cg"><span class="no">OPS 8</span><span>Limits, damage, weight</span></a></li>
+        <li><a href="#limits" data-k="damage crash landing hard gear weight balance cg overspeed vfe flaps vne"><span class="no">OPS 8</span><span>Limits, damage, weight</span></a></li>
         <li><a href="#saving" data-k="save load replay recording f8 f11 film"><span class="no">OPS 9</span><span>Saves, replay, recording</span></a></li>
         <li><a href="#graphics" data-k="graphics preset low medium high ultra max fps blurry auto resolution motion blur renderer restart edge smoothing smaa fxaa anti-aliasing jagged draw distance pop in jetway block occlusion particles spray dust splash"><span class="no">OPS 10</span><span>Graphics</span></a></li>
         <li class="part">DEV · Building it</li>
@@ -830,6 +830,7 @@ flatpak run org.freesim.FreeSim</code></pre><button class="copy" type="button">C
   <a href="#controls-hardware">Joystick and the Captain Pack</a>
   <a href="#controls-views">Views</a>
   <a href="#controls-pause">Pause and messages</a>
+  <a href="#controls-sound">Sound</a>
 </nav>
 <p>The same stick, keys and views fly both aircraft. What a control does depends on which aircraft is loaded: mixture and magnetos exist on the Cessna, engine masters and the gear lever exist on the airliner. The full key list is <a href="#keys">REF 2</a>. <kbd>F1</kbd> shows it in flight.</p>
 
@@ -861,6 +862,16 @@ flatpak run org.freesim.FreeSim</code></pre><button class="copy" type="button">C
 <h3 id="controls-pause">Pause, messages, and the crash card</h3>
 <p><kbd>Esc</kbd> pauses on a full screen. The flight stops, and the engine, wind, cockpit, radio and spoken callouts go quiet until you resume. The weather, the clouds, the clock and any ice on the aircraft stop with it. A loaded save puts the clouds back where they were. Menu volume is left as you set it. The left column is Resume, Options, Weather and time (<kbd>F10</kbd>), Controls (<kbd>J</kbd>), Save / Load (<kbd>F11</kbd>), Failures (<kbd>F9</kbd>), Checklists (<kbd>F2</kbd>), Instant replay (<kbd>R</kbd>), Restart (<kbd>F5</kbd>), Quit to the menu, and Quit. <kbd>Esc</kbd> backs out one level, then resumes. Restart and the two Quit entries need a second click.</p>
 <p>Cards at the top centre report failures, damage and the landing debrief. Blue, amber, red. Repeats merge. At most three show. A stall is a pulsing banner. After a crash the card names the cause and offers Restart, Watch replay, or New flight.</p>
+
+<h3 id="controls-sound">Sound</h3>
+<p>Everything you hear follows the aircraft's state, so a sound tells you something. Options → Sound has a slider for each group: engine, wind and environment, cockpit, radio and menus.</p>
+<ul>
+  <li><strong>Engines.</strong> <span class="only-c172">The Cessna's engine follows RPM and sounds harder under full throttle than at the same RPM in a dive. Starter, catch and cut are their own sounds, and a windmilling propeller still turns over quietly.</span> <span class="only-a320">Each airliner engine is heard on its own side: idle and power by N1, the whine by N2, the start, the shutdown and reverse. The APU spools up and runs down with its speed.</span></li>
+  <li><strong>Systems.</strong> <span class="only-c172">The vacuum gyros and the electric turn coordinator spin up and run down, the avionics fan hums, the flap motor and the trim wheel run while they move, and the stall horn sounds when the wing is near the stall.</span> <span class="only-a320">Hydraulic pumps, the PTU barking when it transfers pressure, the packs, the avionics fan, the gear and the flap and slat motors, and the gear locking up or down. The master warning chimes until you press MASTER WARN (<kbd>Ctrl</kbd>+<kbd>M</kbd>); a caution chimes once. Overhead and FCU buttons click.</span></li>
+  <li><strong>Air and ground.</strong> Wind grows with airspeed. Extended flaps and gear add their own rush. Rough air and storm cells shake the airframe and you hear it. Rain drums on the windshield. The tyres roll differently on grass than on the runway, and the brakes squeal at walking pace.</li>
+  <li><strong>Outside.</strong> From an outside view the aircraft is quieter the further away the camera is, and its pitch drops as it passes the fly-by camera. Thunder follows lightning a few seconds later, as far away as the strike. At an airport the pushback tug and the follow-me car run their engines, the ground power unit and the fuel truck pump hum while the ramp crew is out, and a jet bridge whines and beeps while it moves.</li>
+</ul>
+<p>Pause quiets the flight; menu sounds stay. A missing sound file is silent rather than an error.</p>
 </section>
 
 <section id="c172" class="only-c172">
@@ -1025,7 +1036,7 @@ flatpak run org.freesim.FreeSim</code></pre><button class="copy" type="button">C
 
 <h3 id="a320-fly">Taxi and takeoff</h3>
 <ol class="steps">
-  <li><span>Flaps for takeoff: <kbd>]</kbd> once is CONF 1, slats out and flaps still in, on the ground and in the air. <kbd>]</kbd> again is 1+F. A third press is CONF 2. <kbd>[</kbd> retracts one detent. On the Captain Pack the first notch is 1+F on the ground and CONF 1 in the air.</span></li>
+  <li><span>Flaps for takeoff: <kbd>]</kbd> once is CONF 1, slats out and flaps still in, on the ground and in the air. <kbd>]</kbd> again is 1+F. A third press is CONF 2. <kbd>[</kbd> retracts one detent. 1+F goes to CONF 1 on its own above 210 kt, as on the real aircraft. On the Captain Pack the first notch is 1+F on the ground and CONF 1 in the air.</span></li>
   <li><span><kbd>Ctrl</kbd>+<kbd>A</kbd> cycles autobrake OFF, LO, MED, MAX. Use MAX for takeoff. Speedbrake in with <kbd>/</kbd>. <kbd>\</kbd> walks it out. <kbd>Ctrl</kbd>+<kbd>B</kbd> beacon, <kbd>Ctrl</kbd>+<kbd>N</kbd> nav lights.</span></li>
   <li><span>At a gate, before pushback: <kbd>Shift</kbd>+<kbd>J</kbd> retracts the jet bridge. It shuts the L1 door, folds the canopy and drives the bridge back. Close any other door: <kbd>Shift</kbd>+<kbd>O</kbd> for all passenger doors, <kbd>Ctrl</kbd>+<kbd>O</kbd> for both cargo doors. Pushback waits until the bridge is back and every door is shut, and says which key is missing.</span></li>
   <li><span><kbd>Shift</kbd>+<kbd>B</kbd> releases the parking brake. At a gate, <kbd>P</kbd> pushes back and swings the tail toward the taxiway, then stops before a wheel leaves the pavement. The brake has to be off. <kbd>P</kbd> again stops. <kbd>T</kbd> is the taxi route and the follow-me. Stay under 30 kt.</span></li>
@@ -1050,7 +1061,7 @@ flatpak run org.freesim.FreeSim</code></pre><button class="copy" type="button">C
 <ul>
   <li><strong>PFD.</strong> Attitude, speed tape with the flap limit, altitude, heading, flight-mode annunciations.</li>
   <li><strong>ND.</strong> ARC and ROSE. Weather radar paints on it when there is a return, marked WX. There is no VOR, ILS or PLAN mode.</li>
-  <li><strong>E/WD and SD.</strong> Engine, fuel, wheel and flight-control pages. ICE DETECTED and ANTI ICE show on the memo line. There is no schematic flight-control page, and no bleed or pack model.</li>
+  <li><strong>E/WD and SD.</strong> Engine, fuel, wheel and flight-control pages. ICE DETECTED and ANTI ICE show on the memo line. A red warning sounds the continuous chime and an amber one a single chime; <kbd>Ctrl</kbd>+<kbd>M</kbd> (MASTER WARN / CAUT) silences them while the lines stay on the screen, until a new warning comes. There is no glareshield button for it yet. There is no schematic flight-control page, and no bleed or pack model.</li>
   <li><strong>FCU and EFIS panels.</strong> The Flight Control Unit (FCU) is the strip of knobs and buttons across the glareshield. It is the autopilot panel. The two EFIS panels beside it hold FD, LS, BARO and the ND controls. Every button and knob works, in the 3D cockpit and on the small FCU in the outside views. How to use them, three ways, is in <a href="#a320-ap">Flying with the autopilot</a>; what each one does is in <a href="#a320-ap-knobs">What each control does</a>.</li>
   <li><strong>Reading the autopilot.</strong> The mode display across the top of the PFD is the FMA: <a href="#a320-fma">Reading the FMA</a>.</li>
 </ul>
@@ -1419,13 +1430,13 @@ flatpak run org.freesim.FreeSim</code></pre><button class="copy" type="button">C
     <tr><td>Hard landing</td><td>Sink past about 590 ft/min</td><td>Sink past about 510 ft/min</td></tr>
     <tr><td>Gear collapse</td><td>About 900 ft/min, or about 510 on the nosewheel</td><td>About 890 ft/min, or about 490 on the nosewheel</td></tr>
     <tr><td>Sideways drift</td><td>Damage past about 6 kt, collapse past about 10</td><td>Damage past about 8 kt, collapse past about 14</td></tr>
-    <tr><td>Never exceed</td><td>163 KIAS. Damage after 2 s, breakup near 185</td><td>350 KIAS. Design dive 380</td></tr>
-    <tr><td>Flaps</td><td>110 kt at 10°, 85 kt beyond, for 2 s</td><td>The tape's limit for that detent, down to 177 KIAS at full</td></tr>
+    <tr><td>Never exceed / V<sub>MO</sub></td><td>Over 163 KIAS for 2 s: an inspection note. Airframe damage over 185 (V<sub>D</sub>), breakup over 222</td><td>Over 350 KIAS for 2 s: an inspection note. Damage over 381 (V<sub>D</sub>), breakup over 438</td></tr>
+    <tr><td>Flaps</td><td>Over 110 kt at 10°, 85 kt beyond: a note. The flaps jam about 15 % above that (126 and 98 kt)</td><td>Over the detent's V<sub>FE</sub> (CONF 1 230, 1+F 215, 2 200, 3 185, FULL 177): a note. They jam about 15 % above (264, 247, 230, 213, 204 kt)</td></tr>
     <tr><td>Load factor</td><td>+3.8 / −1.52 g, and 1.5× that breaks it</td><td>About +2.5 / −1.0 g</td></tr>
   </tbody>
 </table></div>
-<p class="only-c172"><span class="badge c172">C172</span>A prop strike destroys the engine, and above about 25 kt the aircraft noses over. A wingtip strike above 10 kt is a crash. A tail strike damages the airframe. Ditching is a crash. More than a couple of seconds above V<sub>NE</sub> damages the airframe. The test cards put the takeoff roll near 865 ft against a POH figure of 960 ft, and a full-flap braked landing roll near 610 ft against 575 ft.</p>
-<p class="only-a320"><span class="badge a320">A320</span>There is no propeller to strike. Ground spoilers hold through a bounce. The flare law is already in from about 50 ft. Tyre bursts, bird strikes, and engine damage from temperature or RPM are not modelled on either aircraft.</p>
+<p class="only-c172"><span class="badge c172">C172</span>A prop strike destroys the engine, and above about 25 kt the aircraft noses over. A wingtip strike above 10 kt is a crash. A tail strike damages the airframe. Ditching is a crash. A couple of seconds above V<sub>NE</sub> or the flap limit is written up for an inspection; damage needs the design dive speed, or about 15 % over the flap limit. Real aircraft keep that margin on paper and in flight test, but it is not a speed to fly. The test cards put the takeoff roll near 865 ft against a POH figure of 960 ft, and a full-flap braked landing roll near 610 ft against 575 ft.</p>
+<p class="only-a320"><span class="badge a320">A320</span>OVERSPEED shows on the E/WD with the master warning 4 kt over the red band: V<sub>MO</sub>, M<sub>MO</sub>, the flap detent's V<sub>FE</sub>, or the gear limit with the gear down. Above 210 kt in flight, 1+F retracts to CONF 1 by itself. There is no propeller to strike. Ground spoilers hold through a bounce. The flare law is already in from about 50 ft. Tyre bursts, bird strikes, and engine damage from temperature or RPM are not modelled on either aircraft.</p>
 
 <h3 id="limits-hit">What you can hit</h3>
 <p>Touching a solid with any part of the airframe ends the flight, in the air or on the ground. The card names the part and the thing. Solids are trees as drawn, 3D buildings, landmark terminals, retracted jetways, parked vehicles, floodlight masts and windsock poles. You can taxi under an 8 m canopy. You cannot taxi through a wall.</p>
@@ -1454,7 +1465,7 @@ flatpak run org.freesim.FreeSim</code></pre><button class="copy" type="button">C
   <thead><tr><th>Preset</th><th>Picture</th><th>Shadows</th><th>Buildings / trees</th><th>Cloud steps</th></tr></thead>
   <tbody>
     <tr><td>Low</td><td>70 %, upscaled, SMAA</td><td>Off</td><td>4 km / 1.2 km</td><td class="num">10</td></tr>
-    <tr><td>Medium</td><td>85 %, upscaled, SMAA</td><td>700 m (buildings and trees; the ground casts none)</td><td>6 km / 1.8 km</td><td class="num">16</td></tr>
+    <tr><td>Medium</td><td>85 %, upscaled, SMAA</td><td>700 m in two steps, the first 84 m (buildings and trees; the ground casts none)</td><td>6 km / 1.8 km</td><td class="num">16</td></tr>
     <tr><td>High</td><td>100 %, MSAA 2×, SMAA, SSAO</td><td>1.8 km</td><td>9 km / 2.2 km</td><td class="num">24</td></tr>
     <tr><td>Ultra</td><td>100 %, MSAA 4×, TAA</td><td>4 km</td><td>12 km / 3 km</td><td class="num">40</td></tr>
     <tr><td>Max</td><td>125 %, MSAA 4×, TAA</td><td>6 km</td><td>16 km / 4 km</td><td class="num">64</td></tr>
@@ -1466,6 +1477,7 @@ flatpak run org.freesim.FreeSim</code></pre><button class="copy" type="button">C
 <p>Near the ground, grass grows on meadows and farmland, ferns and bushes under the forest, and sparse dry grass on the plateau and the bare laterite. None grows on runways, taxiways, aprons, roads or water. It sways a little in the wind and dries with the season. You see it within 40 m on High, 50 m on Ultra and 65 m on Max, within 18 m on Medium, and not at all on Low; it fades out at the edge, and is gone once you are more than 120 m above the ground.</p>
 <p>Edge smoothing (Options, Graphics) takes the jagged steps off wing, runway and building edges. Auto uses SMAA on Low, Medium and High: it keeps runway paint, windows and instrument text sharper than the older FXAA did. Ultra and Max smooth edges with TAA instead, and so does FSR2 when the picture is below 100 % on Forward+, so the setting does nothing there. Pick FXAA for the cheapest smoothing on a very weak graphics chip, or Off.</p>
 <p>Ground effects follow the preset too: rain splashes, wheel spray, propeller wash and dust use more particles on higher presets. Low has none of them and keeps only the rain rings on wet pavement, which cost almost nothing. Medium has splashes, spray, wash and dust with fewer particles, and High and up add the plume behind the main wheels. None of it glows at night, and it fades out right in front of the camera so it never fills the cockpit or chase view.</p>
+<p>Your aircraft always has a shadow on the ground. On Low, where the sun casts none, the game draws one from the aircraft's outline, thrown the way the sun is shining and fading with clouds, dusk and height. On Medium the sun's own shadow holds the aircraft up close, and the drawn one takes over when the camera is far back. Every preset also darkens the ground softly right under the belly, engines and wheels.</p>
 <p>Motion blur (High and up) blurs the scenery only as much as the camera's own turn and movement explain: steady flight stays sharp, a fast pan or a hard turn streaks. Switch it off under Options, Graphics if you want every frame still-sharp.</p>
 <p>Small things at an airport (service vehicles, stand numbers, lamp masts, signs) are drawn only while they are big enough on screen to see, a few pixels on a 1080p picture. Higher presets keep them further out, and zooming in (tower view, fly-by) brings them back. A distant jetway is drawn as one simple block and turns into the full bridge as you get closer; the bridge at your own aircraft is always drawn in full. Terminals, windsocks, runway and apron lights and lit windows stay at every distance. On the ground the game also skips what is hidden behind terminal buildings. On Low and Medium a far object can switch off at once instead of fading out; at that size it is only a few pixels.</p>
 <p>Runways and taxiways are built only for airports near you, and dropped again when you fly away. How near depends on the size of the runway and on the preset: a long runway is still built far off, a small airstrip only close in. The airports within 15 km of the start are ready before the first frame. This cuts the number of draw calls and the memory the sim uses.</p>
@@ -1586,6 +1598,7 @@ flatpak run org.freesim.FreeSim</code></pre><button class="copy" type="button">C
     <tr class="only-a320"><td><kbd>Ctrl</kbd>+<kbd>W</kbd> · <kbd>Alt</kbd>+<kbd>E</kbd> <kbd>D</kbd></td><td>Wing anti-ice · engine anti-ice</td></tr>
     <tr class="only-a320"><td><kbd>Alt</kbd>+<kbd>T</kbd> <kbd>R</kbd> <kbd>W</kbd> <kbd>O</kbd></td><td>Take-off light, turn-off lights, wing lights, logo lights</td></tr>
     <tr class="only-a320"><td><kbd>Ctrl</kbd>+<kbd>1</kbd> … <kbd>5</kbd></td><td>AP1, AP2, autothrust, LOC, APPR</td></tr>
+    <tr class="only-a320"><td><kbd>Ctrl</kbd>+<kbd>M</kbd></td><td>MASTER WARN / CAUT: silence the chime</td></tr>
     <tr class="only-a320"><td><kbd>Alt</kbd>+arrows</td><td>FCU heading and altitude. Speed is <kbd>Alt</kbd>+<kbd>[</kbd> <kbd>]</kbd>. Vertical speed knob turn is <kbd>Alt</kbd>+<kbd>'</kbd> <kbd>;</kbd>. Every FCU knob is pulled with <kbd>Shift</kbd>+<kbd>Alt</kbd>+ its turn-up key (<kbd>'</kbd>, <kbd>]</kbd>, <kbd>&rarr;</kbd>, <kbd>&uarr;</kbd>) and pushed with <kbd>Shift</kbd>+<kbd>Alt</kbd>+ its turn-down key (<kbd>;</kbd>, <kbd>[</kbd>, <kbd>&larr;</kbd>, <kbd>&darr;</kbd>)</td></tr>
     <tr class="only-a320"><td>No default key</td><td>Autopilot disconnect, autothrust disconnect, FD, LS, BARO STD, SPD/MACH, HDG V/S - TRK FPA, METRIC ALT, ALT 100 / 1000, and the ND mode, range and filter. Bind them on the Controls page (<kbd>J</kbd>), or click them in the cockpit. See <a href="#a320-ap">Flying with the autopilot</a></td></tr>
     <tr class="group"><td colspan="2">Views and panels</td></tr>
@@ -1619,7 +1632,7 @@ flatpak run org.freesim.FreeSim</code></pre><button class="copy" type="button">C
     <tr><td>A320-family model and flight data</td><td>FlightGear A320-family project</td><td>GPL-2.0 only. A build that includes it is GPL-2.0 as a whole</td></tr>
     <tr><td>Jetway</td><td>FlightGear fgdata</td><td>GPL-2.0</td></tr>
     <tr><td>Ground vehicles</td><td>Drawn in libresim</td><td>GPL-2.0-or-later</td></tr>
-    <tr><td>Sounds</td><td>Listed per file in each aircraft's <code>sounds/SOURCES.md</code></td><td>CC0, CC-BY, GPL</td></tr>
+    <tr><td>Sounds</td><td>Listed per file in each aircraft's <code>sounds/SOURCES.md</code> and <code>game/world/sounds/SOURCES.md</code>. The generated ones are libresim's own</td><td>CC0, CC-BY, GPL</td></tr>
     <tr><td>Engine</td><td>Godot 4.7.2</td><td>MIT</td></tr>
     <tr><td>Imagery</td><td>Sentinel-2 cloudless by EOX, 2024</td><td>CC BY-NC-SA 4.0</td></tr>
     <tr><td>Elevation</td><td>Copernicus GLO-30 and GLO-90</td><td>Copernicus, free with attribution</td></tr>
