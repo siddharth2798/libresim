@@ -19,7 +19,7 @@ static func restart(tree: SceneTree) -> void:
 		if Situation.save(scene, RESUME) == "":
 			resume = SituationStore.file_name(RESUME)
 	OS.set_restart_on_exit(true, arguments(OS.get_cmdline_args(), OS.get_cmdline_user_args(), resume))
-	tree.quit()
+	GameQuit.quit(tree)  # a running recording finishes first
 
 
 ## The relaunch command line: engine arguments without --rendering-method (it would override override.cfg), the user
