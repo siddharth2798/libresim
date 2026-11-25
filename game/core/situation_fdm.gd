@@ -15,7 +15,7 @@ const FCS_KEYS := ["pitch", "roll", "yaw", "pitch_trim", "flap_cmd", "flaps_powe
 const FDM_KEYS := ["pos_n", "pos_e", "pos_d", "fuel_available", "time", "alpha", "beta", "vt", "cas", "qbar", "mach", "agl", "load_factor",
 	"flight_load_factor", "_alpha_prev", "_alphadot"]
 const DAMAGE_KEYS := ["crash_reason", "prop_destroyed", "flaps_jammed", "structure_damaged", "hard_landings",
-	"_overspeed_t", "_flap_t", "_air_time"]
+	"_overspeed_t", "_flap_t", "_air_time", "_vne_t", "_vfe_t", "vne_noted", "vfe_noted"]
 ## Optional fields of aircraft that have them (slats, spoilers, speedbrake, retractable gear, thrust
 ## levers): saved when the object has the field (a scalar or an array), skipped otherwise, so the C172
 ## file is unchanged. Add a name here when FlightControls / GearGround gets a new state field.

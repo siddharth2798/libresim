@@ -70,6 +70,7 @@ func setup(model: Node3D, rot: Vector2, way_cab: Vector2, p_cands: Array, back :
 			m.position = Vector3(-JetwayPose.DRUM_X, 0.0, -CAB_Z)
 	JetwayNight.door_glow(_cab.find_child("Hood", false, false) as Node3D)
 	_canopy = JetwayCanopy.build(_cab.find_child("Hood", false, false) as Node3D, GroundParams.ground())
+	JetwaySound.attach(self, _cab)  # drive motor and beeper while it moves
 	var r := _take(model, "Rotunda1", _rotunda)
 	if r:
 		r.position = Vector3(-JetwayPose.PIVOT_X, 0.0, 0.0)

@@ -265,6 +265,7 @@ func _exit_tree() -> void:
 func _spawn_tug() -> void:  # world/veh_tug.gd, sized by ground.tug_scale
 	_tug = Node3D.new()
 	_tug.add_child(GroundVehicles.make("pushback_tug", float(GroundParams.ground().tug_scale), 0.37, true, true))  # wheels roll, lamps on
+	VehicleSound.attach(_tug.get_child(0), "pushback_tug")  # diesel that revs as it pushes (world/vehicle_sound.gd)
 	add_child(_tug)
 
 

@@ -6,8 +6,9 @@ extends RefCounted
 ##   model    exterior / interior glb, control-surface and propeller pivots (aircraft_model.gd)
 ##   cockpit  gauge spots in the glb, panel layout (panel.json), eye point (cockpit.gd)
 ##   lights   nav / beacon / strobe / lamp positions (aircraft_lights.gd)
-##   audio    sound folder, engine / wind mappings, optional gpws (aircraft_audio.gd)
-##   limits   vne_kias, vd_kias, vfe_kias [[max flap deg, kias], ...], g_pos, g_neg, vs0_kias, vs1_kias, vno_kias,
+##   audio    sound layers (aircraft_audio.gd, schema in common/audio_curves.gd), optional gpws
+##   limits   vne_kias, vd_kias, vd_fail_k, vfe_kias [[max flap deg, kias], ...], vfe_by ("flap" | "slat_flap"),
+##            flap_damage_k, g_pos, g_neg, vs0_kias, vs1_kias, vno_kias,
 ##            asi_min_kias, asi_max_kias; tach {max_rpm, green [lo, hi], red}; gauges {fuel_gal, oil_temp_f,
 ##            oil_press_psi, egt_f, fuel_flow_gph, suction_inhg, ammeter_a: {min, max, green [lo, hi], red}}
 ##            (damage.gd, ASI arcs, lessons, ui/gauges/*.gd); max_crosswind_kt for the start-screen

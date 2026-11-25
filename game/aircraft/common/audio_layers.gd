@@ -6,7 +6,9 @@ extends Node
 ## Props edge. Per-engine layers are panned left / right through small child buses
 ## ("AL_<bus>_<pan>_<muffle>", routed to Engine / Environment / Cockpit so the option sliders still
 ## apply); layers with muffle_hz get a low-pass on that bus while the camera is in the cockpit.
-## A sound file that is missing is simply silent.
+## A sound file that is missing is simply silent. Loops with "smooth" ease their volume (no click at a gate edge);
+## loops with "attenuate" fall off with the camera's distance from `source` (the aircraft) in the outside views and
+## take its Doppler shift (audio_space.gd). The cockpit view hears them as they are.
 
 var layers: Array = []  # expanded layers (AudioCurves.expand)
 var _dir := ""
@@ -17,6 +19,10 @@ var _prev := {}  # key -> last sampled value
 var _prev_ok := false
 var view := "outside"  # last view, for the filters
 var states := {}  # id -> {"on", "vol", "pitch"} of the last frame (tests, debugging)
+var source: Node3D  # the aircraft, for distance and Doppler (null: no fall-off)
+var _vol := {}  # id -> eased linear volume now
+var _dist := -1.0  # camera to source, last frame (m); -1 = unknown
+var _closing := 0.0  # closing speed, smoothed (m/s)
 
 
 func setup(sounds_dir: String, defs: Array, engine_count: int) -> void:
@@ -82,6 +88,13 @@ func _route(l: Dictionary) -> String:
 
 
 func _sample(dt: float) -> Dictionary:
+	var cam := get_viewport().get_camera_3d() if is_inside_tree() else null
+	var d := -1.0
+	if cam and is_instance_valid(source) and source.is_inside_tree():
+		d = cam.global_position.distance_to(source.global_position)
+		var jump := _dist < 0.0 or dt <= 0.0 or absf(d - _dist) / dt > 400.0  # a view change, not motion
+		_closing = 0.0 if jump else AudioSpace.closing_speed(_dist, d, dt, _closing)
+	_dist = d
 	var vals := {}
 	var rates := {}
 	for k in _keys:
@@ -89,7 +102,8 @@ func _sample(dt: float) -> Dictionary:
 		vals[k] = v
 		if _prev.has(k) and (v is float or v is int) and dt > 0.0:
 			rates[k] = (float(v) - float(_prev[k])) / dt
-	return {"view": view, "values": vals, "rates": rates}
+			vals["rate:" + k] = rates[k]
+	return {"view": view, "values": vals, "rates": rates, "distance_m": d, "closing_mps": _closing}
 
 
 func _process(dt: float) -> void:
@@ -97,15 +111,31 @@ func _process(dt: float) -> void:
 	apply(_sample(dt), dt)
 
 
-## One frame with a sampled context (public so tests can drive it without Props).
-func apply(ctx: Dictionary, _dt := 0.0) -> void:
+## Distance gain and Doppler pitch factor of an exterior layer in this context ([1, 1] in the cockpit or unknown).
+static func space_factors(l: Dictionary, ctx: Dictionary) -> Array:
+	var d := float(ctx.get("distance_m", -1.0))
+	if not l.get("attenuate", false) or ctx.get("view", "outside") == "cockpit" or d < 0.0:
+		return [1.0, 1.0]
+	return [AudioSpace.distance_gain(d, float(l.get("ref_m", AudioSpace.REF_M)), float(l.get("rolloff", 1.0))),
+		AudioSpace.doppler(float(ctx.get("closing_mps", 0.0)))]
+
+
+## One frame with a sampled context (public so tests can drive it without Props). dt 0 = no easing.
+func apply(ctx: Dictionary, dt := 0.0) -> void:
 	view = ctx.view
 	for l in layers:
 		var p: AudioStreamPlayer = _players[l.id]
+		var sp := space_factors(l, ctx)
 		if l.get("loop", true):
 			var st := AudioCurves.layer_state(l, ctx)
+			var target: float = st.vol * sp[0]
+			var v := AudioSpace.ease(_vol.get(l.id, target), target, dt, float(l.get("smooth", 0.0)))
+			_vol[l.id] = v
+			st["target"] = target
+			st["vol"] = v
+			st["pitch"] = clampf(st.pitch * sp[1], 0.05, 4.0)
 			states[l.id] = st
-			p.volume_db = linear_to_db(maxf(st.vol, 0.0001))
+			p.volume_db = linear_to_db(maxf(v, 0.0001))
 			p.pitch_scale = st.pitch
 			if _lowpass.has(l.id):
 				var hz := AudioCurves.muffle_for(l, view)
@@ -114,11 +144,11 @@ func apply(ctx: Dictionary, _dt := 0.0) -> void:
 			var trig: Dictionary = l.get("trigger", {})
 			var key: String = trig.get("prop", "")
 			var fired := _prev_ok and AudioCurves.edge(trig, _prev.get(key), ctx.values.get(key))
-			var vol := AudioCurves.shot_volume(l, ctx) if fired else 0.0
+			var vol: float = AudioCurves.shot_volume(l, ctx) * float(sp[0]) if fired else 0.0
 			states[l.id] = {"on": fired and vol > 0.0, "vol": vol, "pitch": 1.0}
 			if fired and vol > 0.0 and p.stream:
 				p.volume_db = linear_to_db(vol)
-				p.pitch_scale = clampf(AudioCurves.interp(l.get("pitch", []), AudioCurves.drive_value(l.get("drive"), ctx.values)), 0.05, 4.0)
+				p.pitch_scale = clampf(AudioCurves.interp(l.get("pitch", []), AudioCurves.drive_value(l.get("drive"), ctx.values)) * sp[1], 0.05, 4.0)
 				p.play()
 	_prev = ctx.values.duplicate()
 	_prev_ok = true

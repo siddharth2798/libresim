@@ -1,17 +1,16 @@
 extends Node
 ## The data-driven layer sound engine (aircraft/common/audio_curves.gd pure functions, audio_layers.gd node),
-## the C172 sound path staying as it was, and the draft A320 audio section (files exist and are credited).
+## driven by the A320 section. The aircraft sections: tests/test_audio_aircraft.gd; schema additions (mods, smooth,
+## attenuate, clicks, rate): tests/test_audio_space.gd.
 ## The audio server is a dummy in tests: volumes and pitches are asserted, not output.
 
-const DRAFT := "res://aircraft/a320/audio_section.json"
-const C172_LOOPS := ["engine-idle", "engine", "engine-crank", "gyro", "wind1", "tires-rolling-asphalt", "rumble",
-	"stall2", "flaps-motor", "trim", "avionics-400Hz", "rain", "rain-windshield"]
-const C172_SHOTS := ["engine-start", "engine-cut", "click", "click2", "double-click", "lever", "keys", "flaps-click"]
+static func layers_of(id: String) -> Array:
+	var j = JSON.parse_string(FileAccess.get_file_as_string("res://aircraft/%s/aircraft.json" % id))
+	return j.audio.layers if j is Dictionary and j.get("audio", {}).has("layers") else []
 
 
 func _draft() -> Array:
-	var j = JSON.parse_string(FileAccess.get_file_as_string(DRAFT))
-	return j.layers if j is Dictionary and j.has("layers") else []
+	return layers_of("a320")
 
 
 func _near(a: float, b: float, eps := 0.01) -> bool:
@@ -233,93 +232,3 @@ func test_audio_layers_first_frame_fires_nothing() -> String:
 		fired = fired or (node.layers.any(func(l): return l.id == id and not l.get("loop", true)) and node.states[id].on)
 	_dispose(node)
 	return "a one-shot fired on the very first frame" if fired else ""
-
-
-# --- the C172 path is unchanged -------------------------------------------------
-
-func test_audio_c172_path_unchanged() -> String:
-	var prev = Session.setup.get("aircraft")
-	Session.setup["aircraft"] = "c172"
-	var def := AircraftDef.current()
-	var err := ""
-	if def.id != "c172" or def.section("audio").has("layers"):
-		err = "the c172 audio section must not have layers"
-	else:
-		var a := AircraftAudio.new()
-		add_child(a)
-		var loops: Array = a._loops.keys()
-		var shots: Array = a._shots.keys()
-		loops.sort()
-		shots.sort()
-		var el := C172_LOOPS.duplicate()
-		var es := C172_SHOTS.duplicate()
-		el.sort()
-		es.sort()
-		if loops != el or shots != es:
-			err = "c172 loops / shots changed: %s / %s" % [loops, shots]
-		elif not a.is_processing() or a.get_children().any(func(c): return c is AudioLayers):
-			err = "c172 keeps its own _process and has no layer node"
-		_dispose(a)
-	if prev == null:
-		Session.setup.erase("aircraft")
-	else:
-		Session.setup["aircraft"] = prev
-	return err
-
-
-func test_audio_a320_aircraft_uses_layers() -> String:
-	var def := AircraftDef.make("a320x", {"audio": {"layers": _draft()}}, "res://aircraft/a320")
-	var prev = Session.setup.get("aircraft")
-	AircraftDef._cache["a320x"] = def
-	Session.setup["aircraft"] = "a320x"
-	var a := AircraftAudio.new()
-	add_child(a)
-	var err := ""
-	if a.is_processing() or not a.get_children().any(func(c): return c is AudioLayers) or not a._loops.is_empty():
-		err = "an aircraft with audio.layers uses AudioLayers and not the c172 loops"
-	_dispose(a)
-	AircraftDef._cache.erase("a320x")
-	if prev == null:
-		Session.setup.erase("aircraft")
-	else:
-		Session.setup["aircraft"] = prev
-	return err
-
-
-# --- the draft A320 section and its credits --------------------------------------
-
-func test_audio_a320_draft_files_exist_and_are_credited() -> String:
-	var layers := _draft()
-	if layers.size() < 20:
-		return "draft audio section missing or too short (%d layers)" % layers.size()
-	var a320_md := FileAccess.get_file_as_string("res://aircraft/a320/sounds/SOURCES.md")
-	var c172_md := FileAccess.get_file_as_string("res://aircraft/c172/sounds/SOURCES.md")
-	if a320_md.is_empty():
-		return "a320/sounds/SOURCES.md missing"
-	var ids := {}
-	for l in layers:
-		var f: String = l.get("file", "")
-		if f.is_empty():
-			return "layer without a file: %s" % [l]
-		if ids.has(l.get("id", f)):
-			return "duplicate layer id %s" % l.get("id", f)
-		ids[l.get("id", f)] = true
-		if not l.get("bus", "Cockpit") in AudioCurves.BUSES:
-			return "layer %s: unknown bus %s" % [l.get("id"), l.get("bus")]
-		var path := f if f.begins_with("res://") else "res://aircraft/a320/sounds/" + f
-		if not FileAccess.file_exists(path):
-			return "layer %s: %s does not exist" % [l.get("id"), path]
-		var md := c172_md if f.begins_with("res://aircraft/c172/") else a320_md
-		var key := f.get_file() if not f.begins_with("res://") else f.get_file().get_basename()
-		if not md.contains(key):
-			return "%s is not listed in its SOURCES.md" % key
-		if l.get("loop", true) == false and not l.has("trigger"):
-			return "one-shot layer %s needs a trigger" % l.get("id")
-		for k in AudioCurves.watched(l):
-			if k.contains("{n}") and not l.get("per_engine", false):
-				return "layer %s uses {n} without per_engine" % l.get("id")
-	var dir := DirAccess.open("res://aircraft/a320/sounds")
-	for f in dir.get_files():
-		if (f.ends_with(".wav") or f.ends_with(".ogg")) and not a320_md.contains(f):
-			return "a320/sounds/%s is not in SOURCES.md" % f
-	return ""

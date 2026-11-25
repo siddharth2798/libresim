@@ -7,6 +7,7 @@ extends RefCounted
 ##   bus        Engine | Environment | Cockpit (core/audio_settings.gd), default Cockpit
 ##   loop       true: plays always, volume / pitch follow the drive; false: a one-shot played on "trigger"
 ##   drive      a Props key ("engines/{n}/n1"), a number, or [op, args...] with op in sum mul sub div max min abs;
+##              ["rate", key] is that key's change per second (the node passes it as values["rate:<key>"]);
 ##              {n} is the engine number when per_engine is set
 ##   volume     [[x, gain], ...] over the drive (linear, clamped at the ends); pitch: [[x, pitch_scale], ...]
 ##   gain       fixed multiplier (default 1)
@@ -18,6 +19,12 @@ extends RefCounted
 ##              moving {keys: [...], rate_min: per second}
 ##   trigger    one-shots: {prop, edge: rising | falling | change, threshold (default 0.5), to: [values] (change only)};
 ##              volume = gain * the volume curve at that moment
+##   mods       [{drive, volume: [[x, factor], ...]}, ...]: extra volume factors multiplied in (altitude fade, engine load)
+##   smooth     seconds: loops ease their volume toward the target with this time constant (default 0 = snap)
+##   attenuate  true: an exterior source; outside the cockpit its volume falls with camera distance from ref_m (default
+##              15 m) and its pitch takes the Doppler shift (audio_space.gd)
+## A list entry {"clicks": {file, gain, bus, props: [keys]}} expands into one cockpit-only click one-shot per key
+## (trigger change), id "click_<key>"; "file_on" / "file_off" pick a different file for a rising / falling bool.
 
 const BUSES := ["Engine", "Environment", "Cockpit"]
 
@@ -49,6 +56,9 @@ static func pan_for(n: int, count: int, spread: float) -> float:
 static func expand(layers: Array, engine_count: int) -> Array:
 	var out := []
 	for l in layers:
+		if l is Dictionary and l.has("clicks"):
+			out.append_array(clicks(l.clicks))
+			continue
 		if not l is Dictionary or not l.has("file"):
 			continue
 		if not l.get("per_engine", false):
@@ -63,6 +73,26 @@ static func expand(layers: Array, engine_count: int) -> Array:
 			c["n"] = n
 			c["pan"] = pan_for(n, engine_count, float(l.get("pan_spread", 0.6)))
 			c["id"] = "%s_%d" % [l.get("id", str(l.file).get_file().get_basename()), n]
+			out.append(c)
+	return out
+
+
+## Click one-shots for a group of cockpit switches: one layer per property, played when it changes.
+static func clicks(spec: Dictionary) -> Array:
+	var out := []
+	for k in spec.get("props", []):
+		var base := {"loop": false, "bus": spec.get("bus", "Cockpit"), "gain": spec.get("gain", 0.7), "n": 0, "pan": 0.0,
+			"view": {"cockpit": 1.0, "outside": 0.0}, "gate": {"view": "cockpit"}}
+		var id := "click_" + str(k).replace("/", "_")
+		if spec.has("file_on") and spec.has("file_off"):
+			var on: Dictionary = base.duplicate(true)
+			on.merge({"id": id + "_on", "file": spec.file_on, "trigger": {"prop": k, "edge": "rising"}})
+			var off: Dictionary = base.duplicate(true)
+			off.merge({"id": id + "_off", "file": spec.file_off, "trigger": {"prop": k, "edge": "falling"}})
+			out.append_array([on, off])
+		else:
+			var c: Dictionary = base.duplicate(true)
+			c.merge({"id": id, "file": spec.get("file", "res://aircraft/c172/sounds/click.wav"), "trigger": {"prop": k, "edge": "change"}})
 			out.append(c)
 	return out
 
@@ -88,6 +118,8 @@ static func drive_value(spec: Variant, values: Dictionary) -> float:
 		return float(spec)
 	if spec is String:
 		return _num(values.get(spec, 0.0))
+	if spec is Array and spec.size() == 2 and str(spec[0]) == "rate" and spec[1] is String:
+		return _num(values.get("rate:" + spec[1], 0.0))  # change per second, sampled by the node
 	if spec is Array and not spec.is_empty():
 		var a: Array = spec.slice(1).map(func(e): return drive_value(e, values))
 		match str(spec[0]):
@@ -118,6 +150,8 @@ static func _num(v: Variant) -> float:
 static func watched(layer: Dictionary) -> Array:
 	var keys := {}
 	_drive_keys(layer.get("drive"), keys)
+	for m in layer.get("mods", []):
+		_drive_keys(m.get("drive"), keys)
 	var g: Dictionary = layer.get("gate", {})
 	for k in ["props", "not_props"]:
 		for p in g.get(k, []):
@@ -201,6 +235,7 @@ static func layer_state(layer: Dictionary, ctx: Dictionary) -> Dictionary:
 	var on := gate_ok(layer.get("gate", {}), ctx)
 	var d := drive_value(layer.get("drive"), ctx.get("values", {}))
 	var vol := float(layer.get("gain", 1.0)) * interp(layer.get("volume", []), d) * view_factor(layer, str(ctx.get("view", "outside")))
+	vol *= mod_factor(layer, ctx.get("values", {}))
 	return {"on": on, "vol": vol if on else 0.0, "pitch": clampf(interp(layer.get("pitch", []), d), 0.05, 4.0)}
 
 
@@ -209,7 +244,16 @@ static func shot_volume(layer: Dictionary, ctx: Dictionary) -> float:
 	if not gate_ok(layer.get("gate", {}), ctx):
 		return 0.0
 	var d := drive_value(layer.get("drive"), ctx.get("values", {}))
-	return float(layer.get("gain", 1.0)) * interp(layer.get("volume", []), d) * view_factor(layer, str(ctx.get("view", "outside")))
+	return float(layer.get("gain", 1.0)) * interp(layer.get("volume", []), d) * view_factor(layer, str(ctx.get("view", "outside"))) \
+		* mod_factor(layer, ctx.get("values", {}))
+
+
+## Product of the layer's "mods" volume factors.
+static func mod_factor(layer: Dictionary, values: Dictionary) -> float:
+	var f := 1.0
+	for m in layer.get("mods", []):
+		f *= interp(m.get("volume", []), drive_value(m.get("drive"), values))
+	return f
 
 
 static func view_factor(layer: Dictionary, view: String) -> float:

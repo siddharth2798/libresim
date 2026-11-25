@@ -100,16 +100,37 @@
 		]
 	},
 	"audio": {
-		"engine": {
-			"idle_fade_from_rpm": 900.0, "idle_fade_span_rpm": 500.0, "idle_volume": 0.9, "idle_pitch_rpm": 700.0,
-			"run_slope": 0.000294118, "run_offset": 0.205882353, "run_min": 0.5, "run_max": 0.95,
-			"run_start_rpm": 600.0, "run_ramp_rpm": 400.0, "pitch_slope": 0.000434783, "pitch_offset": 0.01,
-			"windmill_min_rpm": 200.0, "windmill_rpm": 2500.0
-		},
-		"wind": {"slope": 0.0015, "min": 0.03, "max": 0.25, "alt_slope": 0.000015, "pitch_slope": 0.0035, "pitch_offset": 1.25}
+		"layers": [
+			{"id": "engine_idle", "file": "engine-idle.wav", "bus": "Engine", "drive": "engine/rpm", "gate": {"props": ["engine/running"]}, "volume": [[900, 1.0], [1400, 0.0]], "pitch": [[420, 0.6], [1120, 1.6]], "gain": 0.9, "view": {"cockpit": 1.0, "outside": 1.3}, "attenuate": true, "rolloff": 0.5},
+			{"id": "engine_run", "file": "engine.wav", "bus": "Engine", "drive": "engine/rpm", "gate": {"props": ["engine/running"]}, "volume": [[600, 0.0], [1000, 0.5], [2530, 0.95]], "pitch": [[0, 0.01], [4000, 1.7491]], "view": {"cockpit": 1.0, "outside": 1.3}, "mods": [{"drive": "engine/map_pa", "volume": [[35000, 0.85], [100000, 1.1]]}], "attenuate": true, "rolloff": 0.5},
+			{"id": "engine_windmill", "file": "engine.wav", "bus": "Engine", "drive": "engine/rpm", "gate": {"not_props": ["engine/running"], "min": {"engine/rpm": 200}}, "volume": [[0, 0.0], [1000, 0.2]], "pitch": [[0, 0.01], [4000, 1.7491]], "smooth": 0.3, "view": {"cockpit": 1.0, "outside": 1.3}, "attenuate": true, "rolloff": 0.5},
+			{"id": "engine_crank", "file": "engine-crank.wav", "bus": "Engine", "gate": {"props": ["controls/starter", "systems/electrical/starter_ok"], "not_props": ["engine/running"]}, "gain": 0.6, "smooth": 0.05, "attenuate": true, "rolloff": 0.5},
+			{"id": "engine_start", "file": "engine-start.wav", "bus": "Engine", "loop": false, "trigger": {"prop": "engine/running", "edge": "rising"}, "gain": 0.8, "attenuate": true, "rolloff": 0.5},
+			{"id": "engine_cut", "file": "engine-cut.wav", "bus": "Engine", "loop": false, "trigger": {"prop": "engine/running", "edge": "falling"}, "gate": {"min": {"engine/rpm": 300}}, "gain": 0.9, "attenuate": true, "rolloff": 0.5},
+			{"id": "gyro", "file": "gyro.wav", "drive": "systems/vacuum/suction_inhg", "volume": [[0, 0.0], [5, 0.08]], "pitch": [[0.25, 0.05], [5, 1.0]], "smooth": 1.5, "view": {"cockpit": 1.0, "outside": 0.0}},
+			{"id": "tc_gyro", "file": "tc_gyro_loop.wav", "drive": "systems/electrical/tc_powered", "volume": [[0, 0.0], [1, 0.035]], "smooth": 3.0, "view": {"cockpit": 1.0, "outside": 0.0}},
+			{"id": "avionics_fan", "file": "avionics-400Hz.wav", "drive": "systems/electrical/avionics_powered", "volume": [[0, 0.0], [1, 0.03]], "smooth": 0.8, "view": {"cockpit": 1.0, "outside": 0.0}},
+			{"id": "wind", "file": "wind1.wav", "bus": "Environment", "drive": "fdm/tas_mps", "volume": [[10.289, 0.03], [85.75, 0.25]], "pitch": [[0, 1.25], [150, 2.2706]], "mods": [{"drive": "fdm/alt_m", "volume": [[0, 1.0], [18288, 0.1]]}], "view": {"cockpit": 1.0, "outside": 1.6}, "attenuate": true, "ref_m": 20.0},
+			{"id": "flap_airflow", "file": "wind1.wav", "bus": "Environment", "drive": "fdm/flap_deg", "volume": [[0, 0.0], [30, 0.14]], "pitch": [[0, 0.75], [30, 0.62]], "mods": [{"drive": "fdm/tas_mps", "volume": [[12, 0.0], [30, 1.0], [55, 1.4]]}], "smooth": 0.4, "view": {"cockpit": 1.0, "outside": 0.7}, "attenuate": true},
+			{"id": "tyre_roll", "file": "tires-rolling-asphalt.wav", "bus": "Environment", "drive": "fdm/groundspeed_mps", "volume": [[0, 0], [0.514, 0.173], [1.029, 0.275], [1.543, 0.347], [5.144, 0.599], [10.29, 0.761], [15.43, 0.858], [27.58, 1.0]], "gate": {"ground": true}, "gain": 0.7, "smooth": 0.06, "attenuate": true},
+			{"id": "tyre_rumble", "file": "rumble.wav", "bus": "Environment", "drive": "fdm/groundspeed_mps", "volume": [[0, 0], [0.514, 0.173], [1.029, 0.275], [1.543, 0.347], [5.144, 0.599], [10.29, 0.761], [15.43, 0.858], [27.58, 1.0]], "gate": {"ground": true}, "gain": 0.5, "smooth": 0.06, "attenuate": true},
+			{"id": "stall_horn", "file": "stall2.wav", "drive": "fdm/stall_warning", "volume": [[0, 0.0], [1, 0.7]], "smooth": 0.08},
+			{"id": "flap_motor", "file": "flaps-motor.wav", "drive": "systems/electrical/flap_motor_running", "volume": [[0, 0.0], [1, 0.5]], "smooth": 0.05, "view": {"cockpit": 1.0, "outside": 0.4}, "attenuate": true},
+			{"id": "trim_wheel", "file": "trim.wav", "gate": {"view": "cockpit", "moving": {"keys": ["controls/pitch_trim"], "rate_min": 0.001}}, "gain": 0.8, "smooth": 0.08, "view": {"cockpit": 1.0, "outside": 0.0}},
+			{"id": "rain", "file": "rain.wav", "bus": "Environment", "drive": "environment/precip", "volume": [[0, 0.0], [1, 1.0]], "view": {"cockpit": 0.35, "outside": 0.55}},
+			{"id": "rain_windshield", "file": "rain-windshield.wav", "bus": "Environment", "drive": "fdm/tas_mps", "volume": [[0, 0.45], [53.5, 1.1]], "pitch": [[0, 0.9], [61.7, 1.2]], "mods": [{"drive": "environment/precip", "volume": [[0, 0.0], [1, 1.0]]}], "view": {"cockpit": 0.7, "outside": 0.15}},
+			{"clicks": {"file_on": "click.wav", "file_off": "click2.wav", "gain": 0.7, "props": ["controls/electrical/master_bat", "controls/electrical/master_alt", "controls/electrical/avionics", "controls/lights/beacon", "controls/lights/landing", "controls/lights/taxi", "controls/lights/nav", "controls/lights/strobe", "controls/electrical/pitot_heat", "systems/alternate_static", "controls/fuel/shutoff"]}},
+			{"id": "magnetos", "file": "keys.wav", "loop": false, "trigger": {"prop": "controls/magnetos", "edge": "change"}, "gain": 0.6, "view": {"cockpit": 1.0, "outside": 0.33}},
+			{"id": "fuel_selector", "file": "double-click.wav", "loop": false, "trigger": {"prop": "controls/fuel/selector", "edge": "change"}, "gain": 0.6, "view": {"cockpit": 1.0, "outside": 0.33}},
+			{"id": "flap_lever", "file": "flaps-click.wav", "loop": false, "trigger": {"prop": "controls/flaps", "edge": "change"}, "gain": 0.6, "view": {"cockpit": 1.0, "outside": 0.33}},
+			{"id": "parking_brake", "file": "lever.wav", "loop": false, "trigger": {"prop": "controls/parking_brake", "edge": "change"}, "gain": 0.8, "view": {"cockpit": 1.0, "outside": 0.0}},
+			{"id": "turbulence", "file": "rumble.wav", "bus": "Environment", "drive": ["abs", ["rate", "fdm/load_factor"]], "volume": [[0.4, 0.0], [2.0, 0.35], [6.0, 1.0]], "pitch": [[0.4, 0.8], [6.0, 1.05]], "mods": [{"drive": "fdm/tas_mps", "volume": [[15, 0.0], [40, 1.0]]}], "gate": {"ground": false}, "gain": 0.6, "smooth": 0.15, "view": {"cockpit": 1.0, "outside": 0.5}, "attenuate": true, "ref_m": 15.0}
+		]
 	},
 	"limits": {
-		"vne_kias": 163.0, "vd_kias": 185.0, "vfe_kias": [[10.5, 110.0], [1000.0, 85.0]], "g_pos": 3.8, "g_neg": -1.52,
+		"vne_kias": 163.0, "vd_kias": 185.0, "vd_fail_k": 1.2, "vfe_kias": [[10.5, 110.0], [1000.0, 85.0]], "vfe_by": "flap",
+		"flap_damage_k": 1.15, "g_pos": 3.8, "g_neg": -1.52,
+		"note": "C172S POH section 2: VNE 163, VNO 129, VFE 110 (10 deg) / 85 (10-30 deg), +3.8 / -1.52 g flaps up. VD 185 (VNE <= 0.9 VD, FAR 23.1505). Damage model (fdm/damage.gd): over VNE or VFE = inspection note only; airframe damaged over VD, failure over 1.2 VD (FAR 23.629 flutter margin); flaps damaged over 1.15 VFE.",
 		"vs0_kias": 40.0, "vr_kias": 55.0, "vs1_kias": 48.0, "vno_kias": 129.0, "asi_min_kias": 40.0, "asi_max_kias": 200.0,
 		"max_crosswind_kt": 15.0,
 		"tach": {"max_rpm": 3500.0, "green": [2100.0, 2700.0], "red": 2700.0},

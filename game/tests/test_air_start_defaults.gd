@@ -387,21 +387,22 @@ func test_air_start_lesson_speed_is_given_and_survives_end_lesson() -> String:
 	return err
 
 
-func _fly_10s(kias: float) -> bool:  # true when the C172 survived 10 s hands off from an airborne start at `kias`
+## True when the C172 flew 10 s hands off from an airborne start at `kias` without a crash or airframe damage (over VD).
+func _fly_10s(kias: float) -> bool:
 	var h := FdmHarness.new()
 	h.f.set_airborne(0.0, 0.0, 900.0, 0.0, kias * FdmHarness.KT)
 	for u in h.f.units:
 		u.warm_start(true)
 	h.f.trim_level_cas(kias * FdmHarness.KT)
 	h.mode = "none"
-	h.run(10.0, func(): return h.f.damage.crashed)
-	return not h.f.damage.crashed
+	h.run(10.0, func(): return h.f.damage.crashed or h.f.damage.structure_damaged)
+	return not (h.f.damage.crashed or h.f.damage.structure_damaged)
 
 
 func test_air_start_c172_asked_for_205_kias_survives_10_s() -> String:
 	if _fly_10s(205.0):
-		return "control: 205 KIAS unclamped must break the C172 (Vd 185), the test would prove nothing"
+		return "control: 205 KIAS unclamped must damage the C172 (VD 185), the test would prove nothing"
 	var sp := AirStart.spawn(AircraftDef.load_def("c172"), {"air_kt": 205.0, "air_custom": true, "air_kt_given": true})
 	if not _fly_10s(sp.kias):
-		return "the clamped start (%.0f KIAS) crashed within 10 s" % sp.kias
+		return "the clamped start (%.0f KIAS) crashed or was damaged within 10 s" % sp.kias
 	return ""
