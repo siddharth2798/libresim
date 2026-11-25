@@ -362,8 +362,19 @@ else for s in "${PIPELINE[@]}"; do run_step "$s"; done
 fi
 
 header 6 "Godot first-run import"
+# The class cache goes stale when new class_name scripts arrive (git pull)
+# without the editor having run: every new class then fails to parse.
+class_cache_stale() {
+  local cache=game/.godot/global_script_class_cache.cfg
+  [[ -f $cache ]] || return 0
+  local missing
+  missing=$(comm -23 \
+    <(grep -rhoE '^class_name [A-Za-z0-9_]+' --include='*.gd' game | awk '{print $2}' | sort -u) \
+    <(grep -oE '"class": &"[A-Za-z0-9_]+"' "$cache" | sed -E 's/.*&"([^"]+)"/\1/' | sort -u))
+  [[ -n $missing ]]
+}
 if [[ -z $GODOT ]]; then note "no Godot available"
-elif [[ -d game/.godot/imported ]]; then note "skip  (game/.godot present)"
+elif [[ -d game/.godot/imported ]] && ! class_cache_stale; then note "skip  (game/.godot present)"
 elif dry; then note "WOULD run: $GODOT --headless --path game --import"
 else
   CUR="Godot import"; step_line "Godot import" "" "${TYPICAL[import]}"
