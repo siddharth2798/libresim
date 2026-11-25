@@ -15,6 +15,8 @@ var _state: Label
 var _plain := ""
 var _hold_id := ""
 var _hold := 0.0
+var _ext := ""
+var _ext_frame := -10
 
 
 func _ready() -> void:
@@ -77,8 +79,18 @@ func blocks_clicks() -> bool:
 	return _blocks(self)
 
 
+## A note from outside the cockpit pick (the 2D FCU card in the outside views, ui/panel_overlay.gd): shown while it is renewed
+## every frame, in the camera modes other than the cockpit. "" hides it.
+func show_external(text: String) -> void:
+	_ext = text
+	_ext_frame = Engine.get_process_frames()
+
+
 func _process(dt: float) -> void:
 	var cam := get_parent() as CameraRig
+	if cam != null and cam.mode != CameraRig.Mode.COCKPIT:
+		present(_ext if Engine.get_process_frames() - _ext_frame <= 2 else "")
+		return
 	if cam == null or cam.mode != CameraRig.Mode.COCKPIT or cam.aircraft == null or cam.aircraft.cockpit == null:
 		_clear()
 		return

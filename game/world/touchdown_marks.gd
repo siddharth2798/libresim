@@ -9,7 +9,11 @@ extends Node
 const MAX := 32
 const KEY := "touchdown_marks"
 
-var airports: AirportBuilder
+var airports: AirportBuilder:
+	set(v):
+		airports = v
+		if v != null and not v.runway_built.is_connected(_push):
+			v.runway_built.connect(_push)  # a runway built again after being freed far away gets its marks back
 var marks := {}  # runway key -> Array[Vector4], oldest first
 var _pending := {}  # keys whose runway mesh was not built yet (a flight loaded at the start)
 

@@ -14,6 +14,8 @@ const ERECT_RATE := deg_to_rad(3.0) / 60.0
 const HI_DRIFT := deg_to_rad(4.0) / 900.0  # ~4 deg per 15 min
 const SPIN_UP := 1.0 / 60.0  # fraction per second
 const SPIN_DOWN := 1.0 / 240.0
+const TICK_HZ := 30.0  # docs/USAGE.md "Tick rates"
+const NOISE_DT := 1.0 / 120.0  # the step the wander / drift noise below was tuned at
 
 var fdm: FDM
 var _down := Vector3(0, 0, 1)  # gyro reference vertical, NED
@@ -24,6 +26,7 @@ var _hi_drift_dir := 1.0
 var _tc := 0.0
 var _ball := 0.0
 var _rng := RandomNumberGenerator.new()
+var _tick := TickRate.new(TICK_HZ)
 
 
 func _ready() -> void:
@@ -39,6 +42,13 @@ func start_running() -> void:
 
 
 func _physics_process(dt: float) -> void:
+	var h := _tick.step(dt)
+	if h > 0.0:
+		update(h)
+
+
+## Advances the gyros by `dt`, the true time since the last run.
+func update(dt: float) -> void:
 	if fdm == null:
 		return
 	var suction := Props.get_f("systems/vacuum/suction_inhg")
@@ -52,6 +62,12 @@ func _physics_process(dt: float) -> void:
 	_turn_coordinator(dt)
 
 
+## A random walk made of one random step per run spreads as sqrt(runs): to wander the same per second at any rate the step
+## has to scale with sqrt(NOISE_DT / dt) (1 at the 120 Hz it was tuned at, 2 at 30 Hz).
+static func _noise_k(dt: float) -> float:
+	return sqrt(NOISE_DT / maxf(dt, 1e-6))
+
+
 func _attitude(dt: float) -> void:
 	var r_bn := Basis(fdm.q)
 	var sf := r_bn * fdm.accel_b  # specific force, NED (points "up" in level flight)
@@ -62,7 +78,7 @@ func _attitude(dt: float) -> void:
 			_down = _down.slerp(app_down, minf(ERECT_RATE * dt / ang, 1.0)).normalized()
 	else:
 		# rotor too slow: precession wander, growing as it slows
-		var wander := (1.0 - _ai_spin) * 0.15 * dt
+		var wander := (1.0 - _ai_spin) * 0.15 * dt * _noise_k(dt)
 		_down = (_down + Vector3(_rng.randfn(0, wander), _rng.randfn(0, wander), 0.0)).normalized()
 	var v := r_bn.transposed() * _down  # gyro vertical in body axes
 	Props.set_v("instruments/ai/pitch_rad", asin(clampf(-v.x, -1.0, 1.0)))
@@ -80,7 +96,7 @@ func _heading(dt: float) -> void:
 		Props.set_v("instruments/hi/adjust_deg", 0.0)
 	var drift := HI_DRIFT * _hi_drift_dir
 	if _hi_spin < 0.7:
-		drift += _rng.randfn(0.0, (1.0 - _hi_spin) * 0.05)
+		drift += _rng.randfn(0.0, (1.0 - _hi_spin) * 0.05 * _noise_k(dt))
 	_hi_offset += drift * dt
 	Props.set_v("instruments/hi_deg", fposmod(rad_to_deg(fdm.euler().z + _hi_offset), 360.0))
 

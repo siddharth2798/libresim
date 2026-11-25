@@ -110,8 +110,9 @@ static func make(kind: String, size := 1.0, seed := 0.5, working := false, movin
 	mi.scale = Vector3.ONE * size
 	mi.lod_bias = LOD_BIAS
 	mi.visibility_range_end = 4000.0 * size
-	mi.set_instance_shader_parameter("seed", seed)
-	mi.set_instance_shader_parameter("lamps", 1.0 if working else 0.0)
+	VehicleParams.own(mi)  # Compatibility: its own material (no instance uniforms there)
+	VehicleParams.set_value(mi, &"seed", seed)
+	VehicleParams.set_value(mi, &"lamps", 1.0 if working else 0.0)
 	root.add_child(mi)
 	var gd := MeshInstance3D.new()
 	gd.name = "Ground"
@@ -119,7 +120,8 @@ static func make(kind: String, size := 1.0, seed := 0.5, working := false, movin
 	gd.scale = Vector3.ONE * size
 	gd.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	gd.visibility_range_end = 450.0
-	gd.set_instance_shader_parameter("lamps", 1.0 if working else 0.0)
+	VehicleParams.own(gd)
+	VehicleParams.set_value(gd, &"lamps", 1.0 if working else 0.0)
 	gd.set_meta("no_solid", true)
 	root.add_child(gd)
 	if moving:  # it carries its own light points (omnidirectional: they do not turn with it)

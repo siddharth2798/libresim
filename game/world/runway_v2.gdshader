@@ -8,7 +8,7 @@ render_mode fog_disabled;
 // lane tone / patches / sealant or concrete slabs (runway_cracks), wheel tracks and oil, ICAO paint (runway_marks),
 // sealant over old paint, rubber and the pilot's touchdown marks (runway_wear), inset light fittings.
 // runway_detail (global, RunwayQuality from the preset): 0 Low (baked look + paint), 1 Medium (+ near-field sealant
-// lines and tyre streaks), 2 High (+ aggregate texture and normal, light fittings), 3 Ultra / Max (+ near block cracks).
+// lines and tyre streaks), 2 High (+ light fittings), 3 Ultra / Max (+ aggregate texture and normal, near block cracks).
 // Until its bake is ready (RunwayBakes) a runway draws a cheap unbaked look and fades the bake in over bake_mix.
 #include "res://world/ground_lift.gdshaderinc"
 

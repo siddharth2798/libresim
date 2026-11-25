@@ -28,9 +28,10 @@ const Stream := preload("res://tests/showcase_stream.gd")
 const FLIGHT := "res://world/flight.tscn"
 
 var f: Node  # the flight scene
-var _all: Dictionary = Scenes.SCENES.merged(CloudScenes.scenes()).merged(LightScenes.scenes()).merged(VehicleScenes.scenes()).merged(JetwayScenes.scenes()).merged(FlybyScenes.scenes()).merged(FogScenes.scenes()).merged(TerminalScenes.scenes()).merged(FilmScenes.scenes()).merged(HlodScenes.scenes()).merged(TreeScenes.scenes())  # every scene by name
+var _all: Dictionary = all_scenes()  # every scene by name
 var _out := ""
 var _name := ""
+var _failed := false  # a scene whose camera check failed: exit 1, no screenshot
 var _fov := 0.0  # free-camera field of view override (degrees), 0 = the rig's own
 ## The scripted landing pilot (tests/lesson_pilots.gd) reads these from its "probe" (this node).
 var ts: TrainingSession
@@ -44,6 +45,11 @@ var _bench := 0.0  # --bench=<s>: measure frame times this long before the shot 
 var _film := 0.0  # --film=<s>: after the shot settles, save a short camera move as JPEGs (loader clips)
 var _film_fps := 24  # run with --fixed-fps at the same rate: each saved frame is then exactly 1 / fps of game time
 var _film_w := 1600  # saved frame width (px)
+
+
+## Every scene by name (tests/test_showcase_scenes.gd checks their cameras).
+static func all_scenes() -> Dictionary:
+	return Scenes.SCENES.merged(CloudScenes.scenes()).merged(LightScenes.scenes()).merged(VehicleScenes.scenes()).merged(JetwayScenes.scenes()).merged(FlybyScenes.scenes()).merged(FogScenes.scenes()).merged(TerminalScenes.scenes()).merged(FilmScenes.scenes()).merged(HlodScenes.scenes()).merged(TreeScenes.scenes())
 
 
 func _ready() -> void:
@@ -76,7 +82,7 @@ func _ready() -> void:
 	else:
 		await _flight(def)
 	await _close()
-	get_tree().quit()
+	get_tree().quit(1 if _failed else 0)
 
 
 ## Free the flight scene before quitting and give the audio thread a moment: a sound still playing at quit
@@ -166,6 +172,11 @@ func _flight(def: Dictionary) -> void:
 		await Views.overlays(self, d)
 		await wait(2.0)  # camera easing, cloud and shader warm-up
 		print("SETTLED after %.1f s (%s)" % [settled, Stream.state(f)])
+		var bad := Aim.view_error(f, cam)
+		if bad != "":  # no misleading picture from a flight that did not start (a script error, a camera under the ground)
+			push_error("showcase %s: %s; no screenshot" % [_name, bad])
+			_failed = true
+			return
 		if _film > 0.0:
 			# no depth of field on a film: in the free camera it focuses on the aircraft and blurs the whole place
 			Session.interactive_override = 0  # options stay in memory: the player's own file is not touched

@@ -82,13 +82,13 @@ vec3 rw_base(bool concrete, float across, float along) {
 	return col * (1.0 - 0.12 * centre) + RW_OXIDE * (edge + 0.25);
 }
 
-// Aggregate near the camera (High only, gone by RW_DET_FAR): colour modulation; dn: normal offset (render frame),
+// Aggregate near the camera (Ultra / Max only: on High it cost more than the near-field budget; gone by RW_DET_FAR): colour modulation; dn: normal offset (render frame),
 // dr: roughness offset, agg: modulation luminance (1 = average; paint wears through on the high stones).
 vec3 rw_aggregate(bool concrete, vec2 en, float dist, out vec3 dn, out float dr, out float agg) {
 	dn = vec3(0.0);
 	dr = 0.0;
 	agg = 1.0;
-	if (runway_detail < 2 || dist >= RW_DET_FAR) {
+	if (runway_detail < 3 || dist >= RW_DET_FAR) {
 		return vec3(1.0);
 	}
 	float k = 1.0 - smoothstep(RW_DET_FAR * 0.65, RW_DET_FAR, dist);

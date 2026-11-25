@@ -4,9 +4,14 @@ extends HBoxContainer
 ## RoutePlanDialog modal) and the MSFS flight plan files: Import .PLN… and Export .PLN… (PlanFile / PlanImport, the
 ## system's file dialog). Loading or importing writes Session.setup (the route, and the departure when the plan starts
 ## elsewhere: PlanStore.apply) and emits `loaded`; the page repaints and tells the player. Messages go out as `message`.
+## In flight (the pause screen's Edit route) the page sets save_setup and take_plan (core/route_live_plan.gd): Save and
+## Export write the whole route, Load and Import replace only the route ahead. The file dialogs are in FILE_GROUP (the
+## pause screen leaves Esc to them while one is open: modal_open).
 
 signal loaded(text: String, warn: bool)
 signal message(text: String, warn: bool)
+
+const FILE_GROUP := "route_plan_file_dialogs"
 
 var save_btn: Button
 var load_btn: Button
@@ -15,6 +20,8 @@ var export_btn: Button
 var dialog: RoutePlanDialog  # the open Save / Load modal, or null
 var _open_file: FileDialog
 var _save_file: FileDialog
+var save_setup := Callable()  # () -> the setup Save / Export write; unset = Session.setup
+var take_plan := Callable()  # (plan) -> {ok, error, text, warn}: a loaded plan into the page; unset = PlanStore.apply
 
 
 func _init() -> void:
@@ -45,8 +52,20 @@ func refresh(planned: bool) -> void:
 		b.focus_mode = Control.FOCUS_NONE if b.disabled else Control.FOCUS_ALL
 
 
+func _setup() -> Dictionary:
+	return save_setup.call() if save_setup.is_valid() else Session.setup
+
+
+func _take(plan: Dictionary) -> Dictionary:
+	if take_plan.is_valid():
+		return take_plan.call(plan)
+	var res := PlanStore.apply(plan, Session.setup, RouteChecks.db())
+	res["warn"] = res.airport_changed
+	return res
+
+
 func open_save() -> void:
-	_show(RoutePlanDialog.make("save", PlanStore.default_name(Session.setup)))
+	_show(RoutePlanDialog.make("save", PlanStore.default_name(_setup())))
 	dialog.save_named.connect(save_as)
 
 
@@ -57,7 +76,7 @@ func open_load() -> void:
 
 ## Save the current route as `plan_name` and close the dialog (it stays open with the reason on a failure).
 func save_as(plan_name: String) -> void:
-	var res := PlanStore.save(plan_name, Session.setup)
+	var res := PlanStore.save(plan_name, _setup())
 	if not res.ok:
 		if dialog != null:
 			dialog.say(str(res.error), true)
@@ -72,13 +91,13 @@ func load_plan(key: String) -> void:
 		if dialog != null:
 			dialog.say("That plan could not be read.", true)
 		return
-	var res := PlanStore.apply(plan, Session.setup, RouteChecks.db())
+	var res := _take(plan)
 	if not res.ok:
 		if dialog != null:
 			dialog.say(str(res.error), true)
 		return
 	_close()
-	loaded.emit(str(res.text), bool(res.airport_changed))
+	loaded.emit(str(res.text), bool(res.warn))
 
 
 ## A .PLN file's text into the setup: {ok, text}. Errors and notes are in the text.
@@ -91,11 +110,11 @@ func import_text(text: String, file_name := "") -> Dictionary:
 	if not res.ok:
 		return {"ok": false, "text": str(res.error)}
 	var title := str(parsed.plan.title) if str(parsed.plan.title) != "" else file_name
-	var app := PlanStore.apply({"name": title, "departure": res.airport, "route": res.route}, s, RouteChecks.db())
+	var app := _take({"name": title, "departure": res.airport, "route": res.route})
 	if not app.ok:
 		return {"ok": false, "text": str(app.error)}
 	var notes: Array = res.notes
-	return {"ok": true, "text": " ".join([str(app.text).replace("Plan", "Flight plan")] + notes), "warn": not notes.is_empty() or app.airport_changed}
+	return {"ok": true, "text": " ".join([str(app.text).replace("Plan", "Flight plan")] + notes), "warn": not notes.is_empty() or app.warn}
 
 
 func open_import() -> void:
@@ -115,7 +134,7 @@ func _import_file(path: String) -> void:
 
 ## The current route as .PLN text ("" without a route or a known departure).
 func export_text() -> String:
-	var plan := PlanImport.from_setup(Session.setup, RouteChecks.db())
+	var plan := PlanImport.from_setup(_setup(), RouteChecks.db())
 	return "" if plan.is_empty() else PlanFile.write(plan)
 
 
@@ -123,7 +142,7 @@ func open_export() -> void:
 	if _save_file == null:
 		_save_file = _file_dialog(FileDialog.FILE_MODE_SAVE_FILE, "Save the flight plan (.pln)")
 		_save_file.file_selected.connect(_export_file)
-	_save_file.current_file = PlanStore.file_key(PlanStore.default_name(Session.setup)).to_upper() + ".pln"
+	_save_file.current_file = PlanStore.file_key(PlanStore.default_name(_setup())).to_upper() + ".pln"
 	_save_file.popup_centered_ratio(0.6)
 
 
@@ -150,11 +169,13 @@ func _file_dialog(m: FileDialog.FileMode, title: String) -> FileDialog:
 	d.use_native_dialog = true
 	d.title = title
 	d.filters = PackedStringArray(["*.pln, *.PLN ; Flight plans"])
+	d.add_to_group(FILE_GROUP)
 	add_child(d)
 	return d
 
 
-## Put the modal over the whole start screen (the nearest ancestor that knows modal_open), else under the top node.
+## Put the modal over the whole start screen or pause screen (the nearest ancestor that knows modal_open), else under
+## the top node.
 func _show(d: RoutePlanDialog) -> void:
 	_close()
 	dialog = d

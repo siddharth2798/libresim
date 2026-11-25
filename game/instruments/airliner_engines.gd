@@ -7,6 +7,9 @@ extends Node
 
 const LAG := 4.0  # 1/s
 const PA_PER_PSI := 6894.757
+const TICK_HZ := 30.0  # docs/USAGE.md "Tick rates"
+
+var _tick := TickRate.new(TICK_HZ)
 
 var _v := {}
 
@@ -18,7 +21,9 @@ static func to_display(n1: float, n2: float, egt_k: float, ff_kgs: float, oil_pa
 
 
 func _physics_process(dt: float) -> void:
-	publish(dt)
+	var h := _tick.step(dt)
+	if h > 0.0:
+		publish(h)
 
 
 func publish(dt: float) -> void:

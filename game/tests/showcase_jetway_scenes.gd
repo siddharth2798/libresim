@@ -13,6 +13,14 @@ static func _at(base: Dictionary, airport: String, stand: String) -> Dictionary:
 	s.stand = stand
 	return s
 
+## The same bridges at night (apron floodlights, lit jetways): a stand with an A320 docked, 21:00.
+static func _night(airport: String, stand: String, cam: Array, aim: Array) -> Dictionary:
+	var s := _at(A320, airport, stand)
+	s.time_h = 21.0
+	s.visibility_m = 20000.0
+	return {"weather": "Clear", "view": "chase", "agl": true, "setup": s, "cam": cam, "aim": aim, "fov": 60.0,
+		"variants": [{"cam": [cam[0], cam[1], cam[2] * 3.5], "aim": [aim[0], aim[1], 0.0], "fov": 60.0}]}
+
 
 static func scenes() -> Dictionary:
 	return {
@@ -38,4 +46,10 @@ static func scenes() -> Dictionary:
 			"cam": [-15.0, -35.0, 10.0], "aim": [20.0, -12.0, 4.0], "fov": 60.0},
 		"jw_vocl_12a": {"weather": "Fair", "view": "chase", "agl": true, "setup": _at(A320, "VOCL", "12A"),
 			"cam": [-10.0, -30.0, 12.0], "aim": [30.0, -45.0, 4.0], "fov": 60.0},
+		"jw_night_vabb": _night("VABB", "Bay V4L", [-38.0, -42.0, 14.0], [12.0, -50.0, 4.0]),
+		"jw_night_vapo": _night("VAPO", "3", [-15.0, -38.0, 10.0], [30.0, -15.0, 4.0]),
+		"jw_night_voci": _night("VOCI", "B5", [-22.0, -40.0, 12.0], [28.0, -20.0, 4.0]),
+		"jw_night_vabb_terminal": {"weather": "Clear", "view": "orbit",
+			"setup": {"airport": "VABB", "start": "stand", "time_h": 21.0, "visibility_m": 20000.0},
+			"cam": [-150.0, 120.0, 90.0], "aim": [40.0, -60.0, 8.0], "fov": 50.0},
 	}

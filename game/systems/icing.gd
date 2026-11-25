@@ -28,6 +28,7 @@ const DEFAULTS := {
 	"bleed_wing": 0.015, "bleed_engine": 0.02,  # thrust lost to bleed air by wing / engine anti-ice
 	"rain_cl_k": 0.03, "rain_cd_k": 0.0012, "rain_n1_k": 0.01,  # heavy rain (EnvironmentEffects)
 }
+const TICK_HZ := 60.0  # docs/USAGE.md "Tick rates"
 const PITOT_K := 6.0  # probes ice faster than the airframe
 const STATIC_K := 0.5  # static ports slower than the pitot
 const HEAT_CLEAR_S := 20.0  # heated probe clears in this time
@@ -47,6 +48,7 @@ var _n := 1
 var _detect_t := 0.0
 var _pitot_blocked := false
 var _static_blocked := false
+var _tick := TickRate.new(TICK_HZ)
 
 
 ## The aircraft's icing numbers: aircraft.json "icing" over DEFAULTS.
@@ -103,6 +105,13 @@ func load_state(d: Dictionary) -> void:
 
 
 func _physics_process(dt: float) -> void:
+	var h := _tick.step(dt)
+	if h > 0.0:
+		update(h)
+
+
+## Accretion and melting for `dt`, the true time since the last run.
+func update(dt: float) -> void:
 	if SimHold.active():  # paused or replaying: no accretion, no melting
 		return
 	var t_c := Props.get_f("atmosphere/temperature_k", 288.15) - 273.15

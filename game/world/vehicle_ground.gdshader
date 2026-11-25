@@ -9,7 +9,11 @@ render_mode unshaded, blend_premul_alpha, depth_draw_never, cull_disabled, shado
 global uniform float haze_density;
 global uniform float night_level;
 
+#if CURRENT_RENDERER == RENDERER_COMPATIBILITY
+uniform float lamps = 0.0;  // per-vehicle material copy there (world/vehicle_params.gd)
+#else
 instance uniform float lamps = 0.0;
+#endif
 
 varying float v_dist;
 

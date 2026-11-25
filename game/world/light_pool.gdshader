@@ -3,8 +3,9 @@ shader_type spatial;
 // around the cone's footprint; each pixel's surface is rebuilt from the depth buffer and gets what the real
 // SpotLight of ApronLamps would give it, with Godot's own spot terms (so real and fake match and sum to one
 // level across the cross-fade): inverse square from the lamp head with the range window, cos of incidence on
-// the surface (normal from screen derivatives) and the cone 1 - rim^CONE_EXP, relative to the aim point on the
-// ground. So the pool is brightest at and just short of the aim, dims between masts and toward the cone edge,
+// the surface (normal from screen derivatives) and the cone 1 - rim^0.7 (PoolProfile: a peaked beam into a wider cone, so the
+// rim is faint: no hard white disc), relative to the aim point on the ground. So the pool is brightest at and just
+// short of the aim, dims between masts and toward the cone edge,
 // lies on the ground whatever the terrain LOD (no quad edges, no z-fighting), and also lights vehicles and
 // aircraft inside the volume. Additive, near-neutral colour. It fades out where ApronLamps lights the bank with
 // a real SpotLight (real_in .. real_out from the camera).
@@ -22,8 +23,8 @@ uniform float real_in = -1.0;  // lamps nearer than this to real_eye: real light
 uniform float real_out = -1.0;  // full pool from here out
 const float VOL_BELOW = 12.0;  // ApronFloodlights.VOL_BELOW / VOL_ABOVE
 const float VOL_ABOVE = 20.0;
-const float CONE_EXP = 1.0;  // ApronLamps.CONE_EXP (spot_angle_attenuation)
-const float RANGE_K = 2.2;  // ApronLamps.RANGE_K: spot range = throw x RANGE_K
+const float CONE_EXP = 1.0;  // PoolProfile.EXP (the real lamps' spot_angle_attenuation)
+const float RANGE_K = 2.6;  // ApronLamps.RANGE_K: spot range = throw x RANGE_K
 
 // Godot's spot light terms (scene_forward_lights_inc): range window x inverse square, and the cone.
 float spot_dist(float d, float range) {
@@ -101,8 +102,10 @@ void fragment() {
 	float ndl_aim = max(ta.y / da, 0.05);  // flat ground at the aim point
 	float range = da * RANGE_K;
 	// irradiance relative to the aim point (what the real lamp gives there)
-	float e = ndl * spot_dist(d, range) * spot_cone(dot(-l, axis), v_cos) / (ndl_aim * spot_dist(da, range));
-	vec2 edge2 = smoothstep(vec2(1.0), vec2(0.7), abs(q.xz));
-	ALBEDO = v_col * (e * edge2.x * edge2.y * strength * level);
+	float scos = dot(-l, axis);
+	float e = ndl * spot_dist(d, range) * spot_cone(scos, v_cos) / (ndl_aim * spot_dist(da, range));
+	// The box only bounds the work: the cone has faded before its sides (a wide ramp, so no edge), and the top
+	vec2 edge2 = smoothstep(vec2(1.0), vec2(0.5), abs(q.xz));
+	ALBEDO = v_col * (min(e, 2.0) * edge2.x * edge2.y * smoothstep(1.0, 0.7, q.y) * strength * level);
 	ALPHA = 1.0;
 }

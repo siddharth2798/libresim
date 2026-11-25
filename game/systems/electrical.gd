@@ -33,7 +33,10 @@ const DEFAULTS := {
 	},
 }
 
+const TICK_HZ := 60.0  # docs/USAGE.md "Tick rates"
+
 var soc := 0.9  # battery state of charge 0..1
+var _tick := TickRate.new(TICK_HZ)
 var _p := DEFAULTS.duplicate(true)
 
 
@@ -63,6 +66,13 @@ func load_state(d: Dictionary) -> void:
 
 
 func _physics_process(dt: float) -> void:
+	var h := _tick.step(dt)
+	if h > 0.0:
+		update(h)
+
+
+## Bus, battery and publishing for `dt`, the true time since the last run (the charge integrates it).
+func update(dt: float) -> void:
 	var bat_on := Props.get_b("controls/electrical/master_bat") and not Props.get_b("failures/battery")
 	var alt_on := Props.get_b("controls/electrical/master_alt") and bat_on and not Props.get_b("failures/alternator")
 	var rpm := Props.get_f("engine/rpm")

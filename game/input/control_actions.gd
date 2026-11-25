@@ -17,6 +17,7 @@ extends RefCounted
 ##   controls/anti_ice/{wing, eng_<n>} bool (probe heat, controls/anti_ice/probe, stays on: systems/icing.gd)
 ##   controls/fcu/ap1, ap2, athr, loc, appr (bool toggles); ap_disc, athr_disc (pulses the autoflight consumes);
 ##   spd_mach, trk_fpa, metric_alt (FCU window / PFD display only), alt_inc_1000 (ALT knob detent 1000 ft)
+##   controls/fcu/vert_select "VS" (V/S knob pulled: fly the V/S set) / "LEVEL" (pushed: V/S 0), consumed by systems/autoflight.gd
 ##   controls/fcu/fd, controls/efis/ls, controls/baro/{std, hpa}, controls/nd/{mode, range_nm},
 ##   controls/efis/nd_filter 0 none, 1 CSTR, 2 WPT, 3 VOR.D, 4 NDB, 5 ARPT (the EFIS control panel)
 ##   controls/fcu/spd_kt, hdg_deg, alt_ft, vs_fpm (set-points in pilot units, like adf/freq_khz)
@@ -61,7 +62,8 @@ const GROUPS := {
 	"anti_ice": ["anti_ice_wing", "anti_ice_eng_1", "anti_ice_eng_2"],
 	"fcu": ["fcu_ap1", "fcu_ap2", "fcu_athr", "fcu_loc", "fcu_appr", "fcu_spd_up", "fcu_spd_down",
 		"fcu_hdg_right", "fcu_hdg_left", "fcu_alt_up", "fcu_alt_down", "fcu_vs_up", "fcu_vs_down", "fcu_ap_disc", "fcu_athr_disc",
-		"fcu_spd_mach", "fcu_trk_fpa", "fcu_metric_alt", "fcu_alt_1000"],
+		"fcu_spd_mach", "fcu_trk_fpa", "fcu_metric_alt", "fcu_alt_1000", "fcu_vs_pull", "fcu_vs_push",
+		"fcu_spd_pull", "fcu_spd_push", "fcu_hdg_pull", "fcu_hdg_push", "fcu_alt_pull", "fcu_alt_push"],
 	"efis": ["efis_fd", "efis_ls", "baro_std", "baro_up", "baro_down", "nd_mode_next", "nd_range_up", "nd_range_down", "nd_filter_next"],
 	"ext_lights": ["takeoff_light", "turnoff_lights", "wing_lights", "logo_lights"],
 	"elec": ["elec_bat1", "elec_bat2", "elec_gen1", "elec_gen2", "elec_apu_gen", "elec_ext_pwr"],
@@ -119,6 +121,18 @@ const PULSES := {"taxi_route": "controls/ground/taxi_req", "pushback": "controls
 ## Ground operations, offered by every aircraft: their own section on the Controls page (keyboard and joystick).
 const GROUND := ["taxi_route", "pushback", "jetway_toggle", "door_toggle", "passenger_doors_all", "cargo_doors_all", "door_r1_toggle",
 	"door_l2_toggle", "door_r2_toggle", "door_cargo_fwd_toggle", "door_cargo_aft_toggle", "ground_crew_toggle"]
+
+## Press actions that write fixed values (the FCU V/S knob pulled / pushed, as its push / pull in aircraft.json
+## cockpit.levers vs_sel): turning the knob (fcu_vs_up / fcu_vs_down) only presets controls/fcu/vs_fpm; the pull flies it.
+const SETS := {
+	"fcu_vs_pull": {"controls/fcu/vs_managed": false, "controls/fcu/vert_select": "VS"},
+	"fcu_vs_push": {"controls/fcu/vs_fpm": 0.0, "controls/fcu/vs_managed": false, "controls/fcu/vert_select": "LEVEL"},
+	# the other FCU knobs, the same writes as their cockpit.levers push / pull (tests/test_fcu_truth_table.gd compares them)
+	"fcu_spd_pull": {"controls/fcu/spd_managed": false}, "fcu_spd_push": {"controls/fcu/spd_managed": true},
+	"fcu_hdg_pull": {"controls/fcu/hdg_managed": false}, "fcu_hdg_push": {"controls/fcu/hdg_managed": true},
+	"fcu_alt_pull": {"controls/fcu/vs_managed": false, "controls/fcu/vert_select": "OPEN"},
+	"fcu_alt_push": {"controls/fcu/vs_managed": true, "controls/fcu/vert_select": "MANAGED"},
+}
 
 ## Press actions that cycle an int prop: action -> [prop, states, value when the prop was never set].
 const CYCLES := {

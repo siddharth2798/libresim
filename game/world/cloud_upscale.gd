@@ -1,9 +1,9 @@
 class_name CloudUpscale
 extends Node
-## Half (high band) or quarter (max) resolution cloud march, history blend and a depth-aware upscale (G7).
+## Half (low to ultra) or quarter (max) resolution cloud march, history blend and a depth-aware upscale (G7).
 ## Child of CloudLayer. The march reuses volumetric_clouds.gdshader in a small view; cloud_upscale.gdshader
-## reprojects the previous frame and sharpens edges on the main camera. Scale 1 leaves CloudLayer's mesh
-## drawing, with use_scene_depth and march_jitter forced off, so Low and Medium do not change.
+## reprojects the previous frame and sharpens edges on the main camera. Scale 1 (Compatibility, CloudTemporal.scale_for)
+## leaves CloudLayer's mesh drawing every pixel, with use_scene_depth and march_jitter forced off.
 ## sync() is deferred from CloudLayer.update_layer so it runs after the camera has moved, before the view draws.
 
 var layer: CloudLayer
@@ -33,7 +33,7 @@ func sync() -> void:
 	if cam == null:
 		return
 	_cam = cam
-	var scale := CloudTemporal.scale_for_steps(layer.steps)
+	var scale := CloudTemporal.scale_for(layer.steps)
 	var show := layer.cover > 0.01 and layer.steps > 0
 	if not show or scale <= 1:
 		_show_full()

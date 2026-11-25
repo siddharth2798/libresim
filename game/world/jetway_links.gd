@@ -15,8 +15,10 @@ const COLUMN_EVERY := 18.0
 const COL_HALF := 0.3
 const ROT_STOP := 1.3  # a link stops this far short of a rotunda column (inside its 1.44 m room)
 
-static var _body: StandardMaterial3D
-static var _glass: StandardMaterial3D
+const SHADER := preload("res://world/jetway_link.gdshader")  # the plain materials below plus a night look (JetwayNight)
+
+static var _body: ShaderMaterial
+static var _glass: ShaderMaterial
 
 
 ## links: [{a: [e, n], b: [e, n]}]; h: Callable(e, n) -> ground (m); rots: rotunda positions (ENU Vector2).
@@ -66,16 +68,19 @@ static func build(links: Array, h: Callable, rots: Array) -> MeshInstance3D:
 static func _materials() -> void:
 	if _body:
 		return
-	_body = StandardMaterial3D.new()
-	_body.albedo_color = Color(0.78, 0.79, 0.8)
-	_body.roughness = 0.55
-	_body.metallic = 0.25
-	_body.cull_mode = BaseMaterial3D.CULL_DISABLED  # winding-agnostic: thin boxes, normals set per face
-	_glass = StandardMaterial3D.new()
-	_glass.albedo_color = Color(0.3, 0.36, 0.42)
-	_glass.roughness = 0.25
-	_glass.metallic = 0.3
-	_glass.cull_mode = BaseMaterial3D.CULL_DISABLED
+	_body = _material(Color(0.78, 0.79, 0.8), 0.55, 0.25, false)
+	_glass = _material(Color(0.3, 0.36, 0.42), 0.25, 0.3, true)  # lit from inside at night
+
+
+## Double sided (winding-agnostic: thin boxes, normals set per face).
+static func _material(c: Color, rough: float, metal: float, lit: bool) -> ShaderMaterial:
+	var m := ShaderMaterial.new()
+	m.shader = SHADER
+	m.set_shader_parameter("albedo", c)
+	m.set_shader_parameter("roughness", rough)
+	m.set_shader_parameter("metallic", metal)
+	m.set_shader_parameter("glass", lit)
+	return m
 
 
 static func _v(p: Vector2, up: float) -> Vector3:

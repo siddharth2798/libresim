@@ -5,13 +5,15 @@ extends Node
 ## (core/situation_systems.gd).
 ## Reads (Props): see AfInputs; the FCU: controls/fcu/{ap1, ap2, athr, loc, appr, fd (default on), spd_kt, hdg_deg (magnetic),
 ## alt_ft, vs_fpm, spd_managed, hdg_managed, vs_managed, ap_disc, athr_disc (pulses, consumed), vert_select ("OPEN" | "MANAGED" |
-## "VS", consumed)}.
+## "VS" (V/S knob pulled) | "LEVEL" (pushed), consumed)}.
 ## Writes: ap/{ap1, ap2, athr (armed or active), athr_active, fd, loc, appr, fd_pitch_rad, fd_roll_rad, thrust_limit,
-## spd_target_kt, fma/{thrust, vertical, lateral, approach, misc}, disconnect (0.5 s pulse), disconnect_warning,
+## spd_target_kt, vs_preset (the FCU V/S window shows a preset turned outside V/S, ui/displays/fcu_windows.gd), fma/{thrust, vertical, lateral, approach, misc}, disconnect (0.5 s pulse), disconnect_warning,
 ## disconnect_count}; for the control law ap/cmd/{active, nz_g (g increment, + pull), roll_rate_dps (+ right)}; for the engines
 ## ap/cmd/lever_<n> (used instead of controls/throttle_<n> by FdmNode while ap/athr_active); back to the FCU the request flags
-## controls/fcu/{ap1, ap2, athr} (the state, so a refused engagement un-presses the button) and, when the autoflight picks a
-## mode from the present state, the set-points controls/fcu/{hdg_deg, vs_fpm}.
+## controls/fcu/{ap1, ap2, athr, loc, appr} (the state, so a refused engagement or arming un-presses the button) and, when the
+## autoflight picks a mode from the present state, the set-points controls/fcu/{hdg_deg, vs_fpm}; hdg_managed is withdrawn when
+## NAV cannot engage (no route) and vs_managed when V/S takes over. ap/{hdg, spd}_preset: a managed window shows a turned value
+## (systems/autoflight_preview.gd).
 ## The control law sets ap/cmd/takeover (sidestick moved: the AP disconnects) and fcs/alpha_floor.
 
 var logic: AfLogic
@@ -59,6 +61,9 @@ func _write_props() -> void:
 	Props.set_v("ap/fd_roll_rad", l.fd_roll)
 	Props.set_v("ap/thrust_limit", l.thrust_limit)
 	Props.set_v("ap/spd_target_kt", Units.mps_to_kt(l.spd_target))
+	Props.set_v("ap/vs_preset", l.vs_preset > 0.0)
+	Props.set_v("ap/hdg_preset", l.hdg_preset > 0.0)
+	Props.set_v("ap/spd_preset", l.spd_preset > 0.0)
 	for k in l.fma:
 		Props.set_v("ap/fma/" + k, l.fma[k])
 	Props.set_v("ap/disconnect", l.disc_pulse)
@@ -78,6 +83,12 @@ func _sync_fcu() -> void:
 	Props.set_v("controls/fcu/ap1", l.ap1)
 	Props.set_v("controls/fcu/ap2", l.ap2)
 	Props.set_v("controls/fcu/athr", l.thr.armed)
+	for k in ["loc", "appr"]:  # a press that arms nothing (no guidance) springs back, like a refused AP engagement
+		Props.set_v("controls/fcu/" + k, Props.get_b("ap/" + k))
+	if l.writes.has("hdg_mgd"):  # NAV refused: the window shows the heading again
+		Props.set_v("controls/fcu/hdg_managed", bool(l.writes.hdg_mgd))
+	if l.writes.has("vs_mgd"):  # V/S took over: managed vertical guidance is over (no dot in the ALT window)
+		Props.set_v("controls/fcu/vs_managed", bool(l.writes.vs_mgd))
 	if l.writes.has("hdg"):
 		Props.set_v("controls/fcu/hdg_deg", fposmod(roundf(rad_to_deg(l.writes.hdg) - AfInputs.VAR_DEG), 360.0))
 	if l.writes.has("vs"):

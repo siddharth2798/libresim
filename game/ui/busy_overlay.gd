@@ -9,6 +9,7 @@ const GROUP := &"busy_overlay"
 const _FRAMES := "⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏"
 const _Credits := preload("res://ui/credits_screen.gd")
 const CREDIT_MIN_W := 480.0  # narrower (the first frames, a window still settling) the line wraps into a column at the left
+const BACKDROP := Color(0.01, 0.02, 0.04, 1.0)
 
 var _label: Label
 var _mark: Label
@@ -16,6 +17,8 @@ var _place: Label
 var _credit: Label
 var _film: LoaderFilm
 var _dim: ColorRect
+var _back: ColorRect  # solid dark under the film: the window veil never lets the page or the flight show through
+var _hold: LoaderHold  # the window veil keeps the flight scene's canvas layers hidden while it is up
 var _scrim: TextureRect
 var _center: CenterContainer
 var _scenic := false
@@ -28,6 +31,12 @@ func _ready() -> void:
 	mouse_filter = MOUSE_FILTER_IGNORE
 	visible = false
 	add_to_group(GROUP)
+	_back = ColorRect.new()
+	_back.color = BACKDROP
+	_back.set_anchors_and_offsets_preset(PRESET_FULL_RECT)
+	_back.mouse_filter = MOUSE_FILTER_IGNORE
+	_back.visible = false
+	add_child(_back)
 	_film = LoaderFilm.new()
 	add_child(_film)
 	_scrim = TextureRect.new()
@@ -88,12 +97,18 @@ func _ready() -> void:
 	add_child(_credit)
 
 
-func show_busy(text: String, scenic: bool = false, aircraft: String = "", airport: String = "", start: String = "") -> void:
+## `whole_window` (cover): a solid backdrop under everything, so before the film's first frame, or with no film, only
+## the dark backdrop and the spinner show, never the page or the flight scene.
+func show_busy(text: String, scenic: bool = false, aircraft: String = "", airport: String = "", start: String = "", whole_window: bool = false) -> void:
 	if _label != null:
 		_label.text = text
 	_scenic = scenic and _film != null and LoaderFilm.available()
+	if _back != null:
+		_back.visible = whole_window or _scenic
 	if _dim != null:
-		_dim.visible = not _scenic
+		_dim.visible = not _scenic and not whole_window
+	if whole_window:
+		_hold = LoaderHold.new()
 	if _film != null:
 		_film.visible = _scenic
 		if _scenic:
@@ -135,9 +150,22 @@ func hide_busy() -> void:
 	mouse_filter = MOUSE_FILTER_IGNORE
 
 
+## The new scene is in: hide its layers before the first frame is drawn (the veil's _process runs after this frame's scene change).
+func _on_scene_changed() -> void:
+	if _hold != null and is_inside_tree():
+		_hold.sweep(get_tree().current_scene, LoaderHold.RESCAN_S)
+
+
+func _exit_tree() -> void:
+	if _hold != null:
+		_hold.release()  # the flight's layers come back as the veil goes
+
+
 func _process(dt: float) -> void:
 	if not visible or _mark == null:
 		return
+	if _hold != null:
+		_hold.sweep(get_tree().current_scene, dt)
 	if _credit != null:
 		_credit.visible = credit_shows()
 	_spin += dt * 12.0
@@ -182,7 +210,8 @@ static func cover(tree: SceneTree, text: String, aircraft: String = "", airport:
 	tree.root.add_child(layer)
 	_muting = true
 	AudioSettings.hold_game(true)  # no engine or wind behind the film until the game begins
-	veil.show_busy(text, true, aircraft, airport, start)
+	veil.show_busy(text, true, aircraft, airport, start, true)
+	tree.scene_changed.connect(veil._on_scene_changed)
 
 
 ## The veil on the window root, or null. A child veil (a page, the turntable) is not this one.

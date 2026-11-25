@@ -268,11 +268,18 @@ func _input(e: InputEvent) -> void:
 		return
 	var k: InputEventKey = e
 	if k.keycode == KEY_ESCAPE:
-		if not k.echo:
+		if not k.echo and not modal_open():  # an open plan or file dialog closes on its own Esc
 			back()
 	elif k.keycode in PASS_KEYS or _typing():
 		return
 	get_viewport().set_input_as_handled()
+
+
+## The Edit route page's Save / Load plan dialog (RoutePlanDialog, put under this screen by RoutePlansBox) or one of its
+## file dialogs is open.
+func modal_open() -> bool:
+	return get_node_or_null("RoutePlanDialog") != null \
+		or get_tree().get_nodes_in_group(RoutePlansBox.FILE_GROUP).any(func(d): return (d as Window).visible)
 
 
 func _unhandled_key_input(e: InputEvent) -> void:

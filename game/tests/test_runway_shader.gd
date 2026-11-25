@@ -47,7 +47,7 @@ func test_every_detail_level_compiles() -> String:
 	var src := ""
 	for f in FILES.slice(0, 5):
 		src += FileAccess.get_file_as_string(f)
-	for lvl in ["runway_detail < 2", "runway_detail >= 1", "runway_detail >= 2"]:
+	for lvl in ["runway_detail < 3", "runway_detail >= 1", "runway_detail >= 2"]:
 		if not src.contains(lvl):
 			return "no %s branch" % lvl
 	if not ProjectSettings.has_setting("shader_globals/runway_detail") or not FileAccess.get_file_as_string(SHADER).contains("global uniform int runway_detail"):
@@ -134,4 +134,17 @@ func test_cancelled_bake_frees_its_canvas_item_after_the_viewport_is_gone() -> S
 		RenderingServer.free_rid(ci)
 		return "the canvas item of a pass whose viewport is gone was kept (leaks until exit)"
 	RunwayBake.cancel(job)  # twice is harmless
+	return ""
+
+
+func test_close_up_aggregate_is_ultra_only() -> String:
+	# On High the aggregate texture / normal took the full-screen near field over its 0.3 ms per megapixel budget
+	# (tests/debug_runway_bench.tscn), so it starts at Ultra; High keeps the light fittings (runway_detail >= 2).
+	var src := FileAccess.get_file_as_string("res://world/runway_surface.gdshaderinc")
+	var i := src.find("vec3 rw_aggregate(")
+	var body := src.substr(i, src.find("return vec3(1.0);", i) - i)
+	if i < 0 or not body.contains("runway_detail < 3"):
+		return "rw_aggregate must return early below runway_detail 3 (Ultra)"
+	if RunwayQuality.level("high") >= 3 or RunwayQuality.level("ultra") < 3:
+		return "High must stay below the aggregate level and Ultra at it"
 	return ""

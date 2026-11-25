@@ -92,8 +92,7 @@ func _ready() -> void:
 	right.add_child(start)
 	start_opt = start.opt
 	start_note = start.note
-	plans.visible = live.is_empty()  # saved plans and "start on a leg" are for before the flight
-	start.visible = live.is_empty()
+	start.visible = live.is_empty()  # "start on a leg" is for before the flight (in flight the plans: route_live_page.gd)
 	visibility_changed.connect(func():
 		if visible:
 			_refresh(true))

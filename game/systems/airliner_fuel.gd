@@ -23,7 +23,10 @@ const DEFAULTS := {
 }
 const SIDES := ["left", "right"]
 
+const TICK_HZ := 60.0  # docs/USAGE.md "Tick rates"
+
 var def: AircraftDef
+var _tick := TickRate.new(TICK_HZ)
 var used: Array = []  # kg burnt per engine since the start
 var _p := DEFAULTS.duplicate(true)
 var _tank: Array = []  # per tank {side: left|right|centre|pipe, rank: 0 inner, 1.. outer, unusable_kg}
@@ -151,6 +154,13 @@ func _engine_sources(side: String, centre: Dictionary, wing: Dictionary, cross: 
 
 
 func _physics_process(dt: float) -> void:
+	var h := _tick.step(dt)
+	if h > 0.0:
+		update(h)
+
+
+## Feed, burn bookkeeping and warnings for `dt`, the true time since the last run (fuel used integrates it).
+func update(dt: float) -> void:
 	var tk = Props.get_v("fuel/tank_kg", null)
 	var kg: Array = tk if tk is Array else []
 	var centre := _centre_sources(kg)

@@ -37,7 +37,11 @@ const FLIGHT := [
 	["fcu", ["fcu_spd_down", "fcu_spd_up"], " / ", "FCU speed"],
 	["fcu", ["fcu_hdg_left", "fcu_hdg_right"], " / ", "FCU heading"],
 	["fcu", ["fcu_alt_down", "fcu_alt_up"], " / ", "FCU altitude"],
-	["fcu", ["fcu_vs_down", "fcu_vs_up"], " / ", "FCU vertical speed"],
+	["fcu", ["fcu_vs_down", "fcu_vs_up"], " / ", "FCU vertical speed (preset)"],
+	["fcu", ["fcu_vs_pull", "fcu_vs_push"], " / ", "V/S knob pull (fly it) / push (level off)"],
+	["fcu", ["fcu_spd_pull", "fcu_spd_push"], " / ", "speed knob pull (selected) / push (managed)"],
+	["fcu", ["fcu_hdg_pull", "fcu_hdg_push"], " / ", "heading knob pull (selected) / push (NAV)"],
+	["fcu", ["fcu_alt_pull", "fcu_alt_push"], " / ", "altitude knob pull (open climb) / push (managed)"],
 	["", ["mouse_yoke"], "", "mouse yoke"],
 	["", ["master", "avionics"], " · ", "master · avionics"],
 	["fuel_selector", ["fuel_selector"], "", "fuel selector"],
@@ -49,6 +53,7 @@ const FLIGHT := [
 	["", ["taxi_route", "pushback"], " · ", "taxi route · pushback"],
 	["", ["jetway_toggle", "door_toggle", "ground_crew_toggle"], " · ", "jet bridge · door L1 · ground vehicles"],
 	["doors", ["passenger_doors_all", "cargo_doors_all"], " · ", "all passenger doors · all cargo doors (each door: Controls page)"],
+	["", ["map_edit_route"], "", "edit route on the N map"],
 ]
 const FIXED := [
 	["C · 1–8", "views"], ["Tab", "panel layout"], ["N", "map"], ["`", "radio / ATC"],

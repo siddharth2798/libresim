@@ -160,9 +160,19 @@ func test_fcu_knobs_turn_in_detents_and_push_or_pull() -> String:
 	CockpitPick.release(alt, true)
 	if Props.get_b("controls/fcu/vs_managed") or str(Props.get_v("controls/fcu/vert_select", "")) != "OPEN":
 		return "ALT pull is open climb / descent"
+	# V/S: a turn only presets the target (no mode request); the pull flies it; the push levels off (V/S 0)
+	Props.set_v("controls/fcu/vert_select", "")
+	Props.set_v("controls/fcu/vs_fpm", 0.0)
+	CockpitPick.apply_motion(_item("vs_sel"), _lv._items, Vector2(0, 12))
+	if Props.get_f("controls/fcu/vs_fpm") != -200.0 or str(Props.get_v("controls/fcu/vert_select", "")) != "":
+		return "V/S turn presets %s and must not ask for a mode (%s)" % [Props.get_f("controls/fcu/vs_fpm"), Props.get_v("controls/fcu/vert_select")]
+	CockpitPick.release(_item("vs_sel"), false)  # ends the drag (a release after a drag is no click)
+	CockpitPick.release(_item("vs_sel"), true)
+	if Props.get_f("controls/fcu/vs_fpm") != -200.0 or str(Props.get_v("controls/fcu/vert_select", "")) != "VS":
+		return "V/S pull flies the preset"
 	Props.set_v("controls/fcu/vs_fpm", -1200.0)
 	CockpitPick.release(_item("vs_sel"), false)
-	if Props.get_f("controls/fcu/vs_fpm") != 0.0 or str(Props.get_v("controls/fcu/vert_select", "")) != "VS":
+	if Props.get_f("controls/fcu/vs_fpm") != 0.0 or str(Props.get_v("controls/fcu/vert_select", "")) != "LEVEL":
 		return "V/S push levels off"
 	CockpitPick.release(_item("spd_sel"), false)
 	var spd := Props.get_b("controls/fcu/spd_managed")

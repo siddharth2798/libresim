@@ -20,6 +20,11 @@ var map: Control  # the full moving map (N, ui/moving_map.gd): the mini-map piec
 var _pieces: Array = []  # [TextureRect, Rect2 region (panel px)]; the mini-map is [MiniMap, Rect2()]
 var _minimap: MiniMap
 var _minimap_on := false
+var _tip_node: CockpitTip
+var _hover_id := ""  # the FCU card zone under the pointer, and how long it has been there (s)
+var _hover_t := 0.0
+var _hover_px := Vector2(-1, -1)  # panel pixel under the pointer, (-1, -1) off our pieces
+var _keys := {}  # KeyBindings, read when the pointer reaches a zone
 
 
 func setup(c: Cockpit, rig: CameraRig, full_map: Control = null) -> void:
@@ -103,6 +108,7 @@ func _build() -> void:
 		tr.mouse_filter = MOUSE_FILTER_STOP
 		tr.modulate = Color(1, 1, 1, 0.95)
 		tr.gui_input.connect(_forward.bind(tr, reg))
+		tr.mouse_exited.connect(func() -> void: _hover_px = Vector2(-1, -1))
 		add_child(tr)
 		_pieces.append([tr, reg])
 
@@ -138,8 +144,21 @@ func _forward(e: InputEvent, tr: TextureRect, reg: Rect2) -> void:
 	var ev: InputEventMouse = e.duplicate()
 	ev.position = reg.position + e.position / tr.size * reg.size
 	ev.global_position = ev.position
+	_hover_px = ev.position  # the pointer is on this piece (mouse_exited clears it)
 	cockpit.viewport.push_input(ev)
 	tr.accept_event()
+
+
+## The hover note for the FCU card under the pointer (after a short hold), "" elsewhere. The pointer counts only while it is on
+## one of our pieces: the pause screen, the full map and the minimap are other controls and take the hover from them.
+func hover_note(dt: float) -> String:
+	var id := FcuLayout.zone_in_panel(_hover_px) if visible and cockpit != null else ""
+	if id != _hover_id:
+		_hover_id = id
+		_hover_t = 0.0
+		_keys = KeyBindings.load_from() if id != "" else _keys
+	_hover_t += dt
+	return FcuTips.text(id, _keys) if id != "" and _hover_t >= 0.15 else ""
 
 
 func _unhandled_key_input(e: InputEvent) -> void:
@@ -180,6 +199,16 @@ func _type_on_mcdu(e: InputEvent) -> bool:
 	return false
 
 
+## The flight's hover note card (ui/cockpit_tip.gd, a child of the camera), found once.
+func _tip() -> CockpitTip:
+	if _tip_node == null or not is_instance_valid(_tip_node):
+		_tip_node = null
+		for c in cam.get_children():
+			if c is CockpitTip:
+				_tip_node = c
+	return _tip_node
+
+
 func _process(_dt: float) -> void:
 	if cam == null:
 		return
@@ -191,6 +220,10 @@ func _process(_dt: float) -> void:
 	visible = cam.mode != CameraRig.Mode.COCKPIT and not _pieces.is_empty()
 	if _minimap != null:
 		_minimap.visible = _minimap_on and not bool(Props.get_v("ui/map_open", false))  # not under the full map
+	if visible:
+		var tip := _tip()
+		if tip != null:
+			tip.show_external(hover_note(_dt))
 	_acc += _dt
 	if visible and _acc >= 1.0 / 30.0:
 		_acc = 0.0

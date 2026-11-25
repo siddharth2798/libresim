@@ -3,7 +3,8 @@
 // (runway_surface.gdshaderinc: the apron asphalt tone, large-scale variation, trodden centre, oxidised edges), lighter
 // wear than a runway (nose wheel on the line, main gears either side), the ICAO yellow centreline (0.15 m) and, where
 // the data gave the taxiway a width (edge_lines), the double yellow edge lines. Fades out with distance (TAXI_FADE).
-// UV.x: 0..1 across the width, UV.y: metres along the centreline.
+// UV.x: 0..1 across the width, UV.y: metres along the centreline. UV2 (a merged mesh, AirportCut: one mesh and one
+// material for all of an airport's taxiways): (width m, 1 = paint the edges), per ribbon; 0 = use the uniforms.
 // The mesh lies exactly on the terrain (GroundDrape). Pulled slightly toward the camera so it never z-fights
 // the terrain under it, and lifted with distance away from the aircraft (lod_lift rad, ~0.7 px,
 // ground_lift.gdshaderinc): coarser terrain LODs deviate from the strip by metres (p99 ~3 m at level 0,
@@ -29,8 +30,10 @@ global uniform float wetness;
 global uniform float precip;
 #include "res://world/rain_ripples.gdshaderinc"
 varying float v_dist;
+varying flat vec2 v_ribbon;
 
 void vertex() {
+	v_ribbon = UV2;
 	VERTEX.y += ground_lift((MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz, CAMERA_POSITION_WORLD, lod_lift);
 	VERTEX += curve_local(MODEL_MATRIX, curve_drop((MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz));
 	vec4 vp = MODELVIEW_MATRIX * vec4(VERTEX, 1.0);
@@ -44,7 +47,8 @@ void vertex() {
 }
 
 void fragment() {
-	float across = (UV.x - 0.5) * width_m;  // metres from centreline
+	float w_m = v_ribbon.x > 0.0 ? v_ribbon.x : width_m;
+	float across = (UV.x - 0.5) * w_m;  // metres from centreline
 	float along = mod(UV.y, 4096.0);
 	float hx = fwidth(across) * 0.6 + 1e-3;
 	float ax = abs(across);
@@ -55,8 +59,8 @@ void fragment() {
 	// rolling wear: nose wheel on the line, main gears either side, mottled
 	col *= 1.0 - (0.07 * rw_g((ax - gear_hw) / 1.0) + 0.05 * rw_g(across / 0.6)) * (0.6 + 0.4 * rw_noise(vec2(across, along * 0.05)));
 	float edge = 0.0;
-	if (edge_lines) {  // double yellow edge lines (0.15 m, 0.15 m apart) just inside the pavement edge
-		float e0 = width_m * 0.5 - 0.2;
+	if (v_ribbon.x > 0.0 ? v_ribbon.y > 0.5 : edge_lines) {  // double yellow edge lines (0.15 m, 0.15 m apart) just inside the pavement edge
+		float e0 = w_m * 0.5 - 0.2;
 		edge = rw_box(ax, e0 - 0.15, e0, hx) + rw_box(ax, e0 - 0.45, e0 - 0.3, hx);
 	}
 	col = mix(col, taxi_paint * 0.85, clamp(max(line, edge), 0.0, 1.0)) * mix(1.0, 0.65, wetness);  // wet tarmac darkens
@@ -70,7 +74,7 @@ void fragment() {
 	NORMAL = normalize(NORMAL + (VIEW_MATRIX * vec4(rip.x, 0.0, rip.y, 0.0)).xyz);
 	// A taxiway a few px wide (far away / edge-on) rasterises as stair-stepped dashes; fade it
 	// into the terrain imagery, which already shows the pavement at that size.
-	ALPHA = smoothstep(2.0, 6.0, width_m / max(fwidth(across), 1e-4));
+	ALPHA = smoothstep(2.0, 6.0, w_m / max(fwidth(across), 1e-4));
 #else
 	float haze = 1.0 - exp(-v_dist * haze_density);
 	ALBEDO = taxi_paint * mix(1.0, 0.65, wetness) * (1.0 - haze);

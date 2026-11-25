@@ -11,9 +11,8 @@ extends Node3D
 const RANGE := 650.0  # banks farther than this from the camera only get the pool
 const BAND := 90.0  # cross-fade width (m)
 const ENERGY := 0.28  # irradiance at the aim point (energy = ENERGY x throw^2, inverse-square spot); pool = strength
-const CONE_EXTRA := 10.0  # deg: the spot cone is the bank's half-angle + this (light_pool.gdshader: same cone)
-const CONE_EXP := 1.0  # spot_angle_attenuation; 1 = a peaked beam (2 was flat-topped: an even white apron)
-const RANGE_K := 2.2  # spot range = throw x this (light_pool.gdshader RANGE_K)
+const CONE_EXTRA := 22.0  # deg: the spot cone is the bank's half-angle + this (light_pool.gdshader: same cone)
+const RANGE_K := 2.6  # spot range = throw x this (light_pool.gdshader RANGE_K)
 const SHADOW_R := 140.0  # only banks this close to the player's aircraft may cast shadows
 
 var _lamps: Array[SpotLight3D] = []
@@ -33,7 +32,7 @@ func set_budget(n: int, shadows := 0) -> void:
 	while _lamps.size() < n:
 		var l := SpotLight3D.new()
 		l.spot_attenuation = 2.0  # inverse square, as the pool (light_pool.gdshader)
-		l.spot_angle_attenuation = CONE_EXP
+		l.spot_angle_attenuation = PoolProfile.EXP  # the soft cone edge, as the pool (light_pool.gdshader)
 		l.light_specular = 0.35
 		l.shadow_enabled = false
 		l.shadow_bias = 0.08

@@ -66,7 +66,7 @@ func add_jetway(n: Node3D, ground: float, key := "") -> void:
 	var to_root := n.transform * n.global_transform.affine_inverse()  # world -> ops root frame
 	for mi in n.find_children("*", "MeshInstance3D", true, false):
 		var m := mi as MeshInstance3D
-		if m.mesh == null:
+		if m.mesh == null or m.has_meta("no_solid"):  # (the cab door's night glow quad is no body)
 			continue
 		var t: Transform3D = to_root * m.global_transform
 		for v in m.mesh.get_faces():

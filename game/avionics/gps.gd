@@ -10,8 +10,11 @@ extends Node
 const VAR_DEG := -0.3
 const NM := 1852.0
 
+const TICK_HZ := 30.0  # docs/USAGE.md "Tick rates"
+
 var db: NavDatabase
 var plan := RoutePlan.new()
+var _tick := TickRate.new(TICK_HZ)
 var _last_target := ""
 var _last_next: Array = []
 var _last_rev := 0  # route/rev: a route edited in flight (RouteSetup.update_live) re-reads the waypoint positions
@@ -41,7 +44,14 @@ func _sync(p: Vector2) -> void:
 		Props.set_v("controls/gps/route_next", _last_next.duplicate())
 
 
-func _physics_process(_dt: float) -> void:
+func _physics_process(dt: float) -> void:
+	var h := _tick.step(dt)
+	if h > 0.0:
+		update()
+
+
+## The GPS solution from the aircraft's position now (30 Hz, TickRate; it holds no integrator).
+func update() -> void:
 	if db == null:
 		return
 	var p3: Vector3 = Props.get_v("fdm/position_enu", Vector3.ZERO)

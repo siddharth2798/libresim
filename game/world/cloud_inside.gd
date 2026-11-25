@@ -14,7 +14,7 @@ var _flow := Vector3.ZERO
 
 ## d: cloud density at the camera, haze: clear-air extinction, light: daylight x overcast dimming (0..1),
 ## hor: clear fog colour, drift: the cloud field's offset, sun_dir: towards the sun (render frame).
-func update(dt: float, cam: Camera3D, env: Environment, sky: ShaderMaterial, sun: DirectionalLight3D, layer: CloudLayer,
+func update(dt: float, cam: Camera3D, env: Environment, sky: SkyParams, sun: DirectionalLight3D, layer: CloudLayer,
 		d: float, haze: float, light: float, hor: Color, drift: Vector2, sun_dir: Vector3) -> void:
 	var target := CloudLook.ramp(d)
 	k = CloudLook.ease_to(k, target, dt, 0.6 if target > k else 1.2)
@@ -43,10 +43,10 @@ func update(dt: float, cam: Camera3D, env: Environment, sky: ShaderMaterial, sun
 	RenderingServer.global_shader_parameter_set("haze_density", sigma)
 	RenderingServer.global_shader_parameter_set("fog_color", env.fog_light_color.srgb_to_linear())
 	sun.light_energy = maxf(sun.light_energy * CloudLook.sun_scale(k, ext), CloudLook.sun_floor(k, light, ext, tone))
-	var top: Color = sky.get_shader_parameter("zenith_color")  # brighter overhead: the ambient light comes from above
-	sky.set_shader_parameter("zenith_color", top.lerp(inside * 1.2, k * 0.8))
-	var ground: Color = sky.get_shader_parameter("ground_color")
-	sky.set_shader_parameter("ground_color", ground * CloudLook.ground_scale(k))
+	var top: Color = sky.want("zenith_color")  # brighter overhead: the ambient light comes from above
+	sky.stage("zenith_color", top.lerp(inside * 1.2, k * 0.8))
+	var ground: Color = sky.want("ground_color")
+	sky.stage("ground_color", ground * CloudLook.ground_scale(k))
 	layer.set_inside(k, CloudLook.bubble_m(dist, ext), glow_col, ext)
 	if wisps:
 		_update_wisps(wisps, cam, rig, d, drift, base)

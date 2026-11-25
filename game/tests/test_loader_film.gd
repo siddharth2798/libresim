@@ -182,10 +182,7 @@ func _film(veil: Node) -> LoaderFilm:
 
 
 func _dim(veil: Node) -> ColorRect:
-	for n in veil.get_children():
-		if n is ColorRect:
-			return n
-	return null
+	return veil.get("_dim")  # not the first ColorRect: the solid backdrop is one too
 
 
 ## A long load moves on to the next clip instead of replaying the one that ended.
@@ -235,4 +232,65 @@ func test_credit_line_waits_for_a_wide_veil() -> String:
 		return "credit shown in a 64 px veil (it wraps into a column at the left)"
 	if not wide or w < 1000.0 or not centred:
 		return "credit at 1280 px: visible %s, width %.0f, centred %s" % [wide, w, centred]
+	return ""
+
+
+## The window veil has a solid backdrop under the film from its first frame (before the first film frame is ready, or with
+## no film at all, only dark shows, never the page or the flight scene behind it). A child veil keeps its see-through dim.
+func test_window_veil_has_a_solid_backdrop() -> String:
+	BusyOverlay.cover(get_tree(), "Loading…", "c172", "VOCI")
+	var veil := BusyOverlay.root_veil(get_tree())
+	var back: ColorRect = veil.get("_back") if veil != null else null
+	var ok := back != null and back.visible and back.color.a >= 1.0 and back.get_index() == 0 and veil.get("_hold") != null \
+		and get_tree().scene_changed.is_connected(veil._on_scene_changed)  # the layers hide before the new scene's first frame
+	BusyOverlay.dismiss(get_tree())
+	AudioSettings.hold_game(false)
+	if not ok:
+		return "the window veil needs a visible opaque backdrop below the film and a hold on the flight layers"
+	var bare := BusyOverlay.new()  # no film (a build without the frames): still opaque, not the 72 % dim over the page
+	add_child(bare)
+	bare.show_busy("Loading…", false, "", "", "", true)
+	var solid: bool = (bare.get("_back") as ColorRect).visible and not (bare.get("_dim") as ColorRect).visible
+	var child := BusyOverlay.new()
+	add_child(child)
+	child.show_busy("Painting…")
+	var plain: bool = not (child.get("_back") as ColorRect).visible and (child.get("_dim") as ColorRect).visible and child.get("_hold") == null
+	if not solid:
+		return "a window veil without a film must be solid dark"
+	if not plain:
+		return "a child veil must stay a dim over its page and hold nothing"
+	return ""
+
+
+## While the window veil is up every canvas layer of the flight scene (HUD, panels, tips, controls overlay, also nested
+## ones) is hidden, a layer added late too; they come back as they were, and one the scene had hidden stays hidden.
+func test_veil_hides_the_flight_layers_until_it_lifts() -> String:
+	var scene := Node.new()
+	add_child(scene)
+	var ui := CanvasLayer.new()
+	var tip := CanvasLayer.new()
+	var clean := CanvasLayer.new()
+	clean.visible = false
+	scene.add_child(ui)
+	scene.add_child(clean)
+	var cam := Node3D.new()
+	scene.add_child(cam)
+	cam.add_child(tip)
+	var hold := LoaderHold.new()
+	hold.sweep(scene, 0.0)
+	var late := CanvasLayer.new()
+	scene.add_child(late)
+	hold.sweep(scene, 0.1)  # not yet: the rescan is every half second
+	var waiting := late.visible
+	hold.sweep(scene, 0.6)
+	var hidden := not ui.visible and not tip.visible and not late.visible
+	hold.release()
+	var back := ui.visible and tip.visible and late.visible and not clean.visible
+	scene.free()
+	if not hidden:
+		return "flight layers should all be hidden under the veil (late one too)"
+	if not waiting:
+		return "the full sweep should not run every frame"
+	if not back:
+		return "layers should come back as they were, a clean-shot layer still hidden"
 	return ""

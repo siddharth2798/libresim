@@ -4,7 +4,10 @@ extends Node
 ## tach (RPM), oil temp (F) & press (psi), EGT (F, relative scale), fuel flow (gph),
 ## fuel quantity L/R (gal), suction (inHg). Electric gauges read 0 without bus power.
 
+const TICK_HZ := 30.0  # docs/USAGE.md "Tick rates"
+
 var _v := {}
+var _tick := TickRate.new(TICK_HZ)
 var _kg_gal := 0.0  # fuel density, kg per US gal (aircraft.json payload.fuel_kg_per_gal)
 
 
@@ -17,6 +20,13 @@ func _lag(key: String, target: float, rate: float, dt: float) -> float:
 
 
 func _physics_process(dt: float) -> void:
+	var h := _tick.step(dt)
+	if h > 0.0:
+		update(h)
+
+
+## One reading of every gauge; `dt` is the true time since the last one (the needle lags use it).
+func update(dt: float) -> void:
 	if _kg_gal == 0.0:
 		_kg_gal = float(AircraftDef.current().section("payload").get("fuel_kg_per_gal", 2.72))
 	var elec := Props.get_b("systems/electrical/gauges_powered", true)

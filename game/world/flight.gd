@@ -153,12 +153,12 @@ func _reset() -> void:
 			u.warm_start(false)
 		Props.set_v("controls/throttle", 0.0)
 		Props.set_v("controls/pitch_trim", float(AircraftDef.current().section("start").get("pitch_trim", 0.0)))
+	airports.focus(fdm_node.position_enu())  # the placed aircraft's runways and taxiways, before the first frame (the others as they come near)
 	Props.set_v("controls/flaps", _air_flaps if _air_ft > 0.0 else 0)
 	for k in ["master_bat", "master_alt", "avionics"]:
 		Props.set_v("controls/electrical/" + k, true)
 	var kind := "air" if _air_ft > 0.0 else ("stand" if _stand_ref != "" else "runway")
-	var ls := LightLogic.start_state(kind, LightLogic.sun_elev_now(), _air_ft,
-		(_cold or _stand_ref != "") and _air_ft <= 0.0)
+	var ls := LightLogic.start_state(kind, LightLogic.sun_elev_now(), _air_ft, (_cold or _stand_ref != "") and _air_ft <= 0.0)
 	for k in ls:
 		Props.set_v("controls/lights/" + k, ls[k])
 	Props.set_v("controls/fuel/selector", 3)

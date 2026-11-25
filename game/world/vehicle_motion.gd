@@ -44,8 +44,8 @@ func advance(d: Vector3, dyaw: float, dt: float) -> void:
 		want = clampf(atan(_wheelbase * (-dyaw) / ds), -MAX_STEER, MAX_STEER)
 	steer = lerpf(steer, want, clampf(dt * 6.0, 0.0, 1.0))
 	if _body != null:
-		_body.set_instance_shader_parameter("wheel_turn", turn)
-		_body.set_instance_shader_parameter("steer", steer)
+		VehicleParams.set_value(_body, &"wheel_turn", turn)
+		VehicleParams.set_value(_body, &"steer", steer)
 
 
 func _process(dt: float) -> void:

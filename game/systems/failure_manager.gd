@@ -9,7 +9,10 @@ extends Node
 
 var fdm_node: FdmNode
 var armed: Array = []  # [{id, mode, value, random}]
+const TICK_HZ := 30.0  # docs/USAGE.md "Tick rates": a trip comes at most one 33 ms tick late; `elapsed` keeps the true time
+
 var elapsed := 0.0  # flight time since start / reset (s), stops while paused
+var _tick := TickRate.new(TICK_HZ)
 var _rng := RandomNumberGenerator.new()
 
 
@@ -54,6 +57,13 @@ func repair(id: String) -> void:
 
 
 func _physics_process(dt: float) -> void:
+	var h := _tick.step(dt)
+	if h > 0.0:
+		update(h)
+
+
+## Flight time and the trigger check for `dt`, the true time since the last run.
+func update(dt: float) -> void:
 	if fdm_node == null or fdm_node.paused or fdm_node.replaying or fdm_node.fdm.damage.crashed:
 		return
 	elapsed += dt

@@ -11,8 +11,8 @@ extends RefCounted
 ## Each light has banks (one per aim direction): one real SpotLight near the camera (ApronLamps) or one fake ground pool
 ## (ApronFloodlights). Lamp colour is one per airport: ops "apron_lamps" ("led" | "hps"), else a hash of the ICAO code.
 
-const LED := Color(1.0, 0.94, 0.86)  # ~4000 K LED (neutral white)
-const HPS := Color(1.0, 0.83, 0.62)  # high-pressure sodium, toned down (a saturated orange goes pink in AgX)
+const LED := Color(1.0, 0.89, 0.72)  # ~3000 K LED floodlight (warm white)
+const HPS := Color(1.0, 0.77, 0.50)  # high-pressure sodium, toned down (a saturated orange goes pink in AgX)
 const FACADE_H := 18.0  # floods on the terminal roof edge
 const POLE_H := 10.0
 const MIN_H := 8.0

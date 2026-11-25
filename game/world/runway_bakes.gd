@@ -27,6 +27,22 @@ func add(mat: ShaderMaterial, r: Dictionary, u: Dictionary) -> void:
 	_items.append({"mat": mat, "r": r, "u": u, "enu": (a + b) * 0.5, "tex": null, "mix": 0.0})
 
 
+## A runway's mesh was freed (AirportBuilder, far from the camera): drops its item, its pass and its bake.
+func remove(mat: ShaderMaterial) -> void:
+	for i in _items.size():
+		var it: Dictionary = _items[i]
+		if it.mat != mat:
+			continue
+		if not _job.is_empty() and _job.item.mat == mat:
+			RunwayBake.cancel(_job.pass)
+			_job = {}
+		if not _mips.is_empty() and _mips.item.mat == mat:
+			WorkerThreadPool.wait_for_task_completion(_mips.task)
+			_mips = {}
+		_items.remove_at(i)
+		return
+
+
 ## Runways holding a bake now.
 func baked_count() -> int:
 	return _items.filter(func(it): return it.tex != null).size()

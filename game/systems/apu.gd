@@ -5,8 +5,11 @@ extends Node
 ## available), apu/n_pct, apu/starting, apu/ff_kgs; its fuel flow is burnt through fdm.extra_burn_kgs.
 ## Saved with a flight situation (group saveable): n and the start latch.
 
+const TICK_HZ := 60.0  # docs/USAGE.md "Tick rates"
+
 var fdm: FDM
 var model: ApuModel
+var _tick := TickRate.new(TICK_HZ)
 
 
 func _ready() -> void:
@@ -14,6 +17,13 @@ func _ready() -> void:
 
 
 func _physics_process(dt: float) -> void:
+	var h := _tick.step(dt)
+	if h > 0.0:
+		update(h)
+
+
+## The APU model for `dt`, the true time since the last run.
+func update(dt: float) -> void:
 	if fdm == null or model == null:
 		return
 	model.update(dt, Props.get_b("controls/apu_master"), Props.get_b("controls/apu_start"), fdm.fuel_available and fdm.mb.fuel_kg() > 0.0)

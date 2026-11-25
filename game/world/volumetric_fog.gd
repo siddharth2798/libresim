@@ -10,8 +10,10 @@ extends Node
 ## at once, so an origin shift never leaves them 5 km off for a frame.
 
 const NODE := "VolumetricFog"
-const AIR := preload("res://world/vfog_air.gdshader")
-const RAIN := preload("res://world/vfog_rain.gdshader")
+## Loaded only where fog shaders exist: the Compatibility (OpenGL) renderer rejects `shader_type fog` with an error
+## at load, so neither the shaders nor the node are made there (supported()).
+const AIR_PATH := "res://world/vfog_air.gdshader"
+const RAIN_PATH := "res://world/vfog_rain.gdshader"
 const AIR_GLOW := 0.8  # froxel air emission x haze colour; lowered so sunlit air is not whiter than the haze
 const MIST_GLOW := 0.5  # mist emission x haze colour: shaded mist stays as pale as the air around it
 const FLOOR_EVERY := 2.0  # s between terrain samples for the mist floor
@@ -31,9 +33,14 @@ var _warned := false
 static var _no_vfog := OS.get_cmdline_user_args().has("--no-vfog")
 
 
-## Create or reconfigure the node under `root` for a quality level (0 = off).
+## False on the Compatibility renderer, which has no fog shaders (or volumetric fog).
+static func supported(method := RenderingServer.get_current_rendering_method()) -> bool:
+	return method != "gl_compatibility"
+
+
+## Create or reconfigure the node under `root` for a quality level (0 = off). Null on Compatibility.
 static func apply(root: Node, lvl: int) -> VolumetricFog:
-	if root == null:
+	if root == null or not supported():
 		return null
 	var n := root.get_node_or_null(NODE) as VolumetricFog
 	if n == null:
@@ -60,7 +67,7 @@ func _ready() -> void:
 	air.name = "Air"
 	air.shape = RenderingServer.FOG_VOLUME_SHAPE_BOX
 	var m := ShaderMaterial.new()
-	m.shader = AIR
+	m.shader = load(AIR_PATH)
 	air.material = m
 	add_child(air)
 	for i in VfogRules.MAX_CURTAINS:
@@ -68,7 +75,7 @@ func _ready() -> void:
 		fv.name = "Curtain%d" % i
 		fv.shape = RenderingServer.FOG_VOLUME_SHAPE_CYLINDER
 		var rm := ShaderMaterial.new()
-		rm.shader = RAIN
+		rm.shader = load(RAIN_PATH)
 		rm.set_shader_parameter("seed", 17.0 * i)
 		fv.material = rm
 		fv.visible = false

@@ -10,15 +10,20 @@ extends RefCounted
 ##           An optional "lift_m" replaces the measured tyre: raise = (c + lift_m) * gear_pos
 ##   parts   fixed gear (C172): the glb meshes named like a wheel part (WORDS) nearest that contact, or the names in
 ##           model.wheels {<contact>: [node names]}
+## Attitude: a leg slides along the airframe's up, and the ground matching (which assumes an upright wheel on the ground)
+## only blends in with the compression: a wheel in the air keeps its rest stroke at any bank (tests/test_tyre_contact.gd).
 ##   model   nothing found: the whole model moves by the largest raise of those contacts, so no tyre sinks
 
 const WORDS := ["wheel", "tyre", "tire", "fairing", "spat", "brake", "strut", "fork", "oleo"]
 const NOT_TYRE := ["brake", "strut", "fairing", "spat", "fork", "oleo", "door", "well", "bay"]
 const MAX_R := 1.5  # m: a part belongs to the nearest wheel contact within this (horizontally)
 const NEAR_R := 0.6  # m: "model" fallback, vertices this close (horizontally) to the contact are the tyre
+const LOADED_M := 0.02  # m of compression at which a wheel counts as on the ground (the ground matching is full)
+const SLACK_M := 0.15  # m: the ground matching moves a leg at most this far from the airframe-frame stroke
 
-## [contact name, [[Node3D, base position]], [[tyre MeshInstance3D, axle (its local frame), radius m]],
-##  lift_m (NAN: measured tyres), use gear_pos, contact structural position (config.json pos_m)]
+## [contact name, [[Node3D, base position]], [[tyre MeshInstance3D, axle (its local frame), radius m, half width m, axle y]],
+##  lift_m (NAN: measured tyres), use gear_pos, contact structural position (config.json pos_m), [torque links],
+##  gap0 (m: the contact over the tyre bottom at rest, see _gap0)]
 var _groups: Array = []
 var _whole: Array = []  # "model" contacts: [contact name, gap m (lowest vertex - contact, rest pose)]
 var _root: Node3D
@@ -54,7 +59,8 @@ static func build(root: Node3D, model: Node3D, f: FDM, sec: Dictionary) -> TyreC
 			var lift := float(s.lift_m) if s.has("lift_m") else NAN
 			var cn := str(s.compress)
 			var nodes := sliders.map(func(nd): return [nd, (nd as Node3D).position])
-			t._groups.append([cn, nodes, _axles(ty if not ty.is_empty() else ms, model), lift, true, spos[cn], _links(pv)])
+			var ax := _axles(ty if not ty.is_empty() else ms, model)
+			t._groups.append([cn, nodes, ax, lift, true, spos[cn], GearLinks.make(_named(pv, ["torque", "slave"])), _gap0(ax, contacts[cn])])
 			done[cn] = true
 	var parts := {}  # contact -> [Node3D]
 	var named: Dictionary = sec.get("wheels", {})
@@ -91,7 +97,7 @@ static func build(root: Node3D, model: Node3D, f: FDM, sec: Dictionary) -> TyreC
 		if ax.is_empty():
 			t._whole.append([cn, _gap_near(root, model, contacts[cn])])
 			continue
-		t._groups.append([cn, nodes.map(func(nd): return [nd, nd.position]), ax, NAN, false, spos[cn]])
+		t._groups.append([cn, nodes.map(func(nd): return [nd, nd.position]), ax, NAN, false, spos[cn], [], _gap0(ax, contacts[cn])])
 	return t
 
 
@@ -99,6 +105,9 @@ static func build(root: Node3D, model: Node3D, f: FDM, sec: Dictionary) -> TyreC
 ## AircraftModel (its transform is the FDM's pose). Call after the pose animation.
 func update(f: FDM, model: Node3D) -> void:
 	var gp := float(f.fcs.get("gear_pos")) if "gear_pos" in f.fcs else 1.0
+	var mb := model.global_transform.basis
+	var m_up := mb.y.normalized()  # the airframe's up: legs slide along it, never along the world's vertical
+	var m_ay := mb.x.normalized().y  # how far the wheel axles tilt out of the horizontal (bank)
 	for g in _groups:
 		var comp := float(f.gear.compression.get(g[0], 0.0))
 		var up := 0.0
@@ -107,32 +116,46 @@ func update(f: FDM, model: Node3D) -> void:
 		else:
 			for e in g[1]:
 				(e[0] as Node3D).position = e[1]  # the unraised pose
-			var bc := f.mb.body_of(g[5])
-			var cw := model.global_transform * _local(bc)  # the contact point, render space
-			var cn := Basis(f.q) * bc  # NED offset from the CG
-			var n0: float = f.pos_n + cn.x
-			var e0: float = f.pos_e + cn.y
-			var h0: float = f.ground_height.call(n0, e0)
-			up = -INF
-			for a in g[2]:  # the lowest tyre of the group touches; the ground under its axle (slopes)
-				var axle: Vector3 = (a[0] as MeshInstance3D).global_transform * (a[1] as Vector3)
-				var d := axle - cw
-				var ground := cw.y + comp + float(f.ground_height.call(n0 - d.z, e0 + d.x)) - h0
-				up = maxf(up, ground - (axle.y - float(a[2])))
+			up = comp + float(g[7])  # airframe-frame raise: the same at every attitude, 0 stroke in the air
+			var load := clampf(comp / LOADED_M, 0.0, 1.0)  # the ground matching only holds while the tyre is on it
+			if load > 0.0:
+				up = lerpf(up, clampf(_ground_raise(g, f, model, comp, m_ay) / maxf(m_up.y, 0.5), up - SLACK_M, up + SLACK_M), load)
 			if g[4]:
 				up *= gp
 		for e in g[1]:
 			var nd: Node3D = e[0]
-			nd.position = e[1] + nd.get_parent().global_transform.basis.inverse() * Vector3(0.0, up, 0.0)
+			nd.position = e[1] + nd.get_parent().global_transform.basis.inverse() * (m_up * up)
 		if g.size() > 6:
 			var stroke := comp * (gp if g[4] else 1.0)
 			for link in g[6]:
-				_fold(link, stroke)
+				GearLinks.fold(link, stroke)
 	if not _whole.is_empty():
 		var up := -INF
 		for w in _whole:
 			up = maxf(up, float(f.gear.compression.get(w[0], 0.0)) - w[1])
 		_root.position = _root_base + _root.get_parent().global_transform.basis.inverse() * Vector3(0.0, up, 0.0)
+
+
+## World-vertical raise (m) that puts the group's lowest tyre point on the FDM ground under its axle (slopes, pitch).
+## A banked wheel is a tilted cylinder: each edge is half width * ay above or below the axle, and the rim r * sqrt(1 - ay^2) under it.
+func _ground_raise(g: Array, f: FDM, model: Node3D, comp: float, ay: float) -> float:
+	var bc := f.mb.body_of(g[5])
+	var cw := model.global_transform * _local(bc)  # the contact point, render space
+	var cn := Basis(f.q) * bc  # NED offset from the CG
+	var n0: float = f.pos_n + cn.x
+	var e0: float = f.pos_e + cn.y
+	var h0: float = f.ground_height.call(n0, e0)
+	var up := -INF
+	var side := model.global_transform.basis.x.normalized()  # the axle direction, render space
+	var rim := sqrt(maxf(1.0 - ay * ay, 0.0))
+	for a in g[2]:  # the lowest tyre of the group touches
+		var axle: Vector3 = (a[0] as MeshInstance3D).global_transform * (a[1] as Vector3)
+		var d := axle - cw
+		for s in [-1.0, 1.0]:  # both tyre edges: the ground under each against its height
+			var dd: Vector3 = d + side * (s * float(a[3]))
+			var ground := cw.y + comp + float(f.ground_height.call(n0 - dd.z, e0 + dd.x)) - h0
+			up = maxf(up, ground - (axle.y + s * ay * float(a[3]) - float(a[2]) * rim))
+	return up
 
 
 ## For tests and debug: {contact name: "leg" | "parts" | "model"}.
@@ -159,60 +182,6 @@ static func _named(n: Node, words: Array) -> Array:
 	return out
 
 
-## Torque links and side stays: [node, rest position, rest basis, upper hinge, lower tip, length], mesh space.
-static func _links(pv: Node3D) -> Array:
-	var out: Array = []
-	for nd in _named(pv, ["torque", "slave"]):
-		var mi := nd as MeshInstance3D
-		if mi == null or mi.mesh == null:
-			var found := (nd as Node).find_children("*", "MeshInstance3D", true, false)
-			mi = found[0] if not found.is_empty() else null
-		if mi == null or mi.mesh == null:
-			continue
-		var ends := _ends(mi)
-		var hinge: Vector3 = ends[0]
-		var tip: Vector3 = ends[1]
-		out.append([nd, (nd as Node3D).position, (nd as Node3D).basis, hinge, tip, hinge.distance_to(tip)])
-	return out
-
-
-## The highest and lowest vertices of a link (mesh space): the upper mount and the end that follows the oleo.
-static func _ends(mi: MeshInstance3D) -> Array:
-	var top := Vector3.ZERO
-	var bot := Vector3.ZERO
-	var hi := -INF
-	var lo := INF
-	for si in mi.mesh.get_surface_count():
-		for v in mi.mesh.surface_get_arrays(si)[Mesh.ARRAY_VERTEX]:
-			var p: Vector3 = v
-			if p.y > hi:
-				hi = p.y
-				top = p
-			if p.y < lo:
-				lo = p.y
-				bot = p
-	return [top, bot]
-
-
-## Fold a link about its upper end so the lower end rises `stroke` metres along the strut.
-static func _fold(link: Array, stroke: float) -> void:
-	var nd: Node3D = link[0]
-	var rest_pos: Vector3 = link[1]
-	var rest_basis: Basis = link[2]
-	var hinge: Vector3 = link[3]
-	var tip: Vector3 = link[4]
-	var length: float = link[5]
-	var s := clampf(stroke, 0.0, length * 0.85)
-	var a := tip - hinge
-	var b := a + Vector3(0.0, s, 0.0)
-	if a.length() < 1e-4 or b.length() < 1e-4:
-		nd.position = rest_pos
-		nd.basis = rest_basis
-		return
-	nd.basis = rest_basis * Basis(Quaternion(a.normalized(), b.normalized()))
-	nd.position = rest_pos + rest_basis * hinge - nd.basis * hinge
-
-
 ## Body frame (x nose, y right, z down, from the CG) -> model frame (-Z nose, +X right, +Y up).
 static func _local(b: Vector3) -> Vector3:
 	return Vector3(b.y, -b.z, -b.x)
@@ -226,17 +195,32 @@ static func _tyres(nodes: Array) -> Array:
 			and not NOT_TYRE.any(func(w): return nm.contains(w)))
 
 
-## [[mesh, axle in its local frame (its bounds' centre), radius (axle - lowest vertex, model frame, rest)]].
+## [[mesh, axle in its local frame (its bounds' centre), radius (axle - lowest vertex, model frame, rest),
+##   half width (across the aircraft, model frame), axle height (model frame, rest)]].
 static func _axles(meshes: Array, model: Node3D) -> Array:
 	var out := []
 	for mi in meshes:
 		if not mi is MeshInstance3D or (mi as MeshInstance3D).mesh == null:
 			continue
-		var c: Vector3 = (mi as MeshInstance3D).get_aabb().get_center()
+		var bb := (mi as MeshInstance3D).get_aabb()
+		var xf := _xf(mi, model)
 		var low := _lowest(mi, model, Vector2.INF, 0.0)
 		if is_finite(low):
-			out.append([mi, c, (_xf(mi, model) * c).y - low])
+			var xs := []
+			for i in 8:
+				xs.append((xf * bb.get_endpoint(i)).x)
+			var ay := (xf * bb.get_center()).y
+			out.append([mi, bb.get_center(), ay - low, (xs.max() - xs.min()) * 0.5, ay])
 	return out
+
+
+## Height (model frame) of the contact point over the lowest tyre point of the group, rest pose: the airframe-frame
+## raise at zero compression. It equals what the ground matching gives on flat ground, level.
+static func _gap0(axles: Array, contact: Vector3) -> float:
+	var gap := -INF
+	for a in axles:
+		gap = maxf(gap, contact.y - (float(a[4]) - float(a[2])))
+	return gap if is_finite(gap) else 0.0
 
 
 ## "model" fallback: the lowest vertex of any mesh within NEAR_R (horizontally) of the contact, minus its height.

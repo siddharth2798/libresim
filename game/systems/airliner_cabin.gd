@@ -15,7 +15,10 @@ const DEFAULTS := {
 	"max_dp_pa": 59300.0, "climb_ms": 2.54, "descent_ms": 1.52, "ambient_ms": 8.0,
 }
 
+const TICK_HZ := 30.0  # docs/USAGE.md "Tick rates"
+
 var def: AircraftDef
+var _tick := TickRate.new(TICK_HZ)
 var cabin_alt_m := 0.0
 var field_m := 0.0  # altitude of the last ground contact
 var _p := DEFAULTS.duplicate(true)
@@ -55,6 +58,13 @@ static func isa_alt(pa: float) -> float:
 
 
 func _physics_process(dt: float) -> void:
+	var h := _tick.step(dt)
+	if h > 0.0:
+		update(h)
+
+
+## Cabin pressure and bleed / pack state for `dt`, the true time since the last run.
+func update(dt: float) -> void:
 	var alt := Props.get_f("fdm/alt_m")
 	var wow := Props.get_b("fdm/wow", true)
 	var amb := Props.get_f("atmosphere/pressure_pa", isa_pa(alt))

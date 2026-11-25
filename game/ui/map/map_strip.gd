@@ -68,14 +68,16 @@ func _fit() -> void:
 		_row.move_child(title, 0)
 
 
-func sync(follow: bool, heading_up: bool, has_route: bool, editing: bool) -> void:
+## `edit_key`: the key of edit mode (MapKeys.edit_key, "" = none), shown on the Edit route button and in its tooltip.
+func sync(follow: bool, heading_up: bool, has_route: bool, editing: bool, edit_key := "") -> void:
 	buttons.follow.set_pressed_no_signal(follow)
 	buttons.orient.set_pressed_no_signal(heading_up)
 	buttons.orient.text = "Heading up" if heading_up else "North up"
 	buttons.fit.disabled = not has_route
 	buttons.clear.disabled = not has_route
 	buttons.edit.set_pressed_no_signal(editing)
-	buttons.edit.text = "Editing route" if editing else "Edit route"
+	buttons.edit.text = ("Editing route" if editing else "Edit route") + (" (%s)" % edit_key if edit_key != "" else "")
+	buttons.edit.tooltip_text = str(BUTTONS[5][2]) + (" (%s)" % edit_key if edit_key != "" else "")
 
 
 ## The lowest bottom edge (canvas units) of the visible CLEAR_GROUP bars in the top quarter of the screen, 0 = none,

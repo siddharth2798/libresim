@@ -10,6 +10,11 @@ const POLE_MESH_H := 10.0  # cylinder mesh height, scaled per light
 const POOL_GAIN := {"mast": 1.0, "pole": 0.8, "facade": 0.9}
 const VOL_BELOW := 12.0  # light volume under the ground (coarse terrain LODs, slopes) ...
 const VOL_ABOVE := 20.0  # ... and above it (vehicles, aircraft up to the A320's fin)
+## Material.render_priority of the pools: after the other see-through ground surfaces (priority 0 and below: the
+## taxiway ribbons, which are transparent for their far fade, lead-on lines, vehicle ground shadows), before the
+## clouds (CloudLayer.PRIORITY). The pools add light onto what is already drawn, so a taxiway drawn after a pool
+## covered it: at night every taxiway stub through a lit stand showed as a black strip.
+const POOL_PRIORITY := 1
 
 
 ## Lamp position (ENU, absolute height) of a bank: on the lamp frame, toward its aim.
@@ -75,6 +80,8 @@ static func meshes(lights: Array, hf: Callable, anchor: Vector2, pool_mat: Mater
 		var mi := MultiMeshInstance3D.new()
 		mi.name = "flood_pools"
 		mi.multimesh = mm
+		if pool_mat != null:
+			pool_mat.render_priority = POOL_PRIORITY
 		mi.material_override = pool_mat
 		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		out.append(mi)
@@ -99,7 +106,7 @@ static func _pool(m: Dictionary, b: Dictionary, ground: float, anchor: Vector2) 
 	var far := minf(H / tan(maxf(th - a, deg_to_rad(6.0))), D * ApronLamps.RANGE_K + H)
 	var mid := (near + far) * 0.5
 	var half_len := (far - near) * 0.5 + 3.0
-	var half_w := minf(tan(a) * Vector2(H, far).length() * 0.8, half_len * 1.1)
+	var half_w := minf(tan(a) * Vector2(H, far).length(), half_len * 1.25)  # the whole cone's width (its soft edge fades inside)
 	var c := foot + u * mid
 	var z := Vector3(u.x, 0.0, -u.y)  # render frame (x east, -z north): local +z points away from the light
 	var x := Vector3.UP.cross(z)

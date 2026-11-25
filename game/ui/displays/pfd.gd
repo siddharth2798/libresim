@@ -5,10 +5,11 @@ extends Display
 ## Reads Props only: instruments/adirs/* (attitude, heading), instruments/pfd/* (air data),
 ## controls/fcu/{spd_kt, alt_ft, hdg_deg, spd_managed, hdg_managed}, ap/{ap1, ap2, athr, fd,
 ## fd_pitch_rad, fd_roll_rad (commanded attitude)}, ap/fma/{thrust, vertical, lateral, approach, misc}
-## (strings, "\n" separates lines), avionics/nav{2,1}/* for the ILS.
+## (strings, "\n" separates lines), avionics/nav{2,1}/* for the ILS (pfd_ils.gd: scales, ident, frequency, DME).
 
 const Z := Rect2(104, 62, 352, 318)
 const PX_DEG := 7.0  # pitch ladder px per degree
+const FMA_COLORS := {"green": GREEN, "cyan": CYAN, "white": WHITE, "amber": AMBER}  # AfFma.color names
 var _c := Z.get_center()
 
 
@@ -25,7 +26,7 @@ func _paint() -> void:
 		_ladder(pitch, roll)
 		_flight_director(pitch, roll)
 	_roll_scale(roll, ok)
-	_ils()
+	PfdIls.draw(self, Z)
 	_symbol()
 	PfdTapes.speed(self)
 	PfdTapes.altitude(self)
@@ -111,33 +112,6 @@ func _flight_director(pitch: float, roll: float) -> void:
 	line(Vector2(rx, _c.y - 62), Vector2(rx, _c.y + 62), GREEN, 5.0)
 
 
-func _ils() -> void:
-	if not Props.get_b("controls/efis/ls", true):  # the EFIS LS button shows the ILS scales
-		return
-	for n in [2, 1]:
-		var b := "avionics/nav%d/" % n
-		if str(Props.get_v(b + "kind", "")) != "ILS" or not Props.get_b(b + "valid"):
-			continue
-		var y := Z.end.y - 12.0
-		for k in [-72, -36, 36, 72]:
-			dot(Vector2(_c.x + k, y), 3.5, WHITE)
-		line(Vector2(_c.x, y - 7), Vector2(_c.x, y + 7), AMBER, 2.0)
-		var dx := _c.x + clampf(Props.get_f(b + "cdi"), -1.0, 1.0) * 72.0
-		poly(PackedVector2Array([Vector2(dx, y - 9), Vector2(dx + 9, y), Vector2(dx, y + 9), Vector2(dx - 9, y)]), MAGENTA)
-		if Props.get_b(b + "gs_valid"):
-			var x := Z.end.x - 12.0
-			for k in [-72, -36, 36, 72]:
-				dot(Vector2(x, _c.y + k), 3.5, WHITE)
-			line(Vector2(x - 7, _c.y), Vector2(x + 7, _c.y), AMBER, 2.0)
-			var gy := _c.y - clampf(Props.get_f(b + "gs"), -1.0, 1.0) * 72.0
-			poly(PackedVector2Array([Vector2(x, gy - 9), Vector2(x + 9, gy), Vector2(x, gy + 9), Vector2(x - 9, gy)]), MAGENTA)
-		txt(Vector2(Z.position.x + 6, Z.end.y - 38), str(Props.get_v(b + "ident", "ILS")), 16, MAGENTA)
-		var dme := Props.get_f(b + "dme_nm", -1.0)
-		if dme >= 0.0:
-			txt(Vector2(Z.position.x + 6, Z.end.y - 20), "%.1f NM" % dme, 16, MAGENTA)
-		return
-
-
 func _fma() -> void:
 	fill(Rect2(0, 0, 600, 58), Color.BLACK)
 	var cols := ["thrust", "vertical", "lateral", "approach", "misc"]
@@ -152,9 +126,7 @@ func _fma() -> void:
 		for ln in s.split("\n"):
 			if n >= 3:
 				break
-			var col := GREEN if i < 3 and n == 0 else (WHITE if i >= 3 else CYAN)
-			if i == 4 and ln == "A/THR":
-				col = CYAN
+			var col: Color = FMA_COLORS[AfFma.color(cols[i], n, s, Props.get_b("ap/athr_active"))]
 			txt(Vector2(x + 60, 12 + n * 18), ln, 16, col, 0)
 			n += 1
 

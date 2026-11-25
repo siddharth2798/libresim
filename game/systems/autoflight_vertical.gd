@@ -9,7 +9,8 @@ extends RefCounted
 ##   OP DES   open descent: thrust idle, pitch holds the speed
 ##   CLB/DES  managed climb / descent: same pitch laws. The FMS moves the FCU altitude at top of descent.
 ##   ALT*     capture of the FCU altitude: constant deceleration profile (A_CAP) ending in a linear approach
-##   ALT      altitude hold ("ALT CRZ" on the FMA when reached in a managed climb / descent)
+##   ALT      altitude hold of the altitude memorised at engagement (hold_m; the FCU window may be turned meanwhile);
+##            "ALT CRZ" on the FMA when reached in a managed climb / descent
 ##   G/S*, G/S  glide slope capture and track (-3 deg path through the glide slope antenna)
 ## Armed: "ALT" (level-off ahead), "G/S" (APPR pressed).
 ## Speed-on-pitch laws are a PI: gamma = KP x (speed - target) + integral (bumpless at mode entry).
@@ -32,6 +33,8 @@ var crz := false  # the ALT came from a managed CLB / DES
 var gamma_cmd := 0.0
 var land := false  # glide slope below 400 ft: the FMA says LAND
 var _i_spd := 0.0
+var hold_m := 0.0  # the altitude ALT holds: memorised when ALT engages, so a turn of the FCU altitude does not move the aircraft
+var _prev_mode := ""
 var _fresh := true  # first tick of a speed-on-pitch mode: initialise the integral
 
 
@@ -41,6 +44,7 @@ func reset() -> void:
 	crz = false
 	gamma_cmd = 0.0
 	land = false
+	_prev_mode = ""
 	_fresh = true
 
 
@@ -62,13 +66,16 @@ func update(i: AfInputs, spd_target: float, loc_ok: bool) -> void:
 	land = false
 	_follow_selection(i, alt_err)
 	_gs_logic(i, loc_ok)
+	if mode == "ALT" and _prev_mode != "ALT":
+		hold_m = i.f.alt
+	_prev_mode = mode
 	match mode:
 		"SRS": gamma_cmd = _speed_law(i, spd_target, 0.0, 0.2, 0.1)  # initial climb gradient as the starting integral
 		"OP CLB", "CLB": gamma_cmd = _speed_law(i, spd_target, -0.05, 0.17)
 		"OP DES", "DES": gamma_cmd = _speed_law(i, spd_target, -0.17, 0.05)
 		"V/S": gamma_cmd = _gamma_of(i, i.f.vs)
 		"ALT*": gamma_cmd = _gamma_of(i, _capture_vs(alt_err))
-		"ALT": gamma_cmd = _gamma_of(i, clampf(K_ALT * alt_err, -8.0, 8.0))
+		"ALT": gamma_cmd = _gamma_of(i, clampf(K_ALT * (hold_m - i.alt_m), -8.0, 8.0))
 		"G/S*", "G/S":
 			land = Units.m_to_ft(i.ra_m) < 400.0
 			gamma_cmd = -i.ils.gs_rad - clampf(K_GS * i.gs_error_m(), -GS_MAX, GS_MAX)

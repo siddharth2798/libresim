@@ -3,8 +3,10 @@ extends VBoxContainer
 ## mode: map, nav log with the fuel line, vertical profile, destination, arrival runway, cruise altitude, auto-route and
 ## the typed route) on the route ahead of the aircraft. Its first point is the present position (PPOS), the start of
 ## the active leg (RouteLive). Nothing changes in the flight until Apply (RouteLive.commit; then the flight resumes);
-## Cancel (or Esc) drops the edits and goes back to the pause screen's home page. Not here, as they are for before the
-## flight: the departure, saved plans and .PLN files, and where an air start begins.
+## Cancel (or Esc) drops the edits and goes back to the pause screen's home page. The plan buttons work here too
+## (RouteLivePlan): Save plan… and Export .PLN… write the whole route, flown waypoints included; Load plan… and Import
+## .PLN… replace only the route ahead (the departure never changes in the air), and apply with the rest. Not here, as
+## they are for before the flight: the departure and where an air start begins.
 
 signal closed  # Apply: the pause screen resumes the flight
 signal back  # Cancel: the pause screen shows its home page
@@ -58,6 +60,8 @@ func open() -> void:
 		page.set("taken", _sp.passed)
 		page.connect("changed", _on_changed)
 		add_child(page)
+		page.plans.save_setup = func() -> Dictionary: return RouteLivePlan.full_setup(Session.setup, _sp, RouteEdit.route_of(page.live))
+		page.plans.take_plan = take_plan
 	else:
 		page.set("live", live)
 		page.set("taken", _sp.passed)
@@ -66,6 +70,14 @@ func open() -> void:
 	page.map.aircraft = {"pos": RouteLive.here(), "hdg": Props.get_f("fdm/heading_rad")}
 	_dirty = false
 	_show_status()
+
+
+## A loaded or imported plan becomes the route ahead on the page (RouteLivePlan.take); the flight gets it on Apply.
+func take_plan(plan: Dictionary) -> Dictionary:
+	var res := RouteLivePlan.take(plan, Session.setup, RouteLive.here(), RouteEdit.db())
+	if res.ok:
+		(page.live as Dictionary).route = res.route
+	return res
 
 
 func _on_changed() -> void:

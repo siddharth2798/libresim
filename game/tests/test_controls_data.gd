@@ -36,7 +36,8 @@ func test_controls_c172_action_set_unchanged() -> String:
 		"mixture_rich", "mixture_lean", "trim_down", "trim_up", "brakes", "brake_left", "brake_right", "starter"]
 	var press := ["flaps_down", "flaps_up", "parking_brake", "magnetos_next", "mouse_yoke", "master", "avionics", "fuel_selector",
 		"fuel_shutoff", "beacon", "nav_lights", "strobes", "landing_light", "taxi_light", "pitot_heat", "alternate_static",
-		"jetway_toggle", "door_toggle", "ground_crew_toggle", "taxi_route", "pushback"]
+		"jetway_toggle", "door_toggle", "ground_crew_toggle", "taxi_route", "pushback",
+		"map_edit_route"]  # the N map's edit mode key (every aircraft; MapKeys)
 	var axes := ["pitch", "roll", "yaw", "throttle", "mixture", "brake_left", "brake_right", "pitch_trim_axis", "flaps_lever"]
 	var buttons := ["flaps_up", "flaps_down", "brakes", "parking_brake", "trim_up", "trim_down", "view_next", "view_cockpit",
 		"starter", "magnetos_next", "toggle_map", "pause", "parking_brake_switch", "magnetos_switch",

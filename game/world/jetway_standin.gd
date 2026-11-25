@@ -33,7 +33,7 @@ static func attach(rig: Node3D) -> JetwayStandin:
 		var gi := n as GeometryInstance3D
 		parts.append(gi)
 		gi.set_meta("no_vis_range", true)  # VisRanges.tag_tree leaves the rig to its stand-in
-		if gi is MeshInstance3D and _boxed(gi, rig):
+		if gi is MeshInstance3D and gi.name != JetwayNight.GLOW_NAME and _boxed(gi, rig):
 			var a: AABB = _rel(gi, rig) * gi.get_aabb()
 			box = a if first else box.merge(a)
 			first = false
@@ -72,7 +72,8 @@ static func _rel(n: Node3D, rig: Node3D) -> Transform3D:
 
 
 static var _box: BoxMesh
-static var _mats := {}  # quantised colour -> StandardMaterial3D
+static var _mats := {}  # quantised colour -> ShaderMaterial (jetway_standin.gdshader: lit tunnel at night)
+const SHADER := preload("res://world/jetway_standin.gdshader")
 
 
 static func _unit_box() -> BoxMesh:
@@ -82,12 +83,12 @@ static func _unit_box() -> BoxMesh:
 
 
 ## A shared material per colour, quantised (all jetways of an airport usually share one).
-static func _material(avg: Vector3) -> StandardMaterial3D:
+static func _material(avg: Vector3) -> ShaderMaterial:
 	var q := (avg * 16.0).round() / 16.0
 	if not _mats.has(q):
-		var mat := StandardMaterial3D.new()
-		mat.albedo_color = Color(q.x, q.y, q.z)
-		mat.roughness = 0.6
+		var mat := ShaderMaterial.new()
+		mat.shader = SHADER
+		mat.set_shader_parameter("albedo", Color(q.x, q.y, q.z))
 		_mats[q] = mat
 	return _mats[q]
 
@@ -102,6 +103,8 @@ static func _boxed(n: Node, rig: Node) -> bool:
 
 static func _albedo(mi: MeshInstance3D) -> Color:
 	var m := mi.material_override
+	if mi.has_meta("jw_src"):  # JetwayNight swapped the glb's material for a shader: the colour is the original's
+		m = mi.get_meta("jw_src")
 	if m == null and mi.mesh and mi.mesh.get_surface_count() > 0:
 		m = mi.get_active_material(0)
 	if m is BaseMaterial3D:

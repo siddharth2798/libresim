@@ -2,10 +2,12 @@ class_name CloudTemporal
 extends RefCounted
 ## Temporal cloud upscaling (GRAPHICS-PLAN G7). Pure functions: no nodes, no RenderingDevice.
 ## Step bands are the preset table in graphics_settings.gd (low 10, medium 16, high 24, ultra 40, max 64):
-## below high stays full resolution, the high band (24..63, so high and ultra) marches at half, max (64+) at quarter.
+## every preset up to ultra (1..63 steps) marches at half resolution, max (64+) at quarter. Low and Medium marched
+## every pixel until study F16: the weakest presets paid the most per pixel. The Compatibility (OpenGL) renderer
+## has no CompositorEffect for the depth copy, so it stays full resolution (scale_for).
 ## History is dropped when the camera jumps more than 50 m or the view turns more than 20 degrees.
 
-const HALF_STEPS := 24
+const HALF_STEPS := 1
 const QUARTER_STEPS := 64
 const CUT_JUMP_M := 50.0
 const CUT_TURN_RAD := 20.0 * PI / 180.0
@@ -17,7 +19,12 @@ const WEIGHT_QUARTER := 0.10
 const MARCH_JITTER := false
 
 
-## 1 full, 2 half, 4 quarter. The march viewport is this many times smaller on each axis.
+## scale_for_steps on renderers with CompositorEffect (Forward+, Mobile); 1 on Compatibility.
+static func scale_for(steps: int, method := RenderingServer.get_current_rendering_method()) -> int:
+	return 1 if method == "gl_compatibility" else scale_for_steps(steps)
+
+
+## 1 full, 2 half, 4 quarter. The march viewport is this many times smaller on each axis. 0 steps (no clouds): 1.
 static func scale_for_steps(steps: int) -> int:
 	if steps >= QUARTER_STEPS:
 		return 4
@@ -44,7 +51,7 @@ static func is_camera_cut(prev: Transform3D, cur: Transform3D) -> bool:
 	return history_reset(prev.origin.distance_to(cur.origin), _turn(-prev.basis.z, -cur.basis.z))
 
 
-## Sub-texel ray offset in full-view UV. Zero at full resolution, so Low / Medium are not jittered.
+## Sub-texel ray offset in full-view UV. Zero at full resolution.
 static func jitter_uv(frame: int, scale: int, view_px: Vector2) -> Vector2:
 	if scale <= 1 or view_px.x < 1.0 or view_px.y < 1.0:
 		return Vector2.ZERO

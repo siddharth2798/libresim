@@ -11,6 +11,9 @@ extends Node
 
 const TREND_TAU := 1.5  # s, acceleration filter
 const RA_MAX_FT := 2500.0
+const TICK_HZ := 30.0  # docs/USAGE.md "Tick rates"
+
+var _tick := TickRate.new(TICK_HZ)
 
 var _spec := {}
 var _prev_ias := NAN
@@ -22,7 +25,9 @@ func _ready() -> void:
 
 
 func _physics_process(dt: float) -> void:
-	publish(dt)
+	var h := _tick.step(dt)
+	if h > 0.0:
+		publish(h)
 
 
 func publish(dt: float) -> void:

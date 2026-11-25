@@ -15,7 +15,10 @@ const ALT_STATIC_DP := -0.1 * 3386.389  # cabin pressure slightly below ambient
 ## without it there is no position error.
 var _err_kcas: Array = []
 var _err_dkt: Array = []
+const TICK_HZ := 30.0  # docs/USAGE.md "Tick rates"
+
 var _loaded := false
+var _tick := TickRate.new(TICK_HZ)
 
 var _pitot_frozen := 0.0
 var _static_frozen := 0.0
@@ -46,7 +49,13 @@ func load_state(d: Dictionary) -> void:
 	_static_frozen = float(d.get("static_frozen", _static_frozen))
 
 
-func _physics_process(_dt: float) -> void:
+func _physics_process(dt: float) -> void:
+	if _tick.step(dt) > 0.0:
+		update()
+
+
+## The pressures the instruments see, from the FDM now (no integrator: the rate does not change the values).
+func update() -> void:
 	if not _loaded:
 		_load_def()
 	var p := Props.get_f("atmosphere/pressure_pa", 101325.0)

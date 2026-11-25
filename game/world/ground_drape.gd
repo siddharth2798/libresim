@@ -27,11 +27,13 @@ static func to_mesh(arr: Array) -> ArrayMesh:
 	return mesh
 
 
-## The surface arrays of build() ([] when empty). Pure: safe on a worker thread when height_at is.
+## The surface arrays of build() ([] when empty). Pure: safe on a worker thread when height_at is. uvs2 (optional, one
+## per point) becomes ARRAY_TEX_UV2: per-ribbon values a merged mesh keeps (AirportCut: a taxiway's width).
 static func arrays(tris: PackedVector2Array, uvs: PackedVector2Array, ox: float, oy: float, oz: float,
-		height_at: Callable, res: float) -> Array:
+		height_at: Callable, res: float, uvs2 := PackedVector2Array()) -> Array:
 	var verts := PackedVector3Array()
 	var tex := PackedVector2Array()
+	var tex2 := PackedVector2Array()  # the second UV set (uvs2, one per point), interpolated like the first
 	var idx := PackedInt32Array()
 	var a: Array[PackedVector2Array] = []
 	var b: Array[PackedVector2Array] = []
@@ -54,6 +56,9 @@ static func arrays(tris: PackedVector2Array, uvs: PackedVector2Array, ox: float,
 		var u0 := uvs[t]
 		var du1 := uvs[t + 1] - u0
 		var du2 := uvs[t + 2] - u0
+		var v0 := uvs2[t] if not uvs2.is_empty() else Vector2.ZERO
+		var dv1 := uvs2[t + 1] - v0 if not uvs2.is_empty() else Vector2.ZERO
+		var dv2 := uvs2[t + 2] - v0 if not uvs2.is_empty() else Vector2.ZERO
 		for p in pieces:
 			var base := verts.size()
 			for q in p:
@@ -62,6 +67,8 @@ static func arrays(tris: PackedVector2Array, uvs: PackedVector2Array, ox: float,
 				var w2 := e1.cross(d) / det
 				verts.append(Vector3(q.x, float(height_at.call(ox + q.x, oy + q.y)) - oz, -q.y))
 				tex.append(u0 + du1 * w1 + du2 * w2)
+				if not uvs2.is_empty():
+					tex2.append(v0 + dv1 * w1 + dv2 * w2)
 			for k in range(1, p.size() - 1):
 				idx.append(base)
 				idx.append(base + k)
@@ -75,6 +82,8 @@ static func arrays(tris: PackedVector2Array, uvs: PackedVector2Array, ox: float,
 	arr.resize(Mesh.ARRAY_MAX)
 	arr[Mesh.ARRAY_VERTEX] = verts
 	arr[Mesh.ARRAY_TEX_UV] = tex
+	if not uvs2.is_empty():
+		arr[Mesh.ARRAY_TEX_UV2] = tex2
 	arr[Mesh.ARRAY_NORMAL] = normals
 	arr[Mesh.ARRAY_INDEX] = idx
 	return arr

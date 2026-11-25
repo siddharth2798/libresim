@@ -7,9 +7,14 @@ extends RefCounted
 ##  - disconnects: button / instinctive (voluntary: 1.5 s warning), sidestick takeover, power or AP failure, landing
 ##    auto-disconnect at 50 ft in LAND (limits.autoflight.land_disconnect_ft; 0 = off); `disc_pulse` is true for 0.5 s,
 ##    `disconnect_count` counts them, `warning` stays on after an involuntary one until the button is pressed again
-##  - vertical mode from the FCU: a changed vs_fpm selects V/S, a changed alt_ft selects OP CLB / OP DES (CLB / DES
-##    when vs_managed, including while the mode is not yet ALT), vs_managed toggles managed / V/S,
-##    controls/fcu/vert_select = "OPEN" | "MANAGED" | "VS" (consumed). At the selected altitude, managed engages ALT.
+##  - vertical mode from the FCU: controls/fcu/vert_select = "OPEN" | "MANAGED" | "VS" (V/S knob pulled) | "LEVEL" (V/S knob
+##    pushed: V/S 0) (consumed); a changed alt_ft selects OP CLB / OP DES (CLB / DES when vs_managed, including while the
+##    mode is not yet ALT), vs_managed toggles managed / V/S. At the selected altitude, managed engages ALT.
+##    Turning the V/S knob outside V/S only presets vs_fpm (`vs_preset` s left: the FCU window shows it, AfPreview); a pull
+##    flies the preset, or the present vertical speed when the window shows dashes (no preset). In V/S a turn changes the target.
+##    A turn of the ALT knob alone never changes the mode: ALT / ALT* keep holding, OP and managed climbs and descents keep
+##    their mode while the new target is on their side; a target on the wrong side (or > 250 ft away in ALT*) reverts to V/S.
+##    HDG pushed (managed) with no GPS route does not engage NAV: the request is withdrawn (writes.hdg_mgd), window and mode agree.
 ##  - takeoff: on the ground with FD on and levers at FLX or TOGA, SRS + RWY; SRS ends at the acceleration altitude (1500 ft
 ##    above the field) into OP CLB; TOGA with flaps out on the glide slope is a go-around (SRS, heading hold)
 ##  - defaults when guidance starts in flight: HDG on the present heading and ALT (within 100 ft of the FCU altitude),
@@ -21,6 +26,7 @@ const WARN_VOLUNTARY_S := 1.5
 const PULSE_S := 0.5
 const ENGAGE_RA_M := 30.0  # 100 ft
 const FD_TAKEOFF_PITCH := deg_to_rad(10.0)
+const VS_PRESET_S := AfPreview.VS_S  # a V/S preset shows in the FCU window this long without a pull (Airbus: 45 s)
 
 var speeds: AfSpeeds
 var lat := AfLateral.new()
@@ -41,6 +47,13 @@ var spd_target := 0.0
 var fma := {"thrust": "", "vertical": "", "lateral": "", "approach": "", "misc": ""}
 var thrust_limit := ""
 var writes := {}
+var preview := AfPreview.new()
+var vs_preset: float:  # s the FCU V/S window still shows a preset turned outside V/S
+	get: return preview.vs
+var hdg_preset: float:  # s the managed HDG window still shows a turned heading
+	get: return preview.hdg
+var spd_preset: float:  # s the managed SPD window still shows a turned speed
+	get: return preview.spd
 var _pulse := 0.0
 var _warn_t := 0.0
 var _last := {}  # FCU values of the previous tick
@@ -63,6 +76,7 @@ func update(i: AfInputs) -> void:
 		_warn_t -= i.dt
 		warning = warning and _warn_t > 0.0
 	_buttons(i)
+	preview.update(i, vert.mode == "V/S")
 	_protections(i)
 	fd = i.f.fd and i.powered
 	var guidance := engaged() or fd
@@ -70,12 +84,15 @@ func update(i: AfInputs) -> void:
 	var mgd := {"cas": 0.0, "mach": false}
 	if guidance and (not i.wow or takeoff):
 		var prev := vert.mode
-		var by_pilot := _modes(i)
+		var by_pilot := AfSelect.modes(self, i)
 		mgd = _speed_target(i)
 		lat.update(i)
+		if i.f.hdg_mgd and lat.mode == "HDG" and i.gps.is_empty():  # NAV needs a route: the push is refused, the window keeps the heading
+			writes["hdg_mgd"] = false
 		vert.update(i, spd_target, lat.captured())
 		if vert.mode == "V/S" and prev != "V/S" and prev != "" and by_pilot != "V/S":  # fell back to V/S (glide slope lost): hold the present rate
 			writes["vs"] = i.vs_mps
+			writes["vs_mgd"] = false
 	else:
 		lat.reset()
 		vert.reset()
@@ -177,39 +194,6 @@ func _takeoff(i: AfInputs, guidance: bool) -> void:
 		takeoff = false
 
 
-## Vertical mode selection from the FCU, and the defaults when guidance starts. Returns the mode picked.
-func _modes(i: AfInputs) -> String:
-	var f := i.f
-	var alt_err: float = f.alt - i.alt_m
-	if lat.mode == "" and vert.mode == "":  # guidance has just started in flight
-		lat.start_hdg()
-		lat.bank_cmd = i.roll
-		if not f.hdg_mgd:
-			writes["hdg"] = i.heading
-		if absf(alt_err) < 30.0:
-			vert.set_mode("ALT")
-		elif f.vs_mgd:
-			vert.set_mode("CLB" if alt_err > 0.0 else "DES")
-		else:
-			vert.set_mode("V/S")
-			writes["vs"] = i.vs_mps
-	if vert.mode == "SRS" or vert.mode == "G/S" or vert.mode == "G/S*" or _last.is_empty():
-		return ""
-	var up := alt_err > 0.0
-	var pick := ""
-	if f.select == "OPEN":
-		pick = "OP CLB" if up else "OP DES"
-	elif f.select == "MANAGED" or (f.vs_mgd and not _last.vs_mgd):
-		pick = "ALT" if absf(alt_err) < 30.0 else ("CLB" if up else "DES")
-	elif f.select == "VS" or (not f.vs_mgd and (absf(f.vs - _last.vs) > 0.01 or _last.vs_mgd)):
-		pick = "V/S"
-	elif absf(f.alt - _last.alt) > 1.0 and (f.vs_mgd or vert.mode == "ALT" or vert.mode == "ALT*"):
-		pick = "ALT" if absf(alt_err) < 30.0 else (("CLB" if up else "DES") if f.vs_mgd else ("OP CLB" if up else "OP DES"))
-	if pick != "":
-		vert.set_mode(pick)
-	return pick
-
-
 func _speed_target(i: AfInputs) -> Dictionary:
 	var m := {"cas": 0.0, "mach": false}
 	if vert.mode == "SRS":
@@ -260,3 +244,4 @@ func load_state(d: Dictionary) -> void:
 	warning = bool(d.get("warning", false))
 	disconnect_count = int(d.get("count", 0))
 	_last = {}
+	preview.reset()

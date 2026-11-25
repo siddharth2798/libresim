@@ -38,6 +38,25 @@ static func approach(l: AfLateral, appr: bool) -> String:
 	return "CAT1" if appr and l.captured() else ""
 
 
+## Colour of line `n` of an FMA column: "green" (engaged), "cyan" (armed), "white", "amber". `col` is the column name, `whole` the
+## column text, `athr_active` = the autothrust commands the levers. Thrust column: a manual or requested state (MAN TOGA / FLX /
+## MCT / THR, LVR CLB) is white (the real FMA boxes it, MAN THR in amber), LVR ASYM amber, the active modes green. Columns 2 and
+## 3: line 1 engaged green, the lines below armed cyan. Column 4 white. Column 5 white; A/THR is white when active, cyan when
+## only armed. docs/A320-FCU-REFERENCE.md.
+static func color(col: String, n: int, whole: String, athr_active: bool) -> String:
+	var line := whole.split("\n")[n] if n < whole.count("\n") + 1 else ""
+	match col:
+		"thrust":
+			if whole.begins_with("LVR ASYM"):
+				return "amber"
+			return "white" if whole.begins_with("MAN") or whole.begins_with("LVR") else "green"
+		"vertical", "lateral":
+			return "green" if n == 0 else "cyan"
+		"misc":
+			return ("white" if athr_active else "cyan") if line == "A/THR" else "white"
+	return "white"
+
+
 static func misc(ap1: bool, ap2: bool, fd: bool, athr: bool) -> String:
 	var lines: Array = []
 	lines.append("AP1+2" if ap1 and ap2 else ("AP1" if ap1 else ("AP2" if ap2 else "")))

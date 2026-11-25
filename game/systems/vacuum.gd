@@ -5,7 +5,10 @@ extends Node
 ## failures/vacuum_pump -> suction decays to zero.
 ## Publishes systems/vacuum/suction_inhg (0..5.5).
 
+const TICK_HZ := 30.0  # docs/USAGE.md "Tick rates"
+
 var suction := 0.0
+var _tick := TickRate.new(TICK_HZ)
 
 
 func _ready() -> void:
@@ -13,6 +16,13 @@ func _ready() -> void:
 
 
 func _physics_process(dt: float) -> void:
+	var h := _tick.step(dt)
+	if h > 0.0:
+		update(h)
+
+
+## Suction for `dt`, the true time since the last run.
+func update(dt: float) -> void:
 	var rpm := Props.get_f("engine/rpm")
 	var target := clampf(rpm / 1200.0, 0.0, 1.0) * 5.0
 	if Props.get_b("failures/vacuum_pump"):

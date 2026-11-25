@@ -4,7 +4,7 @@ extends Control
 ## across (wider if a route is set, so the route fits). Wheel zooms around the cursor, +/- keys
 ## and buttons too; drag pans; Space follows the aircraft again; O toggles north up / heading up.
 ## Click an airport or navaid = GPS direct-to; Shift+click adds it to the route; Backspace clears.
-## "Edit route" (toggle): the planned route ahead is edited on the map as on the Route step (MapRouteEdit: drag a
+## "Edit route" (toggle, or its key: MapKeys, default E): the planned route ahead is edited on the map as on the Route step (MapRouteEdit: drag a
 ## waypoint, drag a leg to add one, click to add, right-click to remove), live into the GPS; wheel zoom and pan stay.
 ## Props: controls/gps/target + controls/gps/route_next (see Gps / RoutePlan), route/rev, ui/map_open.
 ## View maths in MapView, imagery in MapTiles, symbols in MapFeatures, route in MapRouteLayer.
@@ -13,8 +13,6 @@ const MARGIN := 28.0  # UI units of the window left around the map
 const CLICK_SLOP := 6.0  # px of movement that turns a click into a pan
 const ZOOM_STEP := 1.25
 const RECENTER_S := 0.45  # a recentre glides for this long, then the map locks to the aircraft
-const HINT := "Wheel or +/- zoom   ·   drag to pan   ·   click airport = direct-to   ·   Shift+click = add to route   ·   N close"
-const EDIT_HINT := "Click: add a point   ·   drag a waypoint: move   ·   drag a leg: insert   ·   right-click: remove   ·   Shift+click airport: destination"
 
 var db: NavDatabase
 var runways: Array = []
@@ -39,6 +37,7 @@ var _msg_t := 0.0
 var _title: Label
 var _strip: MapStrip  # title line and buttons
 var _edit: MapRouteEdit  # the "Edit route" mode (editor())
+var keys := MapKeys.new()  # the map's keys and hint line
 
 
 func setup(nav_db: NavDatabase, ab: AirportBuilder, c: TerrainTileCache) -> void:
@@ -88,7 +87,7 @@ func _on_button(id: String) -> void:
 
 func _sync_buttons() -> void:
 	if _strip != null:
-		_strip.sync(follow, heading_up, not _plan.is_empty(), editing())
+		_strip.sync(follow, heading_up, not _plan.is_empty(), editing(), keys.edit_key())
 
 
 # ---- state -------------------------------------------------------------------------------------
@@ -235,21 +234,17 @@ func _click(px: Vector2, shift: bool) -> void:
 # ---- input -------------------------------------------------------------------------------------
 
 func _unhandled_key_input(e: InputEvent) -> void:
-	if not (e is InputEventKey and e.pressed):
-		return
-	if e.keycode == KEY_N and not e.echo and not e.shift_pressed and not e.ctrl_pressed:
+	var id := keys.action(e, visible)
+	if id == "toggle":
 		visible = not visible
 		return
-	if not visible or e.ctrl_pressed or e.meta_pressed:
+	if id == "":
 		return
-	match e.keycode:
-		KEY_EQUAL, KEY_PLUS, KEY_KP_ADD: _on_button("in")
-		KEY_MINUS, KEY_KP_SUBTRACT: _on_button("out")
-		KEY_SPACE: _set_follow(true); _sync_buttons()
-		KEY_O: _on_button("orient")
-		KEY_G: _on_button("fit")
-		KEY_BACKSPACE: _on_button("clear")
-		_: return
+	if id == "follow":  # Space always follows (the button toggles)
+		_set_follow(true)
+		_sync_buttons()
+	else:
+		_on_button(id)
 	get_viewport().set_input_as_handled()
 
 
@@ -342,7 +337,7 @@ func _draw() -> void:
 	MapFeatures.draw_north(self, Vector2(size.x - 44.0, 92.0), view.rot, font)
 	MapFeatures.draw_scale_bar(self, view, Vector2(24.0, size.y - 56.0), font)
 	var msg := _msg if _msg_t > 0.0 else (_edit.msg if editing() and _edit.msg != "" else "")
-	var hint := msg if msg != "" else (EDIT_HINT if editing() else HINT)
+	var hint := msg if msg != "" else keys.hint(editing())
 	MapRouteLayer.draw_footer(self, size, legs, Props.get_f("fdm/groundspeed_mps"), font, hint,
 		Color(1, 1, 0.8) if msg != "" else Color(0.9, 0.9, 0.9), not db.ils.is_empty() and view.across_nm() <= MapFeatures.SHOW_ILS_NM)
 	draw_rect(Rect2(Vector2.ZERO, size), Color(MapStyle.ROUTE, 0.9) if editing() else Color(1, 1, 1, 0.3), false, 4.0 if editing() else 2.0)

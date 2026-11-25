@@ -10,6 +10,7 @@ signal stopped(took_control: bool)
 
 const RATE_HZ := 20.0
 const SPEEDS := [0.25, 0.5, 1.0, 2.0, 4.0]
+const TICK_HZ := 60.0  # docs/USAGE.md "Tick rates": a whole number of ticks per 20 Hz sample (30 Hz would sample at 15)
 const JUMP_M := 500.0  # a larger move between two samples = reset / teleport: start over
 
 @export var fdm_path: NodePath = ^"../Fdm"
@@ -24,6 +25,7 @@ var speed := 1.0
 var t := 0.0  # replay position on the recording clock (s)
 var clock := 0.0  # recording clock: flight time while the FDM runs (s)
 var _next_sample := 0.0
+var _tick := TickRate.new(TICK_HZ)
 var _frame := {}
 var _live := {}  # FDM fields when replay started (restored on exit)
 var _live_props := {}
@@ -44,7 +46,9 @@ func setup(node: FdmNode) -> void:
 
 
 func _physics_process(dt: float) -> void:
-	record_tick(dt)
+	var h := _tick.step(dt)
+	if h > 0.0:
+		record_tick(h)
 
 
 ## Called every physics tick: advances the recording clock and samples at 20 Hz.

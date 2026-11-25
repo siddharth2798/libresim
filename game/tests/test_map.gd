@@ -210,18 +210,18 @@ func test_gps_follows_route_and_sequences_through_props() -> String:
 	Props.set_v("fdm/position_enu", Vector3(a.x + 20000.0, a.y, 800.0))
 	Props.set_v("controls/gps/target", "VABB")
 	Props.set_v("controls/gps/route_next", ["VAPO"])
-	g._physics_process(0.01)
+	g.update()
 	if Props.get_v("avionics/gps/ident") != "VABB" or absf(Props.get_f("avionics/gps/dist_nm") - 20000.0 / NM) > 0.05:
 		return "GPS should lead to VABB first"
 	Props.set_v("fdm/position_enu", Vector3(a.x + 300.0, a.y, 100.0))
-	g._physics_process(0.01)
+	g.update()
 	if Props.get_v("controls/gps/target") != "VAPO" or not Props.get_v("controls/gps/route_next").is_empty():
 		return "passing VABB must make VAPO the target, got %s" % Props.get_v("controls/gps/target")
 	if Props.get_v("avionics/gps/ident") != "VAPO":
 		return "GPS output must follow the next leg"
 	Props.set_v("controls/gps/target", "")
 	Props.set_v("controls/gps/route_next", [])
-	g._physics_process(0.01)
+	g.update()
 	if Props.get_v("avionics/gps/ident") != "":
 		return "clearing the route clears the GPS"
 	return ""

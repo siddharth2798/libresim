@@ -4,20 +4,26 @@ extends Node
 
 
 func test_scale_follows_the_preset_steps() -> String:
-	var want := {"low": 1, "medium": 1, "high": 2, "ultra": 2, "max": 4}
+	# Low and Medium march at half resolution too (study F16: they marched every pixel, High half of them).
+	var want := {"low": 2, "medium": 2, "high": 2, "ultra": 2, "max": 4}
 	for p in want:
 		var steps := int(Graphics.PRESETS[p].clouds)
 		var got := CloudTemporal.scale_for_steps(steps)
 		if got != int(want[p]):
 			return "%s at %d steps should march at 1/%d, got 1/%d" % [p, steps, int(want[p]), got]
-	if CloudTemporal.HALF_STEPS != int(Graphics.PRESETS.high.clouds):
-		return "the half-resolution band should start at the high preset"
 	if CloudTemporal.QUARTER_STEPS != int(Graphics.PRESETS.max.clouds):
 		return "the quarter-resolution band should start at the max preset"
-	if CloudTemporal.scale_for_steps(0) != 1 or CloudTemporal.scale_for_steps(23) != 1:
-		return "low and medium stay full resolution"
+	if CloudTemporal.scale_for_steps(0) != 1:
+		return "no clouds (0 steps) needs no low-res march"
+	if CloudTemporal.scale_for_steps(1) != 2 or CloudTemporal.scale_for_steps(23) != 2:
+		return "low and medium step counts march at half resolution"
 	if CloudTemporal.scale_for_steps(24) != 2 or CloudTemporal.scale_for_steps(63) != 2:
 		return "high and ultra stay half resolution"
+	for p in ["low", "medium", "high", "max"]:
+		if CloudTemporal.scale_for(int(Graphics.PRESETS[p].clouds), "gl_compatibility") != 1:
+			return "Compatibility has no CompositorEffect: full resolution on %s" % p
+		if CloudTemporal.scale_for(int(Graphics.PRESETS[p].clouds), "mobile") != int(want[p]):
+			return "Mobile takes the low-res path on %s" % p
 	if CloudTemporal.scale_for_steps(64) != 4 or CloudTemporal.scale_for_steps(128) != 4:
 		return "max and above stay quarter resolution"
 	return ""

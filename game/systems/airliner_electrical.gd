@@ -31,7 +31,10 @@ const DEFAULTS := {
 const SWITCHES := ["bat1", "bat2", "gen1", "gen2", "apu_gen", "ext_pwr"]
 const BUSES := ["ac1", "ac2", "ac_ess", "dc1", "dc2", "dc_ess", "dc_bat"]
 
+const TICK_HZ := 60.0  # docs/USAGE.md "Tick rates"
+
 var def: AircraftDef  # tests set it; otherwise the current aircraft
+var _tick := TickRate.new(TICK_HZ)
 var soc := [0.9, 0.9]  # battery state of charge 0..1
 var bus := {}  # the last AirlinerBusLogic.solve result
 var _p := DEFAULTS.duplicate(true)
@@ -86,6 +89,13 @@ func _loads(b: Dictionary) -> Dictionary:
 
 
 func _physics_process(dt: float) -> void:
+	var h := _tick.step(dt)
+	if h > 0.0:
+		update(h)
+
+
+## Buses and batteries for `dt`, the true time since the last run (the charge integrates it).
+func update(dt: float) -> void:
 	var on := [_bat_on(0), _bat_on(1)]
 	var gens := [_gen(1), _gen(2)]
 	var apu := Props.get_b("apu/running") and _sw("apu_gen") and not Props.get_b("failures/apu_gen") and not Props.get_b("failures/apu")

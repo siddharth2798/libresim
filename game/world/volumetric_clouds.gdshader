@@ -56,7 +56,11 @@ global uniform float haze_density;
 #include "res://world/haze_sky.gdshaderinc"
 
 void vertex() {
+#if CURRENT_RENDERER == RENDERER_COMPATIBILITY
+	POSITION = vec4(VERTEX.xy * 2.0, 0.0, 1.0);  // OpenGL: z = 1 is the far plane edge, which may clip; mid-depth never does
+#else
 	POSITION = vec4(VERTEX.xy * 2.0, 1.0, 1.0);  // QuadMesh 1x1 -> full screen
+#endif
 }
 
 // Texel sizes in metres (256 px tiling over 9000 m, detail at 6x): the noise is sampled at the mip
@@ -142,11 +146,20 @@ float ign(vec2 px) {
 
 // Mean of the 2x2 pixel quad via fine derivatives (the neighbours' march offsets differ, so this halves
 // the remaining step noise for free). The derivative signs are measured from FRAGCOORD itself.
+// The Compatibility (OpenGL ES 3) renderer has no dFdxFine / dFdyFine: plain dFdx / dFdy there (fine or coarse,
+// the driver's choice; coarse still averages the noise, a little less evenly).
+#if CURRENT_RENDERER == RENDERER_COMPATIBILITY
+#define QUAD_DX dFdx
+#define QUAD_DY dFdy
+#else
+#define QUAD_DX dFdxFine
+#define QUAD_DY dFdyFine
+#endif
 vec4 quad_mean(vec4 v, vec2 fc) {
 	vec2 par = mod(floor(fc), 2.0);
-	vec2 sg = vec2(dFdxFine(fc.x), dFdyFine(fc.y));  // +-1: direction of rising pixel index
-	v += 0.5 * (1.0 - 2.0 * par.x) * sg.x * dFdxFine(v);
-	v += 0.5 * (1.0 - 2.0 * par.y) * sg.y * dFdyFine(v);
+	vec2 sg = vec2(QUAD_DX(fc.x), QUAD_DY(fc.y));  // +-1: direction of rising pixel index
+	v += 0.5 * (1.0 - 2.0 * par.x) * sg.x * QUAD_DX(v);
+	v += 0.5 * (1.0 - 2.0 * par.y) * sg.y * QUAD_DY(v);
 	return v;
 }
 
@@ -158,7 +171,11 @@ void fragment() {
 		vec2 duv = depth_flip > 0.5 ? vec2(uv.x, 1.0 - uv.y) : uv;
 		depth = textureLod(scene_depth, duv, 0.0).r;
 	}
+#if CURRENT_RENDERER == RENDERER_COMPATIBILITY
+	vec4 ndc = vec4(uv * 2.0 - 1.0, depth * 2.0 - 1.0, 1.0);  // OpenGL: depth 0..1 maps to NDC -1..1
+#else
 	vec4 ndc = vec4(uv * 2.0 - 1.0, depth, 1.0);
+#endif
 	vec4 vpos = INV_PROJECTION_MATRIX * ndc;
 	vpos.xyz /= vpos.w;
 	float scene_dist = length(vpos.xyz);

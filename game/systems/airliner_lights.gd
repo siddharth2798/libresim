@@ -17,7 +17,10 @@ const DEFAULTS := {
 		"wing": "ac_ess", "logo": "ac_ess", "rwy_turnoff": "ac_ess", "landing_r": "ac_ess"},
 }
 
+const TICK_HZ := 30.0  # docs/USAGE.md "Tick rates"
+
 var def: AircraftDef
+var _tick := TickRate.new(TICK_HZ)
 var landing_pos := [0.0, 0.0]  # left, right
 var _p := DEFAULTS.duplicate(true)
 
@@ -48,6 +51,13 @@ func _powered(light: String) -> bool:
 
 
 func _physics_process(dt: float) -> void:
+	var h := _tick.step(dt)
+	if h > 0.0:
+		update(h)
+
+
+## Lamp state and the landing-light extension for `dt`, the true time since the last run.
+func update(dt: float) -> void:
 	var h := "systems/lights/"
 	for n in NAMES:
 		Props.set_v(h + n + "_on", Props.get_b("controls/lights/" + n) and _powered(n))

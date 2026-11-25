@@ -267,16 +267,6 @@ func test_disp_fcu_writes_props() -> String:
 		f._press("btn_" + b, MOUSE_BUTTON_LEFT, Vector2.ZERO)
 		if err == "" and not Props.get_b("controls/fcu/" + b):
 			err = "button " + b
-	Props.set_v("controls/fcu/spd_kt", 250.0)
-	var w: Rect2 = FCU.WIN[0]
-	f._press("knob_spd", MOUSE_BUTTON_LEFT, w.get_center() + Vector2(20, 0))
-	f._press("knob_spd", MOUSE_BUTTON_LEFT, w.get_center() + Vector2(20, 0))
-	f._press("knob_spd", MOUSE_BUTTON_LEFT, w.get_center() - Vector2(20, 0))
-	if err == "" and Props.get_f("controls/fcu/spd_kt") != 251.0:
-		err = "SPD knob %s" % Props.get_f("controls/fcu/spd_kt")
-	f._press("knob_spd", MOUSE_BUTTON_RIGHT, w.get_center() + Vector2(20, 0))
-	if err == "" and Props.get_f("controls/fcu/spd_kt") != 261.0:
-		err = "SPD right click x10"
 	Props.set_v("controls/fcu/hdg_deg", 359.0)
 	f._wheel("knob_hdg", 1.0)
 	if err == "" and Props.get_f("controls/fcu/hdg_deg") != 0.0:
@@ -287,12 +277,10 @@ func test_disp_fcu_writes_props() -> String:
 	f._wheel("knob_vs", -1.0)
 	if err == "" and (Props.get_f("controls/fcu/alt_ft") != 10100.0 or Props.get_f("controls/fcu/vs_fpm") != -100.0):
 		err = "ALT / V/S steps"
-	if err == "" and (FCU.stepped("alt", 39000.0, 5.0) != 39000.0 or FCU.stepped("vs", 5950.0, 5.0) != 6000.0):
-		err = "knob limits"
 	Props.set_v("controls/fcu/hdg_managed", false)
-	f._press("knob_hdg", MOUSE_BUTTON_MIDDLE, Vector2.ZERO)
+	f._press("knob_hdg", MOUSE_BUTTON_LEFT, Vector2.ZERO)  # a click pushes: managed (the whole card is tested in test_fcu_panel.gd)
 	if err == "" and not Props.get_b("controls/fcu/hdg_managed"):
-		err = "HDG managed toggle"
+		err = "HDG push"
 	f.free()
 	_end()
 	return err

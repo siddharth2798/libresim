@@ -10,6 +10,9 @@ extends Node
 const VSI_TAU := 2.0  # s, first-order; ~6 s to 95 %
 const ALT_TAU := 0.3
 const ASI_TAU := 0.15
+const TICK_HZ := 30.0  # docs/USAGE.md "Tick rates"
+
+var _tick := TickRate.new(TICK_HZ)
 
 var _alt := 0.0
 var _vsi := 0.0
@@ -23,6 +26,13 @@ func _ready() -> void:
 
 
 func _physics_process(dt: float) -> void:
+	var h := _tick.step(dt)
+	if h > 0.0:
+		update(h)
+
+
+## One reading; `dt` is the true time since the last one (the lags and the VSI rate use it).
+func update(dt: float) -> void:
 	var pitot := Props.get_f("systems/pitot_static/pitot_pa", 101325.0)
 	var stat := Props.get_f("systems/pitot_static/static_pa", 101325.0)
 	var qc := maxf(pitot - stat, 0.0)

@@ -31,3 +31,10 @@ Standing reqs: PLAN.md §8b.
 
 Tests: when a change affects behaviour, add or update a test that fails on the old behaviour and passes on the new one. Before every commit, run the full suite on the tree being committed: `tools/test_all.sh` (parallel, sized to the machine; `TEST_JOBS=N` forces N workers; details in docs/USAGE.md "Automated tests"). The single process `~/.local/bin/godot --headless --audio-driver Dummy --path game res://tests/run_tests.tscn` is the reference run and also works. A new failure blocks the commit. A known unrelated failure may remain only when it is already recorded.
 Godot 4.7.2 at ~/.local/bin/godot (not on PATH). Python: tools/.venv. Keep docs/USAGE.md updated each milestone.
+
+Shell commands (agents and main session): every unanalysable command makes Claude Code ask the user, so keep them plain.
+- Prefer Edit / Write / Read / Grep / Glob over shell. Never edit files with `python3 - <<EOF`, sed or awk.
+- One simple command per call. Absolute paths or `$HOME`, never `~` in an assignment; no globs in paths (`*.gd`); no loops, `$()` or long `;` / `&&` chains. Multi-step logic goes in a script file.
+- Every Godot launch, windowed or headless, passes `--audio-driver Dummy`.
+- Run tests from the project root with `tools/test_all.sh` (`TEST_JOBS=3` while other agents share the machine). The exact allowed forms are in the local `.claude/settings.json`; agents must not edit `.claude/`, `tools/*.sh`, `run.sh` or this file without the user's approval.
+- Before every commit, `git diff` the scripts the allow list trusts (`tools/test_all.sh`, `tools/bench.sh`, `game/tests/parallel/`) against HEAD and show the user.

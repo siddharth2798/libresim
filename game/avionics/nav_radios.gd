@@ -2,7 +2,8 @@ class_name NavRadios
 extends Node
 ## NAV1/NAV2 (KX-155 style VOR/LOC/GS + DME) and ADF (KR-87). Reads the tuned
 ## frequencies & OBS from Props "controls/nav{1,2}/{freq_mhz,obs_deg}", "controls/adf/freq_khz";
-## publishes "avionics/nav{1,2}/*" and "avionics/adf/*".
+## publishes "avionics/nav{1,2}/*" (cdi and gs clamped to full scale -1..1; cdi_raw and gs_raw the same deviations
+## unclamped, for a display that marks "beyond the scale": ui/displays/pfd_ils.gd) and "avionics/adf/*".
 ## Physics: VOR radial from the station (magnetic, station variation), CDI = course
 ## error (10 deg full scale VOR; LOC ~2.5 deg full scale from 700 ft course width);
 ## GS = angle error vs 3 deg (0.7 deg full scale). Reception needs range (VOR ~
@@ -11,9 +12,13 @@ extends Node
 
 const NM := 1852.0
 const FT := 0.3048
+const RAW_MAX := 9.99  # cdi_raw / gs_raw: the deviation unclamped (1 = full scale), within this
+
+const TICK_HZ := 30.0  # docs/USAGE.md "Tick rates"
 
 var db: NavDatabase
 var terrain: TerrainQuadtree
+var _tick := TickRate.new(TICK_HZ)
 var _los := {}  # station key -> bool (refreshed every 0.5 s)
 var _los_t := 0.0
 
@@ -32,6 +37,13 @@ func _ready() -> void:
 
 
 func _physics_process(dt: float) -> void:
+	var h := _tick.step(dt)
+	if h > 0.0:
+		update(h)
+
+
+## NAV1 / NAV2 / ADF from the aircraft's position now; `dt` is the true time since the last run (30 Hz, TickRate).
+func update(dt: float) -> void:
 	var p: Vector3 = Props.get_v("fdm/position_enu", Vector3.ZERO)
 	var powered := Props.get_b("systems/electrical/avionics_powered", true)
 	_los_t -= dt
@@ -63,7 +75,7 @@ func _line_of_sight(key: String, a: Vector3, b: Vector3, refresh: bool) -> bool:
 func _nav(i: int, p: Vector3, powered: bool, refresh: bool) -> void:
 	var pre := "avionics/nav%d/" % i
 	var st := db.nav_station(Props.get_f("controls/nav%d/freq_mhz" % i), Vector2(p.x, p.y)) if powered else {}
-	var out := {"valid": false, "cdi": 0.0, "to_from": 0, "gs_valid": false, "gs": 0.0, "dme_nm": -1.0,
+	var out := {"valid": false, "cdi": 0.0, "cdi_raw": 0.0, "to_from": 0, "gs_valid": false, "gs": 0.0, "gs_raw": 0.0, "dme_nm": -1.0,
 		"ident": "", "kind": "", "radial_deg": 0.0}
 	if not st.is_empty():
 		var s: Dictionary = st.s
@@ -79,7 +91,8 @@ func _nav(i: int, p: Vector3, powered: bool, refresh: bool) -> void:
 				var err := diff if from else wrapf(diff - 180.0, -180.0, 180.0)
 				# + = needle right (fly right). FROM: radial clockwise of course = right of track
 				# -> fly left; TO (inbound): radial clockwise of the inbound radial = left of track -> fly right
-				out.cdi = clampf((-err if from else err) / 10.0, -1.0, 1.0)
+				out.cdi_raw = clampf((-err if from else err) / 10.0, -RAW_MAX, RAW_MAX)
+				out.cdi = clampf(out.cdi_raw, -1.0, 1.0)
 				out.to_from = -1 if from else 1
 				out.valid = dist > 300.0  # cone of confusion overhead
 				out.radial_deg = brg_from
@@ -95,7 +108,8 @@ func _nav(i: int, p: Vector3, powered: bool, refresh: bool) -> void:
 			var err2 := wrapf(to_loc - s.course_true, -180.0, 180.0)  # + = aircraft left of course
 			if dist2 < 18.0 * NM and absf(err2) < 35.0 and _line_of_sight(s.ident, lp, p, refresh):
 				var width := clampf(rad_to_deg(atan2(105.0, dist2)), 1.5, 3.0)  # 700 ft course sector
-				out.cdi = clampf(err2 / width, -1.0, 1.0)
+				out.cdi_raw = clampf(err2 / width, -RAW_MAX, RAW_MAX)
+				out.cdi = clampf(out.cdi_raw, -1.0, 1.0)
 				out.valid = true
 				out.to_from = 1
 				out.ident = s.ident
@@ -104,7 +118,8 @@ func _nav(i: int, p: Vector3, powered: bool, refresh: bool) -> void:
 				var gd := Vector2(p.x, p.y).distance_to(Vector2(g.x, g.y))
 				if gd < 10.0 * NM and absf(err2) < 8.0:
 					var ang := rad_to_deg(atan2(p.z - g.h, gd))
-					out.gs = clampf((s.gs_deg - ang) / 0.7, -1.0, 1.0)  # + = needle up (fly up)
+					out.gs_raw = clampf((s.gs_deg - ang) / 0.7, -RAW_MAX, RAW_MAX)  # + = needle up (fly up)
+					out.gs = clampf(out.gs_raw, -1.0, 1.0)
 					out.gs_valid = true
 				out.dme_nm = p.distance_to(Vector3(s.threshold.x, s.threshold.y, s.threshold.h)) / NM
 	if i == 1 and Props.get_b("failures/dme"):  # the KI-266 is slaved to NAV1

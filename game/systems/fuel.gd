@@ -12,7 +12,10 @@ extends Node
 
 const DEFAULTS := {"feed": "selector", "line_s": 6.0, "unusable_kg_per_tank": 4.08, "leak_kg_per_h": 13.6}
 
+const TICK_HZ := 60.0  # docs/USAGE.md "Tick rates"
+
 var _p := DEFAULTS.duplicate()
+var _tick := TickRate.new(TICK_HZ)
 var _sides: Array[String] = []  # per tank: left | right | centre
 var _line := 0.0
 
@@ -33,6 +36,13 @@ func _ready() -> void:
 
 
 func _physics_process(dt: float) -> void:
+	var h := _tick.step(dt)
+	if h > 0.0:
+		update(h)
+
+
+## Tank feed for `dt`, the true time since the last run (the line fuel counts it down).
+func update(dt: float) -> void:
 	var kg = Props.get_v("fuel/tank_kg", null)
 	var feed: Array = []
 	var leak: Array = []

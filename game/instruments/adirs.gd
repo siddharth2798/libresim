@@ -8,10 +8,14 @@ extends Node
 
 const VAR_DEG := -0.3  # magnetic variation near Mumbai, as in avionics/gps.gd
 const G := 9.80665
+const TICK_HZ := 30.0  # docs/USAGE.md "Tick rates"
+
+var _tick := TickRate.new(TICK_HZ)
 
 
-func _physics_process(_dt: float) -> void:
-	publish()
+func _physics_process(dt: float) -> void:
+	if _tick.step(dt) > 0.0:
+		publish()
 
 
 ## Slip ball from the body-axes specific force (y right): the ball rolls toward the low side.

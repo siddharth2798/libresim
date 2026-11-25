@@ -1,166 +1,258 @@
 class_name AirportBuilder
 extends Node3D
-## Builds runway and taxiway surfaces from data/processed/runways.json
-## (tools/09_runways.py). Each surface is a strip mesh draped on the terrain triangles (GroundDrape: at the
-## FDM's ground height, no lift; the shaders win the depth test), anchored at a lattice point near its first
-## point and re-positioned when the floating origin shifts. The meshes are cut on a worker thread (~1 s for
-## every airport, with its own height cache) and appear as they finish; data is there at once.
+## Builds runway and taxiway surfaces from data/processed/runways.json (tools/09_runways.py), only near the camera.
+## One group per airport (AirportGroups): built while the camera is within its range (the draw distance of something as
+## large as its longest runway, scaled by the preset like world/vis_ranges.gd), freed beyond that x 1.3 (no flicker).
+## Airports within SYNC_M are built at once on this thread (the start airport, a save at another airport, an air start:
+## before the first frame); the others are cut on a worker (AirportStream), nearest first, a few nodes a frame.
+## Each surface is a strip mesh draped on the terrain triangles (GroundDrape: at the FDM's ground height, no lift; the
+## shaders win the depth test), anchored at a lattice point, re-positioned when the floating origin shifts. Per airport:
+## a mesh and material per runway, ONE merged taxiway mesh and ONE lead-on mesh (AirportCut; shared materials, UV2).
 ## Runways draw world/runway_v2.gdshader (ICAO layout from RunwayMarkings, static look baked lazily near the camera by
 ## RunwayBakes); taxiways and lead-on lines draw strip.gdshaderinc. runway_material(key) finds a runway's material for
-## TouchdownMarks (key: TouchdownMarks.runway_key).
+## TouchdownMarks (key: TouchdownMarks.runway_key); runway_built(key) says when a runway got its mesh (again, after
+## being freed), so its tyre marks go back on.
 
+signal runway_built(key: String)
+
+const SYNC_M := RunwayBakes.NEAR_M  # groups this close are built at once
+const CHECK_S := 0.5  # how often the near / far check runs
+const JUMP_M := 2000.0  # the camera moved this far since the last check (a load, a teleport): check now
+const NODES_PER_FRAME := 3  # nodes created a frame for a group that came from the worker
 
 var terrain: TerrainQuadtree
 var data: Dictionary
-var _items: Array = []  # [MeshInstance3D, anchor ENU Vector3]
-var _jobs: Array = []  # [pts Array[Vector2], width, kind (0 runway, 1 taxiway, 2 lead-on), length, record (runway / taxiway)]
-var _done: Array = []  # [job, arrays, anchor] from the worker
-var _mutex := Mutex.new()
-var _task := -1
+var _groups: Array = []  # AirportGroups.make; read by the worker, never written after build()
+var _state: Array[int] = []  # per group: 0 absent, 1 being cut on the worker, 2 nodes waiting in _spawn, 3 built
+var _nodes: Array = []  # per group: its MeshInstance3D nodes
+var _keys: Array = []  # per group: the runway keys it put into _runway_mats
+var _left: Array[int] = []  # per group: nodes of _spawn not created yet
+var _items: Array = []  # [MeshInstance3D, anchor ENU Vector3] of every built node (a floating-origin shift moves them)
+var _spawn: Array = []  # [group, kind (0 runway, 1 taxiways, 2 lead-ons), cut] waiting for NODES_PER_FRAME
+var _want: Array = []  # groups for the worker, nearest first (renewed every check)
+var _last_ex: Array = []  # metres from the camera to each group's circle at the last check
+var _stream: AirportStream
 var _shader := preload("res://world/runway_v2.gdshader")
 var _taxi_shader := preload("res://world/taxiway.gdshader")  # fades out when a few px wide
 var _lead_shader := preload("res://world/lead_on.gdshader")  # yellow line only, drawn over a runway
+var _taxi_mat: ShaderMaterial  # shared by every airport
+var _lead_mat: ShaderMaterial
 var _runway_mats := {}  # TouchdownMarks.runway_key -> ShaderMaterial
 var _bakes := RunwayBakes.new(self)
+var _t := 0.0
+var _last_cam := Vector3(INF, INF, INF)
 
 
-## wait: cut the meshes now, on this thread (tests); else on a worker, added by _process.
-func build(t: TerrainQuadtree, wait := false) -> void:
+## wait: build every airport now, on this thread (tests); else only what update() / focus() asks for.
+## preset: runways.json contents to use instead of the file (tests).
+func build(t: TerrainQuadtree, wait := false, preset := {}) -> void:
 	terrain = t
-	data = Paths.load_json("runways.json")
+	data = preset if not preset.is_empty() else Paths.load_json("runways.json")
 	if data == null:
 		return
-	for r in data.runways:
-		var a: Dictionary = r.ends[0]
-		var b: Dictionary = r.ends[1]
-		_jobs.append([[Vector2(a.x, a.y), Vector2(b.x, b.y)], float(r.width), 0, float(r.length), r])
-	for tw in data.taxiways:
-		var pts: Array[Vector2] = []
-		for p in tw.pts:
-			pts.append(Vector2(p[0], p[1]))
-		_jobs.append([pts, minf(tw.width, 23.0), 1, 0.0, tw])
-	_lead_ons()
+	_groups = AirportGroups.make(data)
+	_stream = AirportStream.new(_groups)
+	_state.resize(_groups.size())
+	_state.fill(0)
+	_left.resize(_groups.size())
+	_left.fill(0)
+	for g in _groups:
+		_nodes.append([])
+		_keys.append([])
+	_taxi_mat = _surface_material(_taxi_shader, 15.0)
+	_lead_mat = _surface_material(_lead_shader, AirportCut.LEAD_W)
 	_shader_defaults()
 	FloatingOrigin.shifted.connect(func(_d): _reposition())
 	if wait:
-		_work(t.cache)
-		_flush()
-	else:
-		_task = WorkerThreadPool.add_task(_work.bind(TerrainTileCache.new()))
+		for i in _groups.size():
+			_build_now(i)
 
 
-## True while the runway and taxiway meshes are still being cut.
+func _surface_material(sh: Shader, w: float) -> ShaderMaterial:
+	var mat := ShaderMaterial.new()  # default render priority: the apron light pools draw over it (ApronFloodlights.POOL_PRIORITY)
+	mat.shader = sh
+	mat.set_shader_parameter("is_runway", false)
+	mat.set_shader_parameter("width_m", w)
+	return mat
+
+
+## Call after placing the aircraft (ENU x, y, up; flight start, a loaded save, an air start): its airports have
+## runways before the next frame is drawn.
+func focus(enu: Vector3) -> void:
+	_last_cam = enu
+	_t = 0.0
+	update(enu)
+
+
+## One check from camera position cam (ENU x, y, up): frees what is beyond range x hysteresis, builds what is within
+## SYNC_M at once (everything wanted when sync_all), queues the others for the worker, nearest first.
+func update(cam: Vector3, sync_all := false) -> void:
+	var ex := []
+	var rg := []
+	var built := []
+	for i in _groups.size():
+		ex.append(AirportGroups.excess(_groups[i], cam))
+		rg.append(AirportGroups.range_m(_groups[i]))
+		built.append(_state[i] != 0)
+	_last_ex = ex
+	var p := AirportGroups.plan(ex, rg, built)
+	for i in p.free:
+		_free(i)
+	_want = []
+	for i in p.build:
+		if sync_all or ex[i] < SYNC_M:
+			_build_now(i)
+		else:
+			_want.append(i)
+
+
+## True while an airport within SYNC_M of the camera has no meshes (never, once update() has run).
 func busy() -> bool:
-	return _task >= 0
+	return not _groups.is_empty() and (_last_ex.is_empty() or progress() < 1.0)
 
 
-## 0..1 of those meshes on the scene. Stays short of 1 until the worker has finished.
+## 0..1 of the airports within SYNC_M of the camera that are built.
 func progress() -> float:
-	if _task < 0:
-		return 1.0
-	if _jobs.is_empty():
-		return 0.0
-	return clampf(float(_items.size()) / float(_jobs.size()), 0.0, 0.99)
+	var n := 0
+	var done := 0
+	for i in _last_ex.size():
+		if _last_ex[i] < SYNC_M:
+			n += 1
+			done += 1 if _state[i] == 3 else 0
+	return 1.0 if n == 0 else float(done) / float(n)
+
+
+## Keys of the airports (ICAO, or "cell:x:y" for taxiways far from any runway) that have their meshes now.
+func built_keys() -> Array:
+	var out := []
+	for i in _groups.size():
+		if _state[i] == 3:
+			out.append(_groups[i].key)
+	return out
+
+
+## The group (AirportGroups) of an airport key, {} if there is none.
+func group(key: String) -> Dictionary:
+	for g in _groups:
+		if g.key == key:
+			return g
+	return {}
 
 
 func _process(dt: float) -> void:
 	var cam := get_viewport().get_camera_3d()
+	var at := Vector3(FloatingOrigin.origin.x, FloatingOrigin.origin.y, 0.0)
 	if cam:
-		var w := FloatingOrigin.to_world(cam.global_position)
-		_bakes.step(Vector2(w.x, w.y), dt)
-	if _task >= 0:
-		_flush()
-		if WorkerThreadPool.is_task_completed(_task):
-			WorkerThreadPool.wait_for_task_completion(_task)
-			_task = -1
-			_flush()
+		at = FloatingOrigin.to_world(cam.global_position)
+		_bakes.step(Vector2(at.x, at.y), dt)
+	if _groups.is_empty():
+		return
+	_t += dt
+	if _t >= CHECK_S or Vector2(at.x, at.y).distance_to(Vector2(_last_cam.x, _last_cam.y)) > JUMP_M:
+		_t = 0.0
+		_last_cam = at
+		update(at)
+	var r := _stream.poll()
+	if not r.is_empty() and _state[r[0]] == 1:  # (a group freed or built at once meanwhile is dropped)
+		_queue_specs(r[0], r[1])
+	_spawn_some(NODES_PER_FRAME)
+	if _stream.inflight < 0:
+		for i in _want:
+			if _state[i] == 0:
+				_state[i] = 1
+				_stream.start(i)
+				break
 
 
 func _exit_tree() -> void:
 	_bakes.stop()
-	if _task >= 0:
-		WorkerThreadPool.wait_for_task_completion(_task)
-		_task = -1
+	if _stream:
+		_stream.stop()
 
 
-## Worker: drapes every job on the terrain of cache (used by this thread only).
-func _work(cache: TerrainTileCache) -> void:
-	var res := cache.tmeta.tile_size_m / cache.tile_n
-	for j in _jobs:
-		var pts: Array = j[0]
-		if pts.size() < 2:
-			continue
-		var o := GroundDrape.snap(pts[0].x, pts[0].y, res)
-		var anchor := Vector3(o.x, o.y, cache.height_at(pts[0].x, pts[0].y))
-		var local: Array = []
-		for p in pts:
-			local.append(Vector2(p.x - o.x, p.y - o.y))
-		var tris := PackedVector2Array()
-		var uvs := PackedVector2Array()
-		var along := GroundDrape.strip(local, j[1], tris, uvs)
-		var arr := GroundDrape.arrays(tris, uvs, anchor.x, anchor.y, anchor.z, cache.height_at, res)
-		if not arr.is_empty():
-			_mutex.lock()
-			_done.append([j, arr, anchor, along])
-			_mutex.unlock()
+## The nodes of one cut group: [[kind, spec]], a runway each, then the taxiways, then the lead-on lines.
+func _specs(cut: Dictionary) -> Array:
+	var out: Array = cut.runways.map(func(rw): return [0, rw])
+	if not cut.taxi.is_empty():
+		out.append([1, cut.taxi])
+	if not cut.lead.is_empty():
+		out.append([2, cut.lead])
+	return out
 
 
-## Main thread: meshes for the finished jobs.
-func _flush() -> void:
-	_mutex.lock()
-	var batch := _done
-	_done = []
-	_mutex.unlock()
-	for d in batch:
-		var j: Array = d[0]
-		var kind: int = j[2]
+func _queue_specs(i: int, cut: Dictionary) -> void:
+	var specs := _specs(cut)
+	for s in specs:
+		_spawn.append([i, s[0], s[1]])
+	_left[i] = specs.size()
+	_state[i] = 2 if specs.size() > 0 else 3
+
+
+func _spawn_some(budget: int) -> void:
+	while budget > 0 and not _spawn.is_empty():
+		var e: Array = _spawn.pop_front()
+		_spawn_node(e[0], e[1], e[2])
+		_left[e[0]] -= 1
+		if _left[e[0]] == 0:
+			_state[e[0]] = 3
+		budget -= 1
+
+
+## Builds group i now, on this thread, with the terrain's own cache.
+func _build_now(i: int) -> void:
+	_free(i)
+	for s in _specs(AirportCut.cut(_groups[i], terrain.cache)):
+		_spawn_node(i, s[0], s[1])
+	_state[i] = 3
+
+
+## Frees group i: its nodes, runway materials and bakes.
+func _free(i: int) -> void:
+	if _state[i] == 0:
+		return
+	_spawn = _spawn.filter(func(e): return e[0] != i)
+	for mi in _nodes[i]:
+		_items = _items.filter(func(it): return it[0] != mi)
+		mi.queue_free()
+	for key in _keys[i]:
+		if _runway_mats.has(key):
+			_bakes.remove(_runway_mats[key])
+			_runway_mats.erase(key)
+	_nodes[i] = []
+	_keys[i] = []
+	_left[i] = 0
+	_state[i] = 0
+
+
+## One node of group i: kind 0 a runway (cut: {rec, arrays, anchor, along}), 1 the taxiways, 2 the lead-on lines.
+func _spawn_node(i: int, kind: int, cut: Dictionary) -> void:
+	var mi := MeshInstance3D.new()
+	mi.mesh = GroundDrape.to_mesh(cut.arrays)
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	var key := ""
+	if kind == 0:
+		var rec: Dictionary = cut.rec
 		var mat := ShaderMaterial.new()
-		mat.shader = [_shader, _taxi_shader, _lead_shader][kind]
-		mat.set_shader_parameter("is_runway", kind == 0)
-		mat.set_shader_parameter("length_m", d[3] if kind != 0 else j[3])
-		mat.set_shader_parameter("width_m", j[1])
-		if kind == 0:
-			var u := RunwayMarkings.uniforms(j[4])
-			for k in u:
-				mat.set_shader_parameter(k, u[k])
-			_runway_mats[TouchdownMarks.runway_key(j[4])] = mat
-			_bakes.add(mat, j[4], u)
-		elif kind == 1:
-			mat.set_shader_parameter("edge_lines", bool(j[4].get("width_known", absf(float(j[4].width) - 15.0) > 0.01)))
-		var mi := MeshInstance3D.new()
-		mi.mesh = GroundDrape.to_mesh(d[1])
+		mat.shader = _shader
+		mat.set_shader_parameter("is_runway", true)
+		mat.set_shader_parameter("length_m", float(rec.length))
+		mat.set_shader_parameter("width_m", float(rec.width))
+		var u := RunwayMarkings.uniforms(rec)
+		for k in u:
+			mat.set_shader_parameter(k, u[k])
+		key = TouchdownMarks.runway_key(rec)
+		_runway_mats[key] = mat
+		_keys[i].append(key)
+		_bakes.add(mat, rec, u)
 		mi.material_override = mat
-		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-		add_child(mi)
-		mi.position = FloatingOrigin.to_render(d[2])
-		_items.append([mi, d[2]])
-
-
-## OSM taxiways end on the runway centre line, but the runway surface hides that last stretch: draw
-## the yellow lead-on line over the runway (the part of each taxiway inside a runway strip).
-func _lead_ons() -> void:
-	for r in data.runways:
-		var a := Vector2(r.ends[0].x, r.ends[0].y)
-		var b := Vector2(r.ends[1].x, r.ends[1].y)
-		var u := (b - a).normalized()
-		var hw := float(r.width) * 0.5
-		var length := a.distance_to(b)
-		for tw in data.taxiways:
-			var run: Array[Vector2] = []
-			var prev := Vector2.INF
-			for p in tw.pts:
-				var v := Vector2(p[0], p[1])
-				var along := (v - a).dot(u)
-				if absf((v - a).cross(u)) < hw + 0.5 and along > -2.0 and along < length + 2.0:
-					if run.is_empty() and prev != Vector2.INF:
-						run.append(prev)  # the last point outside: the line enters the runway from there
-					run.append(v)
-				elif not run.is_empty():
-					run.append(v)  # first point past the strip: the line crosses it
-					break
-				prev = v
-			if run.size() >= 2:
-				_jobs.append([run, 1.0, 2, 0.0, {}])
+	else:
+		mi.material_override = _taxi_mat if kind == 1 else _lead_mat
+	add_child(mi)
+	mi.position = FloatingOrigin.to_render(cut.anchor)
+	_nodes[i].append(mi)
+	_items.append([mi, cut.anchor])
+	if key != "":
+		runway_built.emit(key)
 
 
 ## The material of runway `key` (TouchdownMarks.runway_key), null if it has no mesh yet.

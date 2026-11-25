@@ -10,6 +10,9 @@ const DECLINATION := deg_to_rad(-0.3)
 const DIP := deg_to_rad(26.0)
 const WN := 2.5   # rad/s card natural frequency
 const ZETA := 0.45
+const TICK_HZ := 30.0  # docs/USAGE.md "Tick rates"
+
+var _tick := TickRate.new(TICK_HZ)
 
 var fdm: FDM
 var _card := 0.0  # rad, magnetic heading shown
@@ -17,6 +20,13 @@ var _rate := 0.0
 
 
 func _physics_process(dt: float) -> void:
+	var h := _tick.step(dt)
+	if h > 0.0:
+		update(h)
+
+
+## Advances the card by `dt`, the true time since the last run.
+func update(dt: float) -> void:
 	if fdm == null:
 		return
 	var r_bn := Basis(fdm.q)

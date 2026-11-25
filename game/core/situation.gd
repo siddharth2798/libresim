@@ -94,6 +94,9 @@ static func apply(root: Node, d: Dictionary) -> String:
 	var apt_ops := root.get_node_or_null("AirportOps")
 	if apt_ops != null and apt_ops.has_method("corridors_near_aircraft"):  # a save at another airport: its corridors before the next physics step
 		apt_ops.call("corridors_near_aircraft", [], enu)
+	var apt_rw := root.get_node_or_null("Airports")
+	if apt_rw is AirportBuilder:  # a save at another airport: its runways are built before anything is drawn
+		apt_rw.focus(enu)
 	# Props: failure flags are cleared first so ones repaired since the save stay off
 	FailureCatalog.clear_all()
 	var props := {}

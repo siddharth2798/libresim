@@ -54,6 +54,7 @@ func setup(model: Node3D, rot: Vector2, way_cab: Vector2, p_cands: Array, back :
 	rest = JetwayPose.rest(rot, way_cab)
 	cands = p_cands
 	_model = model
+	JetwayNight.apply(model)  # night look (jetway.gdshader) before the parts are regrouped
 	_back_yaw = atan2(-back.y, -back.x) if back.length() > 0.5 else float(rest.yaw)
 	_pitch.position = Vector3(0.0, JetwayPose.FLOOR_Y, 0.0)
 	model.position = Vector3(-JetwayPose.PIVOT_X, -JetwayPose.FLOOR_Y, 0.0)
@@ -67,6 +68,7 @@ func setup(model: Node3D, rot: Vector2, way_cab: Vector2, p_cands: Array, back :
 		var m := _take(model, n, _cab)
 		if m:
 			m.position = Vector3(-JetwayPose.DRUM_X, 0.0, -CAB_Z)
+	JetwayNight.door_glow(_cab.find_child("Hood", false, false) as Node3D)
 	_canopy = JetwayCanopy.build(_cab.find_child("Hood", false, false) as Node3D, GroundParams.ground())
 	var r := _take(model, "Rotunda1", _rotunda)
 	if r:

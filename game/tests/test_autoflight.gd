@@ -31,11 +31,16 @@ func test_af_managed_vertical() -> String:
 	if logic.vert.mode != "CLB":
 		return "climb %s" % logic.vert.mode
 	i.f.select = ""
-	i.f.alt = 1524.0
-	logic.vert.set_mode("V/S")
+	i.f.alt = 1524.0  # turned below a managed climb: a reversion to V/S, not a new descent (docs/A320-FCU-REFERENCE.md)
 	logic.update(i)
+	if logic.vert.mode != "V/S" or not logic.writes.has("vs_mgd"):
+		return "a target on the wrong side of a managed climb reverts to V/S: %s %s" % [logic.vert.mode, logic.writes]
+	i.f.vs_mgd = true
+	i.f.select = "MANAGED"  # pushed: the managed descent
+	logic.update(i)
+	i.f.select = ""
 	if logic.vert.mode != "DES":
-		return "descent from a managed altitude change %s" % logic.vert.mode
+		return "ALT pushed below the aircraft: managed descent %s" % logic.vert.mode
 	var level := AfLogic.new({})
 	var j := _air(3048.0)
 	level.update(j)

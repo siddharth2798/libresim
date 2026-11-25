@@ -54,7 +54,7 @@ static func to_render_dir(p: Vector2) -> Vector3:
 
 ## Called by SkyTime each frame. night: 0 day .. 1 full night; occl: cloud occlusion.
 func update_night(hours: float, day_of_year: float, night: float, occl: float, sun_dir: Vector3,
-		env: Environment, sky: ShaderMaterial) -> void:
+		env: Environment, sky: SkyParams) -> void:
 	var mp := moon_position(hours, day_of_year)
 	moon_dir = to_render_dir(mp)
 	var k := illumination(phase(hours, day_of_year))
@@ -66,11 +66,11 @@ func update_night(hours: float, day_of_year: float, night: float, occl: float, s
 		moon.look_at_from_position(Vector3.ZERO, -moon_dir, Vector3.UP if absf(moon_dir.y) < 0.99 else Vector3.FORWARD)
 	moon.light_energy = 0.22 * moon_light * (1.0 - 0.85 * occl)
 	moon.visible = moon.light_energy > 0.002
-	sky.set_shader_parameter("moon_dir", moon_dir)
-	sky.set_shader_parameter("moon_illum", k)
-	sky.set_shader_parameter("moon_vis", night * (1.0 - smoothstep(0.4, 0.85, occl)) * smoothstep(-0.02, 0.02, moon_dir.y))
-	sky.set_shader_parameter("sun_dir_u", sun_dir)
-	sky.set_shader_parameter("stars", night * night * (1.0 - smoothstep(0.3, 0.8, occl)) * (1.0 - 0.5 * moon_light))
+	sky.stage("moon_dir", moon_dir)
+	sky.stage("moon_illum", k)
+	sky.stage("moon_vis", night * (1.0 - smoothstep(0.4, 0.85, occl)) * smoothstep(-0.02, 0.02, moon_dir.y))
+	sky.stage("sun_dir_u", sun_dir)
+	sky.stage("stars", night * night * (1.0 - smoothstep(0.3, 0.8, occl)) * (1.0 - 0.5 * moon_light))
 	# ambient: blend toward a fixed cool night floor as the sky radiance fades
 	# night_level (shaders: lit windows, street / city lights, dark ground): from the sun itself, so lights
 	# come on from just before sunset and are fully on at -8 deg, whatever the sky model's twilight does

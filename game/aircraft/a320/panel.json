@@ -1,12 +1,12 @@
 {
-  "_doc": "Glass-cockpit panel of the A320-family airliner (layout schema in ui/instrument_panel.gd): free rects instead of a gauge grid, every item a full-rect Display script (ui/displays/*). size is the natural px size of the panel texture; each rect is [x, y, w, h] and keeps its display's design aspect ratio (PFD 600x480, ND 600x560, EWD / SD 520x420, FCU 700x170, MCDU 420x600). The cockpit.spots in aircraft.json say where each item sits on the 3D panel.",
+  "_doc": "Glass-cockpit panel of the A320-family airliner (layout schema in ui/instrument_panel.gd): free rects instead of a gauge grid, every item a full-rect Display script (ui/displays/*). size is the natural px size of the panel texture; each rect is [x, y, w, h] and keeps its display's design aspect ratio (PFD 600x480, ND 600x560, EWD / SD 520x420, FCU 1280x170, MCDU 420x600). The cockpit.spots in aircraft.json say where each item sits on the 3D panel.",
   "size": [1752, 1290],
   "gauges": {
     "pfd": {"script": "res://ui/displays/pfd.gd", "kind": "display", "rect": [8, 186, 600, 480]},
     "nd": {"script": "res://ui/displays/nd.gd", "kind": "display", "rect": [616, 186, 600, 560]},
     "ewd": {"script": "res://ui/displays/ewd.gd", "kind": "display", "rect": [1224, 186, 520, 420]},
     "sd": {"script": "res://ui/displays/sd.gd", "kind": "display", "rect": [1224, 614, 520, 420]},
-    "fcu": {"script": "res://ui/displays/fcu.gd", "kind": "display", "rect": [8, 8, 700, 170]},
+    "fcu": {"script": "res://ui/displays/fcu.gd", "kind": "display", "rect": [8, 8, 1280, 170]},
     "mcdu": {"script": "res://ui/displays/mcdu.gd", "kind": "display", "rect": [8, 674, 420, 600]}
   },
   "pieces": {

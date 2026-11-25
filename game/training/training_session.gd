@@ -1,12 +1,14 @@
 class_name TrainingSession
 extends Node
 ## Runs a training lesson inside the flight scene (Session.training = lesson id, set by the Training page or --lesson=ID). Each
-## physics tick it builds a snapshot of the flight (speed, height, runway-relative position, glide-path deviation ...), advances
+## 30 Hz tick it builds a snapshot of the flight (speed, height, runway-relative position, glide-path deviation ...), advances
 ## the lesson (training_logic.gd), drives the card / gauges (training_hud.gd), the 3D markers (training_markers.gd) and coach
 ## messages, and shows the graded result at the end.
 ## Assist level (Session.assist): full = markers + gauges + hints; light = card + hints + callouts; off = card and warnings only.
 ## A lesson ends graded (all steps done) or "not completed" (touched down or left the approach too early, crashed ...: abort
 ## rules in lessons.json): the pilot always gets a result card. Try again / F5 restarts it.
+
+const TICK_HZ := 30.0  # docs/USAGE.md "Tick rates"
 
 var fdm_node: FdmNode
 var airports: AirportBuilder
@@ -20,6 +22,7 @@ var _u := Vector2.ZERO  # runway direction (east, north)
 var _r := Vector2.ZERO  # to the right of the runway direction
 var _last_along := -1.0e9
 var _snap := {}
+var _tick := TickRate.new(TICK_HZ)
 var result_kind := ""  # "" while flying the lesson, then "complete" or "incomplete"
 
 
@@ -127,6 +130,13 @@ func _snapshot() -> Dictionary:
 
 
 func _physics_process(dt: float) -> void:
+	var h := _tick.step(dt)
+	if h > 0.0:
+		update(h)
+
+
+## One lesson check for `dt`, the true time since the last (the step hold timers count it).
+func update(dt: float) -> void:
 	if run.is_empty() or run.done or fdm_node.paused or fdm_node.replaying:
 		return
 	if fdm_node.fdm.damage.crashed:

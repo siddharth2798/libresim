@@ -226,3 +226,27 @@ func test_apron_mask_covers_airside() -> String:
 		if ApronMask.sample(m, p) < 0.99:
 			return "airside point %s not masked" % p
 	return "" if ApronMask.sample(m, Vector2(100.0, -190.0)) < 0.01 else "grass between taxiway and runway is masked"
+
+
+## The fake pools add light onto what is already drawn. Taxiway ribbons are transparent (they fade out when a few px
+## wide), so a ribbon sorted after a pool covered its light: every taxiway stub through a lit stand showed as a
+## black strip at night (graphics audit, VABB terminal). The pools must draw after them, and before the clouds.
+func test_pools_draw_after_transparent_taxiways() -> String:
+	if not FileAccess.get_file_as_string("res://world/strip.gdshaderinc").contains("ALPHA ="):
+		return "taxiways no longer transparent: revisit ApronFloodlights.POOL_PRIORITY"
+	var stands := _row(6, 45.0)
+	var lights := ApronLightLayout.build(stands, [], {}, "TESTPOOL")
+	var pool := ShaderMaterial.new()
+	pool.shader = preload("res://world/light_pool.gdshader")
+	var meshes := ApronFloodlights.meshes(lights, func(_x, _y): return 0.0, Vector2.ZERO, pool)
+	var prio := -999
+	for mi in meshes:
+		if mi.name == "flood_pools":
+			prio = mi.material_override.render_priority
+		mi.free()
+	if prio == -999:
+		return "no pool mesh"
+	var taxi := ShaderMaterial.new()  # AirportBuilder's taxiway / lead-on materials keep the default priority
+	if prio <= taxi.render_priority:
+		return "pools at priority %d draw under the taxiway ribbons (%d)" % [prio, taxi.render_priority]
+	return "" if prio < CloudLayer.PRIORITY else "pools at %d draw over the clouds (%d)" % [prio, CloudLayer.PRIORITY]

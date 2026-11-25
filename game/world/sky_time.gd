@@ -10,6 +10,9 @@ extends Node
 
 const LAT := 18.75
 const LON := 73.4
+## The sun is placed from the clock rounded to 10 s (0.04 deg of sun travel, a shadow shift too small to see), so its
+## light, and with it the sky's radiance cubemap, change in rare small steps instead of every frame (world/sky_params.gd).
+const SUN_STEP_H := 10.0 / 3600.0
 
 @export var sun_path: NodePath
 @export var env_path: NodePath
@@ -18,6 +21,7 @@ var _sun: DirectionalLight3D
 var _env: Environment
 var _adapt := 0.0  # 0..1 how far the eye has adapted to the sun being in view
 var _sky: ShaderMaterial  # world/sky_clouds.gdshader
+var params: SkyParams  # its uniforms, written only when they change (world/sky_params.gd)
 var _drift := Vector2.ZERO  # cloud field offset (environment/cloud_drift); holds while paused / replaying (SimHold)
 var _situation := int(Props.get_v("meta/situation", 0))  # bumped by a loaded save: then the saved drift is taken
 var _night: NightSky
@@ -33,6 +37,7 @@ func _ready() -> void:
 	_sun = get_node(sun_path)
 	_env = (get_node(env_path) as WorldEnvironment).environment
 	_sky = _env.sky.sky_material
+	params = SkyParams.new(_sky)
 	if not Props.has("weather/time_h"):
 		Props.set_v("weather/time_h", 10.0)
 		Props.set_v("weather/day_of_year", 45.0)
@@ -63,7 +68,7 @@ func _process(dt: float) -> void:
 	var rate := 0.0 if SimHold.active() else Props.get_f("weather/time_rate")  # the clock stops in pause and replay
 	var t := fposmod(Props.get_f("weather/time_h") + dt * rate / 3600.0, 24.0)
 	Props.set_v("weather/time_h", t)
-	var sp := sun_position(t, Props.get_f("weather/day_of_year", 45.0))
+	var sp := sun_position(snappedf(t, SUN_STEP_H), Props.get_f("weather/day_of_year", 45.0))
 	var el := sp.x
 	Props.set_v("environment/sun_elev_deg", rad_to_deg(el))
 	# light points FROM the sun: render frame x = east, z = south
@@ -100,26 +105,26 @@ func _process(dt: float) -> void:
 	var top := Color(night_top.r * night_w + m_top.r, night_top.g * night_w + m_top.g, night_top.b * night_w + m_top.b).linear_to_srgb()
 	var hor := Color(night_hor.r * night_w + m_hor.r, night_hor.g * night_w + m_hor.g, night_hor.b * night_w + m_hor.b).linear_to_srgb()
 	var sky: Array = WeatherVisuals.overcast_sky(top, hor, day, occl, ls.dark)
-	_night.update_night(t, Props.get_f("weather/day_of_year", 45.0), 1.0 - day, occl, d, _env, _sky)
+	_night.update_night(t, Props.get_f("weather/day_of_year", 45.0), 1.0 - day, occl, d, _env, params)
 	sky = _night.night_colors(sky[0], sky[1], 1.0 - day, occl)
 	var fl := Color(0.75, 0.78, 0.9) * flash * occl
 	top = sky[0] + fl * 0.6
 	hor = sky[1] + fl
-	_sky.set_shader_parameter("zenith_color", top)
-	_sky.set_shader_parameter("model_top", m_top.linear_to_srgb())
-	_sky.set_shader_parameter("model_hor", m_hor.linear_to_srgb())
-	_sky.set_shader_parameter("clear", 1.0 - smoothstep(0.0, 0.8, occl))
-	_sky.set_shader_parameter("atmo_gain", Atmosphere.twilight_gain(el_deg))
-	_sky.set_shader_parameter("aerosol", Atmosphere.aerosol_for_visibility(rain_vis))
-	_sky.set_shader_parameter("day", day)
-	_sky.set_shader_parameter("dusk", dusk * (1.0 - occl))
-	_sky.set_shader_parameter("sun_vis", 1.0 - smoothstep(0.5, 0.9, occl))
+	params.stage("zenith_color", top)
+	params.stage("model_top", m_top.linear_to_srgb())
+	params.stage("model_hor", m_hor.linear_to_srgb())
+	params.stage("clear", 1.0 - smoothstep(0.0, 0.8, occl))
+	params.stage("atmo_gain", Atmosphere.twilight_gain(el_deg))
+	params.stage("aerosol", Atmosphere.aerosol_for_visibility(rain_vis))
+	params.stage("day", day)
+	params.stage("dusk", dusk * (1.0 - occl))
+	params.stage("sun_vis", 1.0 - smoothstep(0.5, 0.9, occl))
 	var cirrus := Props.get_f("weather/cirrus", 0.6)
-	_sky.set_shader_parameter("cirrus", cirrus * (1.0 - smoothstep(0.2, 0.7, occl)) * (1.0 - rain) * (1.0 - 0.4 * Props.get_f("weather/cloud_cover")))
-	_sky.set_shader_parameter("cirrus_wind", _drift * 0.00004)
+	params.stage("cirrus", cirrus * (1.0 - smoothstep(0.2, 0.7, occl)) * (1.0 - rain) * (1.0 - 0.4 * Props.get_f("weather/cloud_cover")))
+	params.stage("cirrus_wind", _drift * 0.00004)
 	RenderingServer.global_shader_parameter_set("sky_top_color", top)
-	_sky.set_shader_parameter("horizon_color", hor)
-	_sky.set_shader_parameter("ground_color", hor * 0.4)
+	params.stage("horizon_color", hor)
+	params.stage("ground_color", hor * 0.4)
 	_env.ambient_light_energy = lerpf(0.5, 0.7, day) * ls.ambient + flash * 1.5 * occl  # night floor: NightSky
 	Props.set_v("environment/light_level", maxf(day * ls.dark, 0.08 + 0.1 * _night.moon_light) + flash * occl)
 	# visibility -> fog: extinction for a 5 % contrast threshold (about 3 / visibility), less in rain
@@ -134,13 +139,14 @@ func _process(dt: float) -> void:
 	_env.fog_sky_affect = clampf(1.0 - (vis - 1500.0) / 8000.0, 0.0, 0.85)
 	# far haze by view direction, measured from the horizon dipped by the altitude (Earth curvature, G4)
 	var dip := HazeLut.horizon_dip_sin(cam_alt)
-	_sky.set_shader_parameter("horizon_dip", dip)
+	params.stage("horizon_dip", dip)
 	_haze.update(d, el_deg, Atmosphere.aerosol_for_visibility(rain_vis), _sun.light_color.srgb_to_linear() * _sun.light_energy * day,
 		m_hor, (1.0 - smoothstep(0.0, 0.8, occl)) * (1.0 - _inside.k), dip)  # in cloud: the in-cloud fog colour only
 	advance_drift(dt)
 	_update_clouds(dt, occl, rain, hor, day * ls.dark)  # last: in-cloud fog overrides the visibility fog
 	_update_exposure(dt, d, el_deg, hor, top, 1.0 - day)
 	_update_glare(dt, d, el_deg, occl, rain)
+	params.flush()  # last: CloudInside and NightSky have staged theirs
 
 
 ## Clear-sky zenith and horizon colours (linear) for the sun at `sun_dir`, cached until the sun, haze or camera heading
@@ -192,7 +198,7 @@ func _update_clouds(dt: float, occl: float, rain: float, hor: Color, light: floa
 	if layer == null:
 		return
 	var w := FloatingOrigin.to_world(cam.global_position)
-	var day: float = _sky.get_shader_parameter("day")
+	var day: float = params.want("day")
 	var sun_col := _sun.light_color * clampf(_sun.light_energy, 0.15 * (1.0 - occl) + 0.02, 1.2)
 	var light_dir := _sun.global_transform.basis.z
 	if day < 0.3:  # night: clouds lit by the moon, undersides by the city glow
@@ -210,7 +216,7 @@ func _update_clouds(dt: float, occl: float, rain: float, hor: Color, light: floa
 		d = maxf(d, CloudField.density_deep(w, base_m, Props.get_f("weather/cloud_cover"), _drift, str(Props.get_v("environment/cloud_kind", ""))))
 	Props.set_v("environment/in_cloud", d > 0.05)
 	# in-cloud look (fog ramping with the density, readable aircraft in outside views, light, wisps): world/cloud_inside.gd
-	_inside.update(dt, cam, _env, _sky, _sun, layer, d, _env.fog_density, light, hor, _drift, light_dir)
+	_inside.update(dt, cam, _env, params, _sun, layer, d, _env.fog_density, light, hor, _drift, light_dir)
 
 
 ## Eye-like auto exposure: scene brightness from sun / sky / camera heading, including cloud shade (CPU cloud density

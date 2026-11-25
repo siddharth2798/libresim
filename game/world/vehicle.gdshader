@@ -1,6 +1,6 @@
 shader_type spatial;
 // Procedural ground vehicles (world/ground_vehicles.gd): one material for every opaque part of every
-// kind; the surface model is world/vehicle_surface.gdshaderinc. Per vehicle (instance uniforms):
+// kind; the surface model is world/vehicle_surface.gdshaderinc. Per vehicle (instance uniforms; plain on Compatibility):
 // seed (fleet number, dirt, beacon phase), lamps (working: beacon turning, headlamps at night),
 // wheel_turn (metres rolled) and steer (rad, right positive) for a vehicle that drives
 // (world/vehicle_motion.gd): wheel vertices carry their hub in CUSTOM0 and turn about it here.
@@ -12,10 +12,19 @@ global uniform float wetness;
 
 #include "res://world/vehicle_surface.gdshaderinc"
 
+// The Compatibility (OpenGL) renderer holds at most 4096 instance-uniform slots in all, too few for a busy apron:
+// there each vehicle gets its own copy of the material with plain uniforms instead (world/vehicle_params.gd).
+#if CURRENT_RENDERER == RENDERER_COMPATIBILITY
+uniform float seed = 0.0;
+uniform float lamps = 0.0;
+uniform float wheel_turn = 0.0;
+uniform float steer = 0.0;
+#else
 instance uniform float seed = 0.0;
 instance uniform float lamps = 0.0;
 instance uniform float wheel_turn = 0.0;
 instance uniform float steer = 0.0;
+#endif
 
 varying vec3 v_pos;
 varying vec3 v_nl;

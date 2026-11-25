@@ -229,7 +229,7 @@ func test_pause_edit_route_page_applies_from_the_present_position() -> String:
 	var rp: Control = page.page
 	if not rp.map.ring_dep().is_empty() or rp.map.aircraft.is_empty():
 		return "in flight the start is the aircraft symbol, not a departure ring at PPOS"
-	if rp.map.legs.size() != 2 or rp.map.legs[0].from != RouteLive.PPOS or rp.plans.visible or rp.start.visible:
+	if rp.map.legs.size() != 2 or rp.map.legs[0].from != RouteLive.PPOS or not rp.plans.visible or rp.start.visible:
 		return "page: legs %s, plans %s, start %s" % [rp.map.legs.map(func(l): return l.from), rp.plans.visible, rp.start.visible]
 	var closed := [0]
 	page.closed.connect(func(): closed[0] += 1)

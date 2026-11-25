@@ -11,7 +11,8 @@ const KNOB_REPEAT := 0.08  # s between repeats
 ## True when `action` is one of the shared press actions (flaps, toggles, cycles, steps).
 static func handles(action: String) -> bool:
 	return action in ["flaps_up", "flaps_down", "nd_range_up", "nd_range_down"] or ControlActions.TOGGLES.has(action) \
-		or ControlActions.CYCLES.has(action) or ControlActions.STEPS.has(action) or ControlActions.PULSES.has(action)
+		or ControlActions.CYCLES.has(action) or ControlActions.STEPS.has(action) or ControlActions.PULSES.has(action) \
+		or ControlActions.SETS.has(action)
 
 
 ## Apply a press action; false when it is not one of ours.
@@ -33,6 +34,10 @@ static func press(action: String) -> bool:
 	elif ControlActions.PULSES.has(action):
 		var q: String = ControlActions.PULSES[action]
 		Props.set_v(q, int(Props.get_v(q, 0)) + 1)
+	elif ControlActions.SETS.has(action):
+		var w: Dictionary = ControlActions.SETS[action]
+		for p in w:
+			Props.set_v(p, w[p])
 	elif ControlActions.STEPS.has(action):
 		var s: Array = ControlActions.STEPS[action]
 		Props.set_v(s[0], clampf(Props.get_f(s[0]) + float(s[1]), 0.0, 1.0))

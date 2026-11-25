@@ -24,7 +24,10 @@ const DEFAULTS := {
 	"spoiler_sys": ["green", "yellow", "blue", "yellow", "green"],
 }
 
+const TICK_HZ := 60.0  # docs/USAGE.md "Tick rates"
+
 var def: AircraftDef
+var _tick := TickRate.new(TICK_HZ)
 var psi := {"green": 0.0, "blue": 0.0, "yellow": 0.0}
 var ptu_active := false
 var _p := DEFAULTS.duplicate(true)
@@ -87,6 +90,13 @@ func _targets() -> Dictionary:
 
 
 func _physics_process(dt: float) -> void:
+	var h := _tick.step(dt)
+	if h > 0.0:
+		update(h)
+
+
+## Pressures for `dt`, the true time since the last run (they build and decay at psi per second).
+func update(dt: float) -> void:
 	var t := _targets()
 	ptu_active = false
 	if Props.get_b("controls/hyd/ptu", true) and not _dead("green") and not _dead("yellow"):
