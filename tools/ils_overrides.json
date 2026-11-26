@@ -1,0 +1,7 @@
+{
+ "_doc": "Hand-verified ILS facts merged by tools/14_ils.py over the AIP India records of tools/29_ils_aip.py (same key: airport + runway end). Entry: {airport, runway, ident, freq_mhz, category (1-3, optional), gs_deg (optional), source (where it was verified)}; {airport, runway, remove: true} drops an AIP record. Only add facts you checked in an official source or that the project owner confirmed (say which in `source`).",
+ "entries": [
+  {"airport": "VOGA", "runway": "28", "ident": "IMPA", "freq_mhz": 110.5, "category": 1,
+   "source": "ident and frequency from AIP India AD 2.19 (tools/29_ils_aip.py); CAT I confirmed by the project owner 2026-11-26 (the AIP page gives no category)"}
+ ]
+}

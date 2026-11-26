@@ -8,7 +8,7 @@ WC_BYTES=145000000               # ESA WorldCover tiles fetched by pipeline step
 
 # Typical seconds per step, used when data/run.log has no "(step NN: S s)" line yet.
 declare -A TYPICAL=([05]=5 [04]=420 [02]=60 [03]=75 [06]=5 [06a]=5 [09]=5 [10]=1200 [11]=200 [12]=200
-  [13]=25 [14]=5 [15]=3350 [16]=5 [17]=190 [19]=120 [20]=600 [21]=120 [27]=90 [import]=120)
+  [13]=25 [14]=5 [29]=20 [15]=3350 [16]=5 [17]=190 [19]=120 [20]=600 [21]=120 [27]=90 [import]=120)
 declare -A LOGSECS=() SIZE=() ITEM_MODE=() ITEM_BYTES=() ITEM_EXACT=() ITEM_SECS=() ITEM_FILES=()
 DONE_S=0 PLAN_TOTAL_S=0 DL_TOTAL=0 DL_DONE=0 FILE_N=0 FILE_I=0 WC_PLANNED=0 NEED_IMPORT=0 HB_PID=""
 RP_IDS=() PS_ID=() PS_WHY=()

@@ -8,17 +8,13 @@ under data/raw/aai and is not shipped. Not for navigation.
 import html
 import json
 import re
-import time
-import urllib.parse
-import urllib.request
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from datetime import date, timedelta
+from datetime import date
 
+import aai_eaip as aai
 import common as c
 from shapely.geometry import LineString, box
 
-HOST = "https://aim-india.aai.aero.in/eAIP_Archive/{cycle}/eAIP/{name}"
-UA = "libresim-airways/1.0 (flight simulator; not for navigation)"
 PAD = 1.0
 SKIP = {"DVOR", "DME", "VOR", "NDB", "TACAN", "VORTAC", "RNAV", "GNSS",
        "FIR", "ACC", "APP", "TWR", "MEA", "MOCA", "COP", "CLASS", "ODD", "EVEN", "FL"}
@@ -27,51 +23,8 @@ PAGE = re.compile(r"IN-ENR 3\.[12]([A-Z][A-Z0-9]*)-en-GB\.html")
 DEL = re.compile(r"<del\b[^>]*>[\s\S]*?</del>", re.I)
 
 
-def airac_dates():
-    d, end = date(2025, 1, 23), date.today() + timedelta(days=40)
-    out = []
-    while d <= end:
-        out.append(d.strftime("%d-%m-%Y"))
-        d += timedelta(days=28)
-    return out
-
-
-def fetch(url):
-    req = urllib.request.Request(url, headers={"User-Agent": UA})
-    last = None
-    for n in range(3):
-        try:
-            with urllib.request.urlopen(req, timeout=40) as r:
-                return r.read()
-        except Exception as e:  # noqa: BLE001 - retry any transport or HTTP error
-            last = e
-            time.sleep(0.4 * (n + 1))
-    raise last
-
-
-def cached(cycle, name):
-    path = c.RAW / "aai" / cycle / name.replace(" ", "_")
-    if path.exists() and path.stat().st_size > 800:
-        data = path.read_bytes()
-        if not data.lstrip().lower().startswith(b"<!doctype html>"):
-            return data
-    data = fetch(HOST.format(cycle=cycle, name=urllib.parse.quote(name)))
-    if data.lstrip().lower().startswith(b"<!doctype html>"):
-        raise RuntimeError("not an eAIP page")
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_bytes(data)
-    return data
-
-
 def latest_cycle():
-    for cycle in reversed(airac_dates()):
-        try:
-            body = cached(cycle, "Menu-en-GB.html")
-        except Exception:
-            continue
-        if b"IN-ENR 3.1" in body and b"CONVENTIONAL NAVIGATION" in body:
-            return cycle, body.decode("utf-8", "replace")
-    raise SystemExit("no AAI eAIP archive with ENR 3.1 route pages")
+    return aai.latest_cycle(b"IN-ENR 3.1", b"CONVENTIONAL NAVIGATION")
 
 
 def dms(num, hem):
@@ -156,7 +109,7 @@ def download_all(cycle, names):
 
     def one(name):
         try:
-            return name, cached(cycle, name)
+            return name, aai.cached(cycle, name)
         except Exception as e:  # noqa: BLE001
             return name, e
 
@@ -192,7 +145,7 @@ def main():
         if len(pts) < 2:
             chart = name.replace("-en-GB.html", "_TChart.html")
             try:
-                pts, direction = parse_page(cached(cycle, chart))
+                pts, direction = parse_page(aai.cached(cycle, chart))
             except Exception:
                 pass
         if len(pts) < 2 or not crosses(pts, region):
