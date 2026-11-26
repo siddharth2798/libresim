@@ -469,7 +469,7 @@ footer { margin-top: 2.5rem; padding-top: 0.7rem; border-top: 1px solid var(--ru
         <li><a href="#start-screen" data-k="start screen livery registration fly anyway weather live menu route waypoints flight plan"><span class="no">GEN 3</span><span>Start a flight</span></a></li>
         <li><a href="#training" data-ac="c172" data-k="training lessons takeoff cruise landing c172"><span class="no">GEN 4</span><span>Training</span></a></li>
         <li class="part">OPS · Flying</li>
-        <li><a href="#controls" data-k="keyboard mouse joystick gamepad keys cameras pause sound audio volume"><span class="no">OPS 1</span><span>Controls, views, pause</span></a></li>
+        <li><a href="#controls" data-k="keyboard mouse joystick gamepad keys cameras pause sound audio volume thrustmaster captain pack map sidestick quadrant bind assign mapping identify buttons"><span class="no">OPS 1</span><span>Controls, views, pause</span></a></li>
         <li><a href="#c172" data-ac="c172" data-k="cessna 172 skyhawk walkthrough how to fly start to finish no autopilot trim cold start mixture magnetos starter taxi takeoff landing shutdown"><span class="no">OPS 2</span><span>Cessna 172S</span></a></li>
         <li><a href="#a320" data-ac="a320" data-k="a320 airliner walkthrough how to fly start to finish autoland flare roll out autopilot ap1 ap2 fcu fma autothrust a/thr flight director fd ls loc appr nav hdg alt v/s open climb managed selected push pull mcdu route ils approach cold start apu engine master ign start taxi takeoff landing"><span class="no">OPS 3</span><span>A320-family</span></a></li>
         <li><a href="#navigation" data-k="vor ndb dme ils gps map radar atc radio checklist mcdu airway moving map route edit"><span class="no">OPS 4</span><span>Navigation and the radio</span></a></li>
@@ -652,6 +652,7 @@ footer { margin-top: 2.5rem; padding-top: 0.7rem; border-top: 1px solid var(--ru
 
 <h3 id="new-keys">Keys and install</h3>
 <ul>
+  <li><strong>Captain Pack map.</strong> A picture of the Thrustmaster sidestick and quadrant on the Controls page shows what every key, lever and switch does for the Cessna or the airliner, lights up the control you move, binds any control to any action with one click (it tells you what it replaced), and can identify buttons the map does not know yet. See <a href="#controls-map">the Captain Pack map</a>.</li>
   <li><strong>New keys.</strong> <kbd>E</kbd> edits the route while the map is open. Each FCU knob has a pull key and a push key (<kbd>Shift</kbd>+<kbd>Alt</kbd> plus the turn key). <kbd>Ctrl</kbd>+<kbd>Backspace</kbd> disconnects the autopilot (the sidestick button) and <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Backspace</kbd> the autothrust (the buttons on the thrust levers). FD and LS are actions with no default key: bind them on the Controls page. All are in the <a href="#keys">key table</a>.</li>
   <li><strong>MASTER WARN / CAUT</strong> is <kbd>Ctrl</kbd>+<kbd>M</kbd> on the airliner.</li>
   <li><strong>Quitting while recording</strong> (<kbd>F8</kbd>) no longer crashes the game on a Mac. The recording is finished properly first.</li>
@@ -852,6 +853,7 @@ flatpak run org.freesim.FreeSim</code></pre><button class="copy" type="button">C
   <a href="#controls-keys">Keys</a>
   <a href="#controls-feel">Feel</a>
   <a href="#controls-hardware">Joystick and the Captain Pack</a>
+  <a href="#controls-map">Captain Pack map</a>
   <a href="#controls-views">Views</a>
   <a href="#controls-pause">Pause and messages</a>
   <a href="#controls-sound">Sound</a>
@@ -878,6 +880,17 @@ flatpak run org.freesim.FreeSim</code></pre><button class="copy" type="button">C
 <h3 id="controls-hardware">Joystick, gamepad and the Captain Pack</h3>
 <p>Connected devices are listed and hot-plug works. Bind moves an axis or presses a button. A bound axis takes over from the keyboard; unbound actions stay on the keys. The generic gamepad uses the left stick for roll and pitch, the right stick for yaw, the triggers as toe brakes, the shoulder buttons for flaps, and the face buttons for brakes, parking brake and views.</p>
 <p>If a Thrustmaster TCA Captain Pack is plugged in, the start screen offers its profile once. Set the switch on the back of the sidestick to PC. Plug the quadrant into the computer, not into the stick. On macOS, move each lever once after launch or it stays unread. The gear lever is stored inverted, because the hardware reads pressed as up. Any latching switch has an Invert toggle on its row. The sidestick's change-view button is the next camera. One profile serves both aircraft: the flaps lever's notches mean 0–30° on the Cessna and 0, 1, 2, 3, FULL on the airliner, and notch 1 on the ground is 1+F. Linux button numbers for this hardware have not been verified; press Bind and the page records what it sees.</p>
+
+<h3 id="controls-map">The Captain Pack map: see and set every control</h3>
+<p>On <strong>Controls → Joystick and gamepad</strong>, under the list of devices, the button <strong>Captain Pack map</strong> opens a picture of the Thrustmaster sidestick and quadrant. It also opens from the pause screen and from <kbd>J</kbd> in flight. With the pack plugged in the button is filled; without it, it opens a preview of the default mapping, so you can look before you buy or plug in.</p>
+<ul>
+  <li><strong>Every key, lever and switch has a number</strong> on the photo and a row in the list beside it that says what it does now. A dim row is unbound. <strong>Aircraft</strong> at the top chooses the Cessna or the airliner: the same lever can be the airliner's speed brake and the Cessna's mixture, and a control the chosen aircraft does not use reads "not used on" that aircraft.</li>
+  <li><strong>Move a control or press a button and its number lights up</strong>, with a small bar for levers and sticks. This is the quickest way to check that the pack, the switch on the back of the stick (PC) and the profile agree.</li>
+  <li><strong>To bind a control:</strong> click its number (or its row), press <strong>Choose action…</strong>, type to search, and click the action. It is bound at once and saved. If the action was on another control, the line under the panel tells you which one it left, and anything the control did before is replaced. <strong>Clear</strong> unbinds it. A latching switch has <strong>Invert</strong>. <strong>Bind</strong> also works: press it, then move the control. Nothing here needs the Controls page, and the page shows the same bindings.</li>
+  <li><strong>Reset to the Airbus Captain Pack profile</strong> (press twice) loads the profile again.</li>
+  <li><strong>A ? and a dashed ring</strong> mark a control whose button number is not confirmed yet (the blank keys, the left-hand keys, the grip's side button, the hat's left and right). Turn <strong>Identify</strong> on and press that control on the pack: its number is selected. If the map does not know the number, pick the control from the list and Save. The correction is kept in <code>captain_map_learned.json</code> in the game's data folder, and you can send it to us.</li>
+</ul>
+<p>The pictures are third-party product photos; if they are removed the map shows a drawn outline instead.</p>
 
 <h3 id="controls-views">Cameras</h3>
 <p><kbd>C</kbd> cycles, <kbd>Shift</kbd>+<kbd>C</kbd> goes back, and <kbd>1</kbd>–<kbd>8</kbd> pick cockpit, chase, orbit, free, tower, wing, tail and fly-by. Right-drag looks around. In the cockpit, the wheel, a trackpad scroll, or a pinch zooms, except over a knob: there the wheel turns the knob (see <a href="#a320-ap">the autopilot guide</a>). Point at a lever or switch and a note shows its name, the key that moves it, and where it is set. The same wheel sets orbit distance or free-camera speed. <kbd>V</kbd> re-centres. <kbd>Ctrl</kbd>+click zooms to the instrument or switch under the cursor. The cockpit stays steady at any altitude, and placards stay sharp when you zoom in (on every graphics preset but Low the airliner uses its sharper 4096-pixel placard art). Zoomed in, the small head movement in bumps is damped so the panel you study holds still. A left-drag on empty cockpit space looks around; a left-click on a screen or an airliner lever still uses that control.</p>

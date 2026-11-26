@@ -82,6 +82,9 @@ Ground048 (soil, https://ambientcg.com/view?id=Ground048), Grass004 (grass, http
 - **Fira Sans** (Copyright The Mozilla Foundation and Telefonica S.A., designed by Carrois Apostrophe and Edenspiekermann; SIL Open Font License 1.1, https://github.com/mozilla/Fira): the UI font of all menus and panels, **shipped unmodified** (Regular, Medium, SemiBold, Bold, v4.203 from https://github.com/google/fonts/tree/main/ofl/firasans) in `game/ui/fonts/`; licence text in `third_party/fira-sans/OFL.txt` and `licenses/fira-sans-OFL.txt`. Its letter shapes are also the "libresim" wordmark and the "09/27" runway designator, converted to outlines in `game/branding/*.svg`.
 - **libresim Symbols** (a 12-glyph subset of **DejaVu Sans**, renamed as the licence requires; Copyright (c) 2003 Bitstream, Inc. and (c) 2006 Tavmjong Bah, DejaVu changes public domain; https://dejavu-fonts.github.io/): the fallback of the UI font for the triangles, circles, stars, check marks and cog Fira Sans lacks, in `game/ui/fonts/LibresimSymbols.ttf` (rebuilt by `tools/make_symbols_font.py`); licence text in `third_party/dejavu-symbols/LICENSE` and `licenses/dejavu-symbols-LICENSE.txt`.
 
+### Controls page pictures
+- **Thrustmaster TCA Captain Pack X, Airbus Edition product photos** (sidestick and quadrant crops of a product image from https://www.thrustmaster.com/products/tca-captain-pack-x-airbus-edition/; Thrustmaster and Airbus are trademarks of their owners): shown on the Captain Pack map of the Controls page to explain the mapping, in `game/ui/menu/captain_map/`. Third-party pictures used on the owner's instruction, rights not cleared; libresim is not affiliated with or endorsed by Thrustmaster or Airbus. Remove the two `.webp` files to fall back to a drawn outline.
+
 ## Tools used to build libresim (not shipped in the game)
 - **GDAL/OGR** (MIT) and **PROJ** (MIT): reprojection and tiling.
 - **Python** (PSF): the data pipeline. Libraries:

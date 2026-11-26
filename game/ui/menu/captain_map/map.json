@@ -1,0 +1,122 @@
+{
+  "version": 2,
+  "note": "Markers of the Captain Pack map (core/captain_map.gd, ui/menu/captain_map_panel.gd). x, y = position on the picture, 0..1 of its width and height; a marker without x and y is not visible in the photo and sits in a strip under it. A marker is one physical control; its parts are the positions or keys it has (id unique in the marker). A part's pad number comes from `key` (a default action of InputProfiles.captain_pack: the numbers are never typed twice), or `axis` / `button` here, or nothing when the number is unknown. conf = measured (seen on the owner's pack), documented (a public source, see sources) or unconfirmed (guessed or unknown: the panel's Identify mode settles it and saves the correction to user://captain_map_learned.json). flip = lever forward reads falling. latching = a switch that stays down. check = group of CaptainCheck.GROUPS (what to move to test it). unmapped = pad buttons that are not keys (virtual zone buttons of the levers).",
+  "sources": {
+    "capture": "Measured on the owner's pack on macOS, 2026-11-04 and 05 (core/input_profiles.gd, docs/USAGE.md).",
+    "tomvand": "Community X-Plane button list of the TCA Q-Eng 1&2 (github.com/tomvand/xp-thrustmaster-tca). It counts from 1, so 1 is subtracted; it agrees with every number measured on the quadrant.",
+    "hat": "libresim note in core/input_profiles.gd: buttons 11-14 are the hat. Which of 13 and 14 is left or right was not checked.",
+    "none": "No public source found: press the key with Identify on."
+  },
+  "devices": {
+    "sidestick": {
+      "title": "Sidestick",
+      "image": "sidestick.webp",
+      "aspect": 0.858,
+      "markers": [
+        {"id": "pitch", "kind": "axis", "x": 0.45, "y": 0.27, "label": "Pitch", "check": "Sidestick",
+          "parts": [{"id": "axis", "label": "Pitch axis", "key": "pitch", "conf": "measured", "src": "capture"}]},
+        {"id": "roll", "kind": "axis", "x": 0.45, "y": 0.38, "label": "Roll", "check": "Sidestick",
+          "parts": [{"id": "axis", "label": "Roll axis", "key": "roll", "conf": "measured", "src": "capture"}]},
+        {"id": "yaw", "kind": "axis", "x": 0.45, "y": 0.49, "label": "Twist (rudder)", "check": "Sidestick",
+          "parts": [{"id": "axis", "label": "Twist axis", "key": "yaw", "conf": "measured", "src": "capture"}]},
+        {"id": "hat", "kind": "button", "x": 0.52, "y": 0.07, "label": "Hat",
+          "parts": [
+            {"id": "up", "label": "Hat up", "key": "trim_down", "conf": "measured", "src": "capture"},
+            {"id": "down", "label": "Hat down", "key": "trim_up", "conf": "measured", "src": "capture"},
+            {"id": "left", "label": "Hat left", "button": 13, "conf": "unconfirmed", "src": "hat"},
+            {"id": "right", "label": "Hat right", "button": 14, "conf": "unconfirmed", "src": "hat"}]},
+        {"id": "red", "kind": "button", "x": 0.655, "y": 0.115, "label": "Red button",
+          "parts": [{"id": "key", "label": "Red button", "key": "view_cockpit", "conf": "measured", "src": "capture"}]},
+        {"id": "grip_left", "kind": "button", "x": 0.41, "y": 0.097, "label": "Grip side button",
+          "parts": [{"id": "key", "label": "Grip side button", "conf": "unconfirmed", "src": "none"}]},
+        {"id": "key_x", "kind": "button", "x": 0.822, "y": 0.704, "label": "Base key X",
+          "parts": [{"id": "key", "label": "Base key X", "key": "toggle_map", "conf": "measured", "src": "capture"}]},
+        {"id": "key_y", "kind": "button", "x": 0.9, "y": 0.723, "label": "Base key Y",
+          "parts": [{"id": "key", "label": "Base key Y", "key": "flaps_up", "conf": "measured", "src": "capture"}]},
+        {"id": "key_a", "kind": "button", "x": 0.783, "y": 0.746, "label": "Base key A",
+          "parts": [{"id": "key", "label": "Base key A", "key": "flaps_down", "conf": "measured", "src": "capture"}]},
+        {"id": "key_b", "kind": "button", "x": 0.86, "y": 0.761, "label": "Base key B",
+          "parts": [{"id": "key", "label": "Base key B", "key": "parking_brake", "conf": "measured", "src": "capture"}]},
+        {"id": "blank", "kind": "button", "x": 0.715, "y": 0.716, "label": "Blank base keys (right)",
+          "parts": [
+            {"id": "upper", "label": "Right blank key, upper (left of X)", "conf": "unconfirmed", "src": "none"},
+            {"id": "lower", "label": "Right blank key, lower (left of A)", "conf": "unconfirmed", "src": "none"}]},
+        {"id": "left_keys", "kind": "button", "x": 0.236, "y": 0.687, "label": "Left base keys",
+          "parts": [
+            {"id": "x", "label": "Left base key X", "conf": "unconfirmed", "src": "none"},
+            {"id": "y", "label": "Left base key Y", "conf": "unconfirmed", "src": "none"},
+            {"id": "a", "label": "Left base key A", "conf": "unconfirmed", "src": "none"},
+            {"id": "b", "label": "Left base key B", "conf": "unconfirmed", "src": "none"},
+            {"id": "blank_upper", "label": "Left blank key, upper", "conf": "unconfirmed", "src": "none"},
+            {"id": "blank_lower", "label": "Left blank key, lower", "conf": "unconfirmed", "src": "none"}]},
+        {"id": "icon_left", "kind": "button", "x": 0.192, "y": 0.734, "label": "Icon key, front left",
+          "parts": [{"id": "key", "label": "Icon key, front left", "conf": "unconfirmed", "src": "none"}]},
+        {"id": "icon_right", "kind": "button", "x": 0.63, "y": 0.777, "label": "Icon key, front right",
+          "parts": [{"id": "key", "label": "Icon key, front right", "conf": "unconfirmed", "src": "none"}]},
+        {"id": "wheel", "kind": "axis", "x": 0.335, "y": 0.79, "label": "Base wheel",
+          "parts": [{"id": "axis", "label": "Base wheel", "axis": 3, "conf": "measured", "src": "capture"}]},
+        {"id": "trigger", "kind": "button", "label": "Trigger (front of grip)",
+          "parts": [{"id": "key", "label": "Trigger", "key": "brakes", "conf": "measured", "src": "capture"}]},
+        {"id": "view", "kind": "button", "label": "Change view (base front)",
+          "parts": [{"id": "key", "label": "Change view", "key": "view_next", "conf": "measured", "src": "capture"}]},
+        {"id": "xbox", "kind": "button", "label": "Xbox (base front)",
+          "parts": [{"id": "key", "label": "Xbox button", "button": 20, "conf": "measured", "src": "capture"}]},
+        {"id": "menu", "kind": "button", "label": "Menu (base front)",
+          "parts": [{"id": "key", "label": "Menu button", "key": "pause", "conf": "measured", "src": "capture"}]}
+      ],
+      "unmapped": []
+    },
+    "quadrant": {
+      "title": "Quadrant",
+      "image": "quadrant.webp",
+      "aspect": 1.2705,
+      "markers": [
+        {"id": "lever1", "kind": "lever", "x": 0.43, "y": 0.14, "label": "Thrust lever 1", "check": "Thrust lever 1 (left)",
+          "parts": [{"id": "axis", "label": "Lever 1 position", "key": "throttle", "flip": true, "conf": "measured", "src": "capture"}]},
+        {"id": "lever2", "kind": "lever", "x": 0.59, "y": 0.14, "label": "Thrust lever 2", "check": "Thrust lever 2 (right)",
+          "parts": [{"id": "axis", "label": "Lever 2 position", "key": "throttle_2", "flip": true, "conf": "measured", "src": "capture"}]},
+        {"id": "red1", "kind": "button", "x": 0.36, "y": 0.14, "label": "Lever 1 red button",
+          "parts": [{"id": "key", "label": "Lever 1 red button", "button": 0, "conf": "documented", "src": "tomvand"}]},
+        {"id": "red2", "kind": "button", "x": 0.667, "y": 0.139, "label": "Lever 2 red button",
+          "parts": [{"id": "key", "label": "Lever 2 red button", "button": 1, "conf": "documented", "src": "tomvand"}]},
+        {"id": "speedbrake", "kind": "lever", "x": 0.275, "y": 0.2, "label": "Speed brake lever", "check": "Speed brake lever",
+          "parts": [{"id": "axis", "label": "Speed brake position", "key": "speedbrake", "conf": "measured", "src": "capture"}]},
+        {"id": "flaps", "kind": "lever", "x": 0.835, "y": 0.17, "label": "Flaps lever", "check": "Flaps lever",
+          "parts": [{"id": "axis", "label": "Flaps position", "key": "flaps_lever", "conf": "measured", "src": "capture"}]},
+        {"id": "gear", "kind": "switch", "x": 0.195, "y": 0.485, "label": "Gear lever", "check": "Gear lever",
+          "parts": [{"id": "key", "label": "Gear lever", "key": "gear_switch", "latching": true, "conf": "measured", "src": "capture"}]},
+        {"id": "autobrake", "kind": "switch", "x": 0.135, "y": 0.645, "label": "Auto brake dial", "check": "Auto brake dial",
+          "parts": [
+            {"id": "btv", "label": "Auto brake BTV", "key": "autobrake_btv", "conf": "measured", "src": "capture"},
+            {"id": "low", "label": "Auto brake LOW", "key": "autobrake_low", "conf": "measured", "src": "capture"},
+            {"id": "two", "label": "Auto brake 2", "key": "autobrake_2", "conf": "measured", "src": "capture"},
+            {"id": "three", "label": "Auto brake 3", "key": "autobrake_3", "conf": "measured", "src": "capture"},
+            {"id": "hi", "label": "Auto brake HI", "key": "autobrake_hi", "conf": "measured", "src": "capture"}]},
+        {"id": "eng1", "kind": "switch", "x": 0.345, "y": 0.57, "label": "ENG 1 master", "check": "Engine masters",
+          "parts": [{"id": "key", "label": "ENG 1 master", "key": "engine_master_1_switch", "latching": true, "conf": "measured", "src": "capture"}]},
+        {"id": "eng2", "kind": "switch", "x": 0.515, "y": 0.595, "label": "ENG 2 master", "check": "Engine masters",
+          "parts": [{"id": "key", "label": "ENG 2 master", "key": "engine_master_2_switch", "latching": true, "conf": "measured", "src": "capture"}]},
+        {"id": "mode", "kind": "switch", "x": 0.39, "y": 0.685, "label": "Engine mode selector", "check": "Engine mode selector",
+          "parts": [
+            {"id": "crank", "label": "Mode CRANK", "key": "engine_mode_crank", "conf": "measured", "src": "capture"},
+            {"id": "ign", "label": "Mode IGN/START", "key": "engine_mode_ign", "conf": "measured", "src": "capture"}]},
+        {"id": "park", "kind": "switch", "x": 0.675, "y": 0.705, "label": "Park brake", "check": "Parking brake switch",
+          "parts": [{"id": "key", "label": "Park brake", "key": "parking_brake_switch", "latching": true, "conf": "measured", "src": "capture"}]},
+        {"id": "rudtrim", "kind": "switch", "x": 0.745, "y": 0.665, "label": "Rudder trim knob",
+          "parts": [
+            {"id": "reset", "label": "Rudder trim reset", "button": 16, "conf": "documented", "src": "tomvand"},
+            {"id": "left", "label": "Rudder trim left", "button": 17, "conf": "documented", "src": "tomvand"},
+            {"id": "right", "label": "Rudder trim right", "button": 18, "conf": "documented", "src": "tomvand"}]},
+        {"id": "eng1_btn", "kind": "button", "label": "ENG 1 button (position not known)",
+          "parts": [{"id": "key", "label": "ENG 1 button", "button": 4, "conf": "documented", "src": "tomvand"}]},
+        {"id": "eng2_btn", "kind": "button", "label": "ENG 2 button (position not known)",
+          "parts": [{"id": "key", "label": "ENG 2 button", "button": 5, "conf": "documented", "src": "tomvand"}]}
+      ],
+      "unmapped": [
+        {"buttons": [8, 9, 10, 11], "why": "Thrust lever 1 zone buttons (TOGA, FLX/MCT, CLB, reverse): virtual, they overlap the axis"},
+        {"buttons": [12, 13, 14, 15], "why": "Thrust lever 2 zone buttons: virtual, they overlap the axis"},
+        {"buttons": [26, 27, 28, 29, 30], "why": "Speed brake zone buttons: virtual, they overlap the axis"}
+      ]
+    }
+  }
+}

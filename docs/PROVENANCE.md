@@ -176,6 +176,10 @@ Not determined:
 
 The building facades, roofs, rooftop details and hip roofs (`game/world/building.gdshader`, `tools/building_geom.py`) and the tree species, impostor atlas, LOD0 meshes and their shaders (`game/world/tree*.gd`, `tree*.gdshader`) are written from scratch for libresim: no third-party model, texture, sprite or sound is used. Shapes and sprites are generated in code at startup or by the pipeline; the only external input is OpenStreetMap footprints and the Sentinel-2 roof colour already covered above.
 
+## Captain Pack map photos
+
+`game/ui/menu/captain_map/sidestick.webp` and `quadrant.webp` (the Controls page's Captain Pack map, `ui/menu/captain_map_panel.gd`) are two crops of one product image of the Thrustmaster TCA Captain Pack X, Airbus Edition, fetched on 2026-11-26 from the product page https://www.thrustmaster.com/products/tca-captain-pack-x-airbus-edition/ (image file https://www.thrustmaster.com/wp-content/uploads/2022/10/TCACaptainPackX-1580x960-UTH-1.png, 1580 x 960, transparent background). The sidestick crop is 635 x 740 and the quadrant crop 775 x 610 (a few pixels of the other device cleared where they overlap), saved as lossy WebP at quality 0.9 (about 125 KB together) and imported VRAM-compressed with mipmaps. They are third-party pictures used on the owner's instruction; rights are not cleared (see `docs/LICENSING.md`). The map works without them: delete the folder's two `.webp` files and the panel draws a plain outline with the same markers. The markers (positions on the photos) are libresim's own data in `captain_map/map.json`.
+
 ## Reproducing
 
 The counting and similarity scripts were throwaway Python in a scratch directory. To redo the audit: classify `git ls-files` by path (rules in the inventory table), fetch JSBSim `src/**` and the c172p team files named in "Method", and compare as described there. Asset identity is `md5sum` of `game/aircraft/c172/{models,sounds}` and `game/world/models/vehicles` against `third_party/` and the upstream `Sounds/` folders.

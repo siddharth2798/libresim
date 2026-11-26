@@ -1,5 +1,6 @@
 class_name CaptainCheck
 extends RefCounted
+## (core/, not tests/: the Captain Pack map's "To test" line reads GROUPS, ui/menu/captain_map_panel.gd.)
 ## The checklist behind tests/check_a320_controls.gd: every Captain Pack control to be moved once on the real hardware, with the
 ## game's response that proves it works. Pure logic: feed() it a snapshot of the control state each frame and it ticks the items
 ## whose condition is met. An item that needs a move first (back to IDLE, back to 0, ON again) ticks only after the lever or switch

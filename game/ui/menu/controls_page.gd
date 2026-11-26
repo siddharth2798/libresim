@@ -139,7 +139,7 @@ func _joystick_tab() -> Control:
 	_devices = Label.new()
 	_devices.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	dev.add_child(_devices)
-	dev.add_child(CaptainAskAgain.new())  # only with a Captain Pack and the offer declined
+	CaptainMapLink.add_to(dev, self)  # the Captain Pack map link, and "offer again" (declined offer, pack connected)
 	for p in [["Reset: gamepad defaults", "gamepad"], ["Reset: joystick defaults", "joystick"],
 			["Reset: Airbus Captain Pack", InputProfiles.CAPTAIN_PACK]]:
 		var b := Button.new()
