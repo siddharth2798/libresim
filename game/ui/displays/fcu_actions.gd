@@ -10,7 +10,7 @@ extends RefCounted
 const BUTTONS := {
 	"loc": "fcu_loc", "ap1": "fcu_ap1", "ap2": "fcu_ap2", "athr": "fcu_athr", "appr": "fcu_appr",
 	"spd_mach": "fcu_spd_mach", "trk_fpa": "fcu_trk_fpa", "metric_alt": "fcu_metric_alt", "alt_inc": "fcu_alt_1000",
-	"fd": "efis_fd", "ls": "efis_ls",
+	"fd": "efis_fd", "ls": "efis_ls", "ap_disc": "fcu_ap_disc",  # ap_disc: the sidestick takeover button, no 3D twin
 }
 
 
@@ -30,7 +30,7 @@ static func knob_item(key: String) -> Dictionary:
 
 ## Turn knob `key` by `detents` (+ = clockwise / more), the way the cockpit knob turns.
 static func turn(key: String, detents: int) -> void:
-	var item := knob_item(key)
+	var item := CockpitKnob.active(knob_item(key))
 	if not item.is_empty() and detents != 0:
 		Props.set_v(str(item.drive), CockpitKnob.value_after(item, CockpitKnob.current(item), detents))
 

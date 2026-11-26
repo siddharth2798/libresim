@@ -116,6 +116,8 @@ func _temporal(cam: Camera3D, scale: int, full: Vector2i, depth: Texture2DRD) ->
 	var clear := CloudTemporal.clear_dist(cam.global_position.y, layer.base, float(thick) if thick != null else 900.0)
 	_accum_mat.set_shader_parameter("clear_m", clear)
 	_blit_mat.set_shader_parameter("clear_m", clear)
+	_accum_mat.set_shader_parameter("near_m", CloudTemporal.NEAR_CLEAR_M)
+	_blit_mat.set_shader_parameter("near_m", CloudTemporal.NEAR_CLEAR_M)
 	_write = 1 - _write
 
 

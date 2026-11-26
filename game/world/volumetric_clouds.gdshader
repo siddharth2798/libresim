@@ -27,6 +27,7 @@ uniform float max_dist = 25000.0;  // m: the march ends here; beyond it the laye
 uniform float air_haze = 1.8e-5;  // clear-air extinction (1/m): not haze_density, which is the in-cloud fog inside cloud
 uniform vec3 mean_density = vec3(0.0);  // mean density at 20 / 50 / 80 % of the layer (CloudLayer._update_mean)
 uniform float in_cloud = 0.0;  // 0..1: flying inside cloud (CloudInside)
+uniform float near_m = 6.0;  // m: no cloud on a surface nearer than this (the cockpit), CloudTemporal.NEAR_CLEAR_M
 uniform float clear_r = 0.0;  // m: outside views keep this pocket around the camera free of cloud, so the aircraft stays readable
 uniform float vert_grad = 0.3;  // interior light: brighter looking up, darker looking down (CloudLook.VERT)
 uniform float subject_w = 0.0;  // 0..1: outside view of the aircraft: bright interior is darkened and cooled (CloudLook.interior_dim)
@@ -265,6 +266,7 @@ void fragment() {
 	float bright = smoothstep(0.3, 0.9, lm) * subject_w * in_cloud;
 	col *= (1.0 - 0.25 * bright) * mix(vec3(1.0), vec3(0.9, 0.95, 1.06), bright);  // CloudLook.DIM / BLUE
 	col = col * (1.0 + vert_grad * rd.z * in_cloud) + glow_color * (in_cloud * pow(max(dot(rd, sun_enu), 0.0), 3.0));
+	alpha *= smoothstep(0.5 * near_m, near_m, scene_dist);  // a pixel's own depth, whatever the march's blocks or MSAA edge samples did
 	vec4 m = quad_mean(vec4(col * alpha, alpha), FRAGCOORD.xy);  // premultiplied, so empty pixels do not darken the edge
 	if (m.a < 1e-4) discard;
 	ALBEDO = m.rgb / m.a;

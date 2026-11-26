@@ -54,12 +54,13 @@ static func speed(d: Display) -> void:
 		var yn := clampf(DispMath.tape_y(nxt, ias, PX_KT, CY), SPD_R.position.y + 6, SPD_R.end.y - 6)
 		d.line(Vector2(SPD_R.end.x - 22, yn - 3), Vector2(SPD_R.end.x - 12, yn - 3), Display.AMBER, 3.0)
 		d.line(Vector2(SPD_R.end.x - 22, yn + 3), Vector2(SPD_R.end.x - 12, yn + 3), Display.AMBER, 3.0)
-	var sel := Props.get_f("controls/fcu/spd_kt", 0.0)
+	var mach_sel := Props.get_b("controls/fcu/spd_mach") and not Props.get_b("controls/fcu/spd_managed")  # selected Mach: bug at its CAS
+	var sel := Props.get_f("ap/spd_sel_kt", 0.0) if mach_sel and Props.has("ap/spd_sel_kt") else Props.get_f("controls/fcu/spd_kt", 0.0)
 	if sel > 0.0:
 		var col := Display.MAGENTA if Props.get_b("controls/fcu/spd_managed") else Display.CYAN
 		var y := clampf(DispMath.tape_y(sel, ias, PX_KT, CY), SPD_R.position.y + 6, SPD_R.end.y - 6)
 		d.poly(PackedVector2Array([Vector2(94, y), Vector2(106, y - 7), Vector2(106, y + 7)]), col)
-		d.txt(Vector2(50, 71), "%d" % sel, 20, col, 0)
+		d.txt(Vector2(50, 71), (".%02d" % roundi(Props.get_f("controls/fcu/mach_sel", 0.78) * 100.0)) if mach_sel else "%d" % sel, 20, col, 0)
 	var trend := Props.get_f("instruments/pfd/trend_kt")
 	if absf(trend) > 2.0:
 		var ty := DispMath.tape_y(ias + trend, ias, PX_KT, CY)

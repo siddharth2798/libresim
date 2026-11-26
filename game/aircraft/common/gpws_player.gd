@@ -47,7 +47,7 @@ func _player(path: String, loop: bool) -> AudioStreamPlayer:
 func _process(dt: float) -> void:
 	if _players.is_empty():
 		return
-	var ap := Props.get_b("ap/cmd/takeover")
+	var ap := Props.get_b("ap/disconnect")  # a 0.5 s pulse on every disconnect (button, takeover, failure, 50 ft in LAND)
 	var edge := _ap_seen and ap and not _ap
 	_ap = ap
 	_ap_seen = true
@@ -57,6 +57,7 @@ func _process(dt: float) -> void:
 		"wow": Props.get_b("fdm/wow"),
 		"stall": Props.get_b("fcs/stall_warning") or Props.get_b("fdm/stall_warning"),
 		"ap_disconnect_edge": edge,
+		"ap_warning": Props.get_b("ap/disconnect_warning"),
 	}, dt)
 	_apply(cue)
 

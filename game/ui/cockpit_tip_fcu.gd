@@ -24,9 +24,9 @@ static func title(id: String) -> String:
 ## How the knob is worked (appended to the key line), "" for anything else.
 static func hint(drive: String) -> String:
 	if drive in KNOBS:
-		return "drag to turn · click push · Shift+click pull"
+		return "wheel or drag to turn · click push · Shift+click pull"
 	if drive == "controls/nd/mode" or drive == "controls/nd/range_nm":
-		return "drag or click to turn"
+		return "wheel, drag or click to turn"
 	return ""
 
 

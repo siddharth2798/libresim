@@ -128,6 +128,11 @@ static func apply_motion(item: Dictionary, items: Array, relative: Vector2) -> v
 ## pivot, so a button wins over the lever it sits on. Each pick starts a fresh grab (no pointer travel yet).
 static func pick(items: Array, from: Vector3, dir: Vector3) -> Dictionary:
 	_moved = 0.0
+	return lookup(items, from, dir)
+
+
+## pick() without starting a grab (the wheel over a knob, CockpitWheel).
+static func lookup(items: Array, from: Vector3, dir: Vector3) -> Dictionary:
 	var best := _closest(items, from, dir, true)
 	return best if not best.is_empty() else _closest(items, from, dir, false)
 

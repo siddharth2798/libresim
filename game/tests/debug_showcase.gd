@@ -21,6 +21,7 @@ const TerminalScenes := preload("res://tests/showcase_terminal_scenes.gd")
 const FilmScenes := preload("res://tests/showcase_film_scenes.gd")
 const HlodScenes := preload("res://tests/showcase_hlod_scenes.gd")
 const TreeScenes := preload("res://tests/showcase_tree_scenes.gd")
+const Mask := preload("res://tests/showcase_mask.gd")
 const Setup := preload("res://tests/showcase_setup.gd")
 const Views := preload("res://tests/showcase_views.gd")
 const Aim := preload("res://tests/showcase_camera.gd")
@@ -42,6 +43,7 @@ var st := {}
 var landing_pilot := false
 var _prop_deg := -1.0  # fixed propeller angle (degrees), -1 = let it turn
 var _bench := 0.0  # --bench=<s>: measure frame times this long before the shot (tools/bench.sh)
+var _mask := false  # --mask: after the shot, a second one of the aircraft alone on flat magenta (tools/check_cockpit_clouds.py)
 var _film := 0.0  # --film=<s>: after the shot settles, save a short camera move as JPEGs (loader clips)
 var _film_fps := 24  # run with --fixed-fps at the same rate: each saved frame is then exactly 1 / fps of game time
 var _film_w := 1600  # saved frame width (px)
@@ -66,6 +68,8 @@ func _ready() -> void:
 			_film = float(a.substr(7))
 		elif a.begins_with("--film-fps="):
 			_film_fps = maxi(int(a.substr(11)), 1)
+		elif a == "--mask":
+			_mask = true
 		elif a == "--list":
 			print("SCENES ", " ".join(_all.keys()))
 			get_tree().quit()
@@ -196,6 +200,10 @@ func _flight(def: Dictionary) -> void:
 			print(BenchProbe.line(_name, Graphics.preset, Graphics.renderer(), await BenchProbe.measure(self, _bench)))
 			tag += "_%s_%s" % [Graphics.preset, Graphics.renderer()]
 		await save(tag)
+		if _mask:
+			Mask.apply(f)
+			await frames(6)
+			await save(tag + "_mask")
 
 
 ## A slow orbit of the settled camera, one JPEG per frame. The loader plays these back.

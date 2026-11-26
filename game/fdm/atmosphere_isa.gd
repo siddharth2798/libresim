@@ -55,3 +55,15 @@ static func density_altitude(rho: float) -> float:
 ## Calibrated airspeed from impact pressure (subsonic, compressible).
 static func cas_from_qc(qc: float) -> float:
 	return 340.294 * sqrt(5.0 * (pow(qc / P0 + 1.0, 2.0 / 7.0) - 1.0))
+
+
+## Mach number of calibrated airspeed `cas` (m/s) at static pressure `p` (Pa): the inverse of cas_at_mach. Only the pressure matters
+## (the sound speed cancels), so a Mach target converts to the same CAS at any temperature.
+static func mach_from_cas(cas: float, p: float) -> float:
+	var qc := P0 * (pow(1.0 + 0.2 * pow(cas / 340.294, 2.0), 3.5) - 1.0)
+	return sqrt(5.0 * (pow(qc / maxf(p, 1.0) + 1.0, 2.0 / 7.0) - 1.0))
+
+
+## Calibrated airspeed (m/s) of Mach `m` at static pressure `p` (Pa).
+static func cas_at_mach(m: float, p: float) -> float:
+	return cas_from_qc(p * (pow(1.0 + 0.2 * m * m, 3.5) - 1.0))

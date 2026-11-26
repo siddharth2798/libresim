@@ -147,8 +147,24 @@ static func _glyph_vec(ident: String) -> Vector4:
 	return Vector4(d[0], d[1], d[2], 0.0)
 
 
+## Lights and touchdown-zone paint of runway record r from the ILS records (ils.json): {centreline: bool, tdz: [bool, bool]}.
+## A touchdown zone (paint and fittings) belongs to an end with an ILS; the centreline lights to a runway with one ILS end
+## or 2000 m and more (as AirportLights.describe).
+static func lights_from_ils(r: Dictionary, ils: Array) -> Dictionary:
+	if ils.is_empty():
+		return {}
+	var tdz := [false, false]
+	for e in ils:
+		if str(e.airport) == str(r.get("airport", "")):
+			for i in 2:
+				if str(e.runway) == str(r.ends[i].ident):
+					tdz[i] = true
+	return {"centreline": tdz[0] or tdz[1] or float(r.length) >= 2000.0, "tdz": tdz}
+
+
 ## Every runway_v2.gdshader uniform that depends on the runway (lights: {centreline: bool, tdz: [bool, bool]}, by
-## default from the length as AirportLights does without ILS data).
+## default from the length as AirportLights does without ILS data; given (lights_from_ils), the touchdown-zone paint
+## follows the ends with an ILS, so a runway end without one gets the non-precision look: no TDZ bars).
 static func uniforms(r: Dictionary, lights := {}) -> Dictionary:
 	var w := float(r.width)
 	var L := float(r.length)
@@ -166,12 +182,16 @@ static func uniforms(r: Dictionary, lights := {}) -> Dictionary:
 	var lane_choices := [3.75, 4.5, 5.0]
 	var lane_target: float = lane_choices[int(sd) % 3]
 	var tdz: Array = lights.get("tdz", [L >= 2400.0, L >= 2400.0])
+	var bits_b := -1  # shader: ends[1] paints like ends[0]
+	if lights.has("tdz"):
+		bits_b = bits if tdz[1] else 0
+		bits = bits if tdz[0] else 0
 	return {
 		"is_runway": true, "length_m": L, "width_m": w, "seed": sd,
 		"thr_k": stripe_count(w) / 2, "thr_pitch": stripe_pitch(w),
 		"des_a": _glyph_vec(a), "des_b": _glyph_vec(b),
 		"cl_hw": centreline_width(w) * 0.5, "cl_start": cl[0], "cl_count": cl[1], "edge_hw": edge_width(w) * 0.5,
-		"aim": Vector4(aim.dist, aim.length, aim.width, aim.inner), "tdz_bits": bits,
+		"aim": Vector4(aim.dist, aim.length, aim.width, aim.inner), "tdz_bits": bits, "tdz_bits_b": bits_b,
 		"rubber": rub, "gear_hw": 4.3 if L >= 1800.0 else 1.6,
 		"lane_w": w / maxf(round(w / lane_target), 1.0),
 		"cl_lights": bool(lights.get("centreline", L >= 2000.0)), "tdz_lights": Vector2(float(tdz[0]), float(tdz[1])),

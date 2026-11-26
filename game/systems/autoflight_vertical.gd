@@ -25,6 +25,7 @@ const KP_SPD := 0.012  # rad per m/s of speed error
 const KI_SPD := 0.0015
 const K_GS := 0.002  # rad per m above the glide path
 const GS_MAX := deg_to_rad(3.0)
+const GS_CAPTURE_ABOVE := deg_to_rad(0.35)  # capture window above the path: 1 dot
 const SPEED_MODES := ["SRS", "OP CLB", "OP DES", "CLB", "DES"]
 
 var mode := ""
@@ -132,7 +133,10 @@ func _capture_vs(alt_err: float) -> float:
 	return signf(alt_err) * v
 
 
-## Glide slope arming and capture (needs the localizer captured, G/S valid and the aircraft near the path).
+## Glide slope arming and capture (needs the localizer captured, G/S valid and the aircraft near the path). The window is in angle,
+## as the radio beam is: up to 1 dot (0.35 deg of the 0.7 deg full scale) above the path, at least 15 m, so an aircraft a little above
+## the path at the platform captures from above (before, a fixed 15 m: 50 ft above the path and level was never captured and G/S*
+## never appeared); below the path the lead is the closure rate times 6 s (at least 25 m).
 func _gs_logic(i: AfInputs, loc_ok: bool) -> void:
 	var on := mode == "G/S*" or mode == "G/S"
 	var ok: bool = i.f.appr and loc_ok and not i.ils.is_empty() and i.ils.gs_valid
@@ -146,7 +150,8 @@ func _gs_logic(i: AfInputs, loc_ok: bool) -> void:
 	if ok and mode != "SRS":
 		var h := i.gs_error_m()
 		var lead := maxf(25.0, 6.0 * maxf(i.gs_mps, 30.0) * sin(i.ils.gs_rad))
-		if h < 15.0 and h > -lead:
+		var above := maxf(15.0, i.gs_dist_m() * tan(GS_CAPTURE_ABOVE))
+		if h < above and h > -lead:
 			set_mode("G/S*")
 
 

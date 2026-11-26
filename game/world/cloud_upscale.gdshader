@@ -19,6 +19,13 @@ uniform float history_on = 0.0;
 uniform float depth_flip = 0.0;
 uniform int block = 2; // 2 half, 4 quarter
 uniform float clear_m = 0.0; // camera to the cloud slab (CloudTemporal.clear_dist): nearer surfaces get no cloud
+// Cloud in front of a surface (CloudTemporal.max_alpha, same maths): a ray holds at most CLOUD_EXT per metre (the
+// march's extinction at density 1, volumetric_clouds.gdshader), so a surface d m away has at most 1 - exp(-d * CLOUD_EXT)
+// of cloud in front of it, whatever the low-res blocks, the history or a one-frame-old depth said. Inside the near
+// field (near_m, the cockpit: windshield frame, panel, overhead) there is none at all: the bound there is under 1 %,
+// but cloud light is many times brighter than the cockpit, so even that left a grey fringe of block-sized steps.
+const float CLOUD_EXT = 0.006;
+uniform float near_m = 6.0; // CloudTemporal.NEAR_CLEAR_M
 
 void vertex() {
 	POSITION = vec4(VERTEX.xy * 2.0, 1.0, 1.0);
@@ -142,6 +149,11 @@ void fragment() {
 				outc = matched ? mix(clamp(h, lo - pad, hi + pad), cur, blend_w) : h;
 			}
 		}
+	}
+	float d_near = view_dist(SCREEN_UV);
+	float a_max = (1.0 - exp(-d_near * CLOUD_EXT)) * smoothstep(0.5 * near_m, near_m, d_near);
+	if (outc.a > a_max) {
+		outc *= a_max / outc.a;
 	}
 	if (outc.a < 1e-4) {
 		discard;

@@ -1,6 +1,7 @@
 class_name AfSpeeds
 extends RefCounted
-## Speed targets of the autoflight (pure, no Props): V2 / SRS speed, the managed speed schedule and the
+## Speed targets of the autoflight (pure, no Props): V2 / SRS speed, the managed speed schedule, the selected speed (knots or a
+## Mach number held as a CAS, `selected`, and the SPD/MACH window conversion `converted`) and the
 ## limits a target is held inside (Vls ... Vmax - 5 kt). There is no FMGC, so "managed" is a simple
 ## schedule: SRS V2 + 10; flaps out: Vls of the configuration plus a margin that shrinks to 5 kt at FULL
 ## (the approach speed); clean below 10,000 ft 250 kt; above it 300 kt in a climb or 280 kt otherwise, but
@@ -10,6 +11,10 @@ extends RefCounted
 
 const DEFAULTS := {"below_limit_kt": 250.0, "limit_alt_ft": 10000.0, "climb_kt": 300.0, "cruise_kt": 280.0, "mach": 0.78,
 	"accel_agl_ft": 1500.0, "land_disconnect_ft": 50.0}
+const KT_MIN := 100.0  # FCU speed window range
+const KT_MAX := 399.0
+const MACH_MIN := 0.10  # FCU Mach window range
+const MACH_MAX := 0.99
 const SRS_CLIMB_MODES := ["SRS", "CLB", "OP CLB"]
 
 var spec: Dictionary
@@ -58,6 +63,24 @@ func managed(i: AfInputs, vmode: String) -> Dictionary:
 			kt = cas_m
 			mach_lim = true
 	return {"cas": limited(i, Units.kt_to_mps(kt)), "mach": mach_lim}
+
+
+## The selected FCU speed as a CAS (m/s): the knots of the window, or with SPD/MACH on the Mach of the window converted at the
+## present static pressure (so a Mach target is held as the altitude changes: CAS follows pressure, TAS follows temperature too).
+func selected(i: AfInputs) -> float:
+	if i.f.spd_mach:
+		return AtmosphereISA.cas_at_mach(float(i.f.mach_sel), i.pressure_pa)
+	return i.f.spd
+
+
+## The window value after SPD/MACH is pressed: {"kt", "mach"} with the one that was not shown recomputed from the one that was
+## (`to_mach` = the button now says MACH). Knots round to 1 and clamp 100..399, Mach to 0.01 and 0.10..0.99 (the FCU window ranges).
+static func converted(to_mach: bool, kt: float, mach: float, pressure_pa: float) -> Dictionary:
+	if to_mach:
+		mach = clampf(roundf(AtmosphereISA.mach_from_cas(Units.kt_to_mps(kt), pressure_pa) * 100.0) / 100.0, MACH_MIN, MACH_MAX)
+	else:
+		kt = clampf(roundf(Units.mps_to_kt(AtmosphereISA.cas_at_mach(mach, pressure_pa))), KT_MIN, KT_MAX)
+	return {"kt": kt, "mach": mach}
 
 
 ## A target (m/s) kept between Vls and Vmax - 5 kt.

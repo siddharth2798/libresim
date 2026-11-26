@@ -141,6 +141,8 @@ func _read_controls(dt: float) -> void:
 	_input_snap = false
 	var roll := Props.get_f("controls/roll")
 	var yaw := Props.get_f("controls/yaw")
+	if Props.get_b("ap/cmd/active"):  # autoland: the crab out in the flare, rudder and nose wheel on the roll out
+		yaw = clampf(yaw + Props.get_f("ap/cmd/yaw"), -1.0, 1.0)
 	if UserOptions.get_v("auto_coordination") and not c is AirlinerControls:  # FlightGear-style: rudder follows aileron
 		yaw = clampf(yaw + AUTO_COORD * roll, -1.0, 1.0)
 	c.pitch = lerpf(c.pitch, Props.get_f("controls/pitch"), k)

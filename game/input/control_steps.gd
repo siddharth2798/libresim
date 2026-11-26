@@ -73,6 +73,8 @@ static func knob(action: String, down: bool, dt: float, state: Dictionary) -> bo
 		state.erase(action)
 		return false
 	var k: Array = ControlActions.KNOBS[action]
+	if (action == "fcu_spd_up" or action == "fcu_spd_down") and Props.get_b("controls/fcu/spd_mach"):  # SPD/MACH: the speed knob turns the Mach window
+		k = ["controls/fcu/mach_sel", 0.01 * signf(float(k[1])), AfSpeeds.MACH_MIN, AfSpeeds.MACH_MAX, false, "controls/fcu/mach_sel"]
 	var due := false
 	if not state.has(action):
 		state[action] = -KNOB_DELAY
@@ -85,5 +87,5 @@ static func knob(action: String, down: bool, dt: float, state: Dictionary) -> bo
 	if due:
 		var unset: float = Props.get_f(k[5], k[2]) if k.size() > 5 else 0.0
 		var v: float = Props.get_f(k[0], unset) + float(k[1])
-		Props.set_v(k[0], wrapf(v, k[2], k[3] + 1.0) if k[4] else clampf(v, k[2], k[3]))
+		Props.set_v(k[0], snappedf(wrapf(v, k[2], k[3] + 1.0) if k[4] else clampf(v, k[2], k[3]), 0.001))
 	return due

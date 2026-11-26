@@ -46,7 +46,7 @@ func publish(dt: float) -> void:
 	var qnh: float = Props.get_f("controls/baro/hpa", Props.get_f("weather/qnh_hpa", 1013.25))
 	var baro := 1013.25 if std else qnh
 	var alt_m := AtmosphereISA.indicated_altitude(p, baro * Units.HPA) if Props.has("atmosphere/pressure_pa") else Props.get_f("fdm/alt_m")
-	var agl_ft := Units.m_to_ft(Props.get_f("fdm/agl_m", 1e5))
+	var agl_ft := Units.m_to_ft(maxf(Props.get_f("fdm/agl_m", 1e5) - Props.get_f("fdm/wheel_depth_m", 0.0), 0.0))  # the wheels' height: 0 on the runway
 	var gear: Variant = Props.get_v("fdm/gear_pos", 1.0)
 	var gear_down: bool = (gear.min() if gear is Array and not gear.is_empty() else float(gear)) > 0.5
 	var ext := Props.get_f("fdm/slat_deg") + Props.get_f("fdm/flap_deg")

@@ -53,7 +53,8 @@ const CATEGORIES := [
 
 ## Airliner failures (profile "airliner"), merged into CATEGORIES by categories(). Readers: failures/hyd_G|B|Y
 ## airliner_hydraulics, gen1 / gen2 / apu_gen / battery airliner_electrical, fuel_pump_* airliner_fuel, engine_fire[_n] the FDM,
-## apu (airliner_electrical; apu.gd should read it too), adr_* ADIRS, gear and spoilers the gear / flight-control code.
+## apu (airliner_electrical; apu.gd should read it too), adr_* ADIRS, gear and spoilers the gear / flight-control code, ap the
+## autoflight (both autopilots disconnect with the warning and cannot be engaged; the flight director and A/THR stay).
 const AIRLINER_EXTRA := [
 	["Electrical", [
 		["gen1", "Generator 1"],
@@ -81,6 +82,7 @@ const AIRLINER_EXTRA := [
 		["gear", "Landing gear (will not retract / extend normally)"],
 		["spoilers", "Spoilers"],
 	]],
+	["Autopilot", [["ap", "Autopilot (AP1 and AP2 lost)"]]],  # systems/autoflight_inputs.gd: disconnects both, refuses engagement
 ]
 ## Piston-only failures an airliner profile hides, to be listed in its aircraft.json "failures.disabled".
 const AIRLINER_HIDDEN := ["mag_left", "mag_right", "vacuum_pump", "ai", "hi", "tc", "alternator"]

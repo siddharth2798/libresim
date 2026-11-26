@@ -8,10 +8,11 @@ extends Display
 ## CRZ FL copies to the FCU altitude and selects managed vertical. PROG reads distance, bearing,
 ## phase and top of descent. F-PLN draws avionics/fms/legs. No published SID or STAR.
 ## Keyboard: this control, or Cockpit.forward_key / the outside card while the pointer is over it.
-## TODO: RAD NAV, FUEL PRED, SEC F-PLN, SID/STAR, VNAV predictions, multi-page lists, the second unit.
+## RAD NAV (mcdu_radnav.gd): VOR1, and the ILS the FMGC auto-tuned (avionics/ils_autotune.gd) with a manual override.
+## TODO: FUEL PRED, SEC F-PLN, SID/STAR, VNAV predictions, multi-page lists, the second unit.
 
-const PAGE_IDS := ["INIT", "FPLN", "DIR", "PROG", "PERF"]
-const TITLES := {"INIT": "INIT A", "FPLN": "F-PLN", "DIR": "DIR TO", "PROG": "PROGRESS", "PERF": "TAKE OFF"}
+const PAGE_IDS := ["INIT", "FPLN", "DIR", "PROG", "PERF", "RADNAV"]
+const TITLES := {"INIT": "INIT A", "FPLN": "F-PLN", "DIR": "DIR TO", "PROG": "PROGRESS", "PERF": "TAKE OFF", "RADNAV": "RAD NAV"}
 const DASH := "---"
 const FIELDS := {  # page -> [[side, row 1..6, label, prop, kind "text" | "num", unit]]
 	"INIT": [["l", 1, "FROM/TO", "mcdu/init/from_to", "text", ""], ["l", 2, "FLT NBR", "mcdu/init/flt_no", "text", ""],
@@ -199,6 +200,9 @@ func _line_key(side: String, row: int, s: String) -> void:
 		return
 	if p == "PROG":
 		return
+	if p == "RADNAV":
+		McduRadNav.line_key(side, row, s)
+		return
 	for f in FIELDS.get(p, []):
 		if f[0] != side or f[1] != row:
 			continue
@@ -286,7 +290,6 @@ func _pointer_over() -> bool:
 	if not is_inside_tree():
 		return false
 	return get_global_rect().has_point(get_global_mouse_position())
-
 
 
 func _paint() -> void:

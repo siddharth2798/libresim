@@ -4,9 +4,10 @@ extends RefCounted
 ## agl_ft and vs_fpm are feet and feet per minute, the callout units CalloutLogic
 ## already uses. The rest of the sim stays in SI; the player converts at the boundary.
 ##
-## step(state, {agl_ft, vs_fpm, wow, stall, ap_disconnect_edge}, dt_s) -> cue:
+## step(state, {agl_ft, vs_fpm, wow, stall, ap_disconnect_edge, [ap_warning]}, dt_s) -> cue:
 ##   "stall"  every frame while stall is true (the player loops the horn)
-##   "ap"     when ap_disconnect_edge is true
+##   "ap"     when ap_disconnect_edge is true, and again every 0.6 s while ap_warning stays true (the cavalry charge
+##            goes on until the takeover button is pressed again, or for 1.5 s after a pilot's own disconnect)
 ##   "sink"   at most once per 4 s, airborne, below 500 ft, vertical speed < -1000 fpm
 ##   "alt"    once per approach on a downward crossing of 500, 100, 50, 30, 20 or 10 ft
 ##   ""       otherwise
@@ -19,10 +20,11 @@ const REARM_FT := 700.0
 const SINK_FT := 500.0
 const SINK_FPM := -1000.0
 const SINK_S := 4.0
+const AP_REPEAT_S := 0.6  # the one-shot tone is 0.16 s; repeated while the disconnect warning lasts
 
 
 static func new_state() -> Dictionary:
-	return {"t": 0.0, "agl": 0.0, "armed": false, "fired": {}, "pending": false, "sink_at": -1.0e9}
+	return {"t": 0.0, "agl": 0.0, "armed": false, "fired": {}, "pending": false, "sink_at": -1.0e9, "ap_at": -1.0e9}
 
 
 ## dt is seconds since the previous sample (the sink-rate gap). Omitted dt does not advance the clock.
@@ -45,7 +47,8 @@ static func step(s: Dictionary, i: Dictionary, dt: float = 0.0) -> String:
 	s.armed = true
 	if i.stall:
 		return "stall"
-	if i.ap_disconnect_edge:
+	if i.ap_disconnect_edge or (i.get("ap_warning", false) and float(s.t) - float(s.ap_at) >= AP_REPEAT_S - 1.0e-6):
+		s.ap_at = s.t
 		return "ap"
 	if not wow and agl < SINK_FT and vs < SINK_FPM and float(s.t) - float(s.sink_at) >= SINK_S:
 		s.sink_at = s.t

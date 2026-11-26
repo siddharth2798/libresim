@@ -81,6 +81,7 @@ func update_layer(cam_world: Vector3, base_m: float, cov: float, dr: Vector2, su
 	_mat.set_shader_parameter("ambient", amb)
 	_mat.set_shader_parameter("steps", steps)
 	_mat.set_shader_parameter("max_dist", max_dist)
+	_mat.set_shader_parameter("near_m", CloudTemporal.NEAR_CLEAR_M)
 	_mat.set_shader_parameter("air_haze", air_haze)
 	_update_mean()
 	_mat.set_shader_parameter("light_steps", clampi(light_steps, 1, 4))

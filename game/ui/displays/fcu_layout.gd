@@ -4,8 +4,8 @@ extends RefCounted
 ## drawing, the click zones and the hover note, so what is drawn is what is clickable. Pure: no Props, no nodes.
 ## Controls: the four knobs (SPD, HDG, ALT, V/S: the label and the window are one zone), the five FCU pushbuttons
 ## (LOC, AP1, AP2, A/THR, APPR, then EXPED, which the sim does not model: shown dim and disabled), the four
-## selector buttons under the windows (SPD/MACH, HDG-V/S / TRK-FPA, METRIC ALT, ALT 100/1000) and the captain's
-## EFIS FD and LS buttons. A zone is its drawn rect grown by half the gap, so there is no dead strip between buttons.
+## selector buttons under the windows (SPD/MACH, HDG-V/S / TRK-FPA, METRIC ALT, ALT 100/1000), the captain's
+## EFIS FD and LS buttons and AP DISC (the sidestick takeover button, which the 3D cockpit has no separate part for). A zone is its drawn rect grown by half the gap, so there is no dead strip between buttons.
 
 const DESIGN := Vector2(1280, 170)
 const KNOBS := ["spd", "hdg", "alt", "vs"]
@@ -22,7 +22,7 @@ const ROW2 := Rect2(0, 100, 0, 60)
 const GROW := 4.0
 const ROW1_IDS := ["loc", "ap1", "ap2", "athr", "appr", "exped"]
 const ROW2_LEFT := ["spd_mach", "trk_fpa", "metric_alt", "alt_inc"]
-const ROW2_RIGHT := ["fd", "ls"]
+const ROW2_RIGHT := ["fd", "ls", "ap_disc"]  # FD, LS, then the sidestick takeover button (AP DISC)
 
 
 ## The window rect of knob `key` (the digits box).

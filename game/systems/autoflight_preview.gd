@@ -29,8 +29,9 @@ func reset() -> void:
 ## `vs_mode` = the vertical mode is V/S (the window shows the flown target then, no preview needed).
 func update(i: AfInputs, vs_mode: bool) -> void:
 	var f := i.f
-	if _last.is_empty():
-		_last = {"vs": f.vs, "hdg": f.hdg, "spd": f.spd}
+	var spd_key: float = float(f.mach_sel) * 1000.0 if f.spd_mach else float(f.spd)  # what the knob holds (Mach x 1000 or m/s)
+	if _last.is_empty() or bool(_last.mach) != bool(f.spd_mach):  # SPD/MACH pressed: the window changes unit, that is not a turn
+		_last = {"vs": f.vs, "hdg": f.hdg, "spd": spd_key, "mach": f.spd_mach}
 	if vs_mode:
 		vs = 0.0
 	elif absf(f.vs - _last.vs) > 0.01:
@@ -38,8 +39,8 @@ func update(i: AfInputs, vs_mode: bool) -> void:
 	else:
 		vs = maxf(vs - i.dt, 0.0)
 	hdg = _managed(hdg, bool(f.hdg_mgd), absf(wrapf(f.hdg - _last.hdg, -PI, PI)) > 1.0e-4, HDG_S, i.dt)
-	spd = _managed(spd, bool(f.spd_mgd), absf(f.spd - _last.spd) > 1.0e-3, SPD_S, i.dt)
-	_last = {"vs": f.vs, "hdg": f.hdg, "spd": f.spd}
+	spd = _managed(spd, bool(f.spd_mgd), absf(spd_key - _last.spd) > 1.0e-3, SPD_S, i.dt)
+	_last = {"vs": f.vs, "hdg": f.hdg, "spd": spd_key, "mach": f.spd_mach}
 
 
 static func _managed(left: float, managed: bool, turned: bool, secs: float, dt: float) -> float:

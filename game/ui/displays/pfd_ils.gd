@@ -5,6 +5,7 @@ extends RefCounted
 ## the glide slope scale on its right, and at the bottom left the ident, the frequency (controls/nav<n>/freq_mhz, the
 ## tuned one) and the DME distance, as on the A320. Deviations are avionics/nav<n>/cdi_raw and gs_raw (1 = 2 dots, the
 ## scale end; + = fly right / up). Beyond the scale the diamond stops at the end and only its inner half shows.
+## An ILS the FMGC auto-tuned (avionics/ils_autotune.gd) shows its ident and frequency before it is received (tuned_labels).
 ## Pure helpers (source, diamond, diamond_points, labels) are what the tests check; draw() paints with them.
 
 const DOT_PX := 36.0  # px per dot: two dots each side
@@ -51,6 +52,14 @@ static func labels(n: int) -> Array:
 	return out
 
 
+## An ILS the FMGC tuned (avionics/ils_auto, avionics/ils_autotune.gd) that is not received yet: its ident and frequency,
+## as soon as it is tuned (LS on); [] otherwise. The scales and the DME come with the signal.
+static func tuned_labels() -> Array:
+	if not Props.get_b("controls/efis/ls", true) or not Props.get_b("avionics/ils_auto/active"):
+		return []
+	return [str(Props.get_v("avionics/ils_auto/ident", "")), "%.2f" % Props.get_f("avionics/ils_auto/mhz")]
+
+
 ## Deviation of receiver `n`, unclamped when the radio publishes it (`*_raw`), else the clamped needle.
 static func dev(n: int, what: String) -> float:
 	var b := "avionics/nav%d/" % n
@@ -61,6 +70,9 @@ static func dev(n: int, what: String) -> float:
 static func draw(d: Display, z: Rect2) -> void:
 	var n := source()
 	if n == 0:
+		var t := tuned_labels()
+		for i in t.size():
+			d.txt(Vector2(z.position.x + 6, z.end.y - 56 + i * 18), str(t[i]), 16, Display.MAGENTA)
 		return
 	var c := z.get_center()
 	var y := z.end.y - 12.0

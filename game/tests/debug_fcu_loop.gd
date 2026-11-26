@@ -89,7 +89,8 @@ func _lamps() -> String:
 
 
 func _report(step: String) -> void:
-	print("STEP %-22s | %s | FMA %s | lamps%s | alt %.0f vs %.0f hdg %.0f cas %.0f t %.0f" % [step, _windows(), _fma(), _lamps(),
+	print("STEP %-22s | %s | FMA %s | lamps%s | NAV2 %.2f %s%s | alt %.0f vs %.0f hdg %.0f cas %.0f t %.0f" % [step, _windows(), _fma(), _lamps(),
+		Props.get_f("controls/nav2/freq_mhz"), Props.get_v("avionics/nav2/ident", ""), " GS" if Props.get_b("avionics/nav2/gs_valid") else "",
 		Units.m_to_ft(Props.get_f("fdm/alt_m")), Props.get_f("fdm/vs_mps") / Units.FPM, rad_to_deg(Props.get_f("fdm/heading_rad")),
 		Units.mps_to_kt(Props.get_f("fdm/cas_mps")), Time.get_ticks_msec() / 1000.0])
 

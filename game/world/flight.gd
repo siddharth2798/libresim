@@ -79,6 +79,7 @@ func _ready() -> void:
 	$UI/Atc.fdm_node = fdm_node
 	$Avionics/Nav.terrain = terrain
 	$Avionics/Gps.db = $Avionics/Nav.db
+	IlsAutotune.add($Avionics, $Avionics/Nav.db, AirlinerNodes.wanted(AircraftDef.current()))  # NAV2 follows the ILS being flown
 	if AirlinerNodes.wanted(AircraftDef.current()):  # glass-cockpit instrument feeds and autoflight
 		AirlinerNodes.add($Instruments, $Systems, $Avionics/Nav.db)
 	$Systems/Failures.fdm_node = fdm_node
@@ -121,6 +122,7 @@ func _reset() -> void:
 	$Replay.clear()
 	$TouchdownFx.clear()
 	fdm_node._defaults()
+	$Avionics/IlsAutotune.restart()
 	AircraftControls.current().restore_defaults()
 	($Controls as KeyboardControls).reset_flight()
 	RouteSetup.apply(Session.setup, $Avionics/Nav.db, AirlinerNodes.wanted(AircraftDef.current()))  # the planned route (GPS, MCDU, ATC)
@@ -207,10 +209,7 @@ func _load_aircraft() -> void:
 
 ## An airborne start is already on the arrival: COM1 goes to that airport's approach, or its tower.
 func _tune_arrival() -> void:
-	var nav := get_node_or_null("Avionics/Nav") as NavRadios
-	if nav == null or nav.db == null:
-		return
-	var mhz := AtcFacilities.arrival_mhz(nav.db.coms.get(_apt, []))
+	var mhz := AtcFacilities.arrival_mhz($Avionics/Nav.db.coms.get(_apt, []))
 	if mhz > 0.0:
 		Props.set_v("controls/com1/freq_mhz", mhz)
 

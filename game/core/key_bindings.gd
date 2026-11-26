@@ -9,6 +9,10 @@ extends RefCounted
 
 const PATH := "user://key_bindings.json"
 const SLOTS := 3
+## File version 2: the autopilot / autothrust disconnect actions got default keys. A version 1 file saved them empty (no key
+## was the default then, not a choice), so an empty slot list of these in an older file takes the new default.
+const VERSION := 2
+const DEFAULT_SINCE_V2 := ["fcu_ap_disc", "fcu_athr_disc"]
 
 const HELD := ["pitch_down", "pitch_up", "roll_left", "roll_right", "yaw_left", "yaw_right",
 	"throttle_up", "throttle_down", "mixture_rich", "mixture_lean", "trim_down", "trim_up",
@@ -85,11 +89,11 @@ static func defaults() -> Dictionary:
 	return t
 
 
-## Airliner overhead switches (ELEC, HYD, FUEL, AIR, SIGNS; input/control_actions.gd): no default key.
+## Airliner overhead switches (ELEC, HYD, FUEL, AIR, SIGNS; input/control_actions.gd) and some FCU / EFIS extras: no default key.
 const OVERHEAD := ["elec_bat1", "elec_bat2", "elec_gen1", "elec_gen2", "elec_apu_gen", "elec_ext_pwr", "hyd_green_edp",
 	"hyd_yellow_edp", "hyd_blue_epump", "hyd_yellow_epump", "hyd_ptu", "fuel_pump_left", "fuel_pump_centre", "fuel_pump_right",
 	"fuel_crossfeed", "bleed_eng1", "bleed_eng2", "bleed_apu", "pack1", "pack2", "seatbelt_signs", "no_smoking_signs",
-	"fcu_ap_disc", "fcu_athr_disc", "fcu_spd_mach", "fcu_trk_fpa", "fcu_metric_alt", "fcu_alt_1000", "efis_fd", "efis_ls", "baro_std",
+	"fcu_spd_mach", "fcu_trk_fpa", "fcu_metric_alt", "fcu_alt_1000", "efis_fd", "efis_ls", "baro_std",
 	"baro_up", "baro_down", "nd_mode_next", "nd_range_up", "nd_range_down", "nd_filter_next"]  # and the FCU / EFIS extras
 
 
@@ -123,6 +127,10 @@ static func _add_airliner_defaults(t: Dictionary) -> void:
 	t.rudder_trim_right = [spec(KEY_X, false, false, true)]
 	for i in 5:  # Ctrl+1..5 (the view keys ignore Ctrl)
 		t[["fcu_ap1", "fcu_ap2", "fcu_athr", "fcu_loc", "fcu_appr"][i]] = [spec(KEY_1 + i, false, true)]
+	# the sidestick takeover button and the thrust levers' instinctive disconnect: Ctrl+Backspace / Ctrl+Shift+Backspace
+	# (Backspace alone dismisses the taxi message; the N map's clear key ignores Ctrl)
+	t.fcu_ap_disc = [spec(KEY_BACKSPACE, false, true)]
+	t.fcu_athr_disc = [spec(KEY_BACKSPACE, true, true)]
 	t.fcu_spd_up = [spec(KEY_BRACKETRIGHT, false, false, true)]
 	t.fcu_spd_down = [spec(KEY_BRACKETLEFT, false, false, true)]
 	t.fcu_hdg_right = [spec(KEY_RIGHT, false, false, true)]
@@ -244,7 +252,7 @@ static func save_to(t: Dictionary, path := PATH) -> bool:
 	if f == null:
 		push_warning("KeyBindings: cannot write %s" % path)
 		return false
-	f.store_string(JSON.stringify({"version": 1, "keys": t}, "  "))
+	f.store_string(JSON.stringify({"version": VERSION, "keys": t}, "  "))
 	return true
 
 
@@ -263,5 +271,7 @@ static func load_from(path := PATH) -> Dictionary:
 			for s in d.keys[a]:
 				if s is Dictionary and s.has("key"):
 					l.append(spec(int(s.key), bool(s.get("shift", false)), bool(s.get("ctrl", false)), bool(s.get("alt", false))))
+			if l.is_empty() and a in DEFAULT_SINCE_V2 and int(d.get("version", 1)) < 2:
+				continue
 			t[a] = l.slice(0, SLOTS)
 	return t

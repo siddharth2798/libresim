@@ -27,22 +27,45 @@ func _inputs(base: Dictionary) -> AfInputs:
 	var i := AfInputs.new()
 	i.dt = 0.1
 	i.powered = true
-	i.ra_m = 3000.0
+	i.wow = bool(base.get("wow", false))
+	i.ra_m = 0.0 if i.wow else 3000.0
+	i.flex_c = float(base.get("flex_c", 0.0))
+	i.pressure_pa = float(base.get("pressure_pa", 101325.0))
 	i.cas = 130.0
 	i.tas = 200.0
 	i.gs_mps = 200.0
 	i.alt_m = Units.ft_to_m(float(base.get("alt_ft", 10000)))
 	i.lever = float(base.get("lever", 0.3))
 	i.engine_lever = i.lever
-	i.f.fd = true
+	i.f.fd = bool(base.get("fd", true))
 	i.f.ap1 = true
 	i.f.alt = Units.ft_to_m(float(base.get("fcu_alt_ft", 10000)))
 	i.f.spd = 130.0
 	i.f.vs = float(base.get("vs_fpm", 0)) * FPM
 	i.f.vs_mgd = bool(base.get("vs_mgd", false))
+	i.f.spd_mgd = bool(base.get("spd_mgd", false))
 	if base.get("gps", false):
 		i.gps = {"brg": 0.0, "dist": 50000.0, "xtk": 0.0}
+	i.flap_lever = int(base.get("flap_lever", 0))
+	i.f.ap2 = bool(base.get("ap2", false))
+	i.f.appr = bool(base.get("appr", false))
+	if base.get("ils", false):  # an ILS to the north, the 3 degree path with its antenna 300 m up the runway, the aircraft on it
+		i.ils = {"course": 0.0, "loc": Vector2(0.0, 4000.0), "gs_pos": Vector2(0.0, 300.0), "gs_h": 0.0, "gs_rad": deg_to_rad(3.0), "gs_valid": true}
+		_on_path(i, float(base.get("ra_ft", 600)))
 	return i
+
+
+## On the path at `ra_ft` over a flat runway at height 0, on the axis, 70 m/s down the path.
+func _on_path(i: AfInputs, ra_ft: float) -> void:
+	var h := Units.ft_to_m(ra_ft)
+	i.ra_m = h
+	i.pos = Vector3(0.0, 300.0 - h / tan(deg_to_rad(3.0)), h)
+	i.alt_m = h
+	i.gs_mps = 70.0
+	i.tas = 72.0
+	i.vs_mps = -3.7
+	i.heading = 0.0
+	i.track = 0.0
 
 
 func _apply(i: AfInputs, f: Dictionary) -> void:
@@ -50,22 +73,42 @@ func _apply(i: AfInputs, f: Dictionary) -> void:
 		match k:
 			"fcu_alt_ft": i.f.alt = Units.ft_to_m(float(f[k]))
 			"vs_fpm": i.f.vs = float(f[k]) * FPM
+			"lever":
+				i.lever = float(f[k])
+				i.engine_lever = i.lever
+			"wow": i.wow = bool(f[k])
+			"ra_ft":
+				if i.ils.is_empty():
+					i.ra_m = Units.ft_to_m(float(f[k]))
+				else:
+					_on_path(i, float(f[k]))
+			"flap_lever": i.flap_lever = int(f[k])
+			"gs_mps": i.gs_mps = float(f[k])
+			"gs_valid": i.ils.gs_valid = bool(f[k])
+			"ils_off": i.ils = {}
+			"alt_ft": i.alt_m = Units.ft_to_m(float(f[k]))
 			_: i.f[k] = f[k]
 
 
 ## The state the node writes back to the FCU, as the next tick reads it.
-func _write_back(i: AfInputs, logic: AfLogic) -> void:
+func _write_back(i: AfInputs, logic: AfLogic, mirror_ap := false) -> void:
 	for k in ["hdg_mgd", "vs_mgd"]:
 		if logic.writes.has(k):
 			i.f[k] = logic.writes[k]
 	if logic.writes.has("vs"):
 		i.f.vs = float(logic.writes.vs)
+	i.f.athr = logic.thr.armed  # the button follows the state
+	if mirror_ap:  # as the node does (_sync_fcu): a disconnected AP is not asked for again
+		i.f.ap1 = logic.ap1
+		i.f.ap2 = logic.ap2
 
 
 func _check(logic: AfLogic, i: AfInputs, seen: Array, e: Dictionary) -> String:
 	var got := {"vert": logic.vert.mode, "lat": logic.lat.mode, "armed_vert": logic.vert.armed, "armed_lat": logic.lat.armed,
 		"vs_mgd": i.f.vs_mgd, "hdg_mgd": i.f.hdg_mgd, "athr_armed": logic.thr.armed, "athr_active": logic.thr.active,
-		"fma_lat": logic.fma.lateral, "fma_thrust": logic.fma.thrust, "fma_misc": logic.fma.misc, "vs": i.f.vs / FPM, "level": absf(logic.vert.gamma_cmd) < 0.002}
+		"fma_lat": logic.fma.lateral, "fma_thrust": logic.fma.thrust, "fma_misc": logic.fma.misc,
+		"fma_vert": logic.fma.vertical, "fma_appr": logic.fma.approach, "land": logic.land.phase, "ap1": logic.ap1, "ap2": logic.ap2,
+		"disc": logic.disconnect_count, "warning": logic.warning, "spd_preview": logic.spd_preset > 0.0, "vs": i.f.vs / FPM, "level": absf(logic.vert.gamma_cmd) < 0.002}
 	for k in e:
 		if k == "writes":
 			for w in e[k]:
@@ -74,6 +117,9 @@ func _check(logic: AfLogic, i: AfInputs, seen: Array, e: Dictionary) -> String:
 		elif k == "vs":
 			if absf(float(got.vs) - float(e[k])) > 1.0:
 				return "V/S target %.0f expected %s" % [got.vs, e[k]]
+		elif k == "disc":
+			if int(got.disc) != int(e[k]):
+				return "%d disconnects, expected %d" % [got.disc, e[k]]
 		elif str(got[k]) != str(e[k]):
 			return "%s is %s, expected %s" % [k, got[k], e[k]]
 	return ""
@@ -93,7 +139,7 @@ func test_modes_follow_the_truth_table() -> String:
 				i.f.select = str(st.get("select", "")) if t == 0 else ""
 				logic.update(i)
 				seen.append_array(logic.writes.keys())
-				_write_back(i, logic)
+				_write_back(i, logic, bool(row.base.get("ils", false)))
 			var err := _check(logic, i, seen, st.get("expect", {}))
 			if err != "":
 				bad.append("%s (step %d): %s" % [row.id, n, err])
@@ -110,14 +156,25 @@ func test_fma_colours_follow_the_truth_table() -> String:
 	return "" if bad.is_empty() else "\n".join(bad)
 
 
+func test_fma_boxes_follow_the_truth_table() -> String:
+	var bad := []
+	for r in _table().get("boxes", []):
+		var got := AfFma.box(str(r.col), str(r.text))
+		if got != str(r.expect):
+			bad.append("%s '%s': box '%s', expected '%s'" % [r.col, r.text, got, r.expect])
+		if AfFma.flashes(str(r.col), str(r.text)) != bool(r.get("flashes", false)):
+			bad.append("%s '%s': flashing is %s" % [r.col, r.text, not bool(r.get("flashes", false))])
+	return "" if bad.is_empty() else "\n".join(bad)
+
+
 func test_fcu_windows_follow_the_truth_table() -> String:
 	var bad := []
 	for r in _table().get("windows", []):
+		Props.set_v("controls/fcu/spd_mach", false)
 		for p in r.props:
 			if not _saved.has(p):
 				_saved[p] = Props.get_v(p, null)
 			Props.set_v(p, r.props[p])
-		Props.set_v("controls/fcu/spd_mach", false)
 		Props.set_v("controls/fcu/trk_fpa", false)
 		Props.set_v("systems/electrical/avionics_powered", true)
 		var w: Dictionary = {}
@@ -126,6 +183,8 @@ func test_fcu_windows_follow_the_truth_table() -> String:
 			"hdg": w = FcuWindows.hdg()
 			"alt": w = FcuWindows.alt()
 			_: w = FcuWindows.vs()
+		if str(r.get("label", w.label)) != str(w.label):
+			bad.append("%s: label '%s', expected '%s'" % [r.id, w.label, r.label])
 		if w.text != r.text or bool(w.dot) != bool(r.dot):
 			bad.append("%s: shows '%s' dot %s, expected '%s' dot %s" % [r.id, w.text, w.dot, r.text, r.dot])
 	return "" if bad.is_empty() else "\n".join(bad)

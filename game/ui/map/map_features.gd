@@ -55,6 +55,17 @@ static func draw_navaids(ci: CanvasItem, view: MapView, db: NavDatabase, font: F
 				MapStyle.text_free(ci, font, "%s %.0f" % [n.ident, n.khz], p2 + Vector2(10, -6), 13, Color(0.95, 0.7, 0.95), taken)
 
 
+## Map label of an ILS: "IDENT 110.30", then " CAT II" when the category is known, "*" when the record is simulated.
+static func ils_label(s: Dictionary) -> String:
+	var cat := int(s.get("category", 0))
+	return "%s %.2f%s%s" % [s.ident, s.mhz, "" if cat < 1 else " CAT " + "I".repeat(cat), "*" if s.get("simulated", true) else ""]
+
+
+## True when any ILS is simulated (the map footer then explains the "*").
+static func any_simulated(db: NavDatabase) -> bool:
+	return db.ils.any(func(s): return s.get("simulated", true))
+
+
 static func draw_ils(ci: CanvasItem, view: MapView, db: NavDatabase, font: Font, taken: Array) -> void:
 	if view.across_nm() > SHOW_ILS_NM:
 		return
@@ -63,7 +74,7 @@ static func draw_ils(ci: CanvasItem, view: MapView, db: NavDatabase, font: Font,
 		var back := -Vector2(sin(deg_to_rad(s.course_true)), cos(deg_to_rad(s.course_true))) * 10.0 * MapView.NM
 		for k in [-1.0, 1.0]:
 			ci.draw_line(view.to_px(th), view.to_px(th + back.rotated(deg_to_rad(2.5 * k))), Color(0.4, 1.0, 0.4, 0.75), 1.5, true)
-		MapStyle.text_free(ci, font, "%s %.2f*" % [s.ident, s.mhz], view.to_px(th + back * 0.6) + Vector2(4, 0), 12, Color(0.6, 1, 0.6), taken)
+		MapStyle.text_free(ci, font, ils_label(s), view.to_px(th + back * 0.6) + Vector2(4, 0), 12, Color(0.6, 1, 0.6), taken)
 
 
 static func draw_track(ci: CanvasItem, view: MapView, track: Array) -> void:

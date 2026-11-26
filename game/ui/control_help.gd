@@ -34,6 +34,7 @@ const FLIGHT := [
 	["bleed", ["bleed_eng1", "bleed_eng2", "bleed_apu", "pack1", "pack2"], " ", "bleed: eng 1, eng 2, APU, pack 1, pack 2"],
 	["signs", ["seatbelt_signs", "no_smoking_signs"], " · ", "seat belt · no smoking signs"],
 	["fcu", ["fcu_ap1", "fcu_ap2", "fcu_athr", "fcu_loc", "fcu_appr"], " ", "AP1 AP2 A/THR LOC APPR"],
+	["fcu", ["fcu_ap_disc", "fcu_athr_disc"], " / ", "AP disconnect (sidestick button) / A/THR disconnect (levers)"],
 	["fcu", ["fcu_spd_down", "fcu_spd_up"], " / ", "FCU speed"],
 	["fcu", ["fcu_hdg_left", "fcu_hdg_right"], " / ", "FCU heading"],
 	["fcu", ["fcu_alt_down", "fcu_alt_up"], " / ", "FCU altitude"],
@@ -60,7 +61,7 @@ const FIXED := [
 	["F2", "checklists"], ["F9 · F10", "failures · settings"],
 	["R · F8", "replay · record"], ["F11", "quick-save"], ["J", "controls"], ["H", "flight-data bar"],
 	["Esc", "pause menu"], ["L · Shift+L", "panel lights + / −"], ["F1", "this help"],
-	["Ctrl+click", "zoom on cockpit item"], ["wheel", "zoom to cursor"], ["K", "training callouts on / off"],
+	["Ctrl+click", "zoom on cockpit item"], ["wheel", "zoom to cursor (turns a cockpit knob under it)"], ["K", "training callouts on / off"],
 	["Backspace", "dismiss taxi message"],
 ]
 

@@ -41,7 +41,7 @@ const KEYS := {
 	"fdm/stabilizer_deg": ["trim_down", "trim_up"], "controls/rudder_trim": ["rudder_trim_left", "rudder_trim_right"],
 	"controls/fcu/hdg_deg": ["fcu_hdg_left", "fcu_hdg_right"], "controls/fcu/spd_kt": ["fcu_spd_down", "fcu_spd_up"],
 	"controls/fcu/alt_ft": ["fcu_alt_down", "fcu_alt_up"], "controls/fcu/vs_fpm": ["fcu_vs_down", "fcu_vs_up"],
-	"controls/fcu/ap1": ["fcu_ap1"], "controls/fcu/ap2": ["fcu_ap2"], "controls/fcu/athr": ["fcu_athr"],
+	"controls/fcu/ap1": ["fcu_ap1"], "controls/fcu/ap_disc": ["fcu_ap_disc"], "controls/fcu/athr_disc": ["fcu_athr_disc"], "controls/fcu/ap2": ["fcu_ap2"], "controls/fcu/athr": ["fcu_athr"],
 	"controls/fcu/loc": ["fcu_loc"], "controls/fcu/appr": ["fcu_appr"],
 	"controls/lights/beacon": ["beacon"], "controls/lights/strobe": ["strobes"], "controls/lights/wing": ["wing_lights"],
 	"controls/lights/landing": ["landing_light"], "controls/lights/taxi": ["taxi_light"],
@@ -217,6 +217,8 @@ static func _one(path: String, value: Variant) -> String:
 		"controls/fcu/hdg_deg":
 			return "%d°" % clampi(int(round(_num(value))), 0, 360)
 		"controls/fcu/spd_kt":
+			if Props.get_b("controls/fcu/spd_mach"):  # SPD/MACH: the knob turns the Mach window
+				return "M .%02d" % roundi(Props.get_f("controls/fcu/mach_sel", 0.78) * 100.0)
 			return "%d kt" % int(round(_num(value)))
 		"controls/fcu/alt_ft":
 			return "%d ft" % int(round(_num(value)))

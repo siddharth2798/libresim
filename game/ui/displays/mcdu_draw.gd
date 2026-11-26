@@ -11,6 +11,8 @@ static func paint(d: MCDU) -> void:
 		_dir(d)
 	elif p == "PROG":
 		_prog(d)
+	elif p == "RADNAV":
+		McduRadNav.paint(d)
 	else:
 		for f in MCDU.FIELDS[p]:
 			_field(d, f)
@@ -78,7 +80,7 @@ static func _keys(d: MCDU) -> void:
 	var w := (400.0 - gap * (n - 1)) / n
 	for i in n:
 		var id: String = MCDU.PAGE_IDS[i]
-		d.button(Rect2(10.0 + i * (w + gap), 344, w, 30), "p_" + id, id.replace("FPLN", "F-PLN"), d.page() == id, MCDU.GREEN, 12)
+		d.button(Rect2(10.0 + i * (w + gap), 344, w, 30), "p_" + id, id.replace("FPLN", "F-PLN").replace("RADNAV", "RAD NAV"), d.page() == id, MCDU.GREEN, 12)
 	for i in 11:
 		var c := "789456123.0"[i]
 		d.button(Rect2(12 + (i % 3) * 52, 386 + (i / 3) * 40, 46, 34), "k_" + c, c, false, MCDU.GREEN, 18)

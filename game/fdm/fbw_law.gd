@@ -10,7 +10,8 @@ extends RefCounted
 ##      warnings from FbwProtection,
 ##   3. on the ground (weight on wheels) the direct mapping takes over, blended over `ground_blend_s`.
 ## Pilot inputs: fcs.pitch (+1 = stick aft), roll (+1 right), yaw (+1 right pedal), pitch_trim (wheel).
-## Autopilot: Props ap/cmd/active, ap/cmd/nz_g (g increment), ap/cmd/roll_rate_dps (+ right) replace the stick;
+## Autopilot: Props ap/cmd/active, ap/cmd/nz_g (g increment), ap/cmd/roll_rate_dps (+ right) replace the stick (ap/cmd/ground_pitch adds to
+## it on the ground, ap/cmd/yaw to the pedals in fdm_node.gd: the autoland); the flare mode is off while the autopilot flies;
 ## ap/cmd/takeover is true when the stick moves past `takeover` (autoflight then disengages).
 ## Publishes: fcs/law ("NORMAL" ...), fcs/law_id (0..2), fcs/law_reason, fcs/ground_mode, fcs/flare, plus FbwProtection props.
 ## Parameters: FbwParams. Law state is rebuilt on restart() (after trim, load, reset), so it is never saved.
@@ -84,11 +85,11 @@ func _flight_laws(c: AirlinerControls, ap_on: bool) -> void:
 	var dz := par.f("stick_deadzone")
 	var sp := _dz(c.pitch, dz)
 	var sr := _dz(c.roll, dz)
-	var e_dir := pitch.ground(s, par, c.pitch, c)
+	var e_dir := pitch.ground(s, par, c.pitch + (Props.get_f("ap/cmd/ground_pitch") if ap_on else 0.0), c)  # autoland roll out: the nose comes down
 	# pitch
 	var lim := prot.nz_limits(s, par)
 	var inc := Props.get_f("ap/cmd/nz_g") if ap_on else (sp * (lim.y - 1.0) if sp > 0.0 else sp * (1.0 - lim.x) * prot.forward_authority(par))
-	var nz_c := pitch.demand(s, par, prot, inc)
+	var nz_c := pitch.demand(s, par, prot, inc, ap_on)
 	var e := e_dir
 	if wg >= 0.999:
 		pitch.track(e_dir)

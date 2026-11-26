@@ -11,7 +11,7 @@ var _opts := {}
 const SWITCHES := {"Flight data bar at start (H toggles in flight)": "hud_at_start", "Training callouts (K toggles in flight)": "callouts",
 	"Speak them (system voice)": "callouts_voice", "Auto-coordination (rudder follows aileron)": "auto_coordination",
 	"Radio assist (tunes COM1 for you, suggests the next call)": "radio_assist", "ATC voice (system text-to-speech)": "atc_voice",
-	"Bloom (glow around bright lights)": "bloom"}
+	"Auto-tune ILS (NAV2 follows the ILS you fly to; the A320 always does)": "ils_autotune", "Bloom (glow around bright lights)": "bloom"}
 
 
 func teardown() -> void:

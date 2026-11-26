@@ -28,11 +28,12 @@ func reset(elevator_mean_deg: float) -> void:
 	_drop_t = 0.0
 
 
-## nz_c from the stick increment `inc` (g, already scaled by the stick curve) and the protections.
-func demand(s: FbwSense, par: FbwParams, prot: FbwProtection, inc: float) -> float:
+## nz_c from the stick increment `inc` (g, already scaled by the stick curve) and the protections. With the autopilot flying (`ap`)
+## there is no flare mode: the autoland (systems/autoflight_land.gd) flares through the load factor it demands.
+func demand(s: FbwSense, par: FbwParams, prot: FbwProtection, inc: float, ap := false) -> float:
 	var fl: Dictionary = par.d.flare
 	var was := flare
-	flare = s.ra_ft < float(fl.ra_ft) and s.gear_pos > 0.9 and s.lever < float(fl.max_lever) and not s.wow
+	flare = s.ra_ft < float(fl.ra_ft) and s.gear_pos > 0.9 and s.lever < float(fl.max_lever) and not s.wow and not ap
 	if flare and not was:
 		theta_mem = s.theta
 		_drop_t = 0.0

@@ -29,19 +29,20 @@ Options not listed below (and everything after `--`) go to the game.
 2. **Plan.** Prints the raw data still to download (size of each file, total in GB), the pipeline steps that will run with the reason and the usual time (from `data/run.log`, else a built-in table). Asks `Continue? [y/N]` when there is real work. With nothing stale it says "Everything is up to date".
 3. **Python venv (`tools/.venv`).** Creates it (with system site-packages, for GDAL) and pip-installs whatever is not importable: osmium, jsbsim, mapbox_earcut, shapely, matplotlib, pillow, numpy.
 4. **Raw data (`data/raw`).** Downloads what is missing: Copernicus DEM 30 m and 90 m tiles, the Geofabrik western-zone OSM extract, OurAirports CSVs, the JSBSim aircraft data, Sentinel-2 imagery (inner and outer), the corridor pack (`--region=all`), and the A320 data (`--a320`).
-5. **Data pipeline (`tools/NN_*.py`).** Runs the stale steps in this order: `05 28 04 02 03 06 09 11 12 19 13 15 17 20 21 09 27 14 16 10` (airports and navaids, airways, OSM, terrain heights, imagery, c172 model json, runways, land class, outer ring, WorldCover, stands, terminals, airport fixups, roads and rivers, shore, runways again, pavement, ILS, terminal models, buildings). Each step is described in the next section.
+5. **Data pipeline (`tools/NN_*.py`).** Runs the stale steps in this order: `05 28 29 04 02 03 06 09 11 12 19 13 15 17 20 21 09 27 14 16 10` (airports and navaids, airways, real ILS records, OSM, terrain heights, imagery, c172 model json, runways, land class, outer ring, WorldCover, stands, terminals, airport fixups, roads and rivers, shore, runways again, pavement, ILS, terminal models, buildings). Each step is described in the next section.
 6. **Godot first-run import.** Runs `godot --headless --path game --import` once, when `game/.godot/imported` does not exist.
 7. **Summary.** Warns if `terrain/meta.json`, `runways.json` or `airports.json` is missing, and prints disk use and total time.
 8. **Launch.** On macOS exports `SDL_JOYSTICK_MFI=0` and `SDL_JOYSTICK_ALLOW_BACKGROUND_EVENTS=1` (joystick detection, see USAGE.md). Registers the applications-menu entry via `launch.sh --register-only`, then `exec`s `godot --path game -- <game args>`. It refuses to launch if the data is incomplete (unless `--skip-data`).
 
 ## The pipeline steps, one by one
 
-Run order (`PIPELINE` in `run.sh`): `05 28 04 02 03 06 09 11 12 19 13 15 17 20 21 09 27 14 16 10`. "Needs" lists the upstream steps that re-trigger a step when they run (`DEP` in `run.sh`). Ground tiles are indexed by level L (0 = finest) and tile x/y in the local ENU world frame.
+Run order (`PIPELINE` in `run.sh`): `05 28 29 04 02 03 06 09 11 12 19 13 15 17 20 21 09 27 14 16 10`. "Needs" lists the upstream steps that re-trigger a step when they run (`DEP` in `run.sh`). Ground tiles are indexed by level L (0 = finest) and tile x/y in the local ENU world frame.
 
 | Step | Script | What it does | Writes (under `data/processed/` unless noted) | Needs / notes |
 |---|---|---|---|---|
 | 05 | `05_airports_navaids.py` | Reads the OurAirports CSVs for the Mumbai-Pune box and the Konkan-Kerala corridor; converts to world metres plus lat/lon. | `airports.json`, `navaids.json` | none |
 | 28 | `28_airways.py` | Reads ATS routes from the AAI eAIP HTML pages (designator, ordered points, coordinates) for routes crossing the regions. Not for navigation. | `airways.json` | network the first time (cached in `data/raw/aai`) |
+| 29 | `29_ils_aip.py` | Reads the ILS of each sim airport from its AAI eAIP AD 2.19 page (runway end, ident, frequency, category, antenna coordinates, glide angle where the remarks give one). Not for navigation. | `ils_aip.json` | 05; network the first time (cached in `data/raw/aai`); offline it keeps the old file |
 | 04 | `04_osm_extract.py` | One pass over the OSM extracts: runways and taxiways, aprons, major roads, water polygons, building footprints per level-0 tile. Corridor building density follows `building_density.py`. | `osm/aeroways.json`, `osm/roads.json`, `osm/water.json`, `osm/buildings/` | raw OSM pbf |
 | 02 | `02_dem_tiles.py` | Copernicus DEM to world-frame heightmap tiles (16-bit), flattening runways and aprons. Corridor tiles come from their own packs. | `terrain/meta.json`, `terrain/h/<L>/` | 04, 05 |
 | 03 | `03_imagery_tiles.py` | Sentinel-2 mosaic to BC1/DXT1 DDS imagery tiles with mip chains, same tiling as the heights. Corridor tiles use the 20 m mosaic, flat sea/land colour where there is no imagery. | `terrain/img/<L>/` | 02 |
@@ -57,7 +58,7 @@ Run order (`PIPELINE` in `run.sh`): `05 28 04 02 03 06 09 11 12 19 13 15 17 20 2
 | 21 | `21_shore.py` | Shore distance and "openness" of water per land-class tile, for foam, depth colour and calm backwaters. | `terrain/sd/<L>/` | 11, 12, 17 |
 | 09 | (second run) | Runways again, now with the levelled airport ground. | `runways.json` | see above |
 | 27 | `27_pavement.py` | Airport pavement masks: aprons, stands, runway and taxiway shoulders as 4 m RGBA tiles (concrete or asphalt, tyre marks, oil stains). There is no apron mesh. | `terrain/pv/0/` | 04, 09, 13, 17. Always rebuilt (`--force`), about 1.5 min |
-| 14 | `14_ils.py` | Generates a simulated ILS (localizer and 3 deg glideslope) for the long runways. Idents and frequencies are made up, flagged `"simulated": true`. | `ils.json` | 09 |
+| 14 | `14_ils.py` | Matches the real ILS records (`ils_aip.json`, `tools/ils_overrides.json`) to the runway ends (course check against the localizer antenna, mismatches logged) and writes them with `"simulated": false`, category and source; the other runways of 2000 m or more get a simulated ILS (made-up ident, cycling channel that no real ILS within 150 nm uses, `"simulated": true`). | `ils.json` | 09, 29 |
 | 16 | `16_terminal_models.py` | Landmark terminal 3D models from the footprints plus per-airport recipes (`terminal_styles.py`), seated on the levelled ground. Lists their footprints so 10 skips those buildings. | `terminals/<ICAO>.glb`, `<ICAO>_model.json`, `terminals/landmarks.json` | 15, 17 |
 | 10 | `10_buildings.py` | Extrudes OSM building footprints into per-tile meshes with roof colours from the imagery, heights from the DEM, leaving out the landmark terminals. | `buildings/<tx>_<ty>.bin` | 02, 04, 16, 17. Slowest step, about 20 min |
 

@@ -65,6 +65,19 @@ static func march_jitter(frame: int, scale: int, view_px: Vector2) -> Vector2:
 	return jitter_uv(frame, scale, view_px) if MARCH_JITTER else Vector2.ZERO
 
 
+## Cloud extinction per metre at density 1 (volumetric_clouds.gdshader), and the near field with no cloud at all.
+## cloud_upscale.gdshader applies max_alpha() to every pixel of both upscale passes (see there).
+const CLOUD_EXT := 0.006
+const NEAR_CLEAR_M := 6.0
+
+
+## The most cloud (alpha) that can lie in front of a surface `dist_m` from the camera: the physical bound, and zero in
+## the near field (the cockpit). The march at low resolution, the history blend and the one-frame-old depth copy can
+## all put more on a pixel at a depth edge; this caps it with the pixel's own depth. Same maths as the shader.
+static func max_alpha(dist_m: float) -> float:
+	return (1.0 - exp(-maxf(dist_m, 0.0) * CLOUD_EXT)) * smoothstep(0.5 * NEAR_CLEAR_M, NEAR_CLEAR_M, dist_m)
+
+
 ## Metres from the camera to the cloud slab (0 inside it). A surface nearer than this is in front of every cloud,
 ## so the upscale draws no cloud on it: the windshield frame and the aircraft never pick up low-res sky blocks.
 static func clear_dist(cam_alt_m: float, base_m: float, thick_m: float) -> float:

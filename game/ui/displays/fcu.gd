@@ -140,6 +140,9 @@ func _paint_button(b: String, r: Rect2) -> void:
 		"alt_inc":
 			title = "ALT STEP"
 			sub = "1000" if Props.get_b("controls/fcu/alt_inc_1000") else "100"
+		"ap_disc":
+			title = "AP DISC"
+			sub = "TAKEOVER"
 		"fd":
 			lit = Props.get_b("controls/fcu/fd")
 		"ls":

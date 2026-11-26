@@ -8,8 +8,9 @@ extends Display
 ## (strings, "\n" separates lines), avionics/nav{2,1}/* for the ILS (pfd_ils.gd: scales, ident, frequency, DME).
 
 const Z := Rect2(104, 62, 352, 318)
+const AP_OFF := "AP OFF"
 const PX_DEG := 7.0  # pitch ladder px per degree
-const FMA_COLORS := {"green": GREEN, "cyan": CYAN, "white": WHITE, "amber": AMBER}  # AfFma.color names
+const FMA_COLORS := {"green": GREEN, "cyan": CYAN, "white": WHITE, "amber": AMBER, "red": RED}  # AfFma.color names
 var _c := Z.get_center()
 
 
@@ -119,15 +120,25 @@ func _fma() -> void:
 		var s := str(Props.get_v("ap/fma/" + cols[i], ""))
 		if i == 4 and s == "":
 			s = _status_lines()
+		if i == 4 and Props.get_b("ap/disconnect_warning") and not Props.get_b("ap/ap1") and not Props.get_b("ap/ap2"):
+			s = AP_OFF + s  # takes the empty AP1 / AP2 line (the status text starts with it), flashing red
 		var x := i * 120.0
 		if i > 0:
 			line(Vector2(x, 2), Vector2(x, 56), GREY, 1.0)
 		var n := 0
+		var boxed := AfFma.box(cols[i], s)
+		if boxed != "":
+			frame(Rect2(x + 14, 3, 92, 4 + 18 * mini(s.count("\n") + 1, 2)), FMA_COLORS[boxed], 2.0)
+		var blink := AfFma.flashes(cols[i], s) and int(Time.get_ticks_msec() / 500) % 2 == 1
 		for ln in s.split("\n"):
 			if n >= 3:
 				break
 			var col: Color = FMA_COLORS[AfFma.color(cols[i], n, s, Props.get_b("ap/athr_active"))]
-			txt(Vector2(x + 60, 12 + n * 18), ln, 16, col, 0)
+			var off := i == 4 and ln == AP_OFF  # the disconnect warning: red, flashing
+			if off:
+				col = RED
+			if not (blink or (off and int(Time.get_ticks_msec() / 400) % 2 == 1)):
+				txt(Vector2(x + 60, 12 + n * 18), ln, 16, col, 0)
 			n += 1
 
 

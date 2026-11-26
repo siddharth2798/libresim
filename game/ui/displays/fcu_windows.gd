@@ -4,8 +4,9 @@ extends RefCounted
 ## ui/displays/fcu.gd). Pure: reads Props, returns text and flags. A managed window shows dashes and its dot
 ## (a value turned while managed shows for a while first, the dot stays: ap/spd_preset 10 s, ap/hdg_preset 45 s,
 ## systems/autoflight_preview.gd):
-##   SPD  controls/fcu/spd_managed: "---" + dot; else the selected speed, or the Mach number with controls/fcu/spd_mach
-##        (display only: the Mach of the selected speed at the present speed ratio, the autothrust still flies knots)
+##   SPD  controls/fcu/spd_managed: "---" + dot; else the selected speed (controls/fcu/spd_kt), or with controls/fcu/spd_mach the
+##        selected Mach number (controls/fcu/mach_sel, shown ".78"); the autoflight holds what the window shows and converts the
+##        value when SPD/MACH is pressed (systems/autoflight.gd)
 ##   HDG  controls/fcu/hdg_managed (NAV): "---" + dot; else the selected heading. controls/fcu/trk_fpa only relabels it TRK
 ##   ALT  always the selected altitude; dot with managed vertical (controls/fcu/vs_managed)
 ##   V/S  dashes unless the vertical mode is V/S (ap/fma/vertical) or the knob was just turned to preset a value
@@ -25,7 +26,7 @@ static func spd() -> Dictionary:
 	var shown := not managed or Props.get_b("ap/spd_preset")  # a turned value shows for 10 s while managed
 	var text := ("%03d" % roundi(kt)) if shown else "---"
 	if mach and shown:
-		text = ".%02d" % clampi(roundi(selected_mach(kt) * 100.0), 0, 99)
+		text = ".%02d" % clampi(roundi(Props.get_f("controls/fcu/mach_sel", 0.78) * 100.0), 0, 99)
 	return {"text": text, "dot": managed, "label": "MACH" if mach else "SPD"}
 
 
@@ -62,12 +63,3 @@ static func vs_text(fpm: float, fpa: bool) -> String:
 ## The centre indication between the HDG and ALT windows.
 static func mode_label() -> String:
 	return "TRK FPA" if Props.get_b("controls/fcu/trk_fpa") else "HDG V/S"
-
-
-## Mach of `kt` calibrated airspeed, scaled by the present Mach / CAS ratio (0.78 at cruise by default).
-static func selected_mach(kt: float) -> float:
-	var cas := Units.mps_to_kt(Props.get_f("fdm/cas_mps"))
-	var m := Props.get_f("fdm/mach")
-	if cas < 60.0 or m <= 0.0:
-		return 0.78
-	return kt * m / cas

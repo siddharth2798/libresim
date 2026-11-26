@@ -7,8 +7,8 @@ extends "res://tests/fcu_panel_base.gd"
 
 func test_every_control_has_one_zone_that_maps_back_to_it() -> String:
 	var zones := FcuLayout.zones()
-	if zones.size() != 16:
-		return "4 knobs, 5 lamps, EXPED, 4 selectors, FD and LS = 16 zones, got %d" % zones.size()
+	if zones.size() != 17:
+		return "4 knobs, 5 lamps, EXPED, 4 selectors, FD, LS and AP DISC = 17 zones, got %d" % zones.size()
 	for z in zones:
 		if FcuLayout.zone_at((z.rect as Rect2).get_center()) != z.id:
 			return "the middle of %s maps to %s" % [z.id, FcuLayout.zone_at((z.rect as Rect2).get_center())]
@@ -59,7 +59,7 @@ func test_a_screen_point_reaches_the_right_control_at_every_scale_and_layout() -
 							return "%s %s UI %s: %s is only %.0f x %.0f px to click" % [layout, win, ui_scale, z.id, phys.x, phys.y]
 						seen += 1
 	ov.free()
-	return "" if seen == 2 * 3 * 2 * 16 else "checked %d points" % seen
+	return "" if seen == 2 * 3 * 2 * 17 else "checked %d points" % seen
 
 
 func test_the_cessna_panel_has_no_fcu_zone_and_no_note() -> String:

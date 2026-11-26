@@ -15,6 +15,7 @@ func _ready() -> void:
 	var a := OptionRows.switch("Radio assist (tunes COM1 for you, suggests the next call)", "radio_assist", func(_on): changed.emit())
 	add_child(a)
 	add_child(MenuTheme.note("Assist on: a call tunes COM1 to the right unit by itself and the radio bar suggests what to call next. Off: you tune COM1 yourself, as in a real aircraft; nothing is suggested."))
+	add_child(OptionRows.switch("Auto-tune ILS (NAV2 follows the ILS you fly to; the A320 always does)", "ils_autotune", func(_on): changed.emit()))
 	var v_note := SpeechNote.new("atc_voice")
 	var v := OptionRows.switch("ATC voice (system text-to-speech)", "atc_voice", func(_on):
 		v_note.refresh()

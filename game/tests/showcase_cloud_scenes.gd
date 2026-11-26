@@ -18,6 +18,13 @@ const SCENES := {
 	"cloud_c172_tail": {"weather": "Overcast", "view": "tail", "merge_setup": IN_CLOUD_C172},
 	"cloud_c172_cockpit": {"weather": "Overcast", "view": "cockpit", "prop_deg": 90.0, "merge_setup": IN_CLOUD_C172},
 	"cloud_a320_cockpit": {"weather": "Overcast", "view": "cockpit", "setup": {"aircraft": "a320"}, "merge_setup": IN_CLOUD},
+	# the owner's report: A320 cockpit, scattered / broken cloud, low morning sun, light turbulence (25-30 %)
+	"cloud_a320_cockpit_broken": {"weather": "Broken", "view": "cockpit", "setup": {"aircraft": "a320"},
+		"merge_setup": {"airport": "VABB", "runway": "27", "start": "air", "air_ft": 3300.0, "air_nm": 6.0, "air_kt": 200.0, "time_h": 8.0, "turbulence": 0.28}},
+	"cloud_a320_cockpit_clear": {"weather": "Clear", "view": "cockpit", "setup": {"aircraft": "a320"},  # twin of ..._broken without cloud: tools/check_cockpit_clouds.py
+		"merge_setup": {"airport": "VABB", "runway": "27", "start": "air", "air_ft": 3300.0, "air_nm": 6.0, "air_kt": 200.0, "time_h": 8.0, "turbulence": 0.28}},
+	"cloud_a320_cockpit_scattered": {"weather": "Scattered", "view": "cockpit", "setup": {"aircraft": "a320"},
+		"merge_setup": {"airport": "VABB", "runway": "27", "start": "air", "air_ft": 3300.0, "air_nm": 6.0, "air_kt": 200.0, "time_h": 8.0, "turbulence": 0.28}},
 	# unchanged-by-design controls: clear air, and the edge of a broken layer (aircraft just under the base)
 	"cloud_clear_a320": {"weather": "Clear", "view": "chase", "setup": {"aircraft": "a320"},
 		"merge_setup": {"airport": "VABB", "runway": "27", "start": "air", "air_ft": 3800.0, "air_nm": 6.0, "air_kt": 200.0, "time_h": 11.0}},

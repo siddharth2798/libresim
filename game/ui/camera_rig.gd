@@ -1,7 +1,7 @@
 class_name CameraRig
 extends Camera3D
 ## All flight cameras. C / Shift+C cycle, or 1-8 jump directly:
-##  1 cockpit (pilot eye; drag to look, scroll or pinch to zoom, V re-centre)
+##  1 cockpit (pilot eye; drag to look, scroll or pinch to zoom, or turn the knob under the pointer: CockpitWheel; V re-centre)
 ##  2 chase   3 orbit (right-drag rotate, wheel distance)
 ##  4 free    (detached: WASD move, Q/E down/up, right-drag look, Shift fast, wheel speed)
 ##  5 tower   (nearest airport, auto zoom)   6 wing   7 tail   8 fly-by
@@ -140,6 +140,7 @@ func _unhandled_input(e: InputEvent) -> void:
 		aircraft.cockpit.forward_mouse(e, self)
 	elif CameraLook.is_zoom(e):
 		if mode == Mode.COCKPIT:
+			if CockpitWheel.turn(e, self, aircraft.cockpit if aircraft != null else null): return  # over a knob: it turns, the view stays
 			var next := CameraLook.zoom_fov(_fov_goal, e)
 			if next < _fov_goal and aircraft != null and is_inside_tree():
 				var at: Vector2 = e.position if e is InputEventMouse or e is InputEventGesture else get_viewport().get_mouse_position()

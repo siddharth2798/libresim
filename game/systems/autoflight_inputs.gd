@@ -1,7 +1,8 @@
 class_name AfInputs
 extends RefCounted
 ## What the autoflight sees on one tick, in SI (m, s, rad, m/s). read() fills it from Props; tests fill the fields directly.
-## FCU set-points are converted from pilot units here (the only place).
+## FCU set-points are converted from pilot units here (the only place). f.spd is the selected knots in m/s; with f.spd_mach the
+## selected speed is the Mach f.mach_sel instead (AfSpeeds.selected turns it into a CAS at the present pressure).
 ## From Props: fdm/{cas_mps, tas_mps, mach, vs_mps, agl_m, position_enu, pitch_rad, roll_rad, heading_rad (true), track_rad
 ## (true), groundspeed_mps, wow, gear_pos, flap_lever, flap_deg, slat_deg, mass_kg, alpha_rad}, atmosphere/pressure_pa,
 ## controls/baro/{hpa, std}, controls/throttle[_n] (the pilot's levers), engines/<n>/lever, controls/flex_temp_c, fcs/alpha_floor
@@ -19,7 +20,8 @@ var tas := 0.0
 var mach := 0.0
 var alt_m := 0.0  # indicated (baro-corrected, like the PFD and the FCU selection)
 var vs_mps := 0.0
-var ra_m := 1.0e5  # radio altitude (height above the ground)
+var ra_m := 1.0e5  # radio altitude: height of the lowest wheel above the ground (0 on the runway)
+var rates := Vector3.ZERO  # body rates p, q, r (rad/s)
 var pos := Vector3.ZERO  # ENU, z = true MSL height
 var pitch := 0.0
 var roll := 0.0
@@ -43,7 +45,7 @@ var ap_failed := false
 var ils := {}  # {course, loc: Vector2, gs_pos: Vector2, gs_h, gs_rad, gs_valid} or empty
 var gps := {}  # {brg (true rad), dist, xtk} or empty
 var f := {  # FCU, SI. Flags are the pilot's requests (the buttons).
-	"spd": 128.6, "hdg": 0.0, "alt": 3048.0, "vs": 0.0,
+	"spd": 128.6, "spd_mach": false, "mach_sel": 0.78, "hdg": 0.0, "alt": 3048.0, "vs": 0.0,
 	"ap1": false, "ap2": false, "athr": false, "loc": false, "appr": false, "fd": true,
 	"spd_mgd": false, "hdg_mgd": false, "vs_mgd": false, "ap_disc": false, "athr_disc": false, "select": "",
 }
@@ -55,7 +57,8 @@ func read(delta: float, db: NavDatabase) -> void:
 	tas = Props.get_f("fdm/tas_mps")
 	mach = Props.get_f("fdm/mach")
 	vs_mps = Props.get_f("fdm/vs_mps")
-	ra_m = Props.get_f("fdm/agl_m", 1.0e5)
+	ra_m = maxf(Props.get_f("fdm/agl_m", 1.0e5) - Props.get_f("fdm/wheel_depth_m", 0.0), 0.0)  # CG height less the wheels below it
+	rates = Props.get_v("fdm/body_rates", Vector3.ZERO)
 	pos = Props.get_v("fdm/position_enu", Vector3.ZERO)
 	pitch = Props.get_f("fdm/pitch_rad")
 	roll = Props.get_f("fdm/roll_rad")
@@ -122,6 +125,8 @@ func _nav(db: NavDatabase) -> void:
 
 func _fcu() -> void:
 	f.spd = Units.kt_to_mps(Props.get_f("controls/fcu/spd_kt", 250.0))
+	f.spd_mach = Props.get_b("controls/fcu/spd_mach")  # SPD/MACH: the window and the target are a Mach number (controls/fcu/mach_sel)
+	f.mach_sel = roundf(Props.get_f("controls/fcu/mach_sel", 0.78) * 100.0) / 100.0
 	f.hdg = deg_to_rad(Props.get_f("controls/fcu/hdg_deg") + VAR_DEG)
 	f.alt = Units.ft_to_m(Props.get_f("controls/fcu/alt_ft", 10000.0))
 	f.vs = Props.get_f("controls/fcu/vs_fpm") * Units.FPM
@@ -144,6 +149,11 @@ func loc_offset_m() -> float:
 func gs_error_m() -> float:
 	var gd := Vector2(pos.x, pos.y).distance_to(ils.gs_pos)
 	return pos.z - (float(ils.gs_h) + tan(ils.gs_rad) * gd)
+
+
+## Horizontal distance to the glide slope antenna, m.
+func gs_dist_m() -> float:
+	return Vector2(pos.x, pos.y).distance_to(ils.gs_pos)
 
 
 ## Flight path angle from the vertical speed (rad).

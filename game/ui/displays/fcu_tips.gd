@@ -23,6 +23,9 @@ const LAMPS := {"btn_ap1": "ap1", "btn_ap2": "ap2", "btn_athr": "athr", "btn_loc
 static func text(id: String, bindings: Dictionary) -> String:
 	if id == "btn_exped":
 		return "Expedite (EXPED)\nNot modelled in libresim\nDisabled"
+	if id == "btn_ap_disc":  # the sidestick takeover button: no cockpit twin in the model
+		var k := _keys("controls/fcu/ap_disc", bindings)
+		return "Autopilot disconnect (sidestick takeover)\nClick" + (" · " + k if k != "" else "") + "\n" + _disc_state()
 	if not LEVER.has(id):
 		return ""
 	var drive: String = LEVER[id][1]
@@ -41,6 +44,12 @@ static func _keys(drive: String, bindings: Dictionary) -> String:
 		if not slots.is_empty():
 			bits.append(KeyBindings.describe(slots[0]))
 	return " / ".join(bits)
+
+
+static func _disc_state() -> String:
+	if Props.get_b("ap/disconnect_warning"):
+		return "AP OFF warning: press again to cancel"
+	return "Autopilot engaged" if Props.get_b("ap/ap1") or Props.get_b("ap/ap2") else "Autopilot off"
 
 
 static func _button_state(id: String, drive: String) -> String:

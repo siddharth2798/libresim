@@ -3,10 +3,10 @@ extends RefCounted
 ## Text of the PFD's flight mode annunciator, the strings ap/fma/{thrust, vertical, lateral, approach,
 ## misc} that ui/displays/pfd.gd draws (lines separated by "\n": the first line is an engaged mode in
 ## green, the following ones are armed modes in cyan / blue). Pure function of the mode objects.
-##   thrust    SPEED MACH THR CLB THR IDLE THR DES RETARD A.FLOOR TOGA LK | MAN TOGA / MAN FLX 50 / MAN THR | LVR CLB
-##   vertical  SRS ALT ALT* ALT CRZ V/S OP CLB OP DES CLB DES G/S* G/S LAND (+ armed lines ALT, G/S)
-##   lateral   RWY HDG NAV LOC* LOC LAND (+ armed LOC)
-##   approach  CAT1 while the localizer is followed in an approach
+##   thrust    SPEED MACH (the selected or managed target is a speed or a Mach number) THR CLB THR IDLE THR DES RETARD (the last two also in the flare) A.FLOOR TOGA LK | MAN TOGA / MAN FLX 50 / MAN THR | LVR CLB
+##   vertical  SRS ALT ALT* ALT CRZ V/S OP CLB OP DES CLB DES G/S* G/S LAND FLARE (+ armed lines ALT, G/S)
+##   lateral   RWY HDG NAV LOC* LOC ROLL OUT (+ armed LOC)
+##   approach  CAT1 or CAT3 DUAL while the localizer is followed in an approach
 ##   misc      AP1 / AP2 / AP1+2, 1FD2 (flight director), A/THR
 
 
@@ -14,28 +14,37 @@ static func thrust(thr: AfThrust, i: AfInputs, above_reduction: bool) -> String:
 	return thr.fma(i, above_reduction)
 
 
-static func vertical(v: AfVertical, on_ground_armed: bool) -> String:
+static func vertical(v: AfVertical, on_ground_armed: bool, land: AfLand = null) -> String:
 	var lines: Array = []
+	if land != null and land.active():  # LAND, FLARE (nothing on the roll out: the lateral column says ROLL OUT)
+		return land.fma_vertical()
 	if v.mode == "":
 		if on_ground_armed:
 			lines.append("")
 			lines.append("SRS")
 		return "\n".join(lines)
 	var m := "ALT CRZ" if v.mode == "ALT" and v.crz else v.mode
-	lines.append("LAND" if v.land and (v.mode == "G/S" or v.mode == "G/S*") else m)
+	lines.append(m)
 	lines.append_array(v.armed)
 	return "\n".join(lines)
 
 
-static func lateral(l: AfLateral, v: AfVertical, on_ground_armed: bool) -> String:
+static func lateral(l: AfLateral, on_ground_armed: bool, land: AfLand = null) -> String:
+	if land != null and land.rolling():
+		return "ROLL OUT"
 	if l.mode == "":
 		return "\nRWY" if on_ground_armed else ""
-	var m := "LAND" if v.land and l.captured() else l.mode
-	return m if l.armed == "" else m + "\n" + l.armed
+	return l.mode if l.armed == "" else l.mode + "\n" + l.armed
 
 
-static func approach(l: AfLateral, appr: bool) -> String:
-	return "CAT1" if appr and l.captured() else ""
+## Approach capability (column 4, white): CAT3 DUAL with both APs, the ILS and the landing configuration (`capable`, AfLand.capable)
+## or while an autoland goes on, CAT1 otherwise, while the localizer is followed in an approach.
+static func approach(l: AfLateral, appr: bool, land: AfLand = null, capable := false) -> String:
+	if land != null and land.active():
+		return "CAT3 DUAL"
+	if not (appr and l.captured()):
+		return ""
+	return "CAT3 DUAL" if capable else "CAT1"
 
 
 ## Colour of line `n` of an FMA column: "green" (engaged), "cyan" (armed), "white", "amber". `col` is the column name, `whole` the
@@ -55,6 +64,21 @@ static func color(col: String, n: int, whole: String, athr_active: bool) -> Stri
 		"misc":
 			return ("white" if athr_active else "cyan") if line == "A/THR" else "white"
 	return "white"
+
+
+## The box drawn round a thrust column text: MAN TOGA / FLX / MCT white, MAN THR amber, A.FLOOR and TOGA LK amber; "" = none
+## (FBW first-column page; the white box of a changed mode is not modelled).
+static func box(col: String, whole: String) -> String:
+	if col != "thrust":
+		return ""
+	if whole.begins_with("MAN\nTHR") or whole in ["A.FLOOR", "TOGA LK"]:
+		return "amber"
+	return "white" if whole.begins_with("MAN") else ""
+
+
+## Does the text flash (LVR CLB: the levers should go to the CL detent)?
+static func flashes(col: String, whole: String) -> bool:
+	return col == "thrust" and whole.begins_with("LVR CLB")
 
 
 static func misc(ap1: bool, ap2: bool, fd: bool, athr: bool) -> String:

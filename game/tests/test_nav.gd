@@ -76,11 +76,11 @@ func test_nav_vor_radial_and_cdi_sense() -> String:
 func test_nav_ils_on_path() -> String:
 	var n := _radios()
 	var s: Dictionary = {}
-	for i in n.db.ils:
-		if i.ident == "IBB27":
+	for i in n.db.ils:  # the ILS of Mumbai runway 27, whatever its ident and frequency
+		if i.airport == "VABB" and RunwayWaypoints.normalize(str(i.runway)) == "27":
 			s = i
 	if s.is_empty():
-		return "IBB27 missing (run tools/14_ils.py)"
+		return "VABB 27 ILS missing (run tools/14_ils.py)"
 	Props.set_v("controls/nav2/freq_mhz", s.mhz)
 	var th := Vector2(s.threshold.x, s.threshold.y)
 	var back := -Vector2(sin(deg_to_rad(s.course_true)), cos(deg_to_rad(s.course_true)))

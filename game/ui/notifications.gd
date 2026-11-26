@@ -23,7 +23,6 @@ var _failed := {}  # failure id -> true while failed
 var _ice := IcingNotices.new()
 var _pulse := 0.0
 var _clock := 0.0
-var _in_cloud := false  # last state announced
 var _said := {}  # text -> clock time it was last posted (each message at most once per 20 s)
 
 
@@ -224,15 +223,12 @@ func _poll_sources() -> void:
 		_touchdown(td)
 
 
-## Cloud and storm notes (cloud physics, world/cloud_physics.gd); off with the notify option.
+## Storm wind shear note (cloud physics, world/cloud_physics.gd); off with the notify option.
+## There is no "Entering cloud" / "Leaving cloud" note: the view and the instruments already show it.
 func _poll_weather(dt: float) -> void:
 	_clock += dt
 	if not bool(Session.setup.get("notify", true)):
 		return
-	var inside := Props.get_b("environment/ac_in_cloud")
-	if inside != _in_cloud and _quiet("cloud_in" if inside else "cloud_out"):
-		_in_cloud = inside
-		post("Entering cloud" if inside else "Leaving cloud", "", INFO, "cloud")
 	if Props.get_f("environment/storm_shear_mps") > 7.0 and _quiet("shear"):
 		post("Wind shear", "Storm outflow and downdraft: add power, hold speed, get out", WARNING, "shear")
 

@@ -2,13 +2,18 @@ class_name AfThrust
 extends RefCounted
 ## Autothrust of the autoflight (pure logic, no Props). Lever positions are on the detent scale of controls/throttle_<n>: IDLE 0,
 ## CL 0.556, FLX/MCT 0.778, TOGA 1.0.
-## A/THR states: `armed` (the button; the FMA shows A/THR), `active` (it commands the levers). Active when armed, in flight and the
-## levers are at or below the CL detent: the lever position is the most it may command (limit = min(lever, CL)). A lever beyond CL
-## makes it MAN (armed, thrust = lever); back in CL it is active again. On the ground it never commands.
+## A/THR states: `armed` (the FMA shows A/THR), `active` (it commands the thrust). Armed by the FCU button, or on the ground by
+## moving the levers into TOGA, or FLX/MCT with a flex temperature set, with a flight director on (arm_by_levers: on the way in, once;
+## FBW pedestal and fifth-column pages). Active when armed, in flight and the levers are at or below the CL detent: the lever position
+## is the most it may command (limit = min(lever, CL)). A lever beyond CL makes it MAN (armed, thrust = lever); back in CL it is
+## active again. On the ground it never commands. The levers never move by themselves (the engines get `lever_cmd`, the levers keep
+## the pilot's position). Levers at idle in flight disconnect it (the Flying Engineer autoflight page). The instinctive disconnect
+## (athr_disc) drops it.
 ## Modes (FMA thrust column): SPEED / MACH (hold the target CAS; PI on the lever), THR CLB (limit), THR IDLE (OP DES) / THR DES
-## (managed DES), RETARD (below 20 ft on the glide slope), A.FLOOR (alpha floor from the control law: TOGA whatever the levers
+## (managed DES), THR IDLE (flare, from 30 ft) / RETARD (from 10 ft and on the roll out of an autoland), A.FLOOR (alpha floor from the control law: TOGA whatever the levers
 ## say), TOGA LK (TOGA stays after the alpha floor until A/THR is disconnected). When not active: MAN TOGA / MAN FLX <temp> /
-## MAN MCT / MAN THR. "LVR CLB" asks for the levers back to CL above the thrust reduction altitude with A/THR armed.
+## MAN MCT / MAN THR. "LVR CLB" (flashing) asks for the levers back to CL above the thrust reduction altitude (1500 ft, the acceleration altitude) after a
+## takeoff or go-around with A/THR armed; in other phases a lever beyond CL is just MAN THR.
 
 const CL := 0.556
 const MCT := 0.778
@@ -17,6 +22,7 @@ const DETENT_TOL := 0.03
 const KP := 0.06  # lever per m/s of speed error
 const KI := 0.004
 const RETARD_M := 6.1  # 20 ft
+const IDLE_LEVER := 0.03  # at or below this the levers are at the idle detent
 
 var armed := false
 var active := false
@@ -26,10 +32,24 @@ var limit := CL  # thrust limit the levers allow
 var _i := 0.0
 var _was_active := false
 var _toga_lk := false
+var reduction_pending := false  # a takeoff or go-around began: above the reduction altitude LVR CLB asks for the CL detent (until it is there)
+var _lever_arm_was := false  # the levers were in a takeoff detent last tick
 
 
 func reset() -> void:
 	drop()
+
+
+## On the ground a lever move into TOGA (or FLX/MCT with a flex temperature entered) with a flight director on arms the A/THR
+## without the FCU button (MAN TOGA / MAN FLX in white, A/THR cyan). Only the move in arms it, so a pilot who disarms it keeps it off.
+func arm_by_levers(i: AfInputs) -> void:
+	var detent: bool = i.lever >= TOGA - DETENT_TOL or (absf(i.lever - MCT) <= DETENT_TOL and i.flex_c > 0.0)
+	var want: bool = i.wow and i.powered and bool(i.f.fd) and detent
+	if want and not _lever_arm_was and not armed and not i.f.athr_disc:
+		armed = true
+	_lever_arm_was = want
+	if armed and not i.wow and i.lever <= IDLE_LEVER:  # levers to idle in flight: A/THR disconnects (thrust is then the lever: idle)
+		drop()
 
 
 func drop() -> void:
@@ -38,11 +58,13 @@ func drop() -> void:
 	mode = ""
 	_toga_lk = false
 	_was_active = false
+	reduction_pending = false
 
 
-## `vmode` = vertical mode, `target` m/s CAS, `mach` = the target came from the Mach limit, `land` = on
-## the glide slope. Sets `mode`, `active`, `lever_cmd`.
-func update(i: AfInputs, vmode: String, target: float, mach: bool, land: bool) -> void:
+## `vmode` = vertical mode, `target` m/s CAS, `mach` = the target came from the Mach limit, `retard` = the autoland flare asks for
+## idle (1 from 30 ft: THR IDLE, 2 from 10 ft and on the roll out: RETARD), `rolling` = an autoland roll out (A/THR goes on commanding
+## idle on the ground until the levers leave the CL range). Sets `mode`, `active`, `lever_cmd`.
+func update(i: AfInputs, vmode: String, target: float, mach: bool, retard := 0, rolling := false) -> void:
 	limit = minf(i.lever, CL)
 	if i.alpha_floor and not i.wow:  # alpha floor arms the A/THR by itself
 		armed = true
@@ -50,7 +72,9 @@ func update(i: AfInputs, vmode: String, target: float, mach: bool, land: bool) -
 	if _toga_lk and i.wow:
 		_toga_lk = false
 	var in_cl := i.lever <= CL + DETENT_TOL
-	active = armed and not i.wow and (in_cl or _toga_lk)
+	active = armed and (not i.wow or rolling) and (in_cl or _toga_lk)
+	if active or not armed:
+		reduction_pending = false
 	if not active:
 		mode = ""
 		_was_active = false
@@ -64,10 +88,10 @@ func update(i: AfInputs, vmode: String, target: float, mach: bool, land: bool) -
 	elif _toga_lk:
 		mode = "TOGA LK"
 		lever_cmd = TOGA
-	elif land and Units.m_to_ft(i.ra_m) < 20.0:
-		mode = "RETARD"
+	elif retard > 0:
+		mode = "RETARD" if retard >= 2 else "THR IDLE"
 		lever_cmd = 0.0
-	elif vmode == "OP CLB" or vmode == "CLB":
+	elif vmode == "OP CLB" or vmode == "CLB" or vmode == "SRS":
 		mode = "THR CLB"
 		lever_cmd = limit
 	elif vmode == "OP DES" or vmode == "DES":
@@ -87,7 +111,7 @@ func update(i: AfInputs, vmode: String, target: float, mach: bool, land: bool) -
 func fma(i: AfInputs, above_reduction: bool) -> String:
 	if active:
 		return mode
-	if armed and not i.wow and above_reduction and i.lever > CL + DETENT_TOL:
+	if armed and not i.wow and above_reduction and reduction_pending and i.lever > CL + DETENT_TOL:
 		return "LVR CLB"
 	if i.lever < 0.05 or (i.wow and i.lever < 0.7):
 		return ""

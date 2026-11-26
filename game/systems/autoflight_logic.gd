@@ -5,8 +5,11 @@ extends RefCounted
 ##  - AP1 / AP2 / A/THR engagement from the FCU requests (the node writes the state back to controls/fcu/{ap1, ap2, athr},
 ##    so a difference means the pilot pressed the button); the AP needs power, air and 100 ft radio altitude; drops on touchdown
 ##  - disconnects: button / instinctive (voluntary: 1.5 s warning), sidestick takeover, power or AP failure, landing
-##    auto-disconnect at 50 ft in LAND (limits.autoflight.land_disconnect_ft; 0 = off); `disc_pulse` is true for 0.5 s,
-##    `disconnect_count` counts them, `warning` stays on after an involuntary one until the button is pressed again
+##    auto-disconnect at 50 ft on the glide slope when no autoland is possible (limits.autoflight.land_disconnect_ft; 0 = off);
+##    `disc_pulse` is true for 0.5 s, `disconnect_count` counts them, `warning` stays on after an involuntary one until the
+##    button is pressed again
+##  - autoland (`land`, systems/autoflight_land.gd): both APs, ILS, gear down, CONF 3 / FULL: LAND below 400 ft, FLARE below 40 ft,
+##    ROLL OUT after touchdown (the AP stays on, steers the runway axis, drops quietly below 20 kt); a lost signal disconnects
 ##  - vertical mode from the FCU: controls/fcu/vert_select = "OPEN" | "MANAGED" | "VS" (V/S knob pulled) | "LEVEL" (V/S knob
 ##    pushed: V/S 0) (consumed); a changed alt_ft selects OP CLB / OP DES (CLB / DES when vs_managed, including while the
 ##    mode is not yet ALT), vs_managed toggles managed / V/S. At the selected altitude, managed engages ALT.
@@ -15,6 +18,10 @@ extends RefCounted
 ##    A turn of the ALT knob alone never changes the mode: ALT / ALT* keep holding, OP and managed climbs and descents keep
 ##    their mode while the new target is on their side; a target on the wrong side (or > 250 ft away in ALT*) reverts to V/S.
 ##    HDG pushed (managed) with no GPS route does not engage NAV: the request is withdrawn (writes.hdg_mgd), window and mode agree.
+##  - A/THR: armed by the FCU button, or on the ground by the levers into TOGA (or FLX/MCT with a flex temperature) with a flight
+##    director on; active once the levers are in the CL detent in flight, at idle in flight it disconnects (systems/autoflight_thrust.gd)
+##  - speed: the selected target is the knots of the SPD window or, with SPD/MACH, a Mach number held as a CAS that follows the
+##    altitude (AfSpeeds.selected); the FMA says SPEED or MACH. The window values convert when the button is pressed (the node)
 ##  - takeoff: on the ground with FD on and levers at FLX or TOGA, SRS + RWY; SRS ends at the acceleration altitude (1500 ft
 ##    above the field) into OP CLB; TOGA with flaps out on the glide slope is a go-around (SRS, heading hold)
 ##  - defaults when guidance starts in flight: HDG on the present heading and ALT (within 100 ft of the FCU altitude),
@@ -32,6 +39,7 @@ var speeds: AfSpeeds
 var lat := AfLateral.new()
 var vert := AfVertical.new()
 var thr := AfThrust.new()
+var land := AfLand.new()
 var ap1 := false
 var ap2 := false
 var fd := false
@@ -83,6 +91,8 @@ func update(i: AfInputs) -> void:
 	_takeoff(i, guidance)
 	var mgd := {"cas": 0.0, "mach": false}
 	if guidance and (not i.wow or takeoff):
+		if land.active():  # the approach is latched below 400 ft: the APPR button no longer matters
+			i.f.appr = true
 		var prev := vert.mode
 		var by_pilot := AfSelect.modes(self, i)
 		mgd = _speed_target(i)
@@ -97,12 +107,15 @@ func update(i: AfInputs) -> void:
 		lat.reset()
 		vert.reset()
 		takeoff = false
-	if engaged() and vert.land and speeds.cfg.land_disconnect_ft > 0.0 and Units.m_to_ft(i.ra_m) < speeds.cfg.land_disconnect_ft:
+	_autoland(i)
+	if engaged() and vert.land and not land.active() and speeds.cfg.land_disconnect_ft > 0.0 \
+			and Units.m_to_ft(i.ra_m) < speeds.cfg.land_disconnect_ft:
 		_disconnect(false)
 	if not guidance:
-		spd_target = speeds.limited(i, i.f.spd) if not i.f.spd_mgd else speeds.managed(i, "")["cas"]
-		mgd = {"cas": spd_target, "mach": false}
-	thr.update(i, vert.mode, spd_target, mgd.mach, vert.land)
+		spd_target = speeds.limited(i, speeds.selected(i)) if not i.f.spd_mgd else speeds.managed(i, "")["cas"]
+		mgd = {"cas": spd_target, "mach": bool(i.f.spd_mach) and not i.f.spd_mgd}
+	thr.arm_by_levers(i)
+	thr.update(i, vert.mode, spd_target, mgd.mach, land.retard, land.rolling())
 	_outputs(i, guidance)
 	_last = {"alt": i.f.alt, "vs": i.f.vs, "vs_mgd": i.f.vs_mgd}
 
@@ -141,6 +154,20 @@ func _buttons(i: AfInputs) -> void:
 		thr.drop()
 
 
+## Autoland (systems/autoflight_land.gd): LAND below 400 ft, FLARE, ROLL OUT. A signal lost on the way disconnects with the warning.
+func _autoland(i: AfInputs) -> void:
+	if not engaged() or takeoff or (not (ap1 and ap2) and not land.rolling()):
+		land.reset()
+		return
+	if land.update(i, ap1, ap2, vert, lat):
+		land.reset()
+		_disconnect(true)
+	elif land.finished(i):  # slow enough on the roll out: the AP lets go quietly
+		land.reset()
+		ap1 = false
+		ap2 = false
+
+
 func _can_engage(i: AfInputs) -> bool:
 	return i.powered and not i.ap_failed and not i.wow and i.ra_m > ENGAGE_RA_M
 
@@ -148,7 +175,7 @@ func _can_engage(i: AfInputs) -> bool:
 func _protections(i: AfInputs) -> void:
 	if not engaged():
 		return
-	if i.wow:  # touchdown: the AP drops quietly
+	if i.wow and not land.active():  # touchdown: the AP drops quietly (an autoland rolls out)
 		ap1 = false
 		ap2 = false
 	elif i.takeover or i.ap_failed or not i.powered:
@@ -171,6 +198,7 @@ func _takeoff(i: AfInputs, guidance: bool) -> void:
 	if i.wow:
 		if guidance and not takeoff and i.lever >= 0.7:
 			takeoff = true
+			thr.reduction_pending = true
 			_srs_end_alt = i.alt_m + Units.ft_to_m(speeds.cfg.accel_agl_ft)
 			lat.takeoff(i.heading)
 			vert.set_mode("SRS")
@@ -183,6 +211,7 @@ func _takeoff(i: AfInputs, guidance: bool) -> void:
 		and (vert.mode == "G/S" or vert.mode == "G/S*")
 	if ga:  # go-around: SRS, heading hold, A/THR to MAN TOGA by the lever
 		takeoff = true
+		thr.reduction_pending = true
 		_srs_end_alt = i.alt_m + Units.ft_to_m(speeds.cfg.accel_agl_ft)
 		lat.start_hdg()
 		writes["hdg"] = i.heading
@@ -201,7 +230,8 @@ func _speed_target(i: AfInputs) -> Dictionary:
 	elif i.f.spd_mgd:
 		m = speeds.managed(i, vert.mode)
 	else:
-		m.cas = speeds.limited(i, i.f.spd)
+		m.cas = speeds.limited(i, speeds.selected(i))
+		m.mach = bool(i.f.spd_mach)  # the selected target is a Mach number: A/THR says MACH
 	spd_target = m.cas
 	return m
 
@@ -209,19 +239,19 @@ func _speed_target(i: AfInputs) -> Dictionary:
 # --- outputs ------------------------------------------------------------------
 
 func _outputs(i: AfInputs, guidance: bool) -> void:
-	nz_g = vert.nz(i) if engaged() else 0.0
+	nz_g = (land.nz_g if land.phase == "FLARE" else vert.nz(i)) if engaged() else 0.0
 	roll_rate = lat.roll_rate_cmd if engaged() else 0.0
 	fd_roll = lat.bank_cmd if guidance else i.roll
-	if not guidance:
+	if not guidance or land.rolling():
 		fd_pitch = i.pitch
 	elif i.wow:
 		fd_pitch = FD_TAKEOFF_PITCH
 	else:
 		fd_pitch = i.pitch + clampf(vert.gamma_cmd - i.gamma(), -0.15, 0.15)
-	var armed_ground: bool = fd and i.wow and not takeoff
+	var armed_ground: bool = fd and i.wow and not takeoff and not land.rolling()
 	var above: bool = (_srs_end_alt > 0.0 and i.alt_m >= _srs_end_alt) or Units.m_to_ft(i.ra_m) > speeds.cfg.accel_agl_ft
-	fma = {"thrust": thr.fma(i, above), "vertical": AfFma.vertical(vert, armed_ground),
-		"lateral": AfFma.lateral(lat, vert, armed_ground), "approach": AfFma.approach(lat, i.f.appr),
+	fma = {"thrust": thr.fma(i, above), "vertical": AfFma.vertical(vert, armed_ground, land),
+		"lateral": AfFma.lateral(lat, armed_ground, land), "approach": AfFma.approach(lat, i.f.appr, land, AfLand.capable(i, ap1, ap2, lat)),
 		"misc": AfFma.misc(ap1, ap2, fd, thr.armed)}
 	thrust_limit = thr.limit_text(i)
 

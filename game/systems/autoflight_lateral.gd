@@ -13,7 +13,7 @@ extends RefCounted
 const BANK_MAX := deg_to_rad(25.0)
 const K_HDG := 1.2  # bank per heading error
 const K_TRK := 1.4  # bank per track error
-const K_LOC := 0.0004  # rad of intercept angle per m of offset
+const K_LOC := 0.0007  # rad of intercept angle per m of offset
 const LOC_ANGLE_MAX := deg_to_rad(30.0)
 const K_NAV_XTK := deg_to_rad(40.0) / 1852.0  # intercept angle per m of cross-track error
 const NAV_ANGLE_MAX := deg_to_rad(40.0)

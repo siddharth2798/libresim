@@ -3,7 +3,7 @@ extends Node
 ## selected = the digits; V/S only in V/S mode; SPD/MACH and HDG-V/S / TRK-FPA relabel; blank without power. The model's
 ## static label quads are hidden under the live strip.
 
-const KEEP := ["controls/fcu/spd_managed", "controls/fcu/spd_mach", "controls/fcu/spd_kt", "controls/fcu/hdg_managed",
+const KEEP := ["controls/fcu/spd_managed", "controls/fcu/spd_mach", "controls/fcu/spd_kt", "controls/fcu/mach_sel", "controls/fcu/hdg_managed",
 	"controls/fcu/hdg_deg", "controls/fcu/trk_fpa", "controls/fcu/alt_ft", "controls/fcu/vs_managed", "controls/fcu/vs_fpm",
 	"ap/fma/vertical", "fdm/tas_mps", "fdm/cas_mps", "fdm/mach", "systems/electrical/avionics_powered"]
 
@@ -65,8 +65,7 @@ func test_fcu_windows_relabel_and_power() -> String:
 	Props.set_v("controls/fcu/spd_managed", false)
 	Props.set_v("controls/fcu/spd_mach", true)
 	Props.set_v("controls/fcu/spd_kt", 300.0)
-	Props.set_v("fdm/cas_mps", Units.kt_to_mps(300.0))
-	Props.set_v("fdm/mach", 0.78)
+	Props.set_v("controls/fcu/mach_sel", 0.78)  # the Mach window shows its own value, not a conversion of the knots
 	var s := FcuWindows.spd()
 	if s.label != "MACH" or s.text != ".78":
 		return "MACH %s" % s

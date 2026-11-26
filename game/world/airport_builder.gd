@@ -37,6 +37,7 @@ var _taxi_shader := preload("res://world/taxiway.gdshader")  # fades out when a 
 var _lead_shader := preload("res://world/lead_on.gdshader")  # yellow line only, drawn over a runway
 var _taxi_mat: ShaderMaterial  # shared by every airport
 var _lead_mat: ShaderMaterial
+var _ils: Array = []  # ils.json: which runway ends have an ILS (precision paint and lights)
 var _runway_mats := {}  # TouchdownMarks.runway_key -> ShaderMaterial
 var _bakes := RunwayBakes.new(self)
 var _t := 0.0
@@ -50,6 +51,8 @@ func build(t: TerrainQuadtree, wait := false, preset := {}) -> void:
 	data = preset if not preset.is_empty() else Paths.load_json("runways.json")
 	if data == null:
 		return
+	var il = Paths.load_json("ils.json")
+	_ils = il if il is Array else []
 	_groups = AirportGroups.make(data)
 	_stream = AirportStream.new(_groups)
 	_state.resize(_groups.size())
@@ -237,7 +240,7 @@ func _spawn_node(i: int, kind: int, cut: Dictionary) -> void:
 		mat.set_shader_parameter("is_runway", true)
 		mat.set_shader_parameter("length_m", float(rec.length))
 		mat.set_shader_parameter("width_m", float(rec.width))
-		var u := RunwayMarkings.uniforms(rec)
+		var u := RunwayMarkings.uniforms(rec, RunwayMarkings.lights_from_ils(rec, _ils))
 		for k in u:
 			mat.set_shader_parameter(k, u[k])
 		key = TouchdownMarks.runway_key(rec)

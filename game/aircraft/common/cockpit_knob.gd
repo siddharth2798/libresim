@@ -8,6 +8,8 @@ extends RefCounted
 ##   range      [lo, hi]: clamped, or with "wrap": true wrapped (heading 0..359)
 ##   values     [a, b, ...]: detents are these values instead (ND range and mode)
 ##   fallback   property read while the drive was never set (BARO: the weather QNH)
+##   when_on    {"prop": bool property, "set": {fields}}: while the property is set the knob works on these fields instead (the FCU
+##              SPD knob turns the Mach window, drive controls/fcu/mach_sel, while SPD/MACH is on); see active()
 ##   push       {prop: value, ...} written on a click; pull: the same on Shift+click (FCU managed / selected,
 ##              BARO QNH / STD). A knob with `values` and no push / pull steps to the next / previous value instead.
 
@@ -17,17 +19,29 @@ static func turn(item: Dictionary, drag_dy: float) -> void:
 	var n := int(acc)  # whole detents, toward zero
 	item["acc"] = acc - n
 	if n != 0:
-		Props.set_v(str(item.drive), value_after(item, current(item), n))
+		var a := active(item)
+		Props.set_v(str(a.drive), value_after(a, current(a), n))
 
 
 ## A click (push) or Shift+click (pull).
 static func click(item: Dictionary, pull: bool) -> void:
+	item = active(item)
 	var spec: Variant = item.get("pull" if pull else "push")
 	if spec is Dictionary:
 		for p in spec:
 			Props.set_v(str(p), spec[p])
 	elif item.get("values") is Array:
 		Props.set_v(str(item.drive), value_after(item, current(item), -1 if pull else 1, true))
+
+
+## The item as it works now: `item` with its "when_on" fields applied while that property is set.
+static func active(item: Dictionary) -> Dictionary:
+	var w: Variant = item.get("when_on")
+	if w is Dictionary and Props.get_b(str(w.get("prop", ""))):
+		var a := item.duplicate()
+		a.merge(w.get("set", {}), true)
+		return a
+	return item
 
 
 ## The drive now: the property, else the fallback property, else the bottom of the range (or the first value).

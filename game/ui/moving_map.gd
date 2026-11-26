@@ -339,7 +339,7 @@ func _draw() -> void:
 	var msg := _msg if _msg_t > 0.0 else (_edit.msg if editing() and _edit.msg != "" else "")
 	var hint := msg if msg != "" else keys.hint(editing())
 	MapRouteLayer.draw_footer(self, size, legs, Props.get_f("fdm/groundspeed_mps"), font, hint,
-		Color(1, 1, 0.8) if msg != "" else Color(0.9, 0.9, 0.9), not db.ils.is_empty() and view.across_nm() <= MapFeatures.SHOW_ILS_NM)
+		Color(1, 1, 0.8) if msg != "" else Color(0.9, 0.9, 0.9), MapFeatures.any_simulated(db) and view.across_nm() <= MapFeatures.SHOW_ILS_NM)
 	draw_rect(Rect2(Vector2.ZERO, size), Color(MapStyle.ROUTE, 0.9) if editing() else Color(1, 1, 1, 0.3), false, 4.0 if editing() else 2.0)
 
 

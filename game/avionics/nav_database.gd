@@ -1,14 +1,14 @@
 class_name NavDatabase
 extends RefCounted
 ## Radio navaids for the receivers: VOR/VOR-DME and NDB from navaids.json (OurAirports,
-## real), ILS from ils.json (geometry real, frequencies SIMULATED, see tools/14_ils.py),
+## real), ILS from ils.json (real AIP India records where an ILS exists, else SIMULATED ones; see tools/14_ils.py),
 ## and COM frequencies per airport (OurAirports airport-frequencies, real).
 ## Positions in world ENU metres. Station elevation used for line-of-sight.
 ## airways.json (AAI eAIP ENR 3, optional) adds published routes and their fixes.
 
 var vors: Array = []  # {ident, name, mhz, x, y, h, var_deg, dme}
 var ndbs: Array = []  # {ident, name, khz, x, y, h}
-var ils: Array = []   # {ident, airport, runway, mhz, course_true, loc{x,y,h}, gs{x,y,h}, gs_deg, threshold}
+var ils: Array = []   # {ident, airport, runway, mhz, course_true, loc{x,y,h}, gs{x,y,h}, gs_deg, threshold, simulated, category (0 = unknown)}
 var coms: Dictionary = {}  # airport icao -> [{type, desc, mhz}]
 var airports: Array = []
 var airways: Dictionary = {}  # designator -> {fixes, direction}
@@ -33,7 +33,7 @@ func _init() -> void:
 	for s in (il if il else []):
 		ils.append({"ident": s.ident, "airport": s.airport, "runway": s.runway, "mhz": float(s.freq_mhz),
 			"course_true": float(s.course_true), "loc": s.loc, "gs": s.gs, "gs_deg": float(s.gs_deg),
-			"threshold": s.threshold})
+			"threshold": s.threshold, "simulated": bool(s.get("simulated", true)), "category": int(s.get("category", 0))})
 	var ap = Paths.load_json("airports.json")
 	airports = ap if ap else []
 	for a in airports:

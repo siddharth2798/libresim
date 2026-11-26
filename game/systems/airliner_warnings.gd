@@ -4,14 +4,16 @@ extends Node
 ## Warnings sort red before amber, each by priority; memo lines are green.
 ## Red: ENG n FIRE, ELEC EMER CONFIG, STALL, CONFIG (take-off: park brake / flaps / speed brake), L/G GEAR NOT DOWN (below
 ## gear_warn_ft RA with flaps 3 or more, or thrust at idle), OVERSPEED (4 kt over VMO, VFE or VLE: the PFD's
-## instruments/pfd/vmax_kt; or MMO + 0.01). Amber: ENG n FAIL (latched once the engine ran, cleared
+## instruments/pfd/vmax_kt; or MMO + 0.01), AUTO FLT AP OFF (while ap/disconnect_warning lasts:
+## 1.5 s after a pilot's own disconnect, until the disconnect button is pressed again after any other). Amber: AUTO FLT AP FAULT
+## (failures/ap, in the air: the autopilots cannot be engaged), ENG n FAIL (latched once the engine ran, cleared
 ## by its master off), HYD G / B / Y SYS LO PR, ELEC AC BUS n FAULT, ELEC GEN n FAULT, FUEL L / R WING TK LO LVL. Hydraulic and
 ## electrical faults only show with an engine running or in the air.
 ## aircraft.json "systems.warnings" over DEFAULTS: vmo_kt, mmo, takeoff_lever (thrust lever position that counts as take-off
 ## thrust), gear_warn_ft, gen_n2_min (percent), engine_run_n2 (percent).
 ## Reads: engines/<n>/{running, n2}, controls/engine_master_<n>, controls/throttle_1, controls/{parking_brake, autobrake,
 ##   spoilers_armed, signs/seatbelts, signs/no_smoking, lights/landing}, failures/engine_fire[_<n>], fdm/{wow, agl_m, cas_mps,
-##   mach, gear_pos, flap_lever, speedbrake, stall_warning}, hyd/low_{g, b, y}, icing/ice_detected, controls/anti_ice/{wing,
+##   mach, gear_pos, flap_lever, speedbrake, stall_warning}, ap/disconnect_warning, failures/ap, hyd/low_{g, b, y}, icing/ice_detected, controls/anti_ice/{wing,
 ##   eng_1, eng_2}, systems/electrical/{ac1_on, ac2_on, gen1_on, gen2_on, emer}, fuel/low_{left, right}, apu/running.
 ## Publishes ewd/warnings and ewd/memo (arrays of [text, colour]), ewd/warnings_text and ewd/memo_text (joined with "\n"),
 ##   ewd/master_warning (a red not yet acknowledged), ewd/master_caution (an amber not yet acknowledged): the MASTER
@@ -132,7 +134,11 @@ func _warnings() -> Array:
 		out.append([90, "ELEC EMER CONFIG", "red"])
 	if Props.get_b("fdm/stall_warning") or Props.get_b("fcs/stall_warning"):
 		out.append([95, "STALL", "red"])
+	if Props.get_b("ap/disconnect_warning"):
+		out.append([75, "AUTO FLT AP OFF", "red"])
 	if live:
+		if Props.get_b("failures/ap") and not Props.get_b("ap/disconnect_warning"):
+			out.append([30, "AUTO FLT AP FAULT", "amber"])
 		for k in ["g", "b", "y"]:
 			if Props.get_b("hyd/low_" + k):
 				out.append([40 - "gby".find(k), "HYD %s SYS LO PR" % k.to_upper(), "amber"])

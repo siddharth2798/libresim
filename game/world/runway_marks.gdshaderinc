@@ -15,7 +15,8 @@ uniform float cl_start = 90.0;    // first centreline dash (m along from ends[0]
 uniform int cl_count = 0;
 uniform float edge_hw = 0.45;     // edge stripe half-width (m)
 uniform vec4 aim = vec4(400.0, 60.0, 10.0, 11.25);  // aiming point: distance, length, bar width, inner half-spacing
-uniform int tdz_bits = 0;         // bit k-1: touchdown-zone pair at k x 150 m
+uniform int tdz_bits = 0;         // bit k-1: touchdown-zone pair at k x 150 m (ends[0]; also ends[1] unless tdz_bits_b is set)
+uniform int tdz_bits_b = -1;      // the same for ends[1] when it differs (an ILS at one end only); -1 = like tdz_bits
 
 const float RW_STRIPE = 1.8;
 const float RW_GLYPH_W = 3.0, RW_GLYPH_H = 9.0, RW_GLYPH_GAP = 1.6;  // digit box and the space between two digits
@@ -78,7 +79,8 @@ float rw_paint(float s, float x, float across, float along, int end_i, float hx,
 	// touchdown zone: pairs every 150 m, triple / double / single 22.5 x 1.8 m bars 1.5 m apart, inner sides in line
 	// with the aiming point's
 	float k = floor((s - 11.25) / 150.0 + 0.5);
-	if (k >= 1.0 && k <= 6.0 && ((tdz_bits >> (int(k) - 1)) & 1) == 1) {
+	int tdz = (end_i == 1 && tdz_bits_b >= 0) ? tdz_bits_b : tdz_bits;
+	if (k >= 1.0 && k <= 6.0 && ((tdz >> (int(k) - 1)) & 1) == 1) {
 		float bars = k <= 2.0 ? 3.0 : (k <= 4.0 ? 2.0 : 1.0);
 		m = max(m, rw_box(s, k * 150.0, k * 150.0 + 22.5, hs) * rw_pulses(ax - aim.w, RW_STRIPE, 3.3, bars, hx));
 	}
