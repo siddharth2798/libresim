@@ -28,9 +28,10 @@ static func scene_luminance(sun_e: float, sun_up: float, blocked: float, ambient
 	return maxf(lerpf(0.2 * ground_e, sky_lum, sky_frac), 1e-4)
 
 
-## Exposure multiplier the eye would settle on for a luminance. night: 0 day .. 1 night.
-static func target_for(lum: float, night := 0.0) -> float:
-	return clampf(pow(REF_LUM / lum, STRENGTH), MIN, lerpf(MAX, MAX_NIGHT, clampf(night, 0.0, 1.0)))
+## Exposure multiplier the eye would settle on for a luminance. night: 0 day .. 1 night; cap: a lower ceiling
+## (SkyTime passes DawnLight.ae_max, so a low sun is not brightened back to day levels).
+static func target_for(lum: float, night := 0.0, cap := INF) -> float:
+	return clampf(pow(REF_LUM / lum, STRENGTH), MIN, maxf(minf(lerpf(MAX, MAX_NIGHT, clampf(night, 0.0, 1.0)), cap), MIN))
 
 
 ## Advance by dt towards `target` (1.0 when switched off). The first call jumps there.

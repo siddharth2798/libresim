@@ -41,11 +41,14 @@ static func aerosol_for_visibility(vis_m: float) -> float:
 
 
 ## Brightness after sunset: the model keeps the sun on the horizon (the glow and the long-path
-## colours of dusk) and fades it: 1 above the horizon, 0.3 at -6 deg (civil twilight), gone by
-## -12 deg where the night sky takes over.
+## colours of dusk) and fades it: 1 above the horizon, 0.18 at -6 deg (civil twilight), gone by
+## -12 deg where the night sky takes over. Real sky light drops ~200x from sunrise to -6 deg; this is that
+## fall seen by an adapting eye (it was exp(-depr / 5), 0.3 at -6 deg: pre-dawn skies looked too bright).
+const TWILIGHT_FADE_DEG := 3.5
+
 static func twilight_gain(el_deg: float) -> float:
 	var depr := maxf(-el_deg, 0.0)
-	return exp(-depr / 5.0) * (1.0 - smoothstep(6.0, 12.0, depr))
+	return exp(-depr / TWILIGHT_FADE_DEG) * (1.0 - smoothstep(6.0, 12.0, depr))
 
 
 ## Sky colour (linear) towards dir with the sun at `sun` (both unit, render frame, y up).
