@@ -89,7 +89,7 @@ func _process(dt: float) -> void:
 	var rain := Props.get_f("environment/precip")
 	var ls := WeatherVisuals.light_scales(occl, rain)
 	var flash := Props.get_f("environment/lightning")
-	_sun.light_energy = 1.3 * clampf((el_deg + 1.0) / 12.0, 0.0, 1.0) * ls.sun
+	_sun.light_energy = DawnLight.sun_energy(el_deg) * ls.sun  # air mass: dim near the horizon (world/dawn_light.gd)
 	_sun.shadow_opacity = ls.shadow
 	var rain_vis := WeatherVisuals.drawn_visibility(Props.get_f("weather/visibility_m", 20000.0), rain,
 			bool(Props.get_v("weather/visibility_includes_precip", false)))
@@ -122,6 +122,7 @@ func _process(dt: float) -> void:
 	var cirrus := Props.get_f("weather/cirrus", 0.6)
 	params.stage("cirrus", cirrus * (1.0 - smoothstep(0.2, 0.7, occl)) * (1.0 - rain) * (1.0 - 0.4 * Props.get_f("weather/cloud_cover")))
 	params.stage("cirrus_wind", _drift * 0.00004)
+	params.stage("cirrus_light", DawnLight.cirrus_light(el_deg))
 	RenderingServer.global_shader_parameter_set("sky_top_color", top)
 	params.stage("horizon_color", hor)
 	params.stage("ground_color", hor * 0.4)
@@ -144,7 +145,7 @@ func _process(dt: float) -> void:
 		m_hor, (1.0 - smoothstep(0.0, 0.8, occl)) * (1.0 - _inside.k), dip)  # in cloud: the in-cloud fog colour only
 	advance_drift(dt)
 	_update_clouds(dt, occl, rain, hor, day * ls.dark)  # last: in-cloud fog overrides the visibility fog
-	_update_exposure(dt, d, el_deg, hor, top, 1.0 - day)
+	_update_exposure(dt, d, el_deg, hor, top)
 	_update_glare(dt, d, el_deg, occl, rain)
 	params.flush()  # last: CloudInside and NightSky have staged theirs
 
@@ -221,7 +222,7 @@ func _update_clouds(dt: float, occl: float, rain: float, hor: Color, light: floa
 
 ## Eye-like auto exposure: scene brightness from sun / sky / camera heading, including cloud shade (CPU cloud density
 ## along the sun ray), smoothed by AutoExposure. Multiplies the exposure NightSky set; publishes environment/exposure_mult.
-func _update_exposure(dt: float, sun_dir: Vector3, el_deg: float, hor: Color, top: Color, night: float) -> void:
+func _update_exposure(dt: float, sun_dir: Vector3, el_deg: float, hor: Color, top: Color) -> void:
 	var target := 1.0
 	if auto_exposure:
 		var cam := get_viewport().get_camera_3d()
@@ -233,7 +234,8 @@ func _update_exposure(dt: float, sun_dir: Vector3, el_deg: float, hor: Color, to
 		var sky_lum := 0.5 * (hor.srgb_to_linear().get_luminance() + top.srgb_to_linear().get_luminance())
 		var moon := 0.15 * Props.get_f("environment/moon_light")
 		var lum := AutoExposure.scene_luminance(_sun.light_energy, sun_dir.y, blocked, _env.ambient_light_energy + moon, sky_lum, pitch_sin)
-		target = AutoExposure.target_for(lum * _env.tonemap_exposure, night)
+		# the eye adapts to shade and night, not to a low sun: the ceiling follows the sun elevation (world/dawn_light.gd)
+		target = AutoExposure.target_for(lum * _env.tonemap_exposure, DawnLight.night_weight(el_deg), DawnLight.ae_max(el_deg))
 	target = CloudLook.exposure_cap(target, _inside.k, _inside.ext)  # outside views in cloud: no blown-out white
 	_env.tonemap_exposure *= _ae.step(dt, target)
 	Props.set_v("environment/exposure_mult", _ae.value)
