@@ -11,8 +11,13 @@ extends RefCounted
 ##   (the structure is designed and flight-tested to VD, CS/FAR 23/25.335, .629); over VD for OVER_S -> airframe damaged;
 ##   over VD x vd_fail_k (flutter margin: 1.15 VD for part 25, 1.2 VD for part 23, .629) -> structural failure (crash).
 ## - Flaps (limits: vfe_kias, vfe_by, flap_damage_k): over VFE for OVER_S -> "inspection due" note, no damage; over
-##   VFE x flap_damage_k for OVER_S -> flaps damaged and jammed. vfe_by "flap" keys vfe_kias by flap deg (C172),
-##   "slat_flap" by slat + flap deg (A320: CONF 1 = slats 18 / flaps 0 has its own VFE).
+##   VFE x flap_damage_k for OVER_S -> flaps damaged and jammed. vfe_by "flap" keys vfe_kias by flap deg (C172: steps,
+##   the first row whose angle is not exceeded); "slat_flap" by slat + flap deg, one row per lever detent, blended
+##   between detents (A320: CONF 1 = slats 18 / flaps 0 has its own VFE, and a retracting surface's limit rises as it
+##   moves, the same Vmax the PFD shows: instruments/airliner_air_data.gd).
+##   Why 1.2: the flaps are designed for limit load at VF with a 2 g pull-up and a 25 ft/s gust (FAR 23.345, CS 25.345),
+##   and must not yield below limit load (25.305): in steady 1 g flight they take ~1.2 VF before they deform; they fail
+##   near the 1.5 ultimate factor (25.303), ~1.4 VF. VFE is the placard VF.
 ## - Load factor (aero + thrust) beyond +3.8 / -1.52 g -> overstress; beyond 1.5x -> failure. Ground loads are judged by
 ##   the gear rules.
 ## Publishes via the arrays below; FdmNode copies them into Props "damage/*".
@@ -37,7 +42,7 @@ const LIMIT_DEFAULTS := {
 	"vd_fail_k": 1.2,  # structural failure at VD x this (flutter-free margin the structure is shown to, part 23 .629)
 	"vfe_kias": [[10.5, 110.0], [1000.0, 85.0]],  # [max flap deg, KIAS]: flap speed for the current setting
 	"vfe_by": "flap",  # "flap": vfe_kias rows keyed by flap deg; "slat_flap": by slat + flap deg
-	"flap_damage_k": 1.15,  # flaps damaged at VFE x this (flap load ~ IAS^2: 1.32x the load at VFE)
+	"flap_damage_k": 1.2,  # flaps damaged at VFE x this (flap load ~ IAS^2: 1.44x the load at VFE; see the header)
 	"g_pos": 3.8,
 	"g_neg": -1.52,
 }
@@ -275,10 +280,6 @@ func high_lift_deg(f: FDM) -> float:
 	return ext
 
 
-## Flap limit speed VFE (KIAS) at high-lift angle `ext` (see high_lift_deg): the first row of limits.vfe_kias whose
-## angle is not exceeded.
+## Flap limit speed VFE (KIAS) at high-lift angle `ext` (see high_lift_deg; rules in instruments/flap_speeds.gd).
 func vfe_at(ext: float) -> float:
-	for row in lim.vfe_kias:
-		if ext <= float(row[0]):
-			return float(row[1])
-	return float(lim.vfe_kias[-1][1])
+	return FlapSpeeds.vfe(lim, ext)

@@ -75,6 +75,16 @@ static func markers(spec: Dictionary, mass_kg: float, ext_deg: float, gear_down:
 	return {"vls": vs1g * float(spec.vls_k), "vsw": vs1g * float(spec.vsw_k), "vmax": vmax}
 
 
+## The VFE of every flap-lever detent past clean, [[kt, label], ...] in lever order: the red marks on the speed
+## tape. `labels` are the detent names (config.json controls.flaps.detents[].lever); a missing name is its index.
+static func vfe_marks(spec: Dictionary, labels: Array) -> Array:
+	var out := []
+	var rows: Array = spec.vfe_kt
+	for i in range(1, rows.size()):
+		out.append([float(rows[i][1]), str(labels[i]) if i < labels.size() else str(i)])
+	return out
+
+
 ## Speed trend: the speed in `seconds` if the acceleration (kt/s) persisted, limited to +-`limit` kt.
 static func trend_kt(accel_kt_s: float, seconds := 10.0, limit := 40.0) -> float:
 	return clampf(accel_kt_s * seconds, -limit, limit)

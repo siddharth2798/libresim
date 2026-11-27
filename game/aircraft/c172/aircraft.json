@@ -131,8 +131,8 @@
 	},
 	"limits": {
 		"vne_kias": 163.0, "vd_kias": 185.0, "vd_fail_k": 1.2, "vfe_kias": [[10.5, 110.0], [1000.0, 85.0]], "vfe_by": "flap",
-		"flap_damage_k": 1.15, "g_pos": 3.8, "g_neg": -1.52,
-		"note": "C172S POH section 2: VNE 163, VNO 129, VFE 110 (10 deg) / 85 (10-30 deg), +3.8 / -1.52 g flaps up. VD 185 (VNE <= 0.9 VD, FAR 23.1505). Damage model (fdm/damage.gd): over VNE or VFE = inspection note only; airframe damaged over VD, failure over 1.2 VD (FAR 23.629 flutter margin); flaps damaged over 1.15 VFE.",
+		"flap_damage_k": 1.2, "g_pos": 3.8, "g_neg": -1.52,
+		"note": "C172S POH section 2: VNE 163, VNO 129, VFE 110 (10 deg) / 85 (10-30 deg), +3.8 / -1.52 g flaps up. VD 185 (VNE <= 0.9 VD, FAR 23.1505). Damage model (fdm/damage.gd): over VNE or VFE = inspection note only; airframe damaged over VD, failure over 1.2 VD (FAR 23.629 flutter margin); flaps damaged over 1.2 VFE (fdm/damage.gd header: design loads at VF).",
 		"vs0_kias": 40.0, "vr_kias": 55.0, "vs1_kias": 48.0, "vno_kias": 129.0, "asi_min_kias": 40.0, "asi_max_kias": 200.0,
 		"max_crosswind_kt": 15.0,
 		"tach": {"max_rpm": 3500.0, "green": [2100.0, 2700.0], "red": 2700.0},

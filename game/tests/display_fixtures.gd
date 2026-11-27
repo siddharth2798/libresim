@@ -27,6 +27,7 @@ static func set_state(name: String) -> void:
 		"instruments/pfd/valid": true, "instruments/pfd/ias_kt": ias, "instruments/pfd/mach": 0.78 if cruise else 0.21,
 		"instruments/pfd/tas_kt": 455.0 if cruise else 142.0, "instruments/pfd/trend_kt": 6.0 if cruise else -8.0,
 		"instruments/pfd/vls_kt": mk.vls, "instruments/pfd/vsw_kt": mk.vsw, "instruments/pfd/vmax_kt": mk.vmax,
+		"instruments/pfd/vfe_marks": AirSpeeds.vfe_marks(spd, ["0", "1", "1+F", "2", "3", "FULL"]),
 		"instruments/pfd/alt_ft": alt, "instruments/pfd/baro_hpa": 1013.25 if cruise else 1009.0,
 		"instruments/pfd/baro_std": cruise, "instruments/pfd/vs_fpm": 0.0 if cruise else -700.0,
 		"instruments/pfd/ra_ft": -1.0 if cruise else 1430.0,
