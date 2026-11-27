@@ -20,7 +20,7 @@ const HELD := ["pitch_down", "pitch_up", "roll_left", "roll_right", "yaw_left", 
 	# twin-jet / airliner actions (offered per aircraft: input/control_actions.gd)
 	"throttle_1_up", "throttle_1_down", "throttle_2_up", "throttle_2_down", "reverse", "apu_start",
 	"rudder_trim_left", "rudder_trim_right", "fcu_spd_up", "fcu_spd_down", "fcu_hdg_right", "fcu_hdg_left",
-	"fcu_alt_up", "fcu_alt_down", "fcu_vs_up", "fcu_vs_down", "tiller_left", "tiller_right", "baro_up", "baro_down"]
+	"fcu_alt_up", "fcu_alt_down", "fcu_vs_up", "fcu_vs_down", "tiller_left", "tiller_right", "pedal_disc", "baro_up", "baro_down"]
 const PRESS := ["flaps_down", "flaps_up", "parking_brake", "magnetos_next", "mouse_yoke",
 	"master", "avionics", "fuel_selector", "fuel_shutoff", "beacon", "nav_lights", "strobes",
 	"landing_light", "taxi_light", "pitot_heat",
@@ -149,6 +149,7 @@ static func _add_airliner_defaults(t: Dictionary) -> void:
 	t.fcu_alt_push = [spec(KEY_DOWN, true, false, true)]
 	t.tiller_left = []  # nosewheel tiller; bind keys or a joystick axis
 	t.tiller_right = []
+	t.pedal_disc = [spec(KEY_Y, false, false, true)]  # PEDALS DISC on the tiller (hold): rudder without nose-wheel steering
 	t.jetway_toggle = [spec(KEY_J, true)]
 	t.door_toggle = [spec(KEY_O)]
 	t.passenger_doors_all = [spec(KEY_O, true)]

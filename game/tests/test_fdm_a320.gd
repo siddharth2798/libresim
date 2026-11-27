@@ -259,6 +259,27 @@ func test_a320_gear_locked_down_on_the_ground() -> String:
 	return "" if f.gear.gear_pos == 1.0 and f.fcs.gear_cmd == 1 and f.gear.wow else "gear lever must be locked on the ground (pos %.2f, wow %s)" % [f.gear.gear_pos, f.gear.wow]
 
 
+func test_a320_pedal_disc_frees_the_pedals() -> String:
+	var f := _fdm()
+	f.set_on_ground(0.0, 0.0, 0.0)
+	var nose: Dictionary = f.gear.contacts[0]
+	f.v_b = Vector3(5.0, 0.0, 0.0)
+	f.gear.prepare(DT, f)
+	f.gear.steer_cmd = 1.0
+	var on := rad_to_deg(f.gear._steer_angle(nose))
+	var saved := Props.dump("")
+	Props.set_v("controls/pedal_disc", true)
+	FdmAirlinerProps.read(f)
+	Props._p.clear()
+	Props.restore(saved)
+	var off := rad_to_deg(f.gear._steer_angle(nose))
+	f.gear.tiller = 0.5
+	var tiller := rad_to_deg(f.gear._steer_angle(nose))
+	if absf(on - 6.0) > 0.2 or off != 0.0 or tiller < 30.0:
+		return "pedals %.1f deg, with PEDALS DISC %.1f, tiller then %.1f" % [on, off, tiller]
+	return ""
+
+
 func test_a320_nose_wheel_steering_fades_with_speed() -> String:
 	var f := _fdm()
 	f.set_on_ground(0.0, 0.0, 0.0)

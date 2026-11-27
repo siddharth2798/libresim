@@ -100,6 +100,9 @@ static func item_drags(item: Dictionary) -> bool:
 static func release(item: Dictionary, shift: bool) -> void:
 	if not item.is_empty() and kind(item) == "knob" and _moved < CLICK_PX:
 		CockpitKnob.click(item, shift)
+		if item.get("push" if not shift else "pull") is Dictionary:  # moves even when the mode was already that
+			CockpitLevers.start_push(item, shift)
+			item["sig"] = CockpitLevers.signature(item)
 	_moved = 0.0
 
 

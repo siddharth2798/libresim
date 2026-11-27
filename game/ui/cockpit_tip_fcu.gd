@@ -37,7 +37,7 @@ static func state(path: String, value: Variant) -> String:
 				return "STD"
 			return "%d hPa" % roundi(Props.get_f("controls/baro/hpa", Props.get_f("weather/qnh_hpa", 1013.25)))
 		"controls/nd/mode":
-			return "ROSE" if _num(value) >= 0.5 else "ARC"
+			return NdModes.NAMES[NdModes.mode_of(_num(value))]
 		"controls/nd/range_nm":
 			return "%d NM" % roundi(_num(value) if _num(value) > 0.0 else 40.0)
 		"controls/efis/nd_filter":

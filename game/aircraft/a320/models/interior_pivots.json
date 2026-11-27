@@ -1015,6 +1015,90 @@
    "max": 0.010016,
    "note": "APPR pushbutton; 1 = pressed in along the FCU face"
   },
+  "nd_mode_cpt": {
+   "at": [
+    -16.8358,
+    -0.2036,
+    0.378
+   ],
+   "axis": [
+    0.9553,
+    0.0,
+    0.2956
+   ],
+   "kind": "rotate",
+   "objects": [
+    "nd_mode",
+    "nd_mode.mark"
+   ],
+   "children": [],
+   "min": -182.0,
+   "max": -2.0,
+   "note": "EFIS ND mode selector: LS, VOR, NAV (ROSE), ARC, PLAN, 45 deg apart"
+  },
+  "nd_range_cpt": {
+   "at": [
+    -16.8358,
+    -0.1547,
+    0.378
+   ],
+   "axis": [
+    0.9553,
+    0.0,
+    0.2956
+   ],
+   "kind": "rotate",
+   "objects": [
+    "nd_range",
+    "nd_range.mark"
+   ],
+   "children": [],
+   "min": -227.0,
+   "max": -2.0,
+   "note": "EFIS ND range selector: 10 .. 320 NM, 36 deg apart"
+  },
+  "nd_mode_fo": {
+   "at": [
+    -16.8358,
+    0.2034,
+    0.378
+   ],
+   "axis": [
+    0.9553,
+    0.0,
+    0.2956
+   ],
+   "kind": "rotate",
+   "objects": [
+    "nd_mode_fo",
+    "nd_mode_fo.mark"
+   ],
+   "children": [],
+   "min": -182.0,
+   "max": -2.0,
+   "note": "EFIS ND mode selector: LS, VOR, NAV (ROSE), ARC, PLAN, 45 deg apart"
+  },
+  "nd_range_fo": {
+   "at": [
+    -16.8358,
+    0.1543,
+    0.378
+   ],
+   "axis": [
+    0.9553,
+    0.0,
+    0.2956
+   ],
+   "kind": "rotate",
+   "objects": [
+    "nd_range_fo",
+    "nd_range_fo.mark"
+   ],
+   "children": [],
+   "min": -227.0,
+   "max": -2.0,
+   "note": "EFIS ND range selector: 10 .. 320 NM, 36 deg apart"
+  },
   "beacon_lt": {
    "at": [
     -16.6114,
@@ -2685,6 +2769,118 @@
    ],
    "move": "translate",
    "rate": 0.05
+  },
+  "nd_mode_cpt": {
+   "drive": "controls/nd/mode",
+   "map": [
+    [
+     0.0,
+     -137.0
+    ],
+    [
+     1.0,
+     -92.0
+    ],
+    [
+     2.0,
+     -47.0
+    ],
+    [
+     3.0,
+     -2.0
+    ],
+    [
+     4.0,
+     -182.0
+    ]
+   ],
+   "rate": 360.0
+  },
+  "nd_range_cpt": {
+   "drive": "controls/nd/range_nm",
+   "map": [
+    [
+     10.0,
+     -2.0
+    ],
+    [
+     20.0,
+     -47.0
+    ],
+    [
+     40.0,
+     -92.0
+    ],
+    [
+     80.0,
+     -137.0
+    ],
+    [
+     160.0,
+     -182.0
+    ],
+    [
+     320.0,
+     -227.0
+    ]
+   ],
+   "rate": 360.0
+  },
+  "nd_mode_fo": {
+   "drive": "controls/nd/mode",
+   "map": [
+    [
+     0.0,
+     -137.0
+    ],
+    [
+     1.0,
+     -92.0
+    ],
+    [
+     2.0,
+     -47.0
+    ],
+    [
+     3.0,
+     -2.0
+    ],
+    [
+     4.0,
+     -182.0
+    ]
+   ],
+   "rate": 360.0
+  },
+  "nd_range_fo": {
+   "drive": "controls/nd/range_nm",
+   "map": [
+    [
+     10.0,
+     -2.0
+    ],
+    [
+     20.0,
+     -47.0
+    ],
+    [
+     40.0,
+     -92.0
+    ],
+    [
+     80.0,
+     -137.0
+    ],
+    [
+     160.0,
+     -182.0
+    ],
+    [
+     320.0,
+     -227.0
+    ]
+   ],
+   "rate": 360.0
   },
   "beacon_lt": {
    "drive": "controls/lights/beacon",

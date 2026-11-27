@@ -9,7 +9,8 @@ extends Display
 ## phase and top of descent. F-PLN draws avionics/fms/legs. No published SID or STAR.
 ## Keyboard: this control, or Cockpit.forward_key / the outside card while the pointer is over it.
 ## RAD NAV (mcdu_radnav.gd): VOR1, and the ILS the FMGC auto-tuned (avionics/ils_autotune.gd) with a manual override.
-## TODO: FUEL PRED, SEC F-PLN, SID/STAR, VNAV predictions, multi-page lists, the second unit.
+## F-PLN scrolls (mcdu_fpln.gd: wheel, slew keys); long text is fitted to its line (Display.txt_fit).
+## TODO: FUEL PRED, SEC F-PLN, SID/STAR, VNAV predictions, the second unit.
 
 const PAGE_IDS := ["INIT", "FPLN", "DIR", "PROG", "PERF", "RADNAV"]
 const TITLES := {"INIT": "INIT A", "FPLN": "F-PLN", "DIR": "DIR TO", "PROG": "PROGRESS", "PERF": "TAKE OFF", "RADNAV": "RAD NAV"}
@@ -45,16 +46,6 @@ func page() -> String:
 static func route() -> Array:
 	var t := str(Props.get_v("controls/gps/target", ""))
 	return ([t] if t != "" else []) + Array(Props.get_v("controls/gps/route_next", []))
-
-
-## Replace waypoint `i` (0-based; past the end = append) with `ident`; the new route (pure).
-static func with_waypoint(wps: Array, i: int, ident: String) -> Array:
-	var out := wps.duplicate()
-	if i >= out.size():
-		out.append(ident)
-	else:
-		out[i] = ident
-	return out
 
 
 ## Direct-to. `known` defaults to "any non-empty ident". See FlightPlan.direct.
@@ -128,12 +119,19 @@ func _press(id: String, button: int, _p: Vector2) -> void:
 	var s := str(Props.get_v("mcdu/scratch", ""))
 	if id.begins_with("p_"):
 		Props.set_v("mcdu/page", id.substr(2))
+	elif id == "slew_up" or id == "slew_dn":
+		McduFpln.scroll(-1 if id == "slew_up" else 1)
 	elif id == "k_CLR":
 		Props.set_v("mcdu/scratch", "" if button != MOUSE_BUTTON_LEFT else scratch_after(s, "\b"))
 	elif id.begins_with("k_"):
 		Props.set_v("mcdu/scratch", scratch_after(s, id.substr(2)))
 	elif id.begins_with("l") or id.begins_with("r"):
 		_line_key(id[0], int(id.substr(1)), s)
+
+
+func _wheel(_id: String, dir: float) -> void:
+	if page() == "FPLN":
+		McduFpln.scroll(-int(dir))  # wheel up = earlier waypoints
 
 
 func type_key(e: InputEvent) -> bool:
@@ -180,14 +178,7 @@ func _line_key(side: String, row: int, s: String) -> void:
 	var p := page()
 	var known := Callable(self, "_known")
 	if p == "FPLN":
-		if side == "l" and row >= 1:
-			var ed := FlightPlan.edit(route(), row - 1, s, known)
-			if ed.error != "":
-				Props.set_v("mcdu/scratch", ed.error)
-			elif s == "":
-				Props.set_v("mcdu/scratch", ed.scratch)
-			elif not ed.wps.is_empty():
-				_commit(str(ed.wps[0]), ed.wps.slice(1), true)
+		McduFpln.line_key(self, side, row, s, known)
 		return
 	if p == "DIR":
 		if side == "l" and row == 1:
