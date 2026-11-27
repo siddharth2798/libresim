@@ -161,6 +161,10 @@ want=" not_a_real_pkg_xyz>=1.0"
 python3 -c 'import numpy, PIL' 2>/dev/null || want=$(python3 -c 'import numpy' 2>/dev/null && echo " pillow$want" || echo " numpy pillow$want")
 check "missing_reqs lists only what does not import ('$got')" test "$got" = "$want"
 check "run.sh installs with pip install -r" has 'pip install -r "$REQS"' run.sh
+pk() { PM=$1 bash -c "$(sed -n '/^pkg_for() {/,/^}/p' run.sh); pkg_for poppler"; }
+got="$(pk apt) $(pk dnf) $(pk pacman) $(pk brew)"
+check "pdftotext (step 31) comes from poppler-utils / poppler ('$got')" test "$got" = "poppler-utils poppler-utils poppler poppler"
+check "the system preflight asks for pdftotext" has 'command -v pdftotext >/dev/null || missing+=(poppler)' run.sh
 
 echo "== (vii) a venv whose python link is dead (Homebrew upgraded the Python) is rebuilt, not kept"
 E=$T/deadvenv; mkdir -p "$E"; ENS=$(sed -n '/^ensure_venv() {/,/^}/p' run.sh)

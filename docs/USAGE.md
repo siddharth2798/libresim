@@ -37,6 +37,7 @@ Sections 2 and 3 describe the steps `run.sh` automates.
 | What | How | Notes |
 |---|---|---|
 | GDAL + Python bindings | `sudo apt install gdal-bin python3-gdal` | GDAL 3.8 |
+| pdftotext (poppler) | `sudo apt install poppler-utils` (Fedora `poppler-utils`, Arch and macOS `poppler`) | step 31 reads the SID / STAR PDFs with it. `run.sh` checks for it with the other system tools and offers the install; without it step 31 keeps its old output |
 | QGIS (optional) | `sudo apt install qgis` | only to inspect data |
 | Godot 4.7.2 (standard build) | `~/.local/share/godot/`, symlink `~/.local/bin/godot` | install below |
 | Python venv | `python3 -m venv --system-site-packages tools/.venv && tools/.venv/bin/pip install -r tools/requirements.txt` | `--system-site-packages` lets it use the system GDAL bindings. `run.sh` does this itself: it installs from `tools/requirements.txt` when a package there does not import. A venv whose `python` no longer runs (Homebrew upgraded or removed the Python it links to, or the folder came from another machine) is rebuilt with `venv --clear` and refilled, in step 3 and again just before the pipeline; before, a plain `venv` kept the dead link and the first pipeline step failed with `tools/.venv/bin/python: No such file or directory`. GDAL, git, curl, unzip and Godot are not pip packages (system package manager). `tools/check_requirements.py` (run by `tools/test_run_sh.sh`) fails when a pipeline script imports a package missing from the file |
@@ -109,7 +110,7 @@ $PY tools/28_airways.py            # -> data/processed/airways.json (AAI eAIP EN
 $PY tools/29_ils_aip.py           # -> data/processed/ils_aip.json: the REAL ILS (AIP India AD 2.19: ident, frequency, category, antennas) of the sim's airports (network the first time; reads data/raw/aai)
 $PY tools/31_procedures.py        # -> data/processed/procedures.json: published SIDs and STARs with their altitude and speed limits (AIP India: AIRAC SUP 121/2026 Mumbai and
                                    #   122/2026 Navi Mumbai, RNAV-1 TABULAR DESCRIPTION tables; the AD 2.24 SID charts, conventional, Pune). Needs pdftotext (poppler:
-                                   #   brew install poppler / apt install poppler-utils); without it, or offline, the old file stays. PDFs cached in data/raw/aai/<cycle>/.
+                                   #   brew install poppler / apt install poppler-utils; run.sh's system check offers it); without it, or offline, the old file stays. PDFs cached in data/raw/aai/<cycle>/.
                                    #   Parsers in tools/procedures_aip.py, self-test python3 tools/test_procedures.py. Pune publishes no STAR (arrivals are radar vectored).
 $PY tools/04_osm_extract.py        # -> data/processed/osm/ (runways, roads, water, buildings), both regions; ~6.5 min; [--thin] = corridor density policy
 $PY tools/02_dem_tiles.py          # -> terrain/h/ heightmaps, runways flattened; corridor ~2 min

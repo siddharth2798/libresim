@@ -229,6 +229,7 @@ pkg_for() {  # pkg_for <need> -> package name for $PM
     apt:pygdal|dnf:pygdal) echo python3-gdal ;; pacman:pygdal) echo python-gdal ;; brew:pygdal) echo gdal ;;
     apt:python) echo python3 ;;         dnf:python) echo python3 ;; pacman:python|brew:python) echo python ;;
     apt:venv) echo python3-venv ;;      *:venv) echo python ;;
+    apt:poppler|dnf:poppler) echo poppler-utils ;;  # pdftotext, for step 31 (SIDs and STARs from the AIP PDFs)
     *:"$1") echo "$1" ;;
   esac
 }
@@ -252,6 +253,7 @@ preflight() {
   command -v curl >/dev/null || command -v wget >/dev/null || missing+=(curl)
   command -v git >/dev/null || missing+=(git)
   command -v unzip >/dev/null || missing+=(unzip)
+  command -v pdftotext >/dev/null || missing+=(poppler)  # step 31 reads the SID / STAR PDFs; without it that step keeps its old output
   note "OS $OS/$ARCH, package manager: ${PM:-none}, python: $SYS_PY"
   if ((${#missing[@]} == 0)); then note "system tools OK (gdal $(gdalwarp --version | cut -d' ' -f2 | tr -d ,))"; return; fi
   local pkgs; pkgs=$(for m in "${missing[@]}"; do pkg_for "$m"; done | sort -u | tr '\n' ' ')
