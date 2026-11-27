@@ -27,7 +27,15 @@ func _ready() -> void:
 	_dir = (OS.get_environment("FREESIM_SHOTS") if OS.get_environment("FREESIM_SHOTS") != "" else OS.get_user_data_dir()) + "/"
 	DirAccess.make_dir_recursive_absolute(_dir)
 	_steps = [["cruise", {}], ["approach", {}], ["sd_FUEL", {"sd/page": "FUEL"}], ["sd_WHEEL", {"sd/page": "WHEEL"}],
-		["sd_FCTL", {"sd/page": "FCTL"}], ["mcdu", {"mcdu/page": "PERF", "mcdu/scratch": "138"}], ["cstr", _cstr()]]
+		["sd_FCTL", {"sd/page": "FCTL"}], ["mcdu", {"mcdu/page": "PERF", "mcdu/scratch": "138"}],
+		# the five ND modes (NdModes) and the MCDU on a long route (INIT FROM/TO fitted, F-PLN scrolled)
+		["nd_arc", {"controls/nd/mode": 0}], ["nd_nav", {"controls/nd/mode": 1}], ["nd_vor", {"controls/nd/mode": 2}],
+		["nd_ls", {"controls/nd/mode": 3}], ["nd_plan", {"controls/nd/mode": 4}],
+		["mcdu_long_init", {"mcdu/page": "INIT", "mcdu/init/from_to": "VABB/GOLDI/IGARI/LUMAN/NOLIX/PAVLO/TATIK/VOPC",
+			"mcdu/scratch": "VABB/GOLDI/IGARI/LUMAN/NOLIX/PAVLO/TATIK/VOPC"}],
+		["mcdu_long_fpln", {"mcdu/page": "FPLN", "controls/gps/target": "GOLDI",
+			"controls/gps/route_next": ["IGARI", "LUMAN", "NOLIX", "PAVLO", "TATIK", "VOPC27", "VOPC"], "mcdu/fpln_top": 2}],
+		["cstr", _cstr()]]
 
 
 ## A STAR ahead with one limit met and one missed: the ND circles (CSTR on: the values), the MCDU F-PLN SPD/ALT lines.
@@ -38,7 +46,7 @@ static func _cstr() -> Dictionary:
 		"instruments/nd/route": [{"id": "VELKO", "x": 40000.0, "y": 12000.0, "cstr": "230/+FL120", "state": "met"},
 			{"id": "BB258", "x": 60000.0, "y": 9000.0, "cstr": "FL110", "state": "missed"}, {"id": "VABB", "x": 91000.0, "y": 5000.0}],
 		"avionics/fms/legs": [{"ident": "VELKO", "course": 74.0, "dist_nm": 12.0}, {"ident": "BB258", "course": 98.0, "dist_nm": 11.0},
-			{"ident": "VABB", "course": 97.0, "dist_nm": 17.0}]}
+			{"ident": "VABB", "course": 97.0, "dist_nm": 17.0}], "mcdu/fpln_top": 0}
 
 
 func _process(_dt: float) -> void:

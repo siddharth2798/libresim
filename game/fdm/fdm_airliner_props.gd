@@ -2,7 +2,7 @@ class_name FdmAirlinerProps
 extends RefCounted
 ## The Props side of the airliner parts of the FDM (FdmNode calls read() before every physics tick and publish() after it);
 ## skipped for aircraft without these parts, so the C172's Props stay as they were.
-## Reads:  controls/gear (1 down) controls/speedbrake controls/autobrake (0..3) controls/tiller controls/engine_master_<n>
+## Reads:  controls/gear (1 down) controls/speedbrake controls/autobrake (0..3) controls/tiller controls/pedal_disc controls/engine_master_<n>
 ##   controls/engine_mode (0 NORM, 1 CRANK, 2 IGN/START) controls/reverse_<n> controls/flex_temp_c controls/lights/landing
 ##   failures/engine_fire[_<n>] systems/hydraulics/antiskid (absent = on)
 ## Publishes (turbofan engines, n = 1-based): engines/<n>/n1 n2 egt_k ff oil thrust_n running reverser lever (legacy engine/*
@@ -21,6 +21,7 @@ static func read(f: FDM) -> void:
 	if g is RetractableGear:
 		g.autobrake_mode = int(Props.get_v("controls/autobrake", 0))
 		g.tiller = Props.get_f("controls/tiller")
+		g.pedal_disc = Props.get_b("controls/pedal_disc")
 		g.antiskid = Props.get_b("systems/hydraulics/antiskid", true)
 	var mode: int = Props.get_v("controls/engine_mode", 0)
 	for i in f.units.size():

@@ -23,6 +23,7 @@ uniform float moon_vis = 0.0;     // night x clear sky x above the horizon
 uniform float stars = 0.0;        // star visibility
 uniform float cirrus = 0.0;       // 0..1 high wispy layer (thinner / absent under a thick deck)
 uniform vec2 cirrus_wind = vec2(0.0);
+uniform float cirrus_light = 1.0; // sunlight on the cirrus layer (DawnLight.cirrus_light): 1 by day, 0.04 after its sunset
 uniform float horizon_dip = 0.0;  // sine of the horizon's dip at the camera's altitude (HazeLut.horizon_dip_sin, G4)
 
 // ---- single scattering atmosphere (constants and sample layout as in atmosphere.gd) ----
@@ -147,7 +148,7 @@ void sky() {
 		float above = smoothstep(-0.01, 0.06, dh.y);  // extinction near the horizon
 		if (cirrus > 0.0 && d.y > 0.0) {
 			float dens = cirrus_density(d);
-			vec3 lit = mix(vec3(0.88, 0.91, 0.97), vec3(1.0, 0.7, 0.5), dusk * 0.8) * (0.04 + 0.96 * day) + vec3(0.6, 0.68, 0.85) * 0.05 * moon_illum * moon_vis;
+			vec3 lit = mix(vec3(0.88, 0.91, 0.97), vec3(1.0, 0.7, 0.5), dusk * 0.8) * cirrus_light + vec3(0.6, 0.68, 0.85) * 0.05 * moon_illum * moon_vis;
 			lit *= 1.0 + 1.6 * pow(mu, 6.0) * day;  // silver lining towards the sun
 			col = mix(col, lit, dens * cirrus * 0.6 * sun_vis);
 		}

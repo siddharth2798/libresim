@@ -15,9 +15,17 @@ extends Node
 ##           split out (an EFIS button, the BARO knob). An empty pivot_<name> is made there; "half" (m) is its pick box.
 ##   momentary  true: a pushbutton that springs back. The pivot pressed in for CockpitPick.PRESS_S after a click,
 ##           whatever the latched value (an FCU button lights for the mode, it does not stay pushed in).
-## Other keys (kind, value, push, pull, step ...) are for CockpitPick / CockpitKnob and kept on the item.
+##   push / pull  (FCU knobs, CockpitKnob) the knob also springs in (push) or out (pull) along its axis by PUSH_M for
+##           PUSH_S whenever the properties become that spec's values, however they were set (a click on the knob, a
+##           key, the 2D FCU panel). A click that changes nothing (already managed) still moves it (CockpitPick.release).
+## Other keys (kind, value, step ...) are for CockpitPick / CockpitKnob and kept on the item.
 
-var _items: Array = []  # {node, basis, pos, drive, terms, map, move, sign, lag, rate, value}
+const PUSH_M := 0.004  # push / pull travel of an FCU knob along its axis
+const PUSH_S := 0.25  # how long it stays pushed in or pulled out
+const PUSH_RATE := 0.06  # m/s
+const SPEC_KEYS := ["push", "pull"]
+
+var _items: Array = []  # {node, basis, pos, drive, terms, map, move, sign, lag, rate, value, push_dir, push_t, off, sig}
 var _active := false
 
 
@@ -37,7 +45,8 @@ func build(interior: Node, cfg: Dictionary) -> int:
 		var it: Dictionary = (s as Dictionary).duplicate(true)
 		it.merge({"node": node, "basis": node.transform.basis, "pos": node.position, "drive": drive, "terms": parse_drive(drive),
 			"map": map, "move": str(s.get("move", "rotate")), "sign": float(s.get("sign", 1.0)), "lag": float(s.get("lag", 0.0)),
-			"rate": float(s.get("rate", 0.0)), "value": NAN, "press_t": 0.0}, true)
+			"rate": float(s.get("rate", 0.0)), "value": NAN, "press_t": 0.0, "push_t": 0.0, "push_dir": 0.0, "off": 0.0}, true)
+		it["sig"] = signature(it)
 		_items.append(it)
 	set_process(not _items.is_empty())
 	return _items.size()
@@ -106,16 +115,88 @@ func _process(dt: float) -> void:
 	for it in _items:
 		if it.press_t > 0.0:
 			it.press_t = maxf(it.press_t - dt, 0.0)
+		var pushed := watch_push(it)
+		if it.push_t > 0.0:
+			it.push_t = maxf(it.push_t - dt, 0.0)
+		var off := step(it.off, push_target(it), 0.0, PUSH_RATE, dt)
 		var v := step(it.value, target(it), it.lag, it.rate, dt)
-		if v == it.value:
+		if v == it.value and off == it.off and not pushed:
 			continue
 		it.value = v
+		it.off = off
 		apply(it, v)
+
+
+## The values of the properties a knob's push / pull spec writes ([] for other levers).
+static func signature(item: Dictionary) -> Array:
+	var out := []
+	for k in SPEC_KEYS:
+		var spec: Variant = item.get(k)
+		if spec is Dictionary:
+			for p in spec:
+				out.append(Props.get_v(str(p), null))
+	return out
+
+
+## True when `spec` {prop: value} is what the properties hold now.
+static func spec_holds(spec: Variant) -> bool:
+	if not spec is Dictionary or (spec as Dictionary).is_empty():
+		return false
+	for p in spec:
+		var v: Variant = Props.get_v(str(p), null)
+		var w: Variant = spec[p]
+		if v == null:
+			return false
+		if v is String or w is String:
+			if str(v) != str(w):
+				return false
+		elif not is_equal_approx(float(v), float(w)):
+			return false
+	return true
+
+
+## True when a push / pull property differs from `item.sig` (no allocation: this runs every frame for each knob).
+static func sig_changed(item: Dictionary) -> bool:
+	var sig: Array = item.get("sig", [])
+	var i := 0
+	for k in SPEC_KEYS:
+		var spec: Variant = item.get(k)
+		if spec is Dictionary:
+			for p in spec:
+				var v: Variant = Props.get_v(str(p), null)
+				if i >= sig.size() or typeof(sig[i]) != typeof(v) or sig[i] != v:
+					return true
+				i += 1
+	return false
+
+
+## A knob whose push / pull properties changed to one spec's values starts that motion; true when one started.
+static func watch_push(item: Dictionary) -> bool:
+	if not (item.has("push") or item.has("pull")) or not sig_changed(item):
+		return false
+	item["sig"] = signature(item)
+	for k in SPEC_KEYS:
+		if spec_holds(item.get(k)):
+			start_push(item, k == "pull")
+			return true
+	return false
+
+
+## Spring the knob in (push) or out (pull) for PUSH_S.
+static func start_push(item: Dictionary, pull: bool) -> void:
+	item["push_dir"] = -1.0 if pull else 1.0
+	item["push_t"] = PUSH_S
+
+
+static func push_target(item: Dictionary) -> float:
+	return PUSH_M * float(item.get("push_dir", 0.0)) if float(item.get("push_t", 0.0)) > 0.0 else 0.0
 
 
 static func apply(item: Dictionary, v: float) -> void:
 	var n: Node3D = item.node
+	var b := item.basis as Basis
 	if item.move == "translate":
-		n.position = item.pos + (item.basis as Basis).x * v
+		n.position = item.pos + b.x * v
 	else:
-		n.transform.basis = (item.basis as Basis) * Basis(Vector3.RIGHT, deg_to_rad(v))
+		n.transform.basis = b * Basis(Vector3.RIGHT, deg_to_rad(v))
+		n.position = item.pos + b.x * float(item.get("off", 0.0))

@@ -207,6 +207,7 @@ func test_efis_knobs_baro_and_nd() -> String:
 	var mode := _item("nd_mode_fo")
 	Props.set_v("controls/nd/mode", 0)
 	CockpitPick.release(mode, false)
-	var rose := Props.get_f("controls/nd/mode")
+	var plan := Props.get_f("controls/nd/mode")  # the knob turns LS VOR NAV ARC PLAN: ARC -> PLAN, then round to LS
 	CockpitPick.release(mode, false)
-	return "" if rose == 1.0 and Props.get_f("controls/nd/mode") == 0.0 else "ND mode ARC / ROSE"
+	var ls := Props.get_f("controls/nd/mode")
+	return "" if plan == 4.0 and ls == 3.0 else "ND mode knob %s %s" % [plan, ls]

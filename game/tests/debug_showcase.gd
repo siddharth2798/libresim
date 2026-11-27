@@ -21,6 +21,7 @@ const TerminalScenes := preload("res://tests/showcase_terminal_scenes.gd")
 const FilmScenes := preload("res://tests/showcase_film_scenes.gd")
 const HlodScenes := preload("res://tests/showcase_hlod_scenes.gd")
 const TreeScenes := preload("res://tests/showcase_tree_scenes.gd")
+const DawnScenes := preload("res://tests/showcase_dawn_scenes.gd")
 const Mask := preload("res://tests/showcase_mask.gd")
 const Setup := preload("res://tests/showcase_setup.gd")
 const Views := preload("res://tests/showcase_views.gd")
@@ -51,7 +52,7 @@ var _film_w := 1600  # saved frame width (px)
 
 ## Every scene by name (tests/test_showcase_scenes.gd checks their cameras).
 static func all_scenes() -> Dictionary:
-	return Scenes.SCENES.merged(CloudScenes.scenes()).merged(LightScenes.scenes()).merged(VehicleScenes.scenes()).merged(JetwayScenes.scenes()).merged(FlybyScenes.scenes()).merged(FogScenes.scenes()).merged(TerminalScenes.scenes()).merged(FilmScenes.scenes()).merged(HlodScenes.scenes()).merged(TreeScenes.scenes())
+	return Scenes.SCENES.merged(CloudScenes.scenes()).merged(LightScenes.scenes()).merged(VehicleScenes.scenes()).merged(JetwayScenes.scenes()).merged(FlybyScenes.scenes()).merged(FogScenes.scenes()).merged(TerminalScenes.scenes()).merged(FilmScenes.scenes()).merged(HlodScenes.scenes()).merged(TreeScenes.scenes()).merged(DawnScenes.scenes())
 
 
 func _ready() -> void:

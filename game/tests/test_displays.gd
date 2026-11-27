@@ -348,7 +348,7 @@ func test_disp_mcdu_entry() -> String:
 	m._press("l2", MOUSE_BUTTON_LEFT, Vector2.ZERO)
 	if err == "" and Props.get_v("controls/gps/route_next") != ["ABCD"]:
 		err = "F-PLN replace %s" % [Props.get_v("controls/gps/route_next")]
-	if err == "" and MCDU.with_waypoint(["A", "B"], 5, "C") != ["A", "B", "C"]:
+	if err == "" and McduFpln.with_waypoint(["A", "B"], 5, "C") != ["A", "B", "C"]:
 		err = "with_waypoint append"
 	m.free()
 	_end()
@@ -452,7 +452,7 @@ func test_disp_nd_sd_clicks() -> String:
 	nd._press("mode", MOUSE_BUTTON_LEFT, Vector2.ZERO)
 	nd._press("range", MOUSE_BUTTON_LEFT, Vector2.ZERO)
 	var err := ""
-	if Props.get_f("controls/nd/mode") != 1.0 or Props.get_f("controls/nd/range_nm") != 80.0:
+	if Props.get_f("controls/nd/mode") != 4.0 or Props.get_f("controls/nd/range_nm") != 80.0:  # ARC -> PLAN (knob order)
 		err = "ND mode / range"
 	nd._wheel("range", -1.0)
 	if err == "" and Props.get_f("controls/nd/range_nm") != 40.0:

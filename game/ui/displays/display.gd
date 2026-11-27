@@ -115,6 +115,26 @@ func txt(p: Vector2, s: String, fs: int, col := GREEN, align := -1) -> void:
 	draw_string(font, Vector2(x, p.y + fs * 0.34), s, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, col)
 
 
+## txt() kept within `max_w` px: the size steps down to `min_fs`, then the end is cut to "…" (fit_text).
+func txt_fit(p: Vector2, s: String, fs: int, max_w: float, col := GREEN, align := -1, min_fs := 13) -> void:
+	var f := fit_text(font, s, fs, max_w, min_fs)
+	txt(p, f[0], f[1], col, align)
+
+
+## [text, size] of `s` fitted to `max_w` px. Pure (given the font).
+static func fit_text(fnt: Font, s: String, fs: int, max_w: float, min_fs := 13) -> Array:
+	var size := fs
+	while size > min_fs and fnt.get_string_size(s, HORIZONTAL_ALIGNMENT_LEFT, -1, size).x > max_w:
+		size -= 1
+	var out := s
+	var tail := "…" if fnt.has_char(0x2026) else ".."
+	while out.length() > 1 and fnt.get_string_size(out, HORIZONTAL_ALIGNMENT_LEFT, -1, size).x > max_w:
+		out = s.substr(0, out.length() - tail.length() - 1) + tail
+		if out.length() <= tail.length() + 1:
+			break
+	return [out, size]
+
+
 func fill(r: Rect2, col: Color) -> void:
 	if _dry:
 		calls += 1
