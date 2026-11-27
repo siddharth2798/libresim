@@ -206,6 +206,8 @@ func _takeoff(i: AfInputs, guidance: bool) -> void:
 			takeoff = false
 			lat.reset()
 			vert.reset()
+		elif takeoff:  # still rolling: the levers may reach TOGA (and arm the A/THR) after the takeoff modes began at 0.7
+			thr.reduction_pending = true
 		return
 	var ga: bool = guidance and i.lever >= AfThrust.TOGA - AfThrust.DETENT_TOL and i.flap_lever >= 1 \
 		and (vert.mode == "G/S" or vert.mode == "G/S*")

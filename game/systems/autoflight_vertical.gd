@@ -10,7 +10,7 @@ extends RefCounted
 ##   CLB/DES  managed climb / descent: same pitch laws. The FMS moves the FCU altitude at top of descent.
 ##   ALT*     capture of the FCU altitude: constant deceleration profile (A_CAP) ending in a linear approach
 ##   ALT      altitude hold of the altitude memorised at engagement (hold_m; the FCU window may be turned meanwhile);
-##            "ALT CRZ" on the FMA when reached in a managed climb / descent
+##            "ALT CRZ" on the FMA when reached in a managed climb (the cruise level); plain ALT after a descent
 ##   G/S*, G/S  glide slope capture and track (-3 deg path through the glide slope antenna)
 ## Armed: "ALT" (level-off ahead), "G/S" (APPR pressed).
 ## Speed-on-pitch laws are a PI: gamma = KP x (speed - target) + integral (bumpless at mode entry).
@@ -30,7 +30,7 @@ const SPEED_MODES := ["SRS", "OP CLB", "OP DES", "CLB", "DES"]
 
 var mode := ""
 var armed: Array = []
-var crz := false  # the ALT came from a managed CLB / DES
+var crz := false  # the ALT came from a managed CLB
 var gamma_cmd := 0.0
 var land := false  # glide slope below 400 ft: the FMA says LAND
 var _i_spd := 0.0
@@ -72,8 +72,8 @@ func update(i: AfInputs, spd_target: float, loc_ok: bool) -> void:
 	_prev_mode = mode
 	match mode:
 		"SRS": gamma_cmd = _speed_law(i, spd_target, 0.0, 0.2, 0.1)  # initial climb gradient as the starting integral
-		"OP CLB", "CLB": gamma_cmd = _speed_law(i, spd_target, -0.05, 0.17)
-		"OP DES", "DES": gamma_cmd = _speed_law(i, spd_target, -0.17, 0.05)
+		"OP CLB", "CLB": gamma_cmd = _speed_law(i, spd_target, 0.0, 0.17)  # a climb mode never descends: it accelerates level at worst
+		"OP DES", "DES": gamma_cmd = _speed_law(i, spd_target, -0.17, 0.0)  # a descent mode never climbs: it slows level at worst
 		"V/S": gamma_cmd = _gamma_of(i, i.f.vs)
 		"ALT*": gamma_cmd = _gamma_of(i, _capture_vs(alt_err))
 		"ALT": gamma_cmd = _gamma_of(i, clampf(K_ALT * (hold_m - i.alt_m), -8.0, 8.0))
@@ -108,8 +108,9 @@ func _follow_selection(i: AfInputs, alt_err: float) -> void:
 			elif mode == "DES" and alt_err > 30.0:
 				set_mode("CLB")
 			if _capture_due(i, alt_err):
-				crz = mode == "CLB" or mode == "DES"
-				set_mode("ALT*")
+				var managed := mode == "CLB"  # a managed climb levels at the cruise level; after a descent it is plain ALT
+				set_mode("ALT*")  # clears crz (not ALT): set it after, or ALT CRZ never shows
+				crz = managed
 		"ALT*":
 			if absf(alt_err) < 8.0 and absf(i.vs_mps) < 2.0:
 				set_mode("ALT")

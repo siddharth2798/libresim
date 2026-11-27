@@ -23,8 +23,8 @@ const DECRAB_RA_M := 20.0 * FT
 const LOC_LOST_RA_M := 15.0 * FT
 const GS_LOST_RA_M := 100.0 * FT
 const CONF_MIN := 4  # flap lever detent (0 = UP, 1, 2 = 1+F, 3 = CONF 2, 4 = CONF 3, 5 = FULL): CONF 3 or FULL
-const VS_FLOOR := 0.5  # m/s: the sink the flare ends on (about 100 ft/min)
-const K_FLARE := 0.33  # 1/s: sink per metre of height
+const VS_FLOOR := 0.8  # m/s: the sink the flare ends on (about 160 ft/min, 2.6 ft/s: a firm autoland touchdown, no float)
+const K_FLARE := 0.45  # 1/s: sink per metre of height (a 2.2 s exponential: about 6 s from 40 ft to the wheels)
 const T_LEAD := 1.0  # s: the height the aircraft will have in this time is what the profile is read at (the flight path lags the load factor)
 const TAU_FLARE := 1.0  # s, flight path loop in the flare
 const NZ_FLARE := 0.5

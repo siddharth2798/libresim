@@ -6,7 +6,7 @@ extends RefCounted
 ## From Props: fdm/{cas_mps, tas_mps, mach, vs_mps, agl_m, position_enu, pitch_rad, roll_rad, heading_rad (true), track_rad
 ## (true), groundspeed_mps, wow, gear_pos, flap_lever, flap_deg, slat_deg, mass_kg, alpha_rad}, atmosphere/pressure_pa,
 ## controls/baro/{hpa, std}, controls/throttle[_n] (the pilot's levers), engines/<n>/lever, controls/flex_temp_c, fcs/alpha_floor
-## and ap/cmd/takeover (from the control law), systems/electrical/avionics_powered, failures/ap, avionics/nav{1,2}/{kind, valid,
+## and ap/cmd/takeover (from the control law), systems/electrical/avionics_powered, failures/ap, avionics/fms/phase, avionics/nav{1,2}/{kind, valid,
 ## gs_valid}, avionics/gps/{valid, brg_mag, dist_nm, xtk_nm}, controls/fcu/*.
 ## The ILS geometry (course, antenna positions, glide path angle) comes from a NavDatabase `db` (set by the wiring, as for Gps);
 ## the radios only say whether the signals are received.
@@ -42,6 +42,7 @@ var alpha_floor := false  # from the control law
 var takeover := false  # from the control law: sidestick moved beyond the threshold
 var powered := true
 var ap_failed := false
+var fms_phase := ""  # avionics/fms/phase: CLB, CRZ, DES, APPR (avionics/vertical_profile.gd) or "" (no managed profile)
 var ils := {}  # {course, loc: Vector2, gs_pos: Vector2, gs_h, gs_rad, gs_valid} or empty
 var gps := {}  # {brg (true rad), dist, xtk} or empty
 var f := {  # FCU, SI. Flags are the pilot's requests (the buttons).
@@ -79,6 +80,7 @@ func read(delta: float, db: NavDatabase) -> void:
 	takeover = Props.get_b("ap/cmd/takeover")
 	powered = Props.get_b("systems/electrical/avionics_powered", true)
 	ap_failed = Props.get_b("failures/ap")
+	fms_phase = str(Props.get_v("avionics/fms/phase", ""))
 	_levers()
 	_nav(db)
 	_fcu()
