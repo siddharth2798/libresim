@@ -4,7 +4,7 @@ extends RefCounted
 ## real), ILS from ils.json (real AIP India records where an ILS exists, else SIMULATED ones; see tools/14_ils.py),
 ## and COM frequencies per airport (OurAirports airport-frequencies, real).
 ## Positions in world ENU metres. Station elevation used for line-of-sight.
-## airways.json (AAI eAIP ENR 3, optional) adds published routes and their fixes.
+## airways.json (AAI eAIP ENR 3, optional) adds published routes and their fixes; procedures.json (Procedures) the SID / STAR fixes.
 
 var vors: Array = []  # {ident, name, mhz, x, y, h, var_deg, dme}
 var ndbs: Array = []  # {ident, name, khz, x, y, h}
@@ -39,6 +39,10 @@ func _init() -> void:
 	for a in airports:
 		coms[a.icao if a.icao != "" else a.ident] = a.get("freqs", [])
 	_load_airways()
+	var pf := Procedures.fixes()  # SID / STAR fixes (procedures.json, read once per run)
+	for id in pf:
+		if not fixes.has(id):
+			fixes[id] = pf[id]
 
 
 ## Airport dict (ident, icao, x, y, elev_m, runways) or {}.
@@ -65,6 +69,8 @@ func position_of(ident: String) -> Variant:
 		return fixes[ident]
 	if route_fixes.has(ident):
 		return route_fixes[ident]
+	if Procedures.points.has(ident):  # a STAR's vectors point (ProcedureRoute.vectors)
+		return Procedures.points[ident]
 	return RunwayWaypoints.position(ident, airports)
 
 

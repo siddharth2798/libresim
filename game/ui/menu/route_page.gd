@@ -1,6 +1,6 @@
 extends HBoxContainer
 ## Start screen step 4 (optional): Route. Plan the waypoints to fly from the Airport step's airport. Top (RouteControls):
-## the departure (read only), the destination (search box), its arrival runway, the cruise altitude; auto-route (Direct /
+## the departure (read only), the destination (search box), its arrival runway, the cruise altitude, the SID and STAR; auto-route (Direct /
 ## VOR to VOR / Airways, avionics/route_builder.gd), Clear and the route as text (type one, Enter). Below, the map
 ## (RouteMap: click to add, drag to move or to add on a leg, right-click to remove) over the vertical profile
 ## (RouteProfile), beside the nav log (RouteLog, with the fuel line), the plan buttons (RoutePlansBox: saved plans, .PLN)
@@ -43,6 +43,8 @@ func _ready() -> void:
 	controls.auto_pressed.connect(auto_route)
 	controls.clear_pressed.connect(clear_route)
 	controls.text_entered.connect(enter_text)
+	controls.sid_picked.connect(func(v): _edit(func(r): r.sid = v))
+	controls.star_picked.connect(func(v): _edit(func(r): r.star = v))
 	col.add_child(controls)
 	auto_seg = controls.auto_seg
 	text_box = controls.text_box
@@ -161,7 +163,7 @@ func auto_route(kind: String) -> void:
 
 func clear_route() -> void:
 	var r := _route()
-	r.merge({"dest": "", "arr_rwy": "", "wps": [], "kind": "manual", "air_at": -1}, true)
+	r.merge({"dest": "", "arr_rwy": "", "wps": [], "kind": "manual", "air_at": -1, "sid": "", "star": ""}, true)
 	selected = -1
 	_commit(r, false, "Route cleared: the step is skipped.")
 

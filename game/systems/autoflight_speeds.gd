@@ -6,7 +6,7 @@ extends RefCounted
 ## schedule: SRS V2 + 10; flaps out: Vls of the configuration plus a margin that shrinks to 5 kt at FULL
 ## (the approach speed), but at least the S / F speed of the detent (Vls of one detent less + 5 kt; before, CONF 1 asked
 ## 183 kt while S was 196, so a crew waiting for S never retracted); clean in the approach phase (approach()) green dot; clean below 10,000 ft 250 kt; above it 300 kt in a climb or 280 kt otherwise, but
-## never above Mach 0.78 (the MACH mode then). Rules of thumb on the AirSpeeds tables (aircraft.json
+## never above Mach 0.78 (the MACH mode then); a SID / STAR speed limit lowers any of these. Rules of thumb on the AirSpeeds tables (aircraft.json
 ## limits.speeds); optional limits.autoflight {v2_kt, green_dot_kt, below_limit_kt, limit_alt_ft, climb_kt,
 ## cruise_kt, mach, accel_agl_ft, land_disconnect_ft} override the defaults, green dot = 2 x mass (t) + 85 kt.
 
@@ -68,6 +68,9 @@ func managed(i: AfInputs, vmode: String) -> Dictionary:
 		if cas_m < kt:
 			kt = cas_m
 			mach_lim = true
+	if i.cstr_spd_kt > 0.0 and i.cstr_spd_kt < kt:  # a SID / STAR speed limit (avionics/fms_constraints.gd), never below Vls (limited)
+		kt = i.cstr_spd_kt
+		mach_lim = false
 	return {"cas": limited(i, Units.kt_to_mps(kt)), "mach": mach_lim}
 
 

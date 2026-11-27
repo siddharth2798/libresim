@@ -1,7 +1,8 @@
 class_name McduFpln
 extends RefCounted
 ## F-PLN page of the lite MCDU: six lines of the route (active waypoint first, then the later ones, then the
-## "[ ]" insert slot), scrolled by the mouse wheel over the page or the slew keys (up / down under the letters).
+## "[ ]" insert slot), scrolled by the mouse wheel over the page or the slew keys (up / down under the letters). A SID / STAR
+## fix has its SPD/ALT limit under the course (controls/gps/constraints): magenta when met, amber when missed.
 ## Props: mcdu/fpln_top (first route index shown; clamped to the route on every read, so a route that sequences
 ## or shrinks never leaves the page blank). Writes controls/gps/{target, route_next} through MCDU._commit.
 
@@ -61,6 +62,8 @@ static func line_key(d: MCDU, side: String, row: int, s: String, known: Callable
 static func paint(d: MCDU) -> void:
 	var wps := MCDU.route()
 	var legs: Array = Props.get_v("avionics/fms/legs", [])
+	var cstr: Dictionary = Props.get_v(RouteSetup.CSTR_PROP, {})
+	var state: Dictionary = Props.get_v("avionics/fms/cstr_state", {})
 	var t := top(wps.size())
 	d.hot(Rect2(64, 44, 292, 264), "fpln_body")  # wheel scrolls; the line keys are registered after, so they win
 	for row in ROWS:
@@ -72,6 +75,9 @@ static func paint(d: MCDU) -> void:
 				var lg: Dictionary = legs[i]
 				d.txt_fit(Vector2(400, y + 20), "%03d %dNM" % [roundi(lg.get("course", 0)), roundi(lg.get("dist_nm", 0))],
 					16, 384.0 - IDENT_W, MCDU.GREEN, 1)
+			if cstr.has(wps[i]):  # SPD/ALT of a SID / STAR fix: magenta when met (predicted), amber when missed
+				d.txt_fit(Vector2(400, y + 38), Procedures.text(cstr[wps[i]]), 14, 384.0 - IDENT_W,
+					MCDU.AMBER if str(state.get(wps[i], "")) == "missed" else MCDU.MAGENTA, 1)
 		elif i == wps.size():
 			d.txt(Vector2(16, y + 20), "[    ]", 20, Color(0.4, 0.6, 0.7))
 	_slew(d, t > 0, t < top_clamped(1 << 20, wps.size()))

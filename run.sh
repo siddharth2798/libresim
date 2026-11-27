@@ -28,7 +28,9 @@ LOG=data/run.log
 # 28 (AAI eAIP airways) needs the network the first time; later runs reuse data/raw/aai.
 # 29 (real ILS from the AAI eAIP AD 2.19 pages) reads airports.json and the same cache; 14 merges it. Offline it keeps the
 # old ils_aip.json (14 then makes simulated ILS only).
-PIPELINE=(05 28 29 04 02 03 06 09 11 12 19 13 15 17 20 21 09 27 14 16 10)
+# 31 (SIDs and STARs: AIP supplements and the AD 2.24 SID charts, through pdftotext) reads airports.json, navaids.json and
+# airways.json; offline or without pdftotext it keeps the old procedures.json.
+PIPELINE=(05 28 29 31 04 02 03 06 09 11 12 19 13 15 17 20 21 09 27 14 16 10)
 # OUT: first entry is the sentinel used when no stamp exists yet (a dir means "a file in it").
 # IN : files/globs whose change makes the step stale (script + raw data + helper modules).
 # DEP: upstream steps; if one ran this session (or its stamp is newer), this step re-runs.
@@ -39,6 +41,8 @@ OUT[28]="data/processed/airways.json"
 IN[28]="tools/28_airways.py tools/aai_eaip.py"
 OUT[29]="data/processed/ils_aip.json"
 IN[29]="tools/29_ils_aip.py tools/ils_aip.py tools/aai_eaip.py";  DEP[29]="05"
+OUT[31]="data/processed/procedures.json"
+IN[31]="tools/31_procedures.py tools/procedures_aip.py tools/aai_eaip.py";  DEP[31]="05 28"
 OUT[04]="data/processed/osm/aeroways.json data/processed/osm/roads.json data/processed/osm/water.json data/processed/osm/buildings"
 IN[04]="tools/04_osm_extract.py data/raw/osm/western-zone-latest.osm.pbf"
 OUT[02]="data/processed/terrain/h/0 data/processed/terrain/meta.json"
@@ -80,6 +84,7 @@ IN[16]="tools/16_terminal_models.py tools/terminal_styles.py tools/terminal_styl
 step_05() { $PY tools/05_airports_navaids.py; }
 step_28() { $PY tools/28_airways.py; }
 step_29() { $PY tools/29_ils_aip.py; }
+step_31() { $PY tools/31_procedures.py; }
 step_04() { $PY tools/04_osm_extract.py; }
 step_02() { $PY tools/02_dem_tiles.py; }
 step_03() { $PY tools/03_imagery_tiles.py; }
@@ -99,7 +104,7 @@ step_20() { $PY tools/20_roads_rivers.py; }
 step_21() { $PY tools/21_shore.py; }
 step_27() { $PY tools/27_pavement.py --force; }  # ~1.5 min: always rebuild
 
-declare -A NAME=([05]="airports, navaids" [28]="ATS airways" [29]="real ILS (AIP)" [04]="OSM extract" [02]="terrain heights" [03]="imagery tiles"
+declare -A NAME=([05]="airports, navaids" [28]="ATS airways" [29]="real ILS (AIP)" [31]="SIDs and STARs (AIP)" [04]="OSM extract" [02]="terrain heights" [03]="imagery tiles"
   [06]="c172 flight model json" [06a]="A320 flight model json" [09]="runways" [10]="buildings" [11]="land class"
   [12]="outer terrain" [13]="airport ops, stands" [14]="ILS (real and simulated)" [15]="terminal outlines" [16]="terminal models"
   [17]="airport fixups" [19]="WorldCover classes" [20]="roads and rivers" [21]="shore" [27]="airport pavement")
@@ -224,6 +229,7 @@ pkg_for() {  # pkg_for <need> -> package name for $PM
     apt:pygdal|dnf:pygdal) echo python3-gdal ;; pacman:pygdal) echo python-gdal ;; brew:pygdal) echo gdal ;;
     apt:python) echo python3 ;;         dnf:python) echo python3 ;; pacman:python|brew:python) echo python ;;
     apt:venv) echo python3-venv ;;      *:venv) echo python ;;
+    apt:poppler|dnf:poppler) echo poppler-utils ;;  # pdftotext, for step 31 (SIDs and STARs from the AIP PDFs)
     *:"$1") echo "$1" ;;
   esac
 }
@@ -247,6 +253,7 @@ preflight() {
   command -v curl >/dev/null || command -v wget >/dev/null || missing+=(curl)
   command -v git >/dev/null || missing+=(git)
   command -v unzip >/dev/null || missing+=(unzip)
+  command -v pdftotext >/dev/null || missing+=(poppler)  # step 31 reads the SID / STAR PDFs; without it that step keeps its old output
   note "OS $OS/$ARCH, package manager: ${PM:-none}, python: $SYS_PY"
   if ((${#missing[@]} == 0)); then note "system tools OK (gdal $(gdalwarp --version | cut -d' ' -f2 | tr -d ,))"; return; fi
   local pkgs; pkgs=$(for m in "${missing[@]}"; do pkg_for "$m"; done | sort -u | tr '\n' ' ')

@@ -11,6 +11,8 @@ extends RefCounted
 ##   ALT*     capture of the FCU altitude: constant deceleration profile (A_CAP) ending in a linear approach
 ##   ALT      altitude hold of the altitude memorised at engagement (hold_m; the FCU window may be turned meanwhile);
 ##            "ALT CRZ" on the FMA when reached in a managed climb (the cruise level); plain ALT after a descent
+##   ALT CST*, ALT CST  (cst) a managed CLB / DES levelling at a SID at-or-below / STAR at-or-above limit nearer than the FCU
+##            altitude (target_m); the climb or descent goes on by itself once the FMS drops the limit (the fix is passed)
 ##   G/S*, G/S  glide slope capture and track (-3 deg path through the glide slope antenna)
 ## Armed: "ALT" (level-off ahead), "G/S" (APPR pressed).
 ## Speed-on-pitch laws are a PI: gamma = KP x (speed - target) + integral (bumpless at mode entry).
@@ -31,6 +33,9 @@ const SPEED_MODES := ["SRS", "OP CLB", "OP DES", "CLB", "DES"]
 var mode := ""
 var armed: Array = []
 var crz := false  # the ALT came from a managed CLB
+var cst := false  # the ALT* / ALT is at a SID / STAR constraint (FMA ALT CST*, ALT CST), not at the FCU altitude
+var cst_m := 0.0  # that constraint altitude
+var cst_dir := 0.0  # +1 levelled in a managed climb, -1 in a managed descent
 var gamma_cmd := 0.0
 var land := false  # glide slope below 400 ft: the FMA says LAND
 var _i_spd := 0.0
@@ -43,6 +48,7 @@ func reset() -> void:
 	mode = ""
 	armed = []
 	crz = false
+	cst = false
 	gamma_cmd = 0.0
 	land = false
 	_prev_mode = ""
@@ -55,6 +61,8 @@ func set_mode(m: String) -> void:
 		_fresh = true
 		if m != "ALT":
 			crz = false
+		if m != "ALT" and m != "ALT*":
+			cst = false
 
 
 func is_speed_mode() -> bool:
@@ -63,19 +71,19 @@ func is_speed_mode() -> bool:
 
 ## One tick. `spd_target` m/s (CAS) for the speed-on-pitch modes; `loc_ok` = the lateral localizer is captured.
 func update(i: AfInputs, spd_target: float, loc_ok: bool) -> void:
-	var alt_err: float = i.f.alt - i.alt_m
+	var alt_err: float = target_m(i) - i.alt_m
 	land = false
 	_follow_selection(i, alt_err)
 	_gs_logic(i, loc_ok)
 	if mode == "ALT" and _prev_mode != "ALT":
-		hold_m = i.f.alt
+		hold_m = cst_m if cst else i.f.alt
 	_prev_mode = mode
 	match mode:
 		"SRS": gamma_cmd = _speed_law(i, spd_target, 0.0, 0.2, 0.1)  # initial climb gradient as the starting integral
 		"OP CLB", "CLB": gamma_cmd = _speed_law(i, spd_target, 0.0, 0.17)  # a climb mode never descends: it accelerates level at worst
 		"OP DES", "DES": gamma_cmd = _speed_law(i, spd_target, -0.17, 0.0)  # a descent mode never climbs: it slows level at worst
 		"V/S": gamma_cmd = _gamma_of(i, i.f.vs)
-		"ALT*": gamma_cmd = _gamma_of(i, _capture_vs(alt_err))
+		"ALT*": gamma_cmd = _gamma_of(i, _capture_vs((cst_m - i.alt_m) if cst else alt_err))
 		"ALT": gamma_cmd = _gamma_of(i, clampf(K_ALT * (hold_m - i.alt_m), -8.0, 8.0))
 		"G/S*", "G/S":
 			land = Units.m_to_ft(i.ra_m) < 400.0
@@ -84,6 +92,29 @@ func update(i: AfInputs, spd_target: float, loc_ok: bool) -> void:
 	if i.wow:
 		_fresh = true  # nothing to integrate on the ground
 	_armed(i, alt_err)
+
+
+## The altitude the vertical mode flies to: the FCU altitude, or in a managed climb / descent a nearer SID / STAR constraint
+## (AfInputs.cstr_ceil_m / cstr_floor_m, avionics/fms_constraints.gd); once levelling at a constraint (ALT CST*, ALT CST), that one.
+func target_m(i: AfInputs) -> float:
+	if cst:
+		return cst_m
+	if mode == "CLB":
+		return managed_target_m(i, 1.0)
+	if mode == "DES":
+		return managed_target_m(i, -1.0)
+	return i.f.alt
+
+
+## The managed target in direction `dir` (+1 climb, -1 descent): a constraint between the aircraft and the FCU altitude, else
+## the FCU altitude. A constraint already behind the aircraft's altitude (missed) does not turn the climb into a descent.
+func managed_target_m(i: AfInputs, dir: float) -> float:
+	var t: float = i.f.alt
+	if dir > 0.0 and i.cstr_ceil_m > 0.0 and i.cstr_ceil_m < t and i.cstr_ceil_m > i.alt_m - 15.0:
+		return i.cstr_ceil_m
+	if dir < 0.0 and i.cstr_floor_m > t and i.cstr_floor_m < i.alt_m + 15.0:
+		return i.cstr_floor_m
+	return t
 
 
 func nz(i: AfInputs) -> float:
@@ -109,11 +140,23 @@ func _follow_selection(i: AfInputs, alt_err: float) -> void:
 				set_mode("CLB")
 			if _capture_due(i, alt_err):
 				var managed := mode == "CLB"  # a managed climb levels at the cruise level; after a descent it is plain ALT
+				var dir := 1.0 if mode == "CLB" else -1.0
+				var at_cstr: bool = (mode == "CLB" or mode == "DES") and absf(target_m(i) - i.f.alt) > 1.0
+				var t := target_m(i)
 				set_mode("ALT*")  # clears crz (not ALT): set it after, or ALT CRZ never shows
-				crz = managed
+				crz = managed and not at_cstr
+				if at_cstr:
+					cst = true
+					cst_m = t
+					cst_dir = dir
 		"ALT*":
 			if absf(alt_err) < 8.0 and absf(i.vs_mps) < 2.0:
 				set_mode("ALT")
+		"ALT":
+			if cst and i.f.vs_mgd:  # the constraint fix is passed (or a lower / higher one is next): climb or descend on
+				var nxt := managed_target_m(i, cst_dir)
+				if (cst_dir > 0.0 and nxt > cst_m + 30.0) or (cst_dir < 0.0 and nxt < cst_m - 30.0):
+					set_mode("CLB" if cst_dir > 0.0 else "DES")
 
 
 ## Level-off starts when the remaining distance equals the deceleration distance (plus the loop lag).
@@ -182,10 +225,13 @@ func _armed(i: AfInputs, alt_err: float) -> void:
 
 
 func save_state() -> Dictionary:
-	return {"mode": mode, "crz": crz}
+	return {"mode": mode, "crz": crz, "cst": cst, "cst_m": cst_m, "cst_dir": cst_dir}
 
 
 func load_state(d: Dictionary) -> void:
 	mode = str(d.get("mode", ""))
 	crz = bool(d.get("crz", false))
+	cst = bool(d.get("cst", false))
+	cst_m = float(d.get("cst_m", 0.0))
+	cst_dir = float(d.get("cst_dir", 0.0))
 	_fresh = true  # the speed integral restarts from the present flight path (bumpless)

@@ -40,6 +40,7 @@ stage_data() {  # $1 = destination data dir
 	cp -r "$DATA/terrain" "$DATA/buildings" "$1/"
 	cp "$DATA/airports.json" "$DATA/navaids.json" "$DATA/runways.json" "$DATA/airport_ops.json" "$DATA/ils.json" "$1/"
 	[ -f "$DATA/airways.json" ] && cp "$DATA/airways.json" "$1/"
+	[ -f "$DATA/procedures.json" ] && cp "$DATA/procedures.json" "$1/"  # SIDs and STARs (step 31; optional: the game runs without them)
 	mkdir -p "$1/terminals"  # landmark terminal models (not the OSM extracts)
 	cp "$DATA"/terminals/*.glb "$DATA"/terminals/*_model.json "$1/terminals/" 2>/dev/null || true
 	cp "$ROOT/packaging/DATA-LICENSES.txt" "$1/"

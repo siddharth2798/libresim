@@ -1,6 +1,6 @@
 class_name VerticalProfile
 extends RefCounted
-## Lite managed profile. There is no constraint list and no published descent path.
+## Lite managed profile. There is no published descent path; a STAR's at-or-below limits move the top of descent (caps).
 ## The cruise flight level is the climb target. Top of descent is 300 ft per nautical mile
 ## plus 8 nm plus the deceleration allowances (6 nm, and 4 more from above 10,000 ft), so the aircraft can level at the destination
 ## elevation plus 2,200 ft before the 8 nm arrival fix
@@ -26,7 +26,10 @@ const LIMIT_FT := 10000.0
 
 
 ## {approach_ft, tod_nm, descend, phase}. phase is CLB, CRZ, DES or APPR.
-static func decide(cruise_ft: float, current_ft: float, dist_nm: float, dest_elev_ft: float, prev := "") -> Dictionary:
+## `caps` = [{s_nm, hi_ft}]: at-or-below limits of a STAR ahead (FmsConstraints.caps; s_nm = route distance from the aircraft).
+## The descent path is then the lowest of the 300 ft / nm lines back from the approach level and from each limit, and the top of
+## descent is where the aircraft meets it (tod_nm stays a distance to the destination).
+static func decide(cruise_ft: float, current_ft: float, dist_nm: float, dest_elev_ft: float, prev := "", caps: Array = []) -> Dictionary:
 	var approach := dest_elev_ft + APPROACH_AGL_FT
 	if cruise_ft > 0.0 and approach >= cruise_ft - 500.0:
 		approach = dest_elev_ft + 1000.0
@@ -35,6 +38,9 @@ static func decide(cruise_ft: float, current_ft: float, dist_nm: float, dest_ele
 	var descent_nm := 0.0
 	if current_ft > approach + MIN_ABOVE_FT:
 		descent_nm = (current_ft - approach) / FT_PER_NM + FINAL_NM + DECEL_NM + (LIMIT_DECEL_NM if current_ft > LIMIT_FT else 0.0)
+		for c in caps:
+			if float(c.hi_ft) < current_ft - MIN_ABOVE_FT:  # start down this far before the limit: (height to lose) / 300 ft per nm
+				descent_nm = maxf(descent_nm, dist_nm - float(c.s_nm) + (current_ft - float(c.hi_ft)) / FT_PER_NM)
 	var descend := dist_nm > 0.5 and descent_nm > 0.0 and dist_nm <= descent_nm
 	# once descending, still DES below the profile (a descent faster than 300 ft / nm) and at the approach altitude, until back
 	# near the cruise level (a new cruise level, a go-around climb)
