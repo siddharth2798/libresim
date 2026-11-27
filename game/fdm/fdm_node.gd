@@ -119,6 +119,10 @@ func _snap() -> void:
 func _physics_process(delta: float) -> void:
 	SimHold.publish(paused, replaying)  # weather, cloud drift and icing hold with the FDM
 	if paused or replaying or fdm.damage.crashed:
+		_prev_pos[0] = fdm.pos_e  # held: render_transform() is the pose itself, not a lerp between
+		_prev_pos[1] = fdm.pos_n  # the last two ticks that wobbles with the frame's interpolation fraction
+		_prev_pos[2] = -fdm.pos_d
+		_prev_q = fdm.q
 		return
 	_prev_pos = PackedFloat64Array([fdm.pos_e, fdm.pos_n, -fdm.pos_d])
 	_prev_q = fdm.q

@@ -87,6 +87,24 @@ func test_slow_drift_arrives_in_small_steps_and_exact_ends() -> String:
 	return ""
 
 
+func test_vector4_and_per_instance_steps() -> String:
+	# CloudLayer's shadow global is a Vector4 and its uniforms include metres and tiny extinctions (step_by_name).
+	if SkyParams.changed(Vector4(1400, 0.5, 0.3, 0), Vector4(1400, 0.5, 0.3005, 0)):
+		return "a Vector4 moving under the float step is not a change"
+	if not SkyParams.changed(Vector4(1400, 0.5, 0.3, 0), Vector4(1400, 0.5, 0.0, 0)):
+		return "a Vector4 component reaching exactly 0 (shadows off) is a change"
+	var p := SkyParams.new()
+	p.step_by_name = {&"air_haze": 0.0}
+	p.stage(&"air_haze", 1.8e-5)
+	p.flush()
+	p.stage(&"air_haze", 2.0e-5)
+	if p.flush() != 1:
+		return "a per-instance step of 0 writes any change (the default 0.002 would freeze a 2e-5 extinction)"
+	if SkyParams.STEP_BY_NAME.has(&"air_haze"):
+		return "the sky's own steps stay as they were"
+	return ""
+
+
 func test_want_reads_this_frame_then_the_written_value() -> String:
 	var mat := ShaderMaterial.new()
 	mat.shader = load("res://world/sky_clouds.gdshader")

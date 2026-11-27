@@ -15,6 +15,12 @@ const DAMP_RAMP := 0.03  # m: damping builds up over the first 3 cm of compressi
 const OLEO_GIVE := 0.82  # share of the spring a wheel does not return while the leg is extending
 const OLEO_V := 0.35  # m/s of extension at which that give is complete; a slow rise (takeoff) keeps the spring
 const BRAKE_MU := 0.45  # effective max braking friction, dry asphalt (tyre + anti-skid-free brakes)
+# Static hold of a braked wheel that has stopped (the V_SAT ramp alone gives no force at zero speed, so a parked
+# aircraft crept under slope, idle thrust or wind): the tyre is pinned by a spring-damper to where it stopped, up to
+# the static limit mu * N (the spring reaches it after HOLD_D of displacement); beyond that, or with the brake off, it slips.
+const HOLD_BRAKE := 0.5  # brake demand above which a stopped wheel is held (the pushback tug stalls above it too)
+const HOLD_V := 0.05  # m/s: contact speed below which a braked wheel latches
+const HOLD_D := 0.02  # m of tyre displacement at which the hold reaches the friction limit
 
 
 ## Upward force of one contact. Compression is the published spring and damper (the damper eases in over
@@ -42,6 +48,8 @@ var brake_right := 0.0
 var wow := false  # weight on wheels
 var compression := {}  # name -> m
 var info := {}  # name -> {depth, vz (NED, + down), force, n, e} for the damage model
+var step_dt := 0.0  # s, set by FDM.step before compute() (the static hold integrates the tyre displacement)
+var _held := {}  # name -> Vector2 NED (n, e) displacement of a held wheel since it latched (m)
 
 
 func _init(cfg: Dictionary) -> void:
@@ -143,6 +151,7 @@ func compute(mb: MassBalance, r_bn: Basis, pos_ned: Vector3, v_b: Vector3, w_b: 
 		if not _active(c):
 			compression[c.name] = 0.0
 			info[c.name] = {"depth": 0.0}
+			_held.erase(c.name)
 			continue
 		var r_b := mb.body_of(c.pos)
 		var p := pos_ned + r_bn * r_b
@@ -151,6 +160,7 @@ func compute(mb: MassBalance, r_bn: Basis, pos_ned: Vector3, v_b: Vector3, w_b: 
 		if depth <= 0.0:
 			compression[c.name] = 0.0
 			info[c.name] = {"depth": 0.0}
+			_held.erase(c.name)
 			continue
 		compression[c.name] = depth
 		if c.wheel:
@@ -170,15 +180,47 @@ func compute(mb: MassBalance, r_bn: Basis, pos_ned: Vector3, v_b: Vector3, w_b: 
 		info[c.name]["vlat"] = v_lat  # sideways drift of the tyre (side load)
 		var mu_long: float = c.mu_roll
 		var mu_lat: float = lerpf(c.mu_s, c.mu_d, clampf(absf(v_lat) / 2.0, 0.0, 1.0))
+		var b := 0.0
 		if c.wheel:
-			mu_long = _mu_braked(c, _brake_input(c.brake), v_long)
+			b = _brake_input(c.brake)
+			mu_long = _mu_braked(c, b, v_long)
 		else:
 			mu_long = c.mu_d
 			mu_lat = c.mu_d
 		var fl := -clampf(v_long / V_SAT_LONG, -1.0, 1.0) * mu_long * n
 		var fs := -clampf(v_lat / V_SAT_LAT, -1.0, 1.0) * mu_lat * n
+		var hold := _hold(c, b, Vector2(v_c.x, v_c.y), f_h, s_h, v_long, v_lat, mu_long * n, mu_lat * n)
+		if not hold.is_empty():
+			fl = hold[0]
+			fs = hold[1]
 		var f_ned := Vector3(f_h.x * fl + s_h.x * fs, f_h.y * fl + s_h.y * fs, -n)
 		var f_b := r_nb * f_ned
 		f_total += f_b
 		m_total += r_b.cross(f_b)
 	return [f_total, m_total]
+
+
+## Static hold of a braked, stopped wheel: [long, lat] friction (N) from a spring-damper on the tyre's displacement since it
+## latched, or [] when it is not held (brake off, rolling, or the force needed is beyond static friction: it slips).
+## The displacement is integrated from the contact velocity (64-bit-safe, unaffected by teleports or the floating origin).
+## Stiffness mu N / HOLD_D and damping mu N / V_SAT: about 15 rad/s with damping ratio 0.6, whatever the aircraft's weight,
+## far inside the stability limit of the 240 Hz sub-step.
+func _hold(c: Dictionary, b: float, v_h: Vector2, f_h: Vector2, s_h: Vector2, v_long: float, v_lat: float,
+		lim_long: float, lim_lat: float) -> Array:
+	if not c.wheel or c.brake == 0 or b <= HOLD_BRAKE or step_dt <= 0.0:
+		_held.erase(c.name)
+		return []
+	if not _held.has(c.name):
+		if v_h.length() >= HOLD_V:
+			return []
+		_held[c.name] = Vector2.ZERO
+	var d: Vector2 = _held[c.name] + v_h * step_dt
+	var dl := d.dot(f_h)
+	var ds := d.dot(s_h)
+	var fl := -(lim_long / HOLD_D * dl + lim_long / V_SAT_LONG * v_long)
+	var fs := -(lim_lat / HOLD_D * ds + lim_lat / V_SAT_LAT * v_lat)
+	if absf(fl) > lim_long or absf(fs) > lim_lat:  # more than static friction: the tyre breaks away
+		_held.erase(c.name)
+		return []
+	_held[c.name] = d
+	return [fl, fs]

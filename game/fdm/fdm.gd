@@ -206,6 +206,7 @@ func step(dt: float) -> void:
 		h_prop += th.angular_momentum()
 
 	# --- ground
+	gear.step_dt = dt
 	var gr: Array = gear.compute(mb, r_bn, Vector3(pos_n, pos_e, pos_d), v_b, w_b,
 		func(n: float, e: float) -> float: return ground_height.call(n, e))
 	damage.update(self, dt, gear.info, surface)

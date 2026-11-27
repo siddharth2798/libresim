@@ -171,7 +171,7 @@ func _box(p: Vector3, s: Vector3, rot := Vector3.ZERO) -> void:
 func _process(dt: float) -> void:
 	_acc += dt
 	if _acc >= REFRESH:
-		_acc = 0.0
+		_acc = fmod(_acc, REFRESH)  # keep the remainder (35-50 fps still gives 30 Hz); a long hitch drops whole periods, no burst
 		if str(Props.get_v("view/mode", "")) == "Cockpit":  # the 3D panel is only seen from inside
 			panel_ui.refresh()
 			viewport.render_target_update_mode = SubViewport.UPDATE_ONCE

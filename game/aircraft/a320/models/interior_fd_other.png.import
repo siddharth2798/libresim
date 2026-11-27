@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://epiqo84n4upe"
-path="res://.godot/imported/interior_fd_other.png-533767ad777db6d034d571b42a8a884e.ctex"
+path.bptc="res://.godot/imported/interior_fd_other.png-533767ad777db6d034d571b42a8a884e.bptc.ctex"
+path.astc="res://.godot/imported/interior_fd_other.png-533767ad777db6d034d571b42a8a884e.astc.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "8dac098a9df73bbb2e30f4690a99fe80"
@@ -14,12 +16,12 @@ generator_parameters={
 [deps]
 
 source_file="res://aircraft/a320/models/interior_fd_other.png"
-dest_files=["res://.godot/imported/interior_fd_other.png-533767ad777db6d034d571b42a8a884e.ctex"]
+dest_files=["res://.godot/imported/interior_fd_other.png-533767ad777db6d034d571b42a8a884e.bptc.ctex", "res://.godot/imported/interior_fd_other.png-533767ad777db6d034d571b42a8a884e.astc.ctex"]
 
 [params]
 
-compress/mode=0
-compress/high_quality=false
+compress/mode=2
+compress/high_quality=true
 compress/lossy_quality=0.7
 compress/uastc_level=0
 compress/rdo_quality_loss=0.0

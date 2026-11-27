@@ -18,6 +18,8 @@ const STEP_BY_NAME := {&"horizon_dip": 0.0002}
 
 var mat: ShaderMaterial
 var writes := 0  # uniforms actually written (tests, profiling)
+## Per-instance steps by name (other users, e.g. CloudLayer, whose uniforms are metres or tiny extinctions).
+var step_by_name: Dictionary = STEP_BY_NAME
 var _sent := {}  # name -> value last written
 var _want := {}  # name -> value staged this frame
 
@@ -45,7 +47,7 @@ func flush() -> int:
 	var n := 0
 	for name in _want:
 		var v: Variant = _want[name]
-		if _sent.has(name) and not changed(_sent[name], v, STEP_BY_NAME.get(name, -1.0)):
+		if _sent.has(name) and not changed(_sent[name], v, step_by_name.get(name, -1.0)):
 			continue
 		_sent[name] = v
 		if mat:
@@ -67,7 +69,12 @@ static func changed(a: Variant, b: Variant, step := -1.0) -> bool:
 			var d: float = maxf(maxf(absf(b.r - a.r), absf(b.g - a.g)), absf(b.b - a.b))
 			return d > STEP_COLOR or (d > 0.0 and (b == Color.BLACK or b == Color.WHITE))
 		TYPE_VECTOR3:
-			return (b - a).length() > STEP_DIR
+			return (b - a).length() > (step if step >= 0.0 else STEP_DIR)
 		TYPE_VECTOR2:
-			return (b - a).length() > STEP_VEC2
+			return (b - a).length() > (step if step >= 0.0 else STEP_VEC2)
+		TYPE_VECTOR4:  # per component, like a float (a component reaching exactly 0 or 1 is always written)
+			for i in 4:
+				if changed(a[i], b[i], step if step >= 0.0 else STEP_FLOAT):
+					return true
+			return false
 	return a != b

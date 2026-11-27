@@ -42,6 +42,8 @@ static func spec_for(limits: Dictionary) -> Dictionary:
 
 
 func _physics_process(dt: float) -> void:
+	if SimHold.paused():  # the readings hold while paused
+		return
 	var h := _tick.step(dt)
 	if h > 0.0:
 		publish(h)

@@ -154,6 +154,8 @@ func _engine_sources(side: String, centre: Dictionary, wing: Dictionary, cross: 
 
 
 func _physics_process(dt: float) -> void:
+	if SimHold.active():  # paused or replaying: fuel used and transfers hold
+		return
 	var h := _tick.step(dt)
 	if h > 0.0:
 		update(h)

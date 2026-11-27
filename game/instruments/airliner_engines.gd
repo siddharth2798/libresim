@@ -21,6 +21,8 @@ static func to_display(n1: float, n2: float, egt_k: float, ff_kgs: float, oil_pa
 
 
 func _physics_process(dt: float) -> void:
+	if SimHold.paused():  # the readings hold while paused
+		return
 	var h := _tick.step(dt)
 	if h > 0.0:
 		publish(h)

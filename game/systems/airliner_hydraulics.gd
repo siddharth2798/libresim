@@ -90,6 +90,8 @@ func _targets() -> Dictionary:
 
 
 func _physics_process(dt: float) -> void:
+	if SimHold.paused():  # pressures hold while paused
+		return
 	var h := _tick.step(dt)
 	if h > 0.0:
 		update(h)

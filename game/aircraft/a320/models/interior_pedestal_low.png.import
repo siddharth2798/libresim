@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://cwuafqe78byks"
-path="res://.godot/imported/interior_pedestal_low.png-7a33e3d9e166790f3443e3b16984531e.ctex"
+path.bptc="res://.godot/imported/interior_pedestal_low.png-7a33e3d9e166790f3443e3b16984531e.bptc.ctex"
+path.astc="res://.godot/imported/interior_pedestal_low.png-7a33e3d9e166790f3443e3b16984531e.astc.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "5793110690f3dddd085144002b9d621e"
@@ -14,12 +16,12 @@ generator_parameters={
 [deps]
 
 source_file="res://aircraft/a320/models/interior_pedestal_low.png"
-dest_files=["res://.godot/imported/interior_pedestal_low.png-7a33e3d9e166790f3443e3b16984531e.ctex"]
+dest_files=["res://.godot/imported/interior_pedestal_low.png-7a33e3d9e166790f3443e3b16984531e.bptc.ctex", "res://.godot/imported/interior_pedestal_low.png-7a33e3d9e166790f3443e3b16984531e.astc.ctex"]
 
 [params]
 
-compress/mode=0
-compress/high_quality=false
+compress/mode=2
+compress/high_quality=true
 compress/lossy_quality=0.7
 compress/uastc_level=0
 compress/rdo_quality_loss=0.0

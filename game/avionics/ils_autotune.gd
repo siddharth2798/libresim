@@ -7,13 +7,13 @@ extends Node
 ## controls/fcu/{loc, appr}, avionics/nav2/{kind, valid, ident}, ap/fma/lateral, controls/nav2/freq_mhz.
 ## Out: controls/nav2/freq_mhz (and obs_deg = the course) when it tunes; avionics/ils_auto/{ident, mhz, active, manual, why}.
 ## Rules (docs/USAGE.md "ILS auto-tune"):
-##   * only airborne, with the avionics powered, at most TICK_S apart;
+##   * only airborne, with the avionics powered, at TICK_HZ (every 0.25 s);
 ##   * a frequency the pilot sets (anything that changes controls/nav2/freq_mhz and is not this node) is a manual tune: it wins
 ##     until the plan's arrival changes (another destination or ARR RWY), or the MCDU RAD NAV page sends AUTO (controls/ils_auto/resume);
 ##   * never retuned while the ILS is in use: NAV2 receives the ILS this node tuned, or the localizer is armed-and-captured (LOC*, LOC, LAND);
 ##   * nothing wanted (no ILS, too far, off course): the radio is left alone and nothing is flagged.
 
-const TICK_S := 0.25
+const TICK_HZ := 4.0  # docs/USAGE.md "Tick rates": one look every 0.25 s, in physics ticks (core/tick_rate.gd)
 const NM := 1852.0
 const VAR_DEG := -0.3  # magnetic variation, as in avionics/gps.gd
 const CAPTURED := ["LOC*", "LOC", "LAND", "FLARE", "ROLL OUT"]
@@ -21,7 +21,7 @@ const EPS := 0.001
 
 var db: NavDatabase
 var airliner := false  # the A320: always on
-var _t := 0.0
+var _tick := TickRate.new(TICK_HZ)
 var _seen := -1.0  # controls/nav2/freq_mhz as last looked at
 var _set := -1.0  # what this node last wrote there
 var _tuned := ""  # ident of the ILS this node tuned
@@ -53,14 +53,13 @@ func restart() -> void:
 	_publish("", 0.0, "", false)
 
 
-func _process(dt: float) -> void:
-	_t += dt
-	if _t >= TICK_S:
-		update(_t)
-		_t = 0.0
+func _physics_process(dt: float) -> void:
+	var h := _tick.step(dt)
+	if h > 0.0:
+		update(h)
 
 
-## One look at the radio and the plan; `dt` only matters to _process.
+## One look at the radio and the plan; `dt` is the time since the last look (unused: each look is a fresh decision).
 func update(_dt: float) -> void:
 	if db == null or not enabled() or not Props.get_b("systems/electrical/avionics_powered", true):
 		return

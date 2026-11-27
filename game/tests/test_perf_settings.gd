@@ -134,6 +134,37 @@ func test_auto_scale_without_gpu_time_uses_the_frame_time() -> String:
 	return "" if is_equal_approx(sc3.scale, 1.0) else "when the GPU time is there it decides, not the frame time"
 
 
+func test_auto_scale_does_not_step_down_a_cpu_bound_frame_and_recovers() -> String:
+	# No GPU time (Metal, Compatibility): Medium on Mobile is CPU-bound, so 30 fps on a 60 Hz screen from 25 ms of CPU
+	# work must not walk the scale down 0.85 -> 0.75 -> 0.7 for nothing; a scale lowered while the GPU really was the
+	# limit comes back once the frames are CPU-limited again; vsync off too.
+	var budget := RenderScaler.budget_ms(60.0)
+	var dt := 1.0 / 30.0
+	var sc := RenderScaler.new()
+	sc.reset(0.85)
+	for i in 30 * 30:
+		sc.feed_any(0.0, budget * 2.0, budget, true, dt, 25.0)
+	if not is_equal_approx(sc.scale, 0.85):
+		return "a CPU-bound frame (25 ms CPU, 33 ms frame) should not step down, got %.2f" % sc.scale
+	for i in 30 * 10:  # GPU-bound: 8 ms of CPU, every slot missed
+		sc.feed_any(0.0, budget * 2.0, budget, true, dt, 8.0)
+	if not is_equal_approx(sc.scale, RenderScaler.FLOOR):
+		return "GPU-bound frames (8 ms CPU) still step down to the floor, got %.2f" % sc.scale
+	for i in 30 * 90:  # CPU-bound again: the lowered scale buys nothing
+		sc.feed_any(0.0, budget * 2.0, budget, true, dt, 28.0)
+	if not is_equal_approx(sc.scale, 0.85):
+		return "with CPU-bound frames the scale should climb back to the preset's 0.85, got %.2f" % sc.scale
+	var nv := RenderScaler.new()
+	nv.reset(1.0)
+	for i in 40 * 30:  # vsync off, 25 ms frames, 23 ms of them CPU
+		nv.feed_any(0.0, 25.0, budget, false, 1.0 / 40.0, 23.0)
+	if not is_equal_approx(nv.scale, 1.0):
+		return "vsync off: a CPU-bound frame should not step down either, got %.2f" % nv.scale
+	if RenderScaler.cpu_bound(-1.0, 33.0, budget, true) or not RenderScaler.cpu_bound(20.0, 33.3, budget, true):
+		return "no CPU reading is never CPU-bound; 20 ms of CPU needs the same two slots as a 33 ms frame"
+	return ""
+
+
 ## Textures the livery and registration painters repaint at run time (aircraft.json "texture" keys) stay Lossless:
 ## the painted copy is an uncompressed ImageTexture anyway, and block compression would put artefacts into its base.
 func test_model_textures_import_vram_compressed_with_mipmaps() -> String:
@@ -143,7 +174,10 @@ func test_model_textures_import_vram_compressed_with_mipmaps() -> String:
 		_painted(JSON.parse_string(FileAccess.get_file_as_string("res://aircraft/%s/aircraft.json" % id)), "res://aircraft/" + id, painted)
 	if not painted.has("res://aircraft/c172/models/exterior_fuselage.png"):
 		return "the C172 fuselage atlas is a livery texture"
-	for dir in ["res://aircraft/c172/models", "res://world/models/vehicles"]:
+	# 2D label art drawn on a canvas (small text, sampled 1:1), not a 3D model texture
+	painted[FcuLcdDraw.ART] = true
+	painted[FcuLcdDraw.ART_TRK] = true
+	for dir in ["res://aircraft/c172/models", "res://aircraft/a320/models", "res://world/models/vehicles"]:
 		for f in DirAccess.get_files_at(dir):
 			if f.ends_with(".png.import") and not painted.has(dir.path_join(f.trim_suffix(".import"))):
 				var cf := ConfigFile.new()
@@ -153,10 +187,6 @@ func test_model_textures_import_vram_compressed_with_mipmaps() -> String:
 					bad.append(f)
 				elif f.contains("-normal") and int(cf.get_value("params", "compress/normal_map", 0)) != 1:
 					bad.append(f + " (normal map mode)")
-	for n in ["exterior_gear", "exterior_panels", "exterior_engine_panels"]:
-		var cf := ConfigFile.new()
-		if cf.load("res://aircraft/a320/models/%s.png.import" % n) == OK and int(cf.get_value("params", "compress/mode", 0)) != 2:
-			bad.append("a320 " + n)
 	if not bad.is_empty():
 		return "3D model textures should be VRAM-compressed with mipmaps: %s" % ", ".join(bad)
 	var imp := ConfigFile.new()

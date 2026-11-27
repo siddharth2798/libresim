@@ -89,6 +89,8 @@ func _loads(b: Dictionary) -> Dictionary:
 
 
 func _physics_process(dt: float) -> void:
+	if SimHold.active():  # paused or replaying: the battery charge holds
+		return
 	var h := _tick.step(dt)
 	if h > 0.0:
 		update(h)

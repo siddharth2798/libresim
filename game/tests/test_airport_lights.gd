@@ -229,3 +229,24 @@ func test_levels() -> String:
 	if day.papi < 0.99 or day.flash < 0.3 or day.flash > 0.5 or night.flash < 0.99 or day.rwy > 0.2:  # flashers dimmed by day, not off
 		return "day levels"
 	return ""
+
+
+func test_group_levels_written_only_on_change() -> String:
+	# RunwayLights._process runs every frame; each group's `level` is written only when it moved (PERFORMANCE-RULES 10).
+	var rl := RunwayLights.new()
+	rl._make_materials()
+	var lv := RunwayLights.levels(30.0, 20000.0)
+	rl.apply_levels(lv)
+	var first := rl.level_writes
+	for i in 30:
+		rl.apply_levels(RunwayLights.levels(30.0, 20000.0))
+	var still := rl.level_writes - first
+	var dusk := RunwayLights.levels(0.0, 20000.0)
+	rl.apply_levels(dusk)
+	var rwy: float = rl.mats.rwy.get_shader_parameter("level")
+	rl.free()
+	if first != lv.size():
+		return "the first frame writes every group (%d of %d)" % [first, lv.size()]
+	if still != 0:
+		return "30 unchanged frames wrote %d group levels" % still
+	return "" if is_equal_approx(rwy, dusk.rwy) else "a new level reaches the material (%f, want %f)" % [rwy, dusk.rwy]

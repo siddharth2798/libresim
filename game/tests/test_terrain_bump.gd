@@ -63,3 +63,21 @@ func test_bump_is_visual_only() -> String:
 	if TerrainMesh.GRID != 64:
 		return "the shared mesh must stay 64 (the bump does not subdivide it)"
 	return ""
+
+
+func test_bump_global_is_written_only_on_change() -> String:
+	# TerrainQuadtree calls publish every frame; the global changes only with the preset (PERFORMANCE-RULES 10).
+	var src := FileAccess.get_file_as_string("res://world/terrain_quadtree.gd")
+	if src.contains("global_shader_parameter_set(\"terrain_bump_amp\""):
+		return "TerrainQuadtree should go through TerrainBump.publish, not set the global each frame"
+	TerrainBump.publish("medium")
+	var w := TerrainBump.writes
+	for i in 10:
+		TerrainBump.publish("medium")
+	var same := TerrainBump.writes - w
+	TerrainBump.publish("max")
+	var moved := TerrainBump.writes - w
+	TerrainBump.publish(Graphics.preset)  # leave the global as the running preset has it
+	if same != 0:
+		return "the same preset wrote the global %d more times" % same
+	return "" if moved == 1 else "a preset change should write it once, got %d" % moved

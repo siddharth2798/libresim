@@ -166,3 +166,54 @@ func test_sys_starter_engages_on_battery() -> String:
 	el.free()
 	print("    cranking on battery (SOC 80 %%): bus %.1f V, starter %s" % [v, ok])
 	return "" if ok else "starter does not engage on a healthy battery (bus %.1f V)" % v
+
+
+## Paused or replaying (core/sim_hold.gd), the systems that integrate over time hold: battery charge, the fuel left in the
+## line after the selector is shut, heading-indicator drift. Before, they ran on through the pause: a minute on the pause
+## screen drained the battery and the HI drifted.
+func test_sys_hold_while_paused_or_replaying() -> String:
+	var snap: Dictionary = Props._p.duplicate(true)
+	_reset_props()
+	Props.set_v("failures/alternator", true)  # on battery: the charge falls while running
+	Props.set_v("controls/lights/landing", true)
+	Props.set_v("engine/rpm", 2300.0)
+	Props.set_v("fuel/tank_kg", [40.0, 40.0])
+	Props.set_v("systems/vacuum/suction_inhg", 5.0)
+	var el := Electrical.new()
+	el._ready()
+	var fuel := FuelSystem.new()
+	fuel._ready()
+	var f := FDM.new()
+	f.set_airborne(0.0, 0.0, 500.0, 0.3, 50.0)
+	var gy := GyroInstruments.new()
+	gy.fdm = f
+	gy._ai_spin = 1.0
+	gy._hi_spin = 1.0
+	gy._hi_drift_dir = 1.0
+	var nodes: Array[Node] = [el, fuel, gy]
+	var run := func(sec: float):
+		for i in int(sec / DT):
+			for n in nodes:
+				n._physics_process(DT)
+	run.call(1.0)
+	Props.set_v("controls/fuel/selector", 0)  # OFF: the line fuel counts down
+	run.call(1.0)
+	var err := ""
+	for mode in [[true, false], [false, true]]:
+		SimHold.publish(mode[0], mode[1])
+		var held := [el.soc, fuel._line, gy._hi_offset, Props.get_f("instruments/hi_deg")]
+		run.call(60.0)
+		var now := [el.soc, fuel._line, gy._hi_offset, Props.get_f("instruments/hi_deg")]
+		if now != held:
+			err = "%s: battery, line fuel, HI drift, HI reading %s -> %s over 60 s held" % ["paused" if mode[0] else "replaying", held, now]
+			break
+	SimHold.publish(false, false)
+	var before := [el.soc, fuel._line, gy._hi_offset]
+	run.call(10.0)
+	if err == "" and not (el.soc < before[0] and fuel._line < before[1] and gy._hi_offset != before[2]):
+		err = "running again, they must move: battery %.5f -> %.5f, line %.2f -> %.2f s, HI drift %.5f -> %.5f" % [
+			before[0], el.soc, before[1], fuel._line, before[2], gy._hi_offset]
+	for n in nodes:
+		n.free()
+	Props._p = snap
+	return err

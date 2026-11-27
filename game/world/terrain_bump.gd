@@ -8,6 +8,19 @@ const PEAK_M := 2.0
 const FULL_M := 1000.0  # full peak within this camera distance
 const FAR_M := 2000.0  # gone at this distance and beyond
 
+static var _sent_amp := NAN  # last terrain_bump_amp written (the global is process-wide, so is this)
+static var writes := 0  # globals actually written (tests)
+
+
+## Sets the terrain_bump_amp global for `quality`, only when it changed (TerrainQuadtree calls it each frame).
+static func publish(quality: String) -> void:
+	var amp := peak_m(quality)
+	if amp == _sent_amp:
+		return
+	_sent_amp = amp
+	RenderingServer.global_shader_parameter_set("terrain_bump_amp", amp)
+	writes += 1
+
 
 ## Preset peak (m): low 0, medium half, high and above full. Any other name is 0.
 static func peak_m(quality: String) -> float:

@@ -224,3 +224,25 @@ func test_radnav_page_entries_and_auto() -> String:
 	if st.mode != "AUTO" or not _near(float(st.mhz), float(s.mhz)):
 		return "AUTO gives it back: %s" % [st]
 	return ""
+
+
+## The node looks on physics ticks at TICK_HZ (core/tick_rate.gd), not on frames: the first tick tunes, and a pilot
+## retune is seen at the next look, 0.25 s (30 ticks at 120 Hz) later.
+func test_node_runs_on_physics_ticks_at_4_hz() -> String:
+	begin()
+	var s: Dictionary = stations()[0]
+	var n := node()
+	plan_of(s)
+	fly(far(s, 80.0), float(s.course_true))
+	n._physics_process(1.0 / 120.0)
+	if not _near(mhz(), float(s.mhz)):
+		return "the first physics tick should tune: NAV2 %s, want %s" % [mhz(), s.mhz]
+	Props.set_v("controls/nav2/freq_mhz", MANUAL_MHZ)
+	var seen := -1
+	for i in 60:
+		n._physics_process(1.0 / 120.0)
+		if seen < 0 and Props.get_b("avionics/ils_auto/manual"):
+			seen = i + 1
+	if seen < 25 or seen > 31:
+		return "manual tune seen after %d ticks, want the next 4 Hz look (about 30)" % seen
+	return ""

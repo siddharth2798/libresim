@@ -19,6 +19,8 @@ var _shader := preload("res://world/terminal.gdshader")
 var _timer := 0.0
 var _solids := TerminalSolids.new()
 var _occ := OccluderJobs.new()
+var _night := NAN  # night level last written to the materials
+var night_writes := 0  # material writes (tests)
 
 
 func _ready() -> void:
@@ -43,9 +45,7 @@ func _exit_tree() -> void:
 func _process(dt: float) -> void:
 	_solids.poll()
 	_occ.poll()
-	var night := NightSky.night_level(Props.get_f("environment/sun_elev_deg", 30.0))
-	for m in _mats:
-		m.set_shader_parameter("night", night)
+	set_night(NightSky.night_level(Props.get_f("environment/sun_elev_deg", 30.0)))
 	_timer -= dt
 	if _timer > 0.0:
 		return
@@ -71,6 +71,16 @@ func _process(dt: float) -> void:
 				_mats.erase(m)
 			s.node.queue_free()
 			s.node = null
+
+
+## Writes `night` to every terminal material only when it moved (PERFORMANCE-RULES 10); new materials start at it.
+func set_night(night: float) -> void:
+	if not is_nan(_night) and not SkyParams.changed(_night, night):
+		return
+	_night = night
+	for m in _mats:
+		m.set_shader_parameter("night", night)
+	night_writes += _mats.size()
 
 
 func _load(icao: String, meta: Dictionary) -> Node3D:
@@ -114,6 +124,7 @@ func _swap_materials(n: Node) -> void:
 			var m := ShaderMaterial.new()
 			m.shader = _shader
 			m.set_shader_parameter("kind", kind)
+			m.set_shader_parameter("night", 0.0 if is_nan(_night) else _night)
 			m.set_shader_parameter("base_color", (src as BaseMaterial3D).albedo_color if src is BaseMaterial3D else Color(0.8, 0.8, 0.8))
 			if name.contains("@"):  # e.g. "glass@2.4" -> 2.4 m between mullions
 				m.set_shader_parameter("mullion", float(name.get_slice("@", 1).get_slice("#", 0)))
