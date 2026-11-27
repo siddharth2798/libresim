@@ -25,6 +25,34 @@ BTN_AXIS = (-0.9604, 0.0, -0.2785)
 BTN_TRAVEL = 0.010016  # hypot(-0.00962, 0, -0.00279); inside 0.002..0.02 m
 PRESS = [[0.0, 0.0], [1.0, BTN_TRAVEL]]
 
+# EFIS control panels (left and right of the FCU): the ND mode and range selectors. `<name>.axis` points out of the
+# panel toward the pilot, so + turns the knob anticlockwise as the pilot sees it. Each mesh's `.mark` (the pointer)
+# rests near 9 o'clock (92 deg anticlockwise from 12, measured from fd_complete.ac; at rest it points at LS and 10).
+# Detents are 45 deg apart, as the panel's labels: mode LS 9 o'clock .. PLAN 3 o'clock (NAV at 12), range 10 at
+# 9 o'clock .. 320 at half past 4 (40 at 12). Checked in the cockpit with tests/debug_a320_fcu.tscn.
+EFIS_AXIS = (0.9553, 0.0, 0.2956)
+EFIS_REST = -92.0  # pointer at rest, degrees clockwise from 12 o'clock
+# controls/nd/mode values: 0 ARC, 1 ROSE NAV, 2 ROSE VOR, 3 ROSE LS, 4 PLAN (NdModes); clockwise position on the dial
+MODE_POS = {3: -90.0, 2: -45.0, 1: 0.0, 0: 45.0, 4: 90.0}
+RANGE_POS = {10: -90.0, 20: -45.0, 40: 0.0, 80: 45.0, 160: 90.0, 320: 135.0}
+
+
+def _efis_map(pos):
+    """[[drive value, knob degrees]] sorted by value; degrees about EFIS_AXIS (anticlockwise +), from the rest pose."""
+    return [[float(v), -(pos[v] - EFIS_REST)] for v in sorted(pos)]
+
+
+def _efis_rows():
+    out = []
+    for seat, sfx, y_mode, y_range in (("cpt", "", -0.2036, -0.1547), ("fo", "_fo", 0.2034, 0.1543)):
+        out.append(dict(name=f"nd_mode_{seat}", objs=[f"nd_mode{sfx}", f"nd_mode{sfx}.mark"], at=(-16.8358, y_mode, 0.3780),
+                        axis=EFIS_AXIS, kind="rotate", drive="controls/nd/mode", map=_efis_map(MODE_POS), rate=360.0,
+                        note="EFIS ND mode selector: LS, VOR, NAV (ROSE), ARC, PLAN, 45 deg apart"))
+        out.append(dict(name=f"nd_range_{seat}", objs=[f"nd_range{sfx}", f"nd_range{sfx}.mark"], at=(-16.8358, y_range, 0.3780),
+                        axis=EFIS_AXIS, kind="rotate", drive="controls/nd/range_nm", map=_efis_map(RANGE_POS), rate=360.0,
+                        note="EFIS ND range selector: 10 .. 320 NM, 36 deg apart"))
+    return out
+
 
 def rows():
     return [
@@ -55,4 +83,4 @@ def rows():
         dict(name="appr", objs=["appr"], lamps=["appr_led"], at=(-16.8347, 0.0959, 0.3500), axis=BTN_AXIS, kind="translate",
              drive="controls/fcu/appr", map=PRESS, rate=0.05,
              note="APPR pushbutton; 1 = pressed in along the FCU face"),
-    ]
+    ] + _efis_rows()

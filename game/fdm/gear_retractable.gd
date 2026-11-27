@@ -6,6 +6,8 @@ extends GearGround
 ##   nose wheel: gear[].steer {tiller_deg, pedal_deg, fade_mps: [lo, hi], pedal_fade_mps: [lo, hi]}; a wheel that turns
 ##     30 deg or more: tiller = its max_steer_deg, fading from full at 10 m/s to none at 36 m/s; pedals 6 deg, full until
 ##     about 40 kt (20.6 m/s) and gone by 130 kt (66.9 m/s). `tiller` (-1..1) is set by FdmNode (controls/tiller).
+##     `pedal_disc` (the PEDALS DISC button on the tiller, controls/pedal_disc, held): the pedals no longer steer the
+##     nose wheel (the rudder still moves; the pre-flight rudder check), the tiller still does.
 ##   brakes: gear[].brake_mu per wheel (base class), anti-skid (`antiskid`: off = hard braking at speed skids, mu x SKID_MU) and
 ##     autobrake `autobrake_mode` 0 off / 1 LO / 2 MED / 3 MAX: after touchdown (WOW, ground spoilers out, levers idle) it
 ##     waits AB_DELAY_S (4 s LO, 2 s MED, none for MAX) and then brakes for AUTOBRAKE_DECEL m/s^2 (MAX: full pressure);
@@ -23,6 +25,7 @@ var gear_cmd := 1
 var gear_state := 1  # 0 up and locked, 1 down and locked, 2 in transit
 var door_pos := 0.0  # 0..1 doors open (mid-travel)
 var tiller := 0.0
+var pedal_disc := false
 var antiskid := true
 var autobrake_mode := 0
 var autobrake_on := false
@@ -73,6 +76,8 @@ func _steer_angle(c: Dictionary) -> float:
 	var pedal_max: float = deg_to_rad(sp.get("pedal_deg", 6.0 if big else rad_to_deg(c.steer)))
 	var tiller_a := _fade(ground_speed, sp.get("fade_mps", [10.0, 36.0])) if (big or sp.has("fade_mps")) else 1.0
 	var pedal_a := _fade(ground_speed, sp.get("pedal_fade_mps", [20.58, 66.88])) if (big or sp.has("pedal_fade_mps")) else 1.0
+	if pedal_disc:
+		pedal_a = 0.0
 	return clampf(tiller_a * tiller * tiller_max + pedal_a * steer_cmd * pedal_max, -c.steer, c.steer)
 
 

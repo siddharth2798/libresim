@@ -173,6 +173,8 @@ func _process(dt: float) -> void:
 		_put("starter", _k("starter") and not Props.get_b("view/free_cam"))
 	if ctl.offers("apu_start"):
 		_put("apu_start", _k("apu_start"))
+	if ctl.offers("pedal_disc"):
+		_put("pedal_disc", _k("pedal_disc"))
 
 
 ## Write controls/<name> unless a joystick axis/button owns it (JoystickControls).

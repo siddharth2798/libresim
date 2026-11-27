@@ -12,6 +12,7 @@ extends RefCounted
 ##   controls/engine_master_<n> bool     controls/engine_mode 0 NORM / 1 CRANK / 2 IGN-START
 ##   controls/apu_master bool            controls/apu_start bool (held)
 ##   controls/rudder_trim -1..1          controls/tiller -1..1 (nosewheel, + = right)
+##   controls/pedal_disc bool (held: PEDALS DISC on the tiller, the pedals stop steering the nose wheel)
 ##   controls/reverse_<n> 0..1           (per engine n >= 1; reverse thrust selected, fraction of REV MAX)
 ##   controls/throttle, throttle_<n>     see engine_levers.gd (n = 1 mirrors the shared one)
 ##   controls/anti_ice/{wing, eng_<n>} bool (probe heat, controls/anti_ice/probe, stays on: systems/icing.gd)
@@ -57,7 +58,7 @@ const GROUPS := {
 	"engine_mode": ["engine_mode_next", "engine_mode_crank", "engine_mode_ign"],
 	"apu": ["apu_master", "apu_start"],
 	"rudder_trim": ["rudder_trim_left", "rudder_trim_right", "rudder_trim_axis"],
-	"tiller": ["tiller", "tiller_left", "tiller_right"],
+	"tiller": ["tiller", "tiller_left", "tiller_right", "pedal_disc"],
 	"doors": ["passenger_doors_all", "cargo_doors_all", "door_r1_toggle", "door_l2_toggle", "door_r2_toggle",
 		"door_cargo_fwd_toggle", "door_cargo_aft_toggle"],  # the doors after L1 (door_toggle, every aircraft)
 	"anti_ice": ["anti_ice_wing", "anti_ice_eng_1", "anti_ice_eng_2"],
@@ -139,7 +140,7 @@ const SETS := {
 const CYCLES := {
 	"magnetos_next": ["controls/magnetos", 4, 3], "fuel_selector": ["controls/fuel/selector", 4, 3],
 	"autobrake_next": ["controls/autobrake", 4, 0], "engine_mode_next": ["controls/engine_mode", 3, 0],
-	"gear_toggle": ["controls/gear", 2, 1], "nd_mode_next": ["controls/nd/mode", 2, 0], "nd_filter_next": ["controls/efis/nd_filter", 6, 0],
+	"gear_toggle": ["controls/gear", 2, 1], "nd_mode_next": ["controls/nd/mode", 5, 0], "nd_filter_next": ["controls/efis/nd_filter", 6, 0],
 }
 ## ND range steps (nm) for nd_range_up / nd_range_down (ControlSteps) and the EFIS range knob.
 const ND_RANGES := [10.0, 20.0, 40.0, 80.0, 160.0, 320.0]
@@ -189,7 +190,7 @@ const RAMP_SEEDS := {"controls/door_open": false, "systems/door_pos": 0.0, "cont
 const SEEDS := {
 	"speedbrake": {"controls/speedbrake": 0.0}, "gear": {"controls/gear": 1}, "autobrake": {"controls/autobrake": 0},
 	"engine_mode": {"controls/engine_mode": 0}, "apu": {"controls/apu_master": false, "controls/apu_start": false},
-	"rudder_trim": {"controls/rudder_trim": 0.0}, "tiller": {"controls/tiller": 0.0},
+	"rudder_trim": {"controls/rudder_trim": 0.0}, "tiller": {"controls/tiller": 0.0, "controls/pedal_disc": false},
 	"anti_ice": {"controls/anti_ice/wing": false, "controls/anti_ice/eng_1": false, "controls/anti_ice/eng_2": false, "controls/anti_ice/probe": true},
 	"fcu": {"controls/fcu/ap1": false, "controls/fcu/ap2": false, "controls/fcu/athr": false, "controls/fcu/loc": false,
 		"controls/fcu/appr": false, "controls/fcu/spd_kt": 250.0, "controls/fcu/hdg_deg": 0.0,
@@ -205,7 +206,7 @@ const SEEDS := {
 	"signs": {"controls/signs/seatbelts": false, "controls/signs/no_smoking": false},
 }
 ## Held buttons (a joystick button is down or not; no press edge).
-const HELD_BUTTONS := ["reverse", "apu_start"]
+const HELD_BUTTONS := ["reverse", "apu_start", "pedal_disc"]
 
 static var _owner := {}
 

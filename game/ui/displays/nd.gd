@@ -1,22 +1,28 @@
 class_name ND
 extends Display
-## Navigation display: ARC or ROSE view, heading up, with the compass scale, heading / track /
-## selected-heading marks, range rings, weather radar (forward sweep; dry cloud stays black), track line, route
-## (magenta) and nearby airports and VORs, ground speed / TAS, wind and the active waypoint.
+## Navigation display in the five EFIS modes (NdModes: ARC, ROSE NAV, ROSE VOR, ROSE LS, PLAN). ARC and ROSE are
+## heading up with the compass scale, heading / track / selected-heading marks, range rings, weather radar (forward
+## sweep; dry cloud stays black), route (magenta) and nearby airports and VORs; ROSE VOR / LS swap the map for the
+## radio's course pointer and deviation (NdModes.draw_radio); PLAN is north up, centred on the active waypoint, map
+## only, the aircraft drawn where it is. Header: ground speed / TAS, wind, the active waypoint.
 ## Reads Props only: instruments/adirs/{heading_deg,
 ## track_deg}, instruments/pfd/tas_kt, fdm/{groundspeed_mps, position_enu}, controls/fcu/hdg_deg,
 ## avionics/gps/{valid, ident, dist_nm, ete}, instruments/nd/{route, near, wind_dir_deg, wind_kt}
-## (instruments/nd_feed.gd). Writes controls/nd/mode (0 ARC, 1 ROSE) and controls/nd/range_nm
-## when the mode / range labels (top left / right under the header) are clicked.
+## (instruments/nd_feed.gd). Writes controls/nd/mode (NdModes) and controls/nd/range_nm
+## when the mode / range labels (top left / right under the header) are clicked or wheeled.
 
 const RANGES := [10, 20, 40, 80, 160, 320]
 const NM := 1852.0
 const TRACK_HOLD_KT := 2.0  # below this ground speed the track is the heading: a parked aircraft's velocity is noise
 var _c := Vector2.ZERO
 var _r := 0.0
-var _rose := false
+var _rose := false  # a full disc (ROSE modes and PLAN); false = ARC
+var _mode := NdModes.ARC
 var _range_m := 40.0 * NM
 var _hdg := 0.0
+var _rot := 0.0  # map rotation, rad: the heading, 0 in PLAN (north up)
+var _ref := Vector2.ZERO  # world point (ENU m) at the display centre: the aircraft, in PLAN the active waypoint
+var _ac := Vector2.ZERO  # the aircraft on the display
 var _wx_key := ""
 var _wx: Array = []
 var _wx_on := false
@@ -26,32 +32,56 @@ func _init() -> void:
 	design = Vector2(600, 560)
 
 
-func _press(id: String, _b: int, _p: Vector2) -> void:
+func _press(id: String, b: int, _p: Vector2) -> void:
 	if id == "mode":
-		Props.set_v("controls/nd/mode", 1 - int(Props.get_f("controls/nd/mode")))
+		Props.set_v("controls/nd/mode", NdModes.step(NdModes.mode_of(Props.get_f("controls/nd/mode")), -1 if b == MOUSE_BUTTON_RIGHT else 1))
 	elif id == "range":
 		var i := RANGES.find(int(Props.get_f("controls/nd/range_nm", 40.0)))
 		Props.set_v("controls/nd/range_nm", float(RANGES[(i + 1) % RANGES.size()]))
 
 
 func _wheel(id: String, dir: float) -> void:
-	if id == "range":
+	if id == "mode":
+		var m := NdModes.mode_of(Props.get_f("controls/nd/mode"))
+		var i := clampi(NdModes.KNOB_ORDER.find(m) + int(dir), 0, NdModes.KNOB_ORDER.size() - 1)
+		Props.set_v("controls/nd/mode", NdModes.KNOB_ORDER[i])
+	elif id == "range":
 		var i := maxi(RANGES.find(int(Props.get_f("controls/nd/range_nm", 40.0))), 0)
 		Props.set_v("controls/nd/range_nm", float(RANGES[clampi(i + int(dir), 0, RANGES.size() - 1)]))
 
 
 func _paint() -> void:
-	_rose = Props.get_f("controls/nd/mode") >= 1.0
+	_mode = NdModes.mode_of(Props.get_f("controls/nd/mode"))
+	_rose = _mode != NdModes.ARC
 	_range_m = Props.get_f("controls/nd/range_nm", 40.0) * NM
 	_hdg = Props.get_f("instruments/adirs/heading_deg")
 	_c = Vector2(300, 318) if _rose else Vector2(300, 490)
 	_r = 200.0 if _rose else 380.0
-	_weather()
-	_rings()
-	_map()
-	_compass()
-	_ownship()
+	var p3: Vector3 = Props.get_v("fdm/position_enu", Vector3.ZERO)
+	var me := Vector2(p3.x, p3.y)
+	_rot = 0.0 if _mode == NdModes.PLAN else deg_to_rad(_hdg)
+	_ref = plan_centre(me, Array(Props.get_v("instruments/nd/route", []))) if _mode == NdModes.PLAN else me
+	_ac = DispMath.nd_project(me - _ref, _rot, _range_m, _c, _r)
+	if _mode == NdModes.PLAN:
+		_rings()
+		NdModes.draw_plan_rose(self, _c, _r)
+		_map()
+		if _vis(_ac):
+			NdModes.draw_plan_aircraft(self, _ac, _hdg)
+	else:
+		_weather()
+		_rings()
+		if _mode != NdModes.VOR and _mode != NdModes.LS:
+			_map()
+		_compass()
+		NdModes.draw_radio(self, _mode, _c, _r, _hdg)
+		_ownship()
 	_header()
+
+
+## PLAN centre: the active waypoint (the first route point), else the aircraft. Pure.
+static func plan_centre(me: Vector2, route: Array) -> Vector2:
+	return Vector2(route[0].x, route[0].y) if not route.is_empty() else me
 
 
 ## The track to draw: the measured one when moving, the heading when parked (the creep of a parked aircraft on
@@ -144,9 +174,8 @@ func _compass() -> void:
 func _map() -> void:
 	if not Props.has("fdm/position_enu"):
 		return
-	var p3: Vector3 = Props.get_v("fdm/position_enu", Vector3.ZERO)
-	var me := Vector2(p3.x, p3.y)
-	var h := deg_to_rad(_hdg)
+	var me := _ref
+	var h := _rot
 	var on_route := []
 	for w in Array(Props.get_v("instruments/nd/route", [])):
 		on_route.append(w.id)
@@ -169,7 +198,7 @@ func _map() -> void:
 					else PackedVector2Array([s + Vector2(0, -6), s + Vector2(2, -2), s + Vector2(6, 0), s + Vector2(2, 2),
 						s + Vector2(0, 6), s + Vector2(-2, 2), s + Vector2(-6, 0), s + Vector2(-2, -2)]), MAGENTA)
 				txt(s + Vector2(8, 0), str(n.id), 14, MAGENTA)
-	var prev := _c
+	var prev := _ac
 	var first := true
 	for w in Array(Props.get_v("instruments/nd/route", [])):
 		var s := DispMath.nd_project(Vector2(w.x, w.y) - me, h, _range_m, _c, _r)
@@ -213,7 +242,7 @@ func _header() -> void:
 	fill(Rect2(262, 2, 76, 28), Color.BLACK)
 	frame(Rect2(262, 2, 76, 28), GREY, 1.5)
 	txt(Vector2(300, 16), "%03d" % posmod(roundi(_hdg), 360), 22, GREEN, 0)
-	txt(Vector2(8, 50), "ROSE NAV" if _rose else "ARC", 15, CYAN)
+	txt(Vector2(8, 50), NdModes.NAMES[_mode], 15, CYAN)
 	if _wx_on:
 		txt(Vector2(8, 72), "WX", 14, GREEN)
 	hot(Rect2(4, 38, 120, 24), "mode")

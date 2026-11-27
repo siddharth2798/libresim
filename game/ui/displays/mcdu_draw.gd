@@ -6,7 +6,7 @@ extends RefCounted
 static func paint(d: MCDU) -> void:
 	var p := d.page()
 	if p == "FPLN":
-		_fpln(d)
+		McduFpln.paint(d)
 	elif p == "DIR":
 		_dir(d)
 	elif p == "PROG":
@@ -18,7 +18,7 @@ static func paint(d: MCDU) -> void:
 			_field(d, f)
 	var s := str(Props.get_v("mcdu/scratch", ""))
 	var bad := s.begins_with("FORMAT") or s == FlightPlan.NOT_IN_DB
-	d.txt(Vector2(16, 318), s if s != "" else "[    ]", 20, MCDU.AMBER if bad else MCDU.WHITE)
+	d.txt_fit(Vector2(16, 318), s if s != "" else "[    ]", 20, 388.0, MCDU.AMBER if bad else MCDU.WHITE)
 	for i in 6:
 		d.hot(Rect2(8, 44 + i * 44, 56, 42), "l%d" % (i + 1))
 		d.hot(Rect2(356, 44 + i * 44, 56, 42), "r%d" % (i + 1))
@@ -32,21 +32,18 @@ static func _field(d: MCDU, f: Array) -> void:
 	var al := 1 if right else -1
 	d.txt(Vector2(x, y), f[2], 12, MCDU.WHITE, al)
 	var v := MCDU._shown(f)
-	d.txt(Vector2(x, y + 20), (v + f[5]) if v != "" else ("[ ]" if f[4] == "text" else "[  ]"), 20, MCDU.CYAN if v != "" else Color(0.4, 0.6, 0.7), al)
+	if f[3] == "mcdu/init/from_to":
+		v = McduFpln.from_to_shown(v)
+	d.txt_fit(Vector2(x, y + 20), (v + f[5]) if v != "" else ("[ ]" if f[4] == "text" else "[  ]"), 20, field_width(MCDU.FIELDS[d.page()], f),
+		MCDU.CYAN if v != "" else Color(0.4, 0.6, 0.7), al)
 
 
-static func _fpln(d: MCDU) -> void:
-	var wps := MCDU.route()
-	var legs: Array = Props.get_v("avionics/fms/legs", [])
-	for i in 6:
-		var y := 50.0 + i * 44.0
-		if i < wps.size():
-			d.txt(Vector2(16, y + 20), str(wps[i]), 20, MCDU.MAGENTA if i == 0 else MCDU.GREEN)
-			if i < legs.size():
-				var lg: Dictionary = legs[i]
-				d.txt(Vector2(400, y + 20), "%03d %dNM" % [roundi(lg.get("course", 0)), roundi(lg.get("dist_nm", 0))], 16, MCDU.GREEN, 1)
-		elif i == wps.size():
-			d.txt(Vector2(16, y + 20), "[    ]", 20, Color(0.4, 0.6, 0.7))
+## Width a field's value may take: the whole line, or half of it when the other side has a field on the same row.
+static func field_width(fields: Array, f: Array) -> float:
+	for g in fields:
+		if g[1] == f[1] and g[0] != f[0]:
+			return 188.0
+	return 384.0
 
 
 static func _dir(d: MCDU) -> void:
