@@ -68,6 +68,7 @@ Limits:
 - Raymarch at half (High) or quarter (Max) resolution into a buffer, reproject the previous frame and blend. This removes the grain and makes 96–128 steps affordable. Upsample with depth so edges against terrain and the aircraft stay sharp.
 - `CompositorEffect` (compute) or a SubViewport pass: decide in a 1-day spike.
 - Risk: ghosting on fast turns or view switches; reset the reprojection on camera cuts.
+- Done so far: half resolution on every preset up to Ultra and quarter resolution on Max (`world/cloud_upscale.gd`, `cloud_temporal.gd`), with the depth copy as a CompositorEffect (`cloud_depth_copy.gd`). On Mobile (Low, Medium) the copy runs after the transparent pass. Godot 4.7.2's Mobile renderer rejects POST_OPAQUE, and until that fix the copy never ran and Low and Medium fell back to the full-resolution march. The march and history viewports are float (`use_hdr_2d`); 8-bit targets clipped lit cloud above 1.0 and flattened the deck. Compatibility stays full resolution (no CompositorEffect). Mobile features must be checked on the running renderer, not taken from the Godot docs.
 
 ### G8. Trees and buildings up close (1–2 weeks, medium-high risk)
 - Trees (done, details in USAGE "Trees"; tests `tests/test_tree_look.gd`, `tests/test_ground_cover.gd`; shots `review_screenshots/trees/before|after`):

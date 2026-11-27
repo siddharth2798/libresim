@@ -164,6 +164,9 @@ func _make_vp() -> SubViewport:
 	vp.screen_space_aa = Viewport.SCREEN_SPACE_AA_DISABLED
 	vp.use_taa = false
 	vp.scaling_3d_scale = 1.0
+	# Float target: lit cloud is brighter than 1.0 before the main view's tonemap. An 8-bit target clipped it and the
+	# half-res deck turned flat bright grey (no dark bases, no gaps) next to the full-res march.
+	vp.use_hdr_2d = true
 	vp.positional_shadow_atlas_size = 0
 	vp.render_target_update_mode = SubViewport.UPDATE_DISABLED
 	vp.size = Vector2i(2, 2)

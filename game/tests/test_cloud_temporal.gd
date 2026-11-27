@@ -29,6 +29,31 @@ func test_scale_follows_the_preset_steps() -> String:
 	return ""
 
 
+func test_depth_copy_uses_a_callback_the_renderer_runs() -> String:
+	# Godot 4.7.2's Mobile renderer rejects POST_OPAQUE: the copy never ran and Low and Medium marched every pixel.
+	if CloudDepthCopy.callback_for("mobile") != CompositorEffect.EFFECT_CALLBACK_TYPE_POST_TRANSPARENT:
+		return "Mobile must copy depth after the transparent pass (it rejects POST_OPAQUE)"
+	if CloudDepthCopy.callback_for("forward_plus") != CompositorEffect.EFFECT_CALLBACK_TYPE_POST_OPAQUE:
+		return "Forward+ copies depth right after the opaque pass"
+	var fx := CloudDepthCopy.new()
+	var want := CloudDepthCopy.callback_for(RenderingServer.get_current_rendering_method())
+	if fx.effect_callback_type != want:
+		return "the effect should take the callback of the running renderer"
+	if not fx.access_resolved_depth:
+		return "the copy reads resolved depth"
+	return ""
+
+
+func test_march_and_history_keep_hdr() -> String:
+	# Lit cloud is brighter than 1.0 before the main tonemap; an 8-bit target clipped it and the half-res deck
+	# turned flat grey (no dark bases, no gaps) next to the full-res march.
+	var up := CloudUpscale.new()
+	var vp := up._make_vp()
+	var ok := vp.use_hdr_2d
+	up.free()
+	return "" if ok else "the cloud march and history viewports must be float (use_hdr_2d)"
+
+
 func test_history_resets_on_a_jump_or_a_turn() -> String:
 	if CloudTemporal.history_reset(50.0, 0.0) or CloudTemporal.history_reset(0.0, deg_to_rad(20.0)):
 		return "50 m and 20 degrees are the limits, not past them"

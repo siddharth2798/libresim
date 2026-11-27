@@ -3,8 +3,10 @@ extends RefCounted
 ## Temporal cloud upscaling (GRAPHICS-PLAN G7). Pure functions: no nodes, no RenderingDevice.
 ## Step bands are the preset table in graphics_settings.gd (low 10, medium 16, high 24, ultra 40, max 64):
 ## every preset up to ultra (1..63 steps) marches at half resolution, max (64+) at quarter. Low and Medium marched
-## every pixel until study F16: the weakest presets paid the most per pixel. The Compatibility (OpenGL) renderer
-## has no CompositorEffect for the depth copy, so it stays full resolution (scale_for).
+## every pixel until study F16: the weakest presets paid the most per pixel. The depth copy (CloudDepthCopy) runs
+## after the opaque pass on Forward+ and after the transparent pass on Mobile, which rejects POST_OPAQUE
+## (CloudDepthCopy.callback_for). The Compatibility (OpenGL) renderer has no CompositorEffect, so it stays full
+## resolution (scale_for).
 ## History is dropped when the camera jumps more than 50 m or the view turns more than 20 degrees.
 
 const HALF_STEPS := 1
@@ -19,7 +21,7 @@ const WEIGHT_QUARTER := 0.10
 const MARCH_JITTER := false
 
 
-## scale_for_steps on renderers with CompositorEffect (Forward+, Mobile); 1 on Compatibility.
+## scale_for_steps on renderers with a depth copy (Forward+, Mobile); 1 on Compatibility.
 static func scale_for(steps: int, method := RenderingServer.get_current_rendering_method()) -> int:
 	return 1 if method == "gl_compatibility" else scale_for_steps(steps)
 
