@@ -175,7 +175,7 @@ func _process(dt: float) -> void:
 		return
 	var lv := levels(Props.get_f("environment/sun_elev_deg", 30.0), Props.get_f("environment/visibility_m", Props.get_f("weather/visibility_m", 20000.0)))
 	apply_levels(lv)
-	var w :=FloatingOrigin.to_world(cam.global_position)
+	var w := FloatingOrigin.to_world(cam.global_position)
 	var c := Vector2(w.x, w.y)
 	_timer -= dt
 	if _timer <= 0.0:
