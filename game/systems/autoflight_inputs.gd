@@ -43,6 +43,9 @@ var takeover := false  # from the control law: sidestick moved beyond the thresh
 var powered := true
 var ap_failed := false
 var fms_phase := ""  # avionics/fms/phase: CLB, CRZ, DES, APPR (avionics/vertical_profile.gd) or "" (no managed profile)
+var cstr_ceil_m := 0.0  # avionics/fms/cstr_ceiling_ft: a SID at-or-below limit ahead (managed CLB levels there); 0 = none
+var cstr_floor_m := 0.0  # avionics/fms/cstr_floor_ft: a STAR at-or-above limit ahead (managed DES levels there); 0 = none
+var cstr_spd_kt := 0.0  # avionics/fms/spd_cstr_kt: the speed limit of the SID / STAR (managed speed stays below it); 0 = none
 var ils := {}  # {course, loc: Vector2, gs_pos: Vector2, gs_h, gs_rad, gs_valid} or empty
 var gps := {}  # {brg (true rad), dist, xtk} or empty
 var f := {  # FCU, SI. Flags are the pilot's requests (the buttons).
@@ -81,6 +84,9 @@ func read(delta: float, db: NavDatabase) -> void:
 	powered = Props.get_b("systems/electrical/avionics_powered", true)
 	ap_failed = Props.get_b("failures/ap")
 	fms_phase = str(Props.get_v("avionics/fms/phase", ""))
+	cstr_ceil_m = Units.ft_to_m(Props.get_f("avionics/fms/cstr_ceiling_ft"))
+	cstr_floor_m = Units.ft_to_m(Props.get_f("avionics/fms/cstr_floor_ft"))
+	cstr_spd_kt = Props.get_f("avionics/fms/spd_cstr_kt")
 	_levers()
 	_nav(db)
 	_fcu()

@@ -34,7 +34,10 @@ static func file(parts: Array, known: Callable) -> Dictionary:
 
 ## Departure fix after the origin, arrival fix before the destination. Empty runway strings
 ## insert nothing. A direct-to (no origin) is unchanged. Runways are not checked here.
-static func with_procedures(filed: Dictionary, dep_rwy: String, arr_rwy: String) -> Dictionary:
+## A published SID (`sid`, for dep_rwy) replaces the departure fix; a STAR (`star`, for arr_rwy) comes before the arrival fix
+## (ProcedureRoute.insert; `airports` for its vectors point). Adds sid, star (the names used, "" = none) and cstr.
+static func with_procedures(filed: Dictionary, dep_rwy: String, arr_rwy: String, sid := "", star := "",
+		airports: Array = []) -> Dictionary:
 	if not filed.get("ok", false) or str(filed.get("origin", "")) == "":
 		return filed
 	var wps: Array = [str(filed.target)]
@@ -42,11 +45,15 @@ static func with_procedures(filed: Dictionary, dep_rwy: String, arr_rwy: String)
 		wps.append(str(id))
 	var dep := dep_rwy.strip_edges()
 	var arr := arr_rwy.strip_edges()
-	if dep != "":
+	var dest := str(wps.back())
+	var pr := ProcedureRoute.insert(wps, str(filed.origin), dep, sid, dest, arr, star, airports)
+	wps = pr.ids
+	if dep != "" and pr.sid == "":
 		wps.push_front(RunwayWaypoints.ident(str(filed.origin), dep, "D"))
 	if arr != "" and not wps.is_empty():
-		wps.insert(wps.size() - 1, RunwayWaypoints.ident(str(wps.back()), arr, "F"))
-	return {"ok": true, "error": "", "origin": filed.origin, "target": str(wps[0]), "next": wps.slice(1)}
+		wps.insert(wps.size() - 1, RunwayWaypoints.ident(dest, arr, "F"))
+	return {"ok": true, "error": "", "origin": filed.origin, "target": str(wps[0]), "next": wps.slice(1), "sid": pr.sid,
+		"star": pr.star, "cstr": pr.cstr}
 
 
 ## Direct-to. An ident already in the plan is skipped to (waypoints before it are dropped).

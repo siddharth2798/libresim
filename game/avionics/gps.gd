@@ -3,7 +3,8 @@ extends Node
 ## Simple GPS (Garmin 196 class): direct-to an airport or navaid by ident, plus a modest
 ## multi-leg route (RoutePlan): the first leg is flown, and the GPS sequences to the next one
 ## when the aircraft passes within 1 nm of the active waypoint. An arrival fix approached from behind gets a base fix first
-## (_base_turn).
+## (_base_turn). SID / STAR constraints (controls/gps/constraints) go through FmsConstraints (vnav): the managed climb and
+## descent limits, the speed limit, the constraint log and the met / missed state.
 ## In: Props "controls/gps/target" (active ident), "controls/gps/route_next" (idents after it).
 ## Out: "avionics/gps/{ident, brg_mag, dist_nm, ete, xtk_nm, valid}".
 ## Magnetic = true + local variation (~ -0.3 deg near Mumbai/Pune).
@@ -22,6 +23,8 @@ var _last_rev := 0  # route/rev: a route edited in flight (RouteSetup.update_liv
 var _tod_key := ""  # cruise|destination once a descent has been commanded
 var _based := ""  # the arrival fix a base fix was decided for (_base_turn)
 var _checked := ""  # the active waypoint _base_turn last looked at
+var vnav := FmsConstraints.new()  # SID / STAR constraints: limits for the managed climb and descent, met / missed
+var _cstr_last := {}
 
 
 func target_position(ident: String) -> Variant:
@@ -40,7 +43,10 @@ func _sync(p: Vector2) -> void:
 		_last_target = ident
 		_last_next = next.duplicate()
 		_last_rev = rev
+	var was := str(plan.active().get("ident", ""))
 	if plan.update(p):
+		vnav.passed(was, Props.get_v(RouteSetup.CSTR_PROP, {}), Units.m_to_ft(AfInputs.indicated_alt_m()),
+			Units.mps_to_kt(Props.get_f("fdm/cas_mps")), float(Props.get_v("mcdu/init/cruise_fl", 0.0)) * 100.0)
 		_last_target = plan.active().ident
 		_last_next = plan.next_idents()
 		Props.set_v("controls/gps/target", _last_target)
@@ -91,6 +97,9 @@ func update() -> void:
 		Props.set_v("avionics/gps/ident", "")
 		Props.set_v("avionics/fms/legs", [])
 		_profile(p, p3.z, false)
+		vnav.update([], {}, 0.0, 0.0, 0.0, "")
+		if plan.is_empty():
+			vnav.reset()
 		return
 	var tp: Vector2 = plan.active().pos
 	var d: Vector2 = tp - p
@@ -106,7 +115,15 @@ func update() -> void:
 	Props.set_v("avionics/gps/xtk_nm", ((p - from).cross(leg)) / NM)  # + = right of the leg
 	Props.set_v("avionics/gps/valid", true)
 	_legs(p)
-	_profile(p, p3.z, true)
+	var ahead := plan.legs(p)
+	var cstr: Dictionary = Props.get_v(RouteSetup.CSTR_PROP, {})
+	_profile(p, p3.z, true, FmsConstraints.caps(ahead, cstr) if not cstr.is_empty() else [])
+	var phase := str(Props.get_v("avionics/fms/phase", ""))
+	if cstr != _cstr_last:  # a new route (a new flight, a refiled plan): a new log
+		_cstr_last = cstr.duplicate(true)
+		vnav.reset()
+	vnav.update(ahead, cstr, Units.m_to_ft(AfInputs.indicated_alt_m()),
+		Units.mps_to_kt(Props.get_f("fdm/cas_mps")), float(Props.get_v("mcdu/init/cruise_fl", 0.0)) * 100.0, phase)
 
 
 ## Course and distance of each leg, from the aircraft to the active waypoint and then waypoint to waypoint.
@@ -122,7 +139,7 @@ func _legs(p: Vector2) -> void:
 
 
 ## Managed vertical: publish the phase, and at top of descent set the FCU altitude once.
-func _profile(p: Vector2, alt_m: float, route_ok: bool) -> void:
+func _profile(p: Vector2, alt_m: float, route_ok: bool, caps: Array = []) -> void:
 	if not route_ok or not Props.get_b("controls/fcu/vs_managed") or Props.get_b("fdm/wow"):
 		_tod_key = ""
 		Props.set_v("avionics/fms/phase", "")
@@ -142,7 +159,7 @@ func _profile(p: Vector2, alt_m: float, route_ok: bool) -> void:
 		return
 	var dist_nm := plan.remaining_m(p) / NM
 	var d := VerticalProfile.decide(cruise, Units.m_to_ft(alt_m), dist_nm, Units.m_to_ft(float(ap.get("elev_m", 0.0))),
-		str(Props.get_v("avionics/fms/phase", "")))
+		str(Props.get_v("avionics/fms/phase", "")), caps)
 	Props.set_v("avionics/fms/phase", d.phase)
 	Props.set_v("avionics/fms/tod_nm", d.tod_nm)
 	var key := "%d|%s" % [int(cruise), ident]

@@ -1,7 +1,7 @@
 class_name RouteSetup
 extends RefCounted
 ## The planned route of the start screen (Session.setup.route, see RouteBuilder) going into the flight.
-##   route = {dest, arr_rwy, wps: [{id, kind, x, y, alt_ft}], cruise_ft, kind, air_at}
+##   route = {dest, arr_rwy, wps: [{id, kind, x, y, alt_ft}], cruise_ft, kind, air_at, sid, star (published names, "" = none)}
 ## clear() (Session.apply_to_props) drops the last flight's route. apply() (world/flight.gd _reset, every start and
 ## restart, only when there is a route) registers the waypoints (NavDatabase.route_fixes) and sets:
 ##   controls/gps/target + controls/gps/route_next   the waypoints then the destination, as INIT FROM/TO files them:
@@ -16,7 +16,9 @@ extends RefCounted
 
 const DEST_PROP := "route/dest"
 const REV_PROP := "route/rev"  # +1 at every live change: the GPS and maps re-read waypoint positions (a moved WPTnn keeps its name)
-const MCDU_KEYS := ["mcdu/init/from_to", "mcdu/init/dep_rwy", "mcdu/init/arr_rwy", "controls/fms/origin"]
+const CSTR_PROP := "controls/gps/constraints"  # ident -> {lo, hi, spd, proc} of the SID / STAR fixes (ProcedureRoute)
+const MCDU_KEYS := ["mcdu/init/from_to", "mcdu/init/dep_rwy", "mcdu/init/arr_rwy", "mcdu/init/sid", "mcdu/init/star",
+	"controls/fms/origin"]
 const DEFAULT_CRUISE_FT := 4500.0
 
 
@@ -38,7 +40,9 @@ static func repair(v: Variant) -> Dictionary:
 	return {"dest": str(r.get("dest", "")).strip_edges().to_upper() if r.get("dest") is String else "",
 		"arr_rwy": str(r.get("arr_rwy", "")) if r.get("arr_rwy") is String else "", "wps": wps, "cruise_ft": cruise,
 		"kind": str(r.get("kind", "manual")) if r.get("kind") is String else "manual",
-		"air_at": int(r.air_at) if _num(r.get("air_at")) else -1}
+		"air_at": int(r.air_at) if _num(r.get("air_at")) else -1,
+		"sid": str(r.get("sid", "")).to_upper() if r.get("sid") is String else "",
+		"star": str(r.get("star", "")).to_upper() if r.get("star") is String else ""}
 
 
 static func _num(v: Variant) -> bool:
@@ -81,22 +85,30 @@ static func leg_alts(route: Dictionary) -> Array:
 	return out
 
 
-## {target, next, dep_rwy, arr_rwy} for the GPS. `known` = Callable(ident) -> bool (synthetic runway fixes are used only
-## when it knows them).
-static func gps_plan(setup: Dictionary, known: Callable) -> Dictionary:
+## {target, next, dep_rwy, arr_rwy, sid, star, cstr} for the GPS. `known` = Callable(ident) -> bool (synthetic runway fixes are
+## used only when it knows them). A SID (route.sid, flown from a runway start on its runway) replaces the departure fix; a STAR
+## (route.star, for arr_rwy) comes before the arrival fix (ProcedureRoute.insert); cstr = their constraints.
+static func gps_plan(setup: Dictionary, known: Callable, airports: Array = []) -> Dictionary:
 	var r := repair(setup.get("route", {}))
 	var ids := idents(r) if not r.is_empty() else []
 	if ids.is_empty():
-		return {"target": "", "next": [], "dep_rwy": "", "arr_rwy": ""}
+		return {"target": "", "next": [], "dep_rwy": "", "arr_rwy": "", "sid": "", "star": "", "cstr": {}}
 	var leg := air_leg(setup)
 	if leg >= 0:
 		ids = ids.slice(leg)
 	var dep_rwy := ""
 	var arr_rwy := ""
 	var dep := str(setup.get("airport", ""))
-	if leg < 0 and str(setup.get("start", "")) == "runway" and str(setup.get("runway", "")) != "":
+	var on_rwy := leg < 0 and str(setup.get("start", "")) == "runway" and str(setup.get("runway", "")) != ""
+	var dest_last := str(r.dest) != "" and str(ids.back()) == str(r.dest)
+	var pr := ProcedureRoute.insert(ids, dep, str(setup.get("runway", "")) if on_rwy else "", str(r.sid),
+		str(r.dest) if dest_last else "", str(r.arr_rwy), str(r.star), airports)
+	ids = pr.ids
+	if on_rwy:
 		var d := RunwayWaypoints.ident(dep, str(setup.runway), "D")
-		if known.call(d):
+		if pr.sid != "":
+			dep_rwy = str(setup.runway)
+		elif known.call(d):
 			ids.push_front(d)
 			dep_rwy = str(setup.runway)
 	if str(r.dest) != "" and str(r.arr_rwy) != "":
@@ -104,13 +116,15 @@ static func gps_plan(setup: Dictionary, known: Callable) -> Dictionary:
 		if known.call(f):
 			ids.insert(ids.size() - 1, f)
 			arr_rwy = str(r.arr_rwy)
-	return {"target": str(ids[0]), "next": ids.slice(1), "dep_rwy": dep_rwy, "arr_rwy": arr_rwy}
+	return {"target": str(ids[0]), "next": ids.slice(1), "dep_rwy": dep_rwy, "arr_rwy": arr_rwy, "sid": pr.sid,
+		"star": pr.star, "cstr": pr.cstr}
 
 
 ## Drop the last flight's route: GPS target and route, route waypoints, destination, MCDU INIT route fields.
 static func clear() -> void:
 	Props.set_v("controls/gps/target", "")
 	Props.set_v("controls/gps/route_next", [])
+	Props.set_v(CSTR_PROP, {})
 	Props.set_v(DEST_PROP, "")
 	NavDatabase.route_fixes.clear()
 	for k in MCDU_KEYS:  # CRZ FL stays: Props has no "unset" and 0 would show as FL 0
@@ -125,9 +139,10 @@ static func apply(setup: Dictionary, db: NavDatabase, airliner: bool) -> void:
 		return
 	clear()
 	register(r)
-	var plan := gps_plan(setup, func(id: String) -> bool: return db != null and db.position_of(id) != null)
+	var plan := gps_plan(setup, func(id: String) -> bool: return db != null and db.position_of(id) != null, _airports(db))
 	Props.set_v("controls/gps/target", plan.target)
 	Props.set_v("controls/gps/route_next", plan.next)
+	Props.set_v(CSTR_PROP, plan.cstr)
 	Props.set_v(DEST_PROP, str(r.dest))
 	if airliner:
 		_mcdu(setup, r, plan)
@@ -146,8 +161,9 @@ static func restore(setup: Dictionary, db: NavDatabase, airliner: bool) -> void:
 	if not active(r):
 		return
 	register(r)
-	if airliner:
-		_mcdu(setup, r, gps_plan(setup, func(id: String) -> bool: return db != null and db.position_of(id) != null))
+	var plan := gps_plan(setup, func(id: String) -> bool: return db != null and db.position_of(id) != null, _airports(db))
+	if airliner:  # the GPS route and its constraints are in the saved props; this also puts the vectors point back
+		_mcdu(setup, r, plan)
 
 
 ## A route changed during the flight (setup.route already holds it). Unlike apply(), only the route moves: no fuel,
@@ -167,7 +183,17 @@ static func update_live(setup: Dictionary, db: NavDatabase, airliner: bool, from
 		ids.append(str(wps[i].id))
 	var dest := str(r.get("dest", ""))
 	var arr := ""
+	var cstr := {}
+	var old: Dictionary = Props.get_v(CSTR_PROP, {})
+	for id in lead:  # SID fixes still ahead keep their constraints
+		if old.has(id):
+			cstr[id] = old[id]
 	if dest != "":
+		ids.append(dest)
+		var pr := ProcedureRoute.insert(ids, "", "", "", dest, str(r.arr_rwy), str(r.star), _airports(db))
+		ids = pr.ids
+		cstr.merge(pr.cstr, true)
+		ids.pop_back()
 		var f := RunwayWaypoints.ident(dest, str(r.arr_rwy), "F")
 		if str(r.arr_rwy) != "" and db != null and db.position_of(f) != null:
 			ids.append(f)
@@ -175,6 +201,7 @@ static func update_live(setup: Dictionary, db: NavDatabase, airliner: bool, from
 		ids.append(dest)
 	Props.set_v("controls/gps/target", str(ids[0]) if not ids.is_empty() else "")
 	Props.set_v("controls/gps/route_next", ids.slice(1))
+	Props.set_v(CSTR_PROP, cstr)
 	Props.set_v(DEST_PROP, dest)
 	Props.set_v(REV_PROP, int(Props.get_v(REV_PROP, 0)) + 1)
 	if airliner:  # DEP RWY stays (the aircraft is airborne); the FCU altitude and managed modes are the pilot's
@@ -182,6 +209,10 @@ static func update_live(setup: Dictionary, db: NavDatabase, airliner: bool, from
 		Props.set_v("mcdu/init/arr_rwy", arr)
 		if active(r):
 			Props.set_v("mcdu/init/cruise_fl", cruise_fl(r))
+
+
+static func _airports(db: NavDatabase) -> Array:
+	return db.airports if db != null else []
 
 
 ## The NavDatabase of a flight scene (null when it has none).
@@ -202,6 +233,8 @@ static func _mcdu(setup: Dictionary, r: Dictionary, plan: Dictionary) -> void:
 	Props.set_v("mcdu/init/from_to", "/".join([dep] + idents(r)))
 	Props.set_v("mcdu/init/dep_rwy", str(plan.dep_rwy))
 	Props.set_v("mcdu/init/arr_rwy", str(plan.arr_rwy))
+	Props.set_v("mcdu/init/sid", str(plan.get("sid", "")))
+	Props.set_v("mcdu/init/star", str(plan.get("star", "")))
 	Props.set_v("controls/fms/origin", dep)
 	Props.set_v("mcdu/init/cruise_fl", cruise_fl(r))
 

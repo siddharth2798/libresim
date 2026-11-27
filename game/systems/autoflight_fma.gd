@@ -4,7 +4,7 @@ extends RefCounted
 ## misc} that ui/displays/pfd.gd draws (lines separated by "\n": the first line is an engaged mode in
 ## green, the following ones are armed modes in cyan / blue). Pure function of the mode objects.
 ##   thrust    SPEED MACH (the selected or managed target is a speed or a Mach number) THR CLB THR IDLE THR DES RETARD (the last two also in the flare) A.FLOOR TOGA LK | MAN TOGA / MAN FLX 50 / MAN THR | LVR CLB
-##   vertical  SRS ALT ALT* ALT CRZ V/S OP CLB OP DES CLB DES G/S* G/S LAND FLARE (+ armed lines ALT, G/S)
+##   vertical  SRS ALT ALT* ALT CRZ ALT CST* ALT CST V/S OP CLB OP DES CLB DES G/S* G/S LAND FLARE (+ armed lines ALT, G/S)
 ##   lateral   RWY HDG NAV LOC* LOC ROLL OUT (+ armed LOC)
 ##   approach  CAT1 or CAT3 DUAL while the localizer is followed in an approach
 ##   misc      AP1 / AP2 / AP1+2, 1FD2 (flight director), A/THR
@@ -24,6 +24,8 @@ static func vertical(v: AfVertical, on_ground_armed: bool, land: AfLand = null) 
 			lines.append("SRS")
 		return "\n".join(lines)
 	var m := "ALT CRZ" if v.mode == "ALT" and v.crz else v.mode
+	if v.cst and (v.mode == "ALT" or v.mode == "ALT*"):
+		m = "ALT CST" + ("*" if v.mode == "ALT*" else "")
 	lines.append(m)
 	lines.append_array(v.armed)
 	return "\n".join(lines)

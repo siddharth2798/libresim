@@ -171,6 +171,7 @@ func _map() -> void:
 				txt(s + Vector2(8, 0), str(n.id), 14, MAGENTA)
 	var prev := _c
 	var first := true
+	var cstr_on := int(Props.get_f("controls/efis/nd_filter")) == 1  # EFIS CSTR
 	for w in Array(Props.get_v("instruments/nd/route", [])):
 		var s := DispMath.nd_project(Vector2(w.x, w.y) - me, h, _range_m, _c, _r)
 		var a := _clip_to_disc(prev, s)
@@ -179,6 +180,11 @@ func _map() -> void:
 		if _vis(s):
 			fill(Rect2(s - Vector2(5, 5), Vector2(10, 10)), MAGENTA if not first else WHITE)
 			txt(s + Vector2(9, -8), str(w.id), 15, MAGENTA if not first else WHITE)
+			if w.has("cstr"):  # a constrained fix is circled: magenta when predicted met, amber when missed; CSTR shows the value
+				var col := AMBER if str(w.get("state", "")) == "missed" else MAGENTA
+				ring(s, 11.0, col)
+				if cstr_on:
+					txt(s + Vector2(9, 10), str(w.cstr), 13, col)
 		prev = s
 		first = false
 

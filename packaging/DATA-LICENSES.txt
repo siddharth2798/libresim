@@ -24,3 +24,9 @@ airways.json     ATS route tracks derived from the Airports Authority of India e
                  This file is the designator, the significant-point order and the
                  coordinates, for simulation only. Not for navigation.
                  The cycle id is inside the file.
+procedures.json  SIDs and STARs derived from the Airports Authority of India AIP:
+                 AIRAC AIP Supplements 121/2026 and 122/2026 (RNAV-1 SIDs and STARs,
+                 Mumbai and Navi Mumbai) and the AD 2.24 SID charts (Pune),
+                 https://aim-india.aai.aero.in/ . The PDFs are not included.
+                 This file is the procedure names, their fixes, altitude and speed
+                 limits and coordinates, for simulation only. Not for navigation.

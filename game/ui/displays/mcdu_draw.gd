@@ -38,6 +38,8 @@ static func _field(d: MCDU, f: Array) -> void:
 static func _fpln(d: MCDU) -> void:
 	var wps := MCDU.route()
 	var legs: Array = Props.get_v("avionics/fms/legs", [])
+	var cstr: Dictionary = Props.get_v(RouteSetup.CSTR_PROP, {})
+	var state: Dictionary = Props.get_v("avionics/fms/cstr_state", {})
 	for i in 6:
 		var y := 50.0 + i * 44.0
 		if i < wps.size():
@@ -45,6 +47,9 @@ static func _fpln(d: MCDU) -> void:
 			if i < legs.size():
 				var lg: Dictionary = legs[i]
 				d.txt(Vector2(400, y + 20), "%03d %dNM" % [roundi(lg.get("course", 0)), roundi(lg.get("dist_nm", 0))], 16, MCDU.GREEN, 1)
+			if cstr.has(wps[i]):  # SPD/ALT of a SID / STAR fix: magenta when met (predicted), amber when missed
+				d.txt(Vector2(400, y + 38), Procedures.text(cstr[wps[i]]), 14,
+					MCDU.AMBER if str(state.get(wps[i], "")) == "missed" else MCDU.MAGENTA, 1)
 		elif i == wps.size():
 			d.txt(Vector2(16, y + 20), "[    ]", 20, Color(0.4, 0.6, 0.7))
 

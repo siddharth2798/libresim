@@ -6,10 +6,11 @@ extends Display
 ## and select NAV. INIT FROM/TO files the route (origin in controls/fms/origin) and expands an
 ## airway designator between two fixes (airway.gd). DEP/ARR RWY insert synthetic fixes and re-file.
 ## CRZ FL copies to the FCU altitude and selects managed vertical. PROG reads distance, bearing,
-## phase and top of descent. F-PLN draws avionics/fms/legs. No published SID or STAR.
+## phase and top of descent. F-PLN draws avionics/fms/legs and each SID / STAR constraint (magenta met, amber missed).
+## INIT L6 SID / R6 STAR pick a published procedure for the runway (mcdu_procs.gd, which also files the route).
 ## Keyboard: this control, or Cockpit.forward_key / the outside card while the pointer is over it.
 ## RAD NAV (mcdu_radnav.gd): VOR1, and the ILS the FMGC auto-tuned (avionics/ils_autotune.gd) with a manual override.
-## TODO: FUEL PRED, SEC F-PLN, SID/STAR, VNAV predictions, multi-page lists, the second unit.
+## TODO: FUEL PRED, SEC F-PLN, the DEPARTURE / ARRIVAL pages, VNAV predictions, multi-page lists, the second unit.
 
 const PAGE_IDS := ["INIT", "FPLN", "DIR", "PROG", "PERF", "RADNAV"]
 const TITLES := {"INIT": "INIT A", "FPLN": "F-PLN", "DIR": "DIR TO", "PROG": "PROGRESS", "PERF": "TAKE OFF", "RADNAV": "RAD NAV"}
@@ -17,7 +18,8 @@ const DASH := "---"
 const FIELDS := {  # page -> [[side, row 1..6, label, prop, kind "text" | "num", unit]]
 	"INIT": [["l", 1, "FROM/TO", "mcdu/init/from_to", "text", ""], ["l", 2, "FLT NBR", "mcdu/init/flt_no", "text", ""],
 		["l", 4, "COST INDEX", "mcdu/init/cost_index", "num", ""], ["l", 5, "DEP RWY", "mcdu/init/dep_rwy", "text", ""],
-		["r", 3, "CRZ FL", "mcdu/init/cruise_fl", "num", ""], ["r", 5, "ARR RWY", "mcdu/init/arr_rwy", "text", ""]],
+		["r", 3, "CRZ FL", "mcdu/init/cruise_fl", "num", ""], ["r", 5, "ARR RWY", "mcdu/init/arr_rwy", "text", ""],
+		["l", 6, "SID", "mcdu/init/sid", "text", ""], ["r", 6, "STAR", "mcdu/init/star", "text", ""]],
 	"PERF": [["l", 1, "V1", "mcdu/perf/v1", "num", ""], ["l", 2, "VR", "mcdu/perf/vr", "num", ""], ["l", 3, "V2", "mcdu/perf/v2", "num", ""],
 		["r", 1, "FLEX TEMP", "mcdu/perf/flex_c", "num", "C"], ["r", 2, "FLAPS", "mcdu/perf/flaps", "num", ""], ["r", 3, "THS", "mcdu/perf/ths", "num", ""]],
 }
@@ -203,6 +205,9 @@ func _line_key(side: String, row: int, s: String) -> void:
 	if p == "RADNAV":
 		McduRadNav.line_key(side, row, s)
 		return
+	if p == "INIT" and row == 6:
+		McduProcs.line_key(self, side, s)
+		return
 	for f in FIELDS.get(p, []):
 		if f[0] != side or f[1] != row:
 			continue
@@ -230,31 +235,7 @@ func _after_field(prop: String, s: String) -> void:
 
 
 func _file_route(text: String) -> void:
-	var exp := Airway.expand(FlightPlan.split_from_to(text), _airways())
-	if not exp.ok:
-		Props.set_v("mcdu/scratch", exp.error)
-		return
-	var filed := FlightPlan.file(exp.parts, Callable(self, "_known"))
-	if not filed.ok:
-		Props.set_v("mcdu/scratch", filed.error)
-		return
-	filed = FlightPlan.with_procedures(filed, str(Props.get_v("mcdu/init/dep_rwy", "")), str(Props.get_v("mcdu/init/arr_rwy", "")))
-	if not _route_known(filed):
-		Props.set_v("mcdu/scratch", FlightPlan.NOT_IN_DB)
-		return
-	_commit(str(filed.target), filed.next, true)
-	Props.set_v("controls/fms/origin", filed.origin)
-	if Props.get_b("fdm/wow"):  # filed before departure: managed speed, as a Route-step route (RouteSetup.apply); in flight the pilot's
-		Props.set_v("controls/fcu/spd_managed", true)
-
-
-func _route_known(filed: Dictionary) -> bool:
-	if not _known(str(filed.target)):
-		return false
-	for id in filed.next:
-		if not _known(str(id)):
-			return false
-	return true
+	McduProcs.file_route(self, text)
 
 
 static func _shown(f: Array) -> String:

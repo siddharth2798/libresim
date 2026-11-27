@@ -2,7 +2,7 @@ class_name RouteEdit
 extends RefCounted
 ## The route of the Free-flight Route step as data: Session.setup.route (shape in the route contract, also read by
 ## core/route_setup.gd at flight start):
-##   {dest, arr_rwy, wps: [{id, kind, x, y, alt_ft}], cruise_ft, kind, air_at}
+##   {dest, arr_rwy, wps: [{id, kind, x, y, alt_ft}], cruise_ft, kind, air_at, sid, star}
 ## The departure is always setup.airport and is never in wps. Pure statics over a setup-shaped Dictionary (no nodes):
 ## the edits the page and its map make (add, insert, move, remove, replace), the points and legs with magnetic course,
 ## distance, time and altitude, the rail / chip texts (warnings: core/route_checks.gd). Waypoint dicts come from
@@ -22,7 +22,8 @@ static func normalized(r: Variant, aircraft := "") -> Dictionary:
 	var src: Dictionary = r if r is Dictionary else {}
 	var cruise := float(src.get("cruise_ft", default_cruise_ft(aircraft)))
 	var out := {"dest": str(src.get("dest", "")), "arr_rwy": str(src.get("arr_rwy", "")), "wps": [], "cruise_ft": cruise,
-		"kind": str(src.get("kind", "manual")), "air_at": int(src.get("air_at", -1))}
+		"kind": str(src.get("kind", "manual")), "air_at": int(src.get("air_at", -1)), "sid": str(src.get("sid", "")),
+		"star": str(src.get("star", ""))}
 	var wps = src.get("wps", [])
 	for w in (wps if wps is Array else []):
 		if w is Dictionary and w.has("id"):

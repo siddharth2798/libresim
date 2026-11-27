@@ -1,7 +1,8 @@
 class_name RouteControls
 extends VBoxContainer
 ## The rows above the Route step's map: From (the Airport step's departure, read only), To (destination search box),
-## the destination's arrival runway chips and the cruise altitude; then Auto-route (Direct / VOR to VOR / Airways),
+## the destination's arrival runway chips and the cruise altitude; the published SID (start runway) and STAR (arrival runway)
+## pickers (Procedures); then Auto-route (Direct / VOR to VOR / Airways),
 ## Clear and the route as text; then one note line (the how-to hint, or the last message for NOTE_S seconds).
 ## It only shows what refresh() hands it and reports the player's choices as signals; route_page.gd does the edits.
 
@@ -11,6 +12,8 @@ signal cruise_changed(ft: float)
 signal auto_pressed(kind: String)
 signal clear_pressed
 signal text_entered(text: String)
+signal sid_picked(name: String)
+signal star_picked(name: String)
 
 const HINT := "Click the map to add an airport, navaid or fix (empty map: a free waypoint). Drag a waypoint to move it: dropped on a named point it becomes that point, elsewhere a free waypoint. Drag a leg to add a waypoint on it. Right-click a waypoint to remove it. Shift+click an airport: destination."
 const AUTO := [["direct", "Direct", "Straight from the departure to the destination"],
@@ -26,6 +29,8 @@ var auto_seg: Segmented
 var clear_btn: Button
 var text_box: LineEdit
 var note: Label
+var sid_opt: OptionButton
+var star_opt: OptionButton
 var _rwy_for := "-"  # destination the runway chips were built for
 var _note_t := 0.0
 var _text := ""  # the route as text, as refresh() last showed it
@@ -62,6 +67,15 @@ func _init() -> void:
 	cruise.tooltip_text = "Cruise altitude (ft): new waypoints get it, and waypoints that were at the old one follow it."
 	cruise.value_changed.connect(func(v): cruise_changed.emit(v))
 	top.add_child(cruise)
+	var procs := _row()
+	procs.add_child(_cap("SID"))
+	sid_opt = _proc_opt("Published departure from the start runway (AIP India). Its fixes and altitude and speed limits are flown\nby the A320's managed climb. None: the sim's own departure fix, 5 nm out on the runway heading.")
+	sid_opt.item_selected.connect(func(i): sid_picked.emit(str(sid_opt.get_item_metadata(i))))
+	procs.add_child(sid_opt)
+	procs.add_child(_cap("   STAR"))
+	star_opt = _proc_opt("Published arrival to the arrival runway (AIP India), flown with its limits by the managed descent.\nNone: straight to the sim's final fix, 8 nm out. Pune publishes no STAR: its arrivals are radar vectored.")
+	star_opt.item_selected.connect(func(i): star_picked.emit(str(star_opt.get_item_metadata(i))))
+	procs.add_child(star_opt)
 	var tools := _row()
 	tools.add_child(_cap("Auto-route"))
 	auto_seg = Segmented.new()
@@ -94,6 +108,26 @@ func _row() -> HBoxContainer:
 	return row
 
 
+func _proc_opt(tip: String) -> OptionButton:
+	var o := OptionButton.new()
+	o.custom_minimum_size = Vector2(150, 0)
+	o.tooltip_text = tip
+	return o
+
+
+## Fill a SID / STAR picker: "None" then `names`, `current` selected; disabled with `why` when there are none.
+static func fill_procs(o: OptionButton, names: Array, current: String, why: String) -> void:
+	o.clear()
+	o.add_item("None" if not names.is_empty() else why)
+	o.set_item_metadata(0, "")
+	for n in names:
+		o.add_item(str(n))
+		o.set_item_metadata(o.item_count - 1, str(n))
+	o.select(maxi(names.find(current) + 1, 0))
+	o.disabled = names.is_empty()
+	o.focus_mode = Control.FOCUS_NONE if o.disabled else Control.FOCUS_ALL  # Tab skips it while greyed
+
+
 func _cap(t: String) -> Label:
 	var l := Label.new()
 	l.text = t
@@ -113,6 +147,11 @@ func refresh(s: Dictionary, r: Dictionary, airports: Array) -> void:
 		rwy_seg.set_options(RoutePageData.runway_options(airports, r.dest))
 	rwy_seg.visible = r.dest != ""
 	rwy_seg.select(r.arr_rwy)
+	var dep_rwy := str(s.get("runway", "")) if str(s.get("start", "")) == "runway" else ""
+	fill_procs(sid_opt, Procedures.names(str(s.get("airport", "")), "SID", dep_rwy) if dep_rwy != "" else [], str(r.get("sid", "")),
+		"No SID (runway start only)" if dep_rwy == "" else "No published SID")
+	fill_procs(star_opt, Procedures.names(str(r.dest), "STAR", str(r.arr_rwy)) if str(r.arr_rwy) != "" else [], str(r.get("star", "")),
+		"Pick an arrival runway" if str(r.dest) != "" and str(r.arr_rwy) == "" else "No published STAR")
 	cruise.set_value_no_signal(r.cruise_ft)
 	auto_seg.select(r.kind)
 	clear_btn.disabled = not RouteEdit.planned(r)

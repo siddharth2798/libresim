@@ -6,7 +6,9 @@ extends Node
 ## altitude or heading. Headless, never writes the player's files. About real time (a VABB - VAPO flight is 20 to 30 min of wall time).
 ##   godot --headless --audio-driver Dummy --fixed-fps 120 --path game res://tests/probe_a320_flight.tscn -- [options]
 ## Options: --from=VABB --rwy=27 --to=VAPO --arr=28 --kind=vor|airway|direct (vor) --cruise=FT (14000) --wind=DIR/KT (0/0)
+##   --sid=NAME --star=NAME (published procedures, Procedures; e.g. VAPO 28 -> VABB 27: --sid=OPAKA2A --star=OPAKA3K --kind=direct)
 ##   --max=sim s (3000) --wall=real s (3600) --log=s between lines (20).
+## With a SID or STAR the result also needs every constraint met (constraint_check; the FMS log avionics/fms/cstr_log).
 ##   --final: only the approach (the A320's own air start on final at --to / --arr, AP1 + AP2 and APPR at once), about 4 min: the
 ##   short form for windowed runs on each graphics preset and renderer (--quality=low|high..., --rendering-method ...).
 ## Last line: FLIGHT RESULT PASS|FAIL reason=..; exit code 0 = PASS.
@@ -30,6 +32,7 @@ var _td := {}
 var _max_cross := 0.0
 var _words := []
 var _disc0 := 0  # disconnects before the crew engaged the AP (an air start)
+var _cstr := {}  # the SID / STAR constraints filed at the start (controls/gps/constraints)
 
 
 func _ready() -> void:
@@ -62,7 +65,14 @@ func _ready() -> void:
 		_ended = true
 		return
 	Session.setup.route = RouteSetup.repair({"dest": a_("to", "VAPO"), "arr_rwy": a_("arr", "28"), "wps": r.wps, "cruise_ft": cruise,
-		"kind": a_("kind", "vor"), "air_at": -1})
+		"kind": a_("kind", "vor"), "air_at": -1, "sid": a_("sid", ""), "star": a_("star", "")})
+	for k in ["sid", "star"]:
+		if a_(k, "") != "" and Procedures.find(a_("from" if k == "sid" else "to", "VABB" if k == "sid" else "VAPO"), k.to_upper(),
+				a_(k, ""), a_("rwy" if k == "sid" else "arr", "27" if k == "sid" else "28")).is_empty():
+			print("FLIGHT RESULT FAIL reason=no published %s %s" % [k.to_upper(), a_(k, "")])
+			get_tree().quit(1)
+			_ended = true
+			return
 	dest_pos = db.position_of(a_("to", "VAPO"))
 	print("FLIGHT route %s -> %s via %s, cruise %.0f ft" % [a_("from", "VABB"), a_("to", "VAPO"), RouteSetup.idents(Session.setup.route), cruise])
 	_start_flight()
@@ -91,9 +101,12 @@ func _setup_flight() -> void:
 		_finish(false, "no arrival runway")
 		return
 	_ready_ok = true
+	_cstr = (Props.get_v(RouteSetup.CSTR_PROP, {}) as Dictionary).duplicate(true)
 	print("FLIGHT start: GPS %s then %s, FCU alt %.0f, managed hdg %s vs %s, CRZ FL %s" % [Props.get_v("controls/gps/target"),
 		Props.get_v("controls/gps/route_next"), Props.get_f("controls/fcu/alt_ft"), Props.get_b("controls/fcu/hdg_managed"),
 		Props.get_b("controls/fcu/vs_managed"), Props.get_v("mcdu/init/cruise_fl")])
+	print("FLIGHT SID %s STAR %s, constraints %s" % [Props.get_v("mcdu/init/sid", ""), Props.get_v("mcdu/init/star", ""),
+		_cstr.keys().map(func(k): return "%s %s" % [k, Procedures.text(_cstr[k])])])
 
 
 func _physics_process(dt: float) -> void:
@@ -187,4 +200,21 @@ func _check() -> String:
 			return "never saw %s" % w
 	if _td.along < 0.0 or _td.along > 1200.0 or absf(_td.cross) > 10.0:
 		return "touchdown off the zone"
-	return ""
+	return constraint_check(_cstr, Props.get_v("avionics/fms/cstr_log", []))
+
+
+## Every SID / STAR constraint filed must have been passed (logged by the FMS when the GPS sequenced its fix) and met; one wholly
+## above the cruise level is not flown (FmsConstraints.applies) and only reported. "" = all met.
+static func constraint_check(cstr: Dictionary, logged: Array) -> String:
+	var seen := {}
+	var bad := ""
+	for e in logged:
+		seen[str(e.ident)] = true
+		var verdict := "above CRZ FL, not flown" if e.skip else ("met" if e.met else "MISSED")
+		print("FLIGHT constraint %-6s %-12s passed at %6.0f ft %4.0f kt: %s" % [e.ident, e.text, e.alt_ft, e.kt, verdict])
+		if not e.skip and not e.met and bad == "":
+			bad = "constraint %s %s missed (%.0f ft, %.0f kt)" % [e.ident, e.text, e.alt_ft, e.kt]
+	for id in cstr:
+		if not seen.has(id) and bad == "":
+			bad = "constraint fix %s never passed" % id
+	return bad
