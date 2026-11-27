@@ -29,6 +29,19 @@ static func _band(d: Display, x: float, w: float, y0: float, y1: float, col: Col
 		k += 1
 
 
+## Each flap detent's VFE (instruments/pfd/vfe_marks): a short red line at the tape's left edge, named by its detent.
+static func _vfe_marks(d: Display, ias: float) -> void:
+	var marks: Variant = Props.get_v("instruments/pfd/vfe_marks", [])
+	if not marks is Array:
+		return
+	for m in marks:
+		var y := DispMath.tape_y(float(m[0]), ias, PX_KT, CY)
+		if y < SPD_R.position.y + 5 or y > SPD_R.end.y - 5 or absf(y - CY) < 19.0:
+			continue  # off the tape, or under the speed window
+		d.line(Vector2(SPD_R.position.x, y), Vector2(SPD_R.position.x + 12, y), Display.RED, 3.0)
+		d.txt(Vector2(SPD_R.position.x + 14, y - 1), str(m[1]), 11, Display.RED, -1)
+
+
 static func speed(d: Display) -> void:
 	var ias := Props.get_f("instruments/pfd/ias_kt")
 	var ok := Props.get_b("instruments/pfd/valid", true)
@@ -49,6 +62,7 @@ static func speed(d: Display) -> void:
 		_band(d, SPD_R.end.x - 5, 5, yl, ys, Display.AMBER, false)
 		_band(d, SPD_R.end.x - 9, 9, ys, SPD_R.end.y, Display.RED, true)
 		_band(d, SPD_R.end.x - 9, 9, SPD_R.position.y, DispMath.tape_y(vmax, ias, PX_KT, CY), Display.RED, true)
+	_vfe_marks(d, ias)
 	var nxt := Props.get_f("instruments/pfd/vfe_next_kt")
 	if nxt > 0.0:
 		var yn := clampf(DispMath.tape_y(nxt, ias, PX_KT, CY), SPD_R.position.y + 6, SPD_R.end.y - 6)

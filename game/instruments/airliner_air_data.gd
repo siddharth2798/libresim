@@ -3,11 +3,14 @@ extends Node
 ## Air data computer of an airliner (ADR), in the units the PFD shows. Reads the FDM / atmosphere
 ## Props, publishes instruments/pfd/*:
 ##   ias_kt mach tas_kt trend_kt (speed in 10 s) vls_kt vsw_kt vmax_kt vfe_next_kt alt_ft (baro-corrected)
+##   vfe_marks ([[kt, detent name], ...]: each flap detent's VFE, the red marks on the speed tape)
 ##   baro_hpa (the setting in use, 1013.25 in STD) baro_std vs_fpm ra_ft (radio altitude, -1 above 2500 ft)
 ##   valid (false with Props failures/adr: the PFD shows its red SPD / ALT / V/S flags)
 ## Inputs: fdm/{cas_mps, tas_mps, mach (optional), alt_m, vs_mps, agl_m, mass_kg, flap_deg, slat_deg,
 ## gear_pos}, atmosphere/{pressure_pa, temperature_k}; the pilot's setting: controls/baro/hpa (default
-## weather/qnh_hpa) and controls/baro/std (bool). Speed limits: AirSpeeds with aircraft.json limits.speeds.
+## weather/qnh_hpa) and controls/baro/std (bool). Speed limits: AirSpeeds with aircraft.json limits.speeds; its
+## vfe_kt defaults to limits.vfe_kias when that is keyed by slat + flap (vfe_by "slat_flap"), so the PFD's Vmax and the
+## damage model (fdm/damage.gd) use one table.
 
 const TREND_TAU := 1.5  # s, acceleration filter
 const RA_MAX_FT := 2500.0
@@ -16,12 +19,26 @@ const TICK_HZ := 30.0  # docs/USAGE.md "Tick rates"
 var _tick := TickRate.new(TICK_HZ)
 
 var _spec := {}
+var _marks := []  # instruments/pfd/vfe_marks
 var _prev_ias := NAN
 var _accel := 0.0  # kt/s, filtered
 
 
 func _ready() -> void:
-	_spec = AirSpeeds.spec_of(AircraftDef.current().section_or("limits", {}).get("speeds", {}))
+	var def := AircraftDef.current()
+	_spec = spec_for(def.section_or("limits", {}))
+	var labels := []
+	for d in def.config().get("controls", {}).get("flaps", {}).get("detents", []):
+		labels.append(str(d.get("lever", "")) if d is Dictionary else str(d))
+	_marks = AirSpeeds.vfe_marks(_spec, labels)
+
+
+## AirSpeeds spec from aircraft.json "limits": its "speeds", with vfe_kt from vfe_kias when that is per detent.
+static func spec_for(limits: Dictionary) -> Dictionary:
+	var speeds: Dictionary = limits.get("speeds", {}).duplicate()
+	if not speeds.has("vfe_kt") and str(limits.get("vfe_by", "")) == "slat_flap" and limits.has("vfe_kias"):
+		speeds["vfe_kt"] = limits.vfe_kias
+	return AirSpeeds.spec_of(speeds)
 
 
 func _physics_process(dt: float) -> void:
@@ -63,6 +80,7 @@ func publish(dt: float) -> void:
 	Props.set_v("instruments/pfd/vsw_kt", mk.vsw)
 	Props.set_v("instruments/pfd/vmax_kt", AirSpeeds.envelope_max(_spec, flap_limit, gear_down, p))
 	Props.set_v("instruments/pfd/vfe_next_kt", AirSpeeds.vfe_next(_spec, lever))
+	Props.set_v("instruments/pfd/vfe_marks", _marks)
 	Props.set_v("instruments/pfd/alt_ft", Units.m_to_ft(alt_m) if ok else 0.0)
 	Props.set_v("instruments/pfd/baro_hpa", baro)
 	Props.set_v("instruments/pfd/baro_std", std)
