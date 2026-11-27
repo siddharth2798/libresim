@@ -9,7 +9,8 @@ extends RefCounted
 ##       its final fix (8 nm, "F") before the destination. An air start on leg k (air_at) begins at point k + 1.
 ##   route/dest                                      destination ident ("" = none), read by ATC (atc_world.gd)
 ##   airliners: mcdu/init/{from_to, dep_rwy, arr_rwy, cruise_fl}, controls/fms/origin, controls/fcu/alt_ft,
-##       controls/fcu/vs_managed and controls/fcu/hdg_managed (NAV), as typing them on the INIT page does (without filing over the route again).
+##       controls/fcu/vs_managed, controls/fcu/hdg_managed (NAV) and controls/fcu/spd_managed, as typing them on the INIT page does
+##       (without filing over the route again).
 ## restore() puts back what a saved flight does not hold in its props (route waypoints, route/dest, MCDU INIT).
 ## update_live() takes a route edited during the flight (RouteLive.commit) without touching anything else.
 
@@ -133,6 +134,7 @@ static func apply(setup: Dictionary, db: NavDatabase, airliner: bool) -> void:
 		Props.set_v("controls/fcu/alt_ft", clampf(float(Props.get_v("mcdu/init/cruise_fl")), 1.0, 390.0) * 100.0)
 		Props.set_v("controls/fcu/vs_managed", true)
 		Props.set_v("controls/fcu/hdg_managed", true)  # NAV, as filing INIT does: the autopilot flies the route
+		Props.set_v("controls/fcu/spd_managed", true)  # managed speed (SPD window dashed): the FMS speeds, 300 kt above FL100, green dot in the approach
 
 
 ## After a saved flight is loaded (Situation.apply): the saved setup's route waypoints, destination and MCDU INIT. The

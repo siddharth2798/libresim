@@ -331,12 +331,17 @@ else
   fi
 fi
 
-header 3 "Python venv (tools/.venv)"
-if ((SKIP_DATA)); then note "skipped (--skip-data)"
-else
+ensure_venv() {  # tools/.venv with a working python and every package of $REQS; run in step 3 and again before the pipeline
   if [[ ! -x $PY ]]; then
-    if dry; then note "WOULD create venv: $SYS_PY -m venv --system-site-packages tools/.venv"
-    else timed venv "$SYS_PY" -m venv --system-site-packages tools/.venv; fi
+    # --clear: a venv whose python link points at a Python that is gone (Homebrew upgraded it, or the folder came from another
+    # machine) is left broken by a plain `venv`, which keeps the dead link; clear it and build it again (pip below refills it).
+    [[ -e tools/.venv || -L $PY ]] && note "tools/.venv has no working python: rebuilding it with $SYS_PY"
+    if dry; then note "WOULD create venv: $SYS_PY -m venv --clear --system-site-packages tools/.venv"
+    else timed venv "$SYS_PY" -m venv --clear --system-site-packages tools/.venv; fi
+  fi
+  if ! dry && [[ ! -x $PY ]]; then
+    echo "tools/.venv still has no working python ($PY) after '$SYS_PY -m venv'. Check that $SYS_PY runs, or delete tools/.venv and run again."
+    exit 1
   fi
   if [[ -x $PY ]]; then
     need=$(missing_reqs)
@@ -350,6 +355,11 @@ else
       [[ -z $need ]] || { echo "pip install -r $REQS finished but these still do not import:$need"; exit 1; }
     fi
   fi
+}
+
+header 3 "Python venv (tools/.venv)"
+if ((SKIP_DATA)); then note "skipped (--skip-data)"
+else ensure_venv
 fi
 
 header 4 "Raw data (data/raw)"
@@ -362,7 +372,10 @@ fi
 
 header 5 "Data pipeline (tools/NN_*.py)"
 if ((SKIP_DATA)); then note "skipped (--skip-data)"
-else for s in "${PIPELINE[@]}"; do run_step "$s"; done
+else
+  # The venv's python can vanish after step 3 (a Homebrew install or cleanup replacing the Python it links to): check it again.
+  if ! dry && [[ ! -x $PY ]]; then note "tools/.venv lost its python since step 3"; ensure_venv; fi
+  for s in "${PIPELINE[@]}"; do run_step "$s"; done
   ((A320)) && run_step 06a
 fi
 

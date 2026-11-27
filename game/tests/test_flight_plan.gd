@@ -132,15 +132,15 @@ func test_runway_fix_geometry() -> String:
 
 func test_vertical_profile_tod() -> String:
 	var far: Dictionary = VerticalProfile.decide(35000.0, 35000.0, 200.0, 0.0)
-	if far.descend or far.phase != "CRZ" or far.approach_ft != 3000.0:
+	if far.descend or far.phase != "CRZ" or far.approach_ft != 2200.0:  # below the 3 deg path at the 8 nm arrival fix
 		return "far %s" % far
 	var near: Dictionary = VerticalProfile.decide(35000.0, 35000.0, 100.0, 0.0)
-	if not near.descend or near.phase != "DES" or absf(float(near.tod_nm) - (32000.0 / 300.0 + 8.0)) > 0.1:
+	if not near.descend or near.phase != "DES" or absf(float(near.tod_nm) - (32800.0 / 300.0 + 8.0 + VerticalProfile.DECEL_NM + VerticalProfile.LIMIT_DECEL_NM)) > 0.1:
 		return "near %s" % near
 	var climb: Dictionary = VerticalProfile.decide(35000.0, 10000.0, 200.0, 0.0)
 	if climb.descend or climb.phase != "CLB":
 		return "climb %s" % climb
-	var low: Dictionary = VerticalProfile.decide(4000.0, 4000.0, 10.0, 500.0)
+	var low: Dictionary = VerticalProfile.decide(3000.0, 3000.0, 10.0, 500.0)
 	if low.approach_ft != 1500.0 or not low.descend:
 		return "low cruise %s" % low
 	return ""
@@ -200,7 +200,7 @@ func _descent_from(g: Gps, ap: Dictionary) -> String:
 	Props.set_v("fdm/position_enu", Vector3(ap.x, float(ap.y) + 10.0 * 1852.0, alt_m))
 	g._physics_process(0.05)
 	var got := Props.get_f("controls/fcu/alt_ft")
-	if got > 8000.0 or str(Props.get_v("avionics/fms/phase")) != "DES":
+	if got > 8000.0 or str(Props.get_v("avionics/fms/phase")) != "APPR":  # 10 nm out: inside VerticalProfile.APPR_NM
 		return "TOD alt %s phase %s" % [got, Props.get_v("avionics/fms/phase")]
 	Props.set_v("controls/fcu/alt_ft", 35000.0)
 	Props.set_v("fdm/position_enu", Vector3(ap.x, float(ap.y) + 200.0 * 1852.0, alt_m))
@@ -211,4 +211,46 @@ func _descent_from(g: Gps, ap: Dictionary) -> String:
 	g._physics_process(0.05)
 	if str(Props.get_v("avionics/fms/phase")) != "CLB" or absf(Props.get_f("controls/fcu/alt_ft") - 35000.0) > 1.0:
 		return "climb %s %s" % [Props.get_v("avionics/fms/phase"), Props.get_f("controls/fcu/alt_ft")]
+	return ""
+
+
+## A route arriving from behind the airport (the leg into the arrival fix points back against the landing direction) gets a base
+## fix 5 nm abeam the arrival fix on its own side; a straight-in or a 90 degree join gets none. The GPS puts it in front of the
+## arrival fix once. Before, the A320 turned 180 deg at VAPO28F and rolled out 2 km off the centreline, too late for the beams.
+func test_base_fix_before_an_arrival_fix_approached_from_behind() -> String:
+	var Fx := preload("res://tests/route_fixture.gd")
+	var db: NavDatabase = Fx.db()
+	var f = RunwayWaypoints.position("BBBB18F", db.airports)  # BBBB runway 18 lands southbound: F is 8 nm north
+	if f == null:
+		return "BBBB18F unknown"
+	if RunwayWaypoints.base_for("BBBB18F", Fx.p(0, 100), db.airports) != "BBBB18B":
+		return "from the south (behind): right base, got [%s]" % RunwayWaypoints.base_for("BBBB18F", Fx.p(0, 100), db.airports)
+	if RunwayWaypoints.base_for("BBBB18F", Fx.p(20, 150), db.airports) != "BBBB18A":  # east is the left of a southbound final
+		return "from the south-east: left base, got [%s]" % RunwayWaypoints.base_for("BBBB18F", Fx.p(20, 150), db.airports)
+	if RunwayWaypoints.base_for("BBBB18F", Fx.p(0, 260), db.airports) != "" or RunwayWaypoints.base_for("BBBB18F", Fx.p(30, 208), db.airports) != "":
+		return "straight-in and 90 deg joins need no base fix"
+	var b = RunwayWaypoints.position("BBBB18B", db.airports)
+	if b == null or absf((b as Vector2).distance_to(f) - RunwayWaypoints.BASE_M) > 1.0 or (b as Vector2).x >= (f as Vector2).x:
+		return "BBBB18B: 5 nm west of F (right of a southbound final), got %s vs F %s" % [b, f]
+	var saved := Props.dump("")
+	var g := Gps.new()
+	_made.append(g)
+	g.db = db
+	Props.set_v("controls/gps/target", "BBBB18F")
+	Props.set_v("controls/gps/route_next", ["BBBB"])
+	Props.set_v("systems/electrical/avionics_powered", true)
+	Props.set_v("failures/gps", false)
+	Props.set_v("fdm/position_enu", Vector3(Fx.p(0, 100).x, Fx.p(0, 100).y, 3000.0))
+	g.update()
+	var got := [Props.get_v("controls/gps/target"), Props.get_v("controls/gps/route_next")]
+	Props.set_v("controls/gps/target", "BBBB18F")  # the pilot deletes the base fix: it stays deleted
+	Props.set_v("controls/gps/route_next", ["BBBB"])
+	g.update()
+	var after := str(Props.get_v("controls/gps/target"))
+	Props._p.clear()
+	Props.restore(saved)
+	if got != ["BBBB18B", ["BBBB18F", "BBBB"]]:
+		return "GPS route from behind: %s, want BBBB18B then BBBB18F, BBBB" % [got]
+	if after != "BBBB18F":
+		return "a deleted base fix came back: %s" % after
 	return ""

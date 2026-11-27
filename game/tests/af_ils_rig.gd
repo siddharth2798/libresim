@@ -25,8 +25,9 @@ var ground_m := 0.0
 var wind := Vector3.ZERO  # NED, m/s
 var turb_level := 0.0
 var turb := Turbulence.new()
-var td := {}  # first touchdown: {t, along, cross, vs_fpm, pitch, gs_kt, cas_kt, bank, heading_err}
+var td := {}  # first touchdown: {t, along, cross, vs_fpm, pitch, gs_kt, cas_kt, bank, heading_err, flare_s, flare_kt_lost}
 var max_cross := 0.0  # worst distance from the axis after touchdown
+var _flare := {}  # when the FMA first said FLARE: {t, cas_kt}
 var crashed := false
 var _snap := {}
 var _prev_vs := 0.0
@@ -166,12 +167,15 @@ func step() -> void:
 		var w := str(Props.get_v("ap/fma/" + c, "")).split("\n")[0]
 		if w != "" and (words[c].is_empty() or words[c][-1] != w):
 			words[c].append(w)
+	if _flare.is_empty() and str(Props.get_v("ap/fma/vertical", "")).begins_with("FLARE"):
+		_flare = {"t": t, "cas_kt": f.cas / KT}
 	if wow and not _was_wow and td.is_empty():
 		var p := Vector2(f.pos_e, f.pos_n) - thr
 		var axis := Vector2(sin(course), cos(course))
 		td = {"t": t, "along": p.dot(axis), "cross": p.dot(Vector2(cos(course), -sin(course))), "vs_fpm": _prev_vs / FT * 60.0,
 			"pitch": rad_to_deg(f.euler().y), "gs_kt": Props.get_f("fdm/groundspeed_mps") / KT, "cas_kt": f.cas / KT,
-			"bank": rad_to_deg(f.euler().x), "heading_err": rad_to_deg(wrapf(f.euler().z - course, -PI, PI))}
+			"bank": rad_to_deg(f.euler().x), "heading_err": rad_to_deg(wrapf(f.euler().z - course, -PI, PI)),
+			"flare_s": t - float(_flare.get("t", t)), "flare_kt_lost": float(_flare.get("cas_kt", f.cas / KT)) - f.cas / KT}
 	_was_wow = wow
 	if not td.is_empty():
 		max_cross = maxf(max_cross, absf(cross()))

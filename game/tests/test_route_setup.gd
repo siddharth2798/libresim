@@ -115,9 +115,12 @@ func test_route_setup_prefills_the_mcdu_init() -> String:
 	RouteSetup.clear()
 	Props.set_v("controls/fcu/vs_managed", false)
 	Props.set_v("controls/fcu/hdg_managed", false)
+	Props.set_v("controls/fcu/spd_managed", false)
 	RouteSetup.apply(_setup_with(_route()), Fx.db(), true)
 	if not Props.get_b("controls/fcu/hdg_managed"):
 		return "the route selects NAV (managed heading), as filing INIT does, so the autopilot flies it"
+	if not Props.get_b("controls/fcu/spd_managed"):
+		return "the route selects managed speed, so the climb, cruise and approach speeds are the FMS ones (not a selected 250 kt)"
 	var got := [Props.get_v("mcdu/init/from_to"), Props.get_v("mcdu/init/dep_rwy"), Props.get_v("mcdu/init/arr_rwy"),
 		Props.get_v("mcdu/init/cruise_fl"), Props.get_v("controls/fms/origin"), Props.get_f("controls/fcu/alt_ft")]
 	if got != ["AAAA/FA/WPT01/BBBB", "18", "36", 65.0, "AAAA", 6500.0] or not Props.get_b("controls/fcu/vs_managed"):
@@ -125,11 +128,16 @@ func test_route_setup_prefills_the_mcdu_init() -> String:
 	# filing that INIT page by hand gives the same GPS route
 	var want := [Props.get_v("controls/gps/target"), Props.get_v("controls/gps/route_next")]
 	var m := MCDU.new()
+	Props.set_v("fdm/wow", true)  # filed at the gate
+	Props.set_v("controls/fcu/spd_managed", false)
 	m._file_route(str(Props.get_v("mcdu/init/from_to")))
 	var filed := [Props.get_v("controls/gps/target"), Props.get_v("controls/gps/route_next")]
+	var spd := Props.get_b("controls/fcu/spd_managed")
 	m.free()
 	if filed != want:
 		return "INIT filing %s, route setup %s" % [filed, want]
+	if not spd:
+		return "filing FROM/TO on the ground selects managed speed, as a Route-step route does"
 	return ""
 
 

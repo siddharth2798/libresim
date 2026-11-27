@@ -9,6 +9,8 @@ const TD_CROSS_M := 5.0  # from the axis at touchdown
 const TD_SINK_FPM := 300.0
 const ROLL_CROSS_M := 7.0  # worst offset from the axis on the roll out
 const TD_PITCH_DEG := 10.0  # the tail clearance (A320 about 11.7 deg)
+const FLARE_MAX_S := 7.5  # FLARE (40 ft) to touchdown: a real autoland flare takes about 5 to 7 s; a longer one floats, bleeds speed
+                          # and lands nose high (the 100 ft/min floor of before: 7.7 to 8.7 s, 8.7 deg pitch in the full game)
 
 var _db: NavDatabase
 
@@ -54,8 +56,8 @@ func check_landing(r: AfIlsRig, label: String) -> String:
 	if r.td.is_empty():
 		return "%s: no touchdown, FMA %s" % [label, r.fma_all()]
 	var td := r.td
-	var line := "    %s: touchdown %.0f m past the threshold, %.1f m from the axis, sink %.0f ft/min, pitch %.1f, heading %.1f deg off, roll out worst %.1f m" % [
-		label, td.along, td.cross, -td.vs_fpm, td.pitch, td.heading_err, r.max_cross]
+	var line := "    %s: touchdown %.0f m past the threshold, %.1f m from the axis, sink %.0f ft/min, pitch %.1f, heading %.1f deg off, roll out worst %.1f m, flare %.1f s, %.0f kt lost" % [
+		label, td.along, td.cross, -td.vs_fpm, td.pitch, td.heading_err, r.max_cross, td.flare_s, td.flare_kt_lost]
 	print(line)
 	if td.along < TD_ALONG_M[0] or td.along > TD_ALONG_M[1]:
 		return "%s: touchdown %.0f m past the threshold, want %s" % [label, td.along, TD_ALONG_M]
@@ -65,6 +67,8 @@ func check_landing(r: AfIlsRig, label: String) -> String:
 		return "%s: sink %.0f ft/min at touchdown, want under %.0f" % [label, -td.vs_fpm, TD_SINK_FPM]
 	if td.pitch > TD_PITCH_DEG:
 		return "%s: pitch %.1f deg at touchdown (tail strike)" % [label, td.pitch]
+	if td.flare_s > FLARE_MAX_S:
+		return "%s: the flare took %.1f s from 40 ft, want %.1f at most (it floats)" % [label, td.flare_s, FLARE_MAX_S]
 	if r.max_cross > ROLL_CROSS_M:
 		return "%s: %.1f m off the axis on the roll out, want %.0f at most" % [label, r.max_cross, ROLL_CROSS_M]
 	return ""

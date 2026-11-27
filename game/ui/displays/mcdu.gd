@@ -244,6 +244,8 @@ func _file_route(text: String) -> void:
 		return
 	_commit(str(filed.target), filed.next, true)
 	Props.set_v("controls/fms/origin", filed.origin)
+	if Props.get_b("fdm/wow"):  # filed before departure: managed speed, as a Route-step route (RouteSetup.apply); in flight the pilot's
+		Props.set_v("controls/fcu/spd_managed", true)
 
 
 func _route_known(filed: Dictionary) -> bool:

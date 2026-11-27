@@ -34,6 +34,7 @@ var _was_active := false
 var _toga_lk := false
 var reduction_pending := false  # a takeoff or go-around began: above the reduction altitude LVR CLB asks for the CL detent (until it is there)
 var _lever_arm_was := false  # the levers were in a takeoff detent last tick
+var _ground_idle := false  # after an autoland roll out, on the ground with the levers still in the CL range: hold idle
 
 
 func reset() -> void:
@@ -59,11 +60,14 @@ func drop() -> void:
 	_toga_lk = false
 	_was_active = false
 	reduction_pending = false
+	_ground_idle = false
 
 
 ## `vmode` = vertical mode, `target` m/s CAS, `mach` = the target came from the Mach limit, `retard` = the autoland flare asks for
 ## idle (1 from 30 ft: THR IDLE, 2 from 10 ft and on the roll out: RETARD), `rolling` = an autoland roll out (A/THR goes on commanding
-## idle on the ground until the levers leave the CL range). Sets `mode`, `active`, `lever_cmd`.
+## idle on the ground until the levers leave the CL range, also after the AP has let go at 20 kt: `_ground_idle`; before, the engines
+## then went to the levers' climb thrust on the runway. Levers to idle on the ground after that disconnect it, as after a landing).
+## Sets `mode`, `active`, `lever_cmd`.
 func update(i: AfInputs, vmode: String, target: float, mach: bool, retard := 0, rolling := false) -> void:
 	limit = minf(i.lever, CL)
 	if i.alpha_floor and not i.wow:  # alpha floor arms the A/THR by itself
@@ -72,7 +76,13 @@ func update(i: AfInputs, vmode: String, target: float, mach: bool, retard := 0, 
 	if _toga_lk and i.wow:
 		_toga_lk = false
 	var in_cl := i.lever <= CL + DETENT_TOL
-	active = armed and (not i.wow or rolling) and (in_cl or _toga_lk)
+	if not i.wow or not armed or not in_cl:
+		_ground_idle = false
+	elif rolling:
+		_ground_idle = true
+	elif _ground_idle and i.lever <= IDLE_LEVER:  # the pilot retarded after the autoland: A/THR off
+		drop()
+	active = armed and (not i.wow or rolling or _ground_idle) and (in_cl or _toga_lk)
 	if active or not armed:
 		reduction_pending = false
 	if not active:
@@ -88,8 +98,8 @@ func update(i: AfInputs, vmode: String, target: float, mach: bool, retard := 0, 
 	elif _toga_lk:
 		mode = "TOGA LK"
 		lever_cmd = TOGA
-	elif retard > 0:
-		mode = "RETARD" if retard >= 2 else "THR IDLE"
+	elif retard > 0 or _ground_idle:
+		mode = "RETARD" if retard >= 2 or _ground_idle else "THR IDLE"
 		lever_cmd = 0.0
 	elif vmode == "OP CLB" or vmode == "CLB" or vmode == "SRS":
 		mode = "THR CLB"

@@ -84,14 +84,14 @@ static func lined_up(stations: Array, pos: Vector3, track_rad: float, armed: boo
 
 
 ## What to tune. `c`: {stations, names (of the plan's destination, [] without one), dest (Vector2 or null), arr_rwy, pos
-## (Vector3 ENU), track (rad true), phase ("DES" in the descent), armed}. Returns {s (station or {}), why ("route" | "lineup" | "")}.
+## (Vector3 ENU), track (rad true), phase ("DES" or "APPR" in the descent), armed}. Returns {s (station or {}), why ("route" | "lineup" | "")}.
 static func wanted(c: Dictionary) -> Dictionary:
 	var pos: Vector3 = c.pos
 	var route := {}
 	var route_dist := INF
 	if not (c.names as Array).is_empty() and c.dest is Vector2:
 		route_dist = Vector2(pos.x, pos.y).distance_to(c.dest)
-		if route_dist <= ROUTE_NM * NM or str(c.get("phase", "")) == "DES":
+		if route_dist <= ROUTE_NM * NM or str(c.get("phase", "")) in ["DES", "APPR"]:
 			if str(c.arr_rwy).strip_edges() != "":
 				route = for_runway(c.stations, c.names, str(c.arr_rwy))
 			else:

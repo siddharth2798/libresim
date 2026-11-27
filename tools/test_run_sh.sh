@@ -162,6 +162,15 @@ python3 -c 'import numpy, PIL' 2>/dev/null || want=$(python3 -c 'import numpy' 2
 check "missing_reqs lists only what does not import ('$got')" test "$got" = "$want"
 check "run.sh installs with pip install -r" has 'pip install -r "$REQS"' run.sh
 
+echo "== (vii) a venv whose python link is dead (Homebrew upgraded the Python) is rebuilt, not kept"
+E=$T/deadvenv; mkdir -p "$E"; ENS=$(sed -n '/^ensure_venv() {/,/^}/p' run.sh)
+(cd "$E" && python3 -m venv --without-pip tools/.venv >/dev/null 2>&1
+ for f in tools/.venv/bin/python*; do rm -f "$f"; ln -s /nonexistent/python3.99 "$f"; done
+ PY=tools/.venv/bin/python SYS_PY=python3 REQS=/dev/null bash -c "note() { echo \"\$*\"; }; dry() { return 1; }; timed() { shift; \"\$@\"; }
+   missing_reqs() { :; }; pkg_for() { :; }; $ENS; ensure_venv" >"$T/deadvenv.txt" 2>&1)
+check "ensure_venv rebuilt the venv ($(tail -n 1 "$T/deadvenv.txt"))" test -x "$E/tools/.venv/bin/python"
+check "and the pipeline checks the venv again before step 1 of it" has 'lost its python since step 3' run.sh
+
 echo
 if ((FAILS)); then echo "$FAILS check(s) FAILED"; exit 1; fi
 echo "all checks passed"
