@@ -26,6 +26,8 @@ func _ready() -> void:
 
 
 func _physics_process(dt: float) -> void:
+	if SimHold.paused():  # the needles hold (the VSI would otherwise decay to zero)
+		return
 	var h := _tick.step(dt)
 	if h > 0.0:
 		update(h)

@@ -26,6 +26,19 @@ var _mean_key := -1
 var shadow := Vector4.ZERO  # last cloud_shadow global: (base m, coverage, strength, 0)
 var _screen: QuadMesh
 var _up: CloudUpscale
+## Write-on-change (PERFORMANCE-RULES 10): update_layer and set_inside run every frame, but most of their values
+## stand still. Material uniforms go through a SkyParams (same steps as the sky); the ground-shadow globals through
+## _set_global; the noise texture global is set once (re-setting a texture global re-queues every terrain material).
+var _p := SkyParams.new(_mat)
+var _globals_sent := {}
+var global_writes := 0  # globals actually written (tests, profiling)
+var _noise_published := false
+const _GLOBAL_STEP := {&"cloud_uv_off": 1.0e-5, &"cloud_shadow": 0.002, &"cloud_sun": SkyParams.STEP_DIR}  # uv: 0.09 m
+
+
+func _init() -> void:
+	# air_haze is ~2e-5 1/m: any change counts; positions in metres follow at a centimetre
+	_p.step_by_name = {&"air_haze": 0.0, &"max_dist": 1.0, &"cam_world": 0.01, &"wind_offset": 0.01}
 
 
 func _ready() -> void:
@@ -72,20 +85,21 @@ func update_layer(cam_world: Vector3, base_m: float, cov: float, dr: Vector2, su
 	cover = cov
 	drift = dr
 	visible = cover > 0.01 and steps > 0
-	_mat.set_shader_parameter("cam_world", cam_world)
-	_mat.set_shader_parameter("cloud_base", base)
-	_mat.set_shader_parameter("coverage", cover)
-	_mat.set_shader_parameter("wind_offset", drift)
-	_mat.set_shader_parameter("sun_dir", sun_dir)
-	_mat.set_shader_parameter("sun_color", sun_col)
-	_mat.set_shader_parameter("ambient", amb)
-	_mat.set_shader_parameter("steps", steps)
-	_mat.set_shader_parameter("max_dist", max_dist)
-	_mat.set_shader_parameter("near_m", CloudTemporal.NEAR_CLEAR_M)
-	_mat.set_shader_parameter("air_haze", air_haze)
+	_p.stage(&"cam_world", cam_world)
+	_p.stage(&"cloud_base", base)
+	_p.stage(&"coverage", cover)
+	_p.stage(&"wind_offset", drift)
+	_p.stage(&"sun_dir", sun_dir)
+	_p.stage(&"sun_color", sun_col)
+	_p.stage(&"ambient", amb)
+	_p.stage(&"steps", steps)
+	_p.stage(&"max_dist", max_dist)
+	_p.stage(&"near_m", CloudTemporal.NEAR_CLEAR_M)
+	_p.stage(&"air_haze", air_haze)
+	_p.stage(&"light_steps", clampi(light_steps, 1, 4))
+	_p.stage(&"base_dark", base_dark)
+	_p.flush()
 	_update_mean()
-	_mat.set_shader_parameter("light_steps", clampi(light_steps, 1, 4))
-	_mat.set_shader_parameter("base_dark", base_dark)
 	_publish_shadow(sun_dir, sun_col, base_dark)
 	if _up != null and get_parent() is Camera3D:
 		_up.call_deferred("sync")
@@ -121,11 +135,12 @@ func _update_mean() -> void:
 ## In-cloud presentation (CloudInside): k the in-cloud factor, pocket_m a radius around the camera kept free of
 ## cloud (outside views, so the aircraft is not washed out by the march), glow a soft light towards the sun.
 func set_inside(k: float, pocket_m: float, glow: Color, subject_w := 0.0) -> void:
-	_mat.set_shader_parameter("in_cloud", k)
-	_mat.set_shader_parameter("clear_r", pocket_m)
-	_mat.set_shader_parameter("glow_color", glow)
-	_mat.set_shader_parameter("vert_grad", CloudLook.VERT)
-	_mat.set_shader_parameter("subject_w", subject_w)
+	_p.stage(&"in_cloud", k)
+	_p.stage(&"clear_r", pocket_m)
+	_p.stage(&"glow_color", glow)
+	_p.stage(&"vert_grad", CloudLook.VERT)
+	_p.stage(&"subject_w", subject_w)
+	_p.flush()
 
 
 ## Cloud shadows on the ground (terrain.gdshader): the same coverage noise, projected along the sun.
@@ -134,11 +149,21 @@ func _publish_shadow(sun_dir: Vector3, sun_col: Color, base_dark: float) -> void
 		* (1.0 - clampf(base_dark * 2.0, 0.0, 1.0)) * (1.0 if steps > 0 else 0.0)
 	var wb := FloatingOrigin.wrap_base_value()
 	shadow = Vector4(base, cover, st, 0.0)
-	RenderingServer.global_shader_parameter_set("cloud_shadow", shadow)
-	RenderingServer.global_shader_parameter_set("cloud_uv_off", Vector2(fposmod(wb.x + drift.x, 9000.0), fposmod(wb.y + drift.y, 9000.0)) / 9000.0)
-	RenderingServer.global_shader_parameter_set("cloud_sun", sun_dir.normalized())
-	if _lo.get_image() != null:
+	_set_global(&"cloud_shadow", shadow)
+	_set_global(&"cloud_uv_off", Vector2(fposmod(wb.x + drift.x, 9000.0), fposmod(wb.y + drift.y, 9000.0)) / 9000.0)
+	_set_global(&"cloud_sun", sun_dir.normalized())
+	if not _noise_published and _img_lo != null:  # once the noise exists (its `changed` signal set _img_lo)
+		_noise_published = true
 		RenderingServer.global_shader_parameter_set("cloud_noise", _lo)
+		global_writes += 1
+
+
+func _set_global(name: StringName, v: Variant) -> void:
+	if _globals_sent.has(name) and not SkyParams.changed(_globals_sent[name], v, _GLOBAL_STEP.get(name, -1.0)):
+		return
+	_globals_sent[name] = v
+	RenderingServer.global_shader_parameter_set(name, v)
+	global_writes += 1
 
 
 static func _sample(img: Image, uv: Vector2) -> float:

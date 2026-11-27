@@ -37,3 +37,34 @@ func test_cloud_layer_passes_light_steps() -> String:
 		got.append(cl._mat.get_shader_parameter("light_steps"))
 	cl.queue_free()
 	return "" if got == [3, 4, 1] else "light_steps should reach the material clamped to 1..4: %s" % [got]
+
+
+func test_cloud_layer_writes_only_what_changed() -> String:
+	# update_layer / set_inside run every frame: a still frame writes no uniform and no global (PERFORMANCE-RULES 10),
+	# the cloud_noise texture global is set once at most (re-setting it re-queues every terrain material).
+	var cl := CloudLayer.new()
+	add_child(cl)
+	var args := [Vector3(10, 20, 300), 1400.0, 0.5, Vector2(5, 6), Vector3(0.3, 0.8, 0.2), Color.WHITE, Color.GRAY, 0.1]
+	cl.callv("update_layer", args)
+	cl.set_inside(0.0, 0.0, Color.BLACK)
+	var mat_w := cl._p.writes
+	var glob_w := cl.global_writes
+	var noise_due := 0 if cl._noise_published else 1
+	cl._img_lo = Image.create(4, 4, false, Image.FORMAT_RF)  # the noise is ready
+	for i in 30:
+		cl.callv("update_layer", args)
+		cl.set_inside(0.0, 0.0, Color.BLACK)
+	var still_mat := cl._p.writes - mat_w
+	var still_glob := cl.global_writes - glob_w  # only the one cloud_noise publish
+	args[2] = 0.6  # the coverage moves: that uniform and the shadow global follow
+	cl.callv("update_layer", args)
+	var cov = cl._mat.get_shader_parameter("coverage")
+	var moved_glob := cl.global_writes - glob_w - still_glob
+	cl.free()
+	if still_mat != 0:
+		return "30 identical frames wrote %d cloud uniforms" % still_mat
+	if still_glob != noise_due:
+		return "identical frames should write only the one cloud_noise publish, got %d global writes" % still_glob
+	if not is_equal_approx(float(cov), 0.6) or moved_glob != 1:
+		return "a coverage change should reach the material (%s) and the cloud_shadow global (%d writes)" % [cov, moved_glob]
+	return ""

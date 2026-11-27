@@ -5,7 +5,7 @@ extends RefCounted
 ## Input: the measured GPU time of the main viewport (RenderingServer.viewport_get_measured_render_time_gpu) against the
 ## screen's frame budget (1000 / refresh rate ms). Nothing here looks at the brand, processor or OS. Used by
 ## Graphics only while Render resolution is Auto (a fixed choice wins); the scale feeds _apply_viewport (below 1:
-## FSR2 on Forward+, bilinear on Mobile).
+## upscale_mode: FSR2 on Forward+, bilinear on Mobile and Compatibility).
 
 const FLOOR := 0.7  # below this a large frame turns to mush; spend frame rate instead
 const STEP := 0.1
@@ -26,6 +26,11 @@ const BLIND_UP_S := 20.0
 const BLIND_UP_MAX_S := 160.0
 const PROBE_S := 10.0
 const BLIND_SLOW_SHARE := 0.02  # at most this share of missed slots over the wait for a blind step up
+## CPU-bound frames (cpu_bound): the main thread and the renderer's CPU work alone fill the frame, so a smaller 3D scale
+## would buy nothing. Such a frame never counts towards a step down, and for the blind step up it counts as fine:
+## a scale lowered earlier (a GPU-heavy moment) comes back once the frames are CPU-limited, with or without vsync.
+## The CPU time comes from FrameCpu (core/frame_cpu.gd); -1 = not measured, the old frame-time rule.
+const CPU_SHARE := 0.85
 
 var scale := 1.0
 var top := 1.0  # the preset's own scale: never above it
@@ -80,7 +85,18 @@ func feed(gpu_ms: float, budget_ms: float, dt: float) -> bool:
 	return false
 
 
-## The spec drawn at `s`: below 1 it is upscaled (FSR2 on Forward+, bilinear on Mobile).
+## How a spec is upscaled on renderer `rend` (Graphics._apply_viewport, for Auto and fixed sizes alike): below 1 with
+## `fsr`, FSR2 on Forward+ (temporal, antialiases); otherwise bilinear. Mobile and Compatibility stay bilinear: Godot
+## 4.7.2 accepts FSR1 only on Forward+ (renderer_viewport.cpp viewport_set_scaling_3d_mode warns "FSR1 3D scaling is only
+## available when using the Forward+ renderer" and keeps the old mode; _configure_3d_render_buffers turns FSR on the
+## Mobile renderer into bilinear), so asking for it there would change nothing.
+static func upscale_mode(spec: Dictionary, rend: String) -> Viewport.Scaling3DMode:
+	if bool(spec.get("fsr", false)) and float(spec.scale) < 1.0 and rend == "forward_plus":
+		return Viewport.SCALING_3D_MODE_FSR2
+	return Viewport.SCALING_3D_MODE_BILINEAR
+
+
+## The spec drawn at `s`: below 1 it is upscaled (upscale_mode).
 static func at_scale(spec: Dictionary, s: float) -> Dictionary:
 	var out := spec.duplicate()
 	out.scale = s
@@ -95,23 +111,26 @@ static func budget_ms(refresh_hz: float) -> float:
 
 ## One frame from whatever timing the driver gives: its GPU time when it reports one (feed), else the frame time
 ## (frame_ms, the time since the last frame) through frame_load_ms, with blind steps up under vsync. The same rule on
-## every machine: only the presence of a GPU reading decides, never the brand or OS.
-func feed_any(gpu_ms: float, frame_ms: float, budget_ms: float, vsync: bool, dt: float) -> bool:
+## every machine: only the presence of a GPU reading decides, never the brand or OS. cpu_ms: the frame's CPU time
+## (FrameCpu), so a CPU-bound frame is not taken for a slow GPU.
+func feed_any(gpu_ms: float, frame_ms: float, budget_ms: float, vsync: bool, dt: float, cpu_ms := -1.0) -> bool:
 	if gpu_ms > 0.0:
 		return feed(gpu_ms, budget_ms, dt)
 	var was := scale
 	_since_up += dt
-	if feed(frame_load_ms(frame_ms, budget_ms, vsync), budget_ms, dt):
+	var cpu := cpu_bound(cpu_ms, frame_ms, budget_ms, vsync)
+	var load := budget_ms * HOLD_LOAD if cpu else frame_load_ms(frame_ms, budget_ms, vsync)
+	if feed(load, budget_ms, dt):
 		if scale < was:
 			if _since_up < PROBE_S:  # the last blind try could not hold: wait longer before the next
 				blind_hold = minf(blind_hold * 2.0, BLIND_UP_MAX_S)
 			_blind_reset()
 		return true
-	if not vsync or frame_ms <= 0.0 or budget_ms <= 0.0:
+	if not (vsync or cpu_ms > 0.0) or frame_ms <= 0.0 or budget_ms <= 0.0:
 		return false
 	_blind_calm += dt
 	_blind_n += 1
-	if frame_ms > budget_ms * SLOW:
+	if not cpu and (not vsync or frame_ms > budget_ms * SLOW):
 		_blind_slow += 1
 	if _blind_calm < blind_hold or scale >= top - 0.001:
 		return false
@@ -128,6 +147,19 @@ func _blind_reset() -> void:
 	_blind_calm = 0.0
 	_blind_n = 0
 	_blind_slow = 0
+
+
+## True when the CPU alone explains the frame time (see CPU_SHARE): it takes CPU_SHARE of the frame, or under vsync it
+## alone already needs as many refresh slots as the frame took (30 fps on a 60 Hz screen from 20 ms of CPU).
+static func cpu_bound(cpu_ms: float, frame_ms: float, budget_ms: float, vsync: bool) -> bool:
+	if cpu_ms <= 0.0 or frame_ms <= 0.0:
+		return false
+	if cpu_ms >= frame_ms * CPU_SHARE:
+		return true
+	if not vsync or budget_ms <= 0.0:
+		return false
+	var slots := maxi(roundi(frame_ms / budget_ms), 1)
+	return slots > 1 and ceili(cpu_ms / budget_ms) >= slots
 
 
 ## The load one frame counts for when there is no GPU time (see SLOW, HOLD_LOAD, HITCH).

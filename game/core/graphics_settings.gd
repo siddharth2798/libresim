@@ -56,7 +56,7 @@ var running_override := ""
 var _atlas := [-1, -1, -1]  # last atlas size / soft qualities sent to the RenderingServer
 ## Auto render resolution from the measured GPU time (core/render_scaler.gd); reset on every preset change.
 var scaler := RenderScaler.new()
-var _measuring := RID()  # the viewport whose GPU time is being measured
+var _cpu := FrameCpu.new()  # the measured viewport and its frame CPU time (a CPU-bound frame is not stepped down)
 signal changed(preset: String)
 ## The renderer saved for the next start differs from the running one (or matches it again).
 signal restart_needed_changed(needed: bool)
@@ -184,13 +184,11 @@ func _auto_scale(dt: float) -> void:
 		return
 	var vp := get_viewport()
 	var rid := vp.get_viewport_rid()
-	if rid != _measuring:
-		RenderingServer.viewport_set_measure_render_time(rid, true)
-		_measuring = rid
+	if _cpu.watch(rid):  # the viewport's GPU / CPU times are measured from the next frame
 		return
 	var hz := DisplayServer.screen_get_refresh_rate(DisplayServer.window_get_current_screen())
-	if scaler.feed_any(RenderingServer.viewport_get_measured_render_time_gpu(rid), dt * 1000.0, RenderScaler.budget_ms(hz), DisplayServer.window_get_vsync_mode() != DisplayServer.VSYNC_DISABLED, dt):
-		_apply_viewport(vp, spec_for(frame()), renderer() == "forward_plus")
+	if scaler.feed_any(RenderingServer.viewport_get_measured_render_time_gpu(rid), dt * 1000.0, RenderScaler.budget_ms(hz), DisplayServer.window_get_vsync_mode() != DisplayServer.VSYNC_DISABLED, dt, _cpu.cpu_ms()):
+		_apply_viewport(vp, spec_for(frame()), renderer())
 		auto_scale_changed.emit()
 
 
@@ -265,7 +263,7 @@ func apply_to_scene(root: Node) -> void:
 	var forward_plus := renderer() == "forward_plus"
 	_apply_shadow_atlas(s)
 	var vp := root.get_viewport()
-	_apply_viewport(vp, s, forward_plus)
+	_apply_viewport(vp, s, renderer())
 	var sun := root.get_node_or_null("Sun") as DirectionalLight3D
 	if sun:
 		sun.shadow_enabled = s.shadow > 0.0
@@ -312,15 +310,14 @@ func apply_to_scene(root: Node) -> void:
 	GroundFxQuality.apply(root, preset)  # rain splashes, wheel spray, wash and dust counts (world/ground_fx_quality.gd)
 
 
-## Supersampling above 1 is a plain bilinear downscale. Below 1, Forward+ uses FSR2, which
-## antialiases itself, so TAA and the screen-space filter are off (a filter on top only softened it again).
-## The mobile renderer has no FSR, so it stays bilinear, with the preset's filter (SMAA; ScreenAA decides).
-func _apply_viewport(vp: Viewport, s: Dictionary, forward_plus: bool) -> void:
-	var up: bool = s.fsr and s.scale < 1.0 and forward_plus
-	if up:
-		vp.scaling_3d_mode = Viewport.SCALING_3D_MODE_FSR2
-	else:
-		vp.scaling_3d_mode = Viewport.SCALING_3D_MODE_BILINEAR
+## Supersampling above 1 is a plain bilinear downscale. Below 1 (RenderScaler.upscale_mode): Forward+ uses FSR2, which
+## antialiases itself, so TAA and the screen-space filter are off (a filter on top only softened it again). Godot 4.7.2
+## has no FSR on Mobile or Compatibility, so they stay bilinear, with the preset's filter (SMAA; ScreenAA decides).
+## `rend`: the running renderer (renderer()); Auto and fixed sizes go through here alike.
+func _apply_viewport(vp: Viewport, s: Dictionary, rend: String) -> void:
+	var forward_plus := rend == "forward_plus"
+	vp.scaling_3d_mode = RenderScaler.upscale_mode(s, rend)
+	var up := vp.scaling_3d_mode == Viewport.SCALING_3D_MODE_FSR2
 	vp.scaling_3d_scale = s.scale
 	vp.msaa_3d = [Viewport.MSAA_DISABLED, Viewport.MSAA_2X, Viewport.MSAA_4X][s.msaa]
 	vp.screen_space_aa = ScreenAA.mode_for(s, up or (s.taa and forward_plus), UserOptions.get_v("edge_smoothing"))

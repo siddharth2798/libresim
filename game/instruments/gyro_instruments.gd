@@ -42,6 +42,8 @@ func start_running() -> void:
 
 
 func _physics_process(dt: float) -> void:
+	if SimHold.active():  # paused or replaying: no drift, spin-down or erection (the replay writes the recorded readings)
+		return
 	var h := _tick.step(dt)
 	if h > 0.0:
 		update(h)

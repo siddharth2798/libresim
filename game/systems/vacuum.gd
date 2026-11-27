@@ -16,6 +16,8 @@ func _ready() -> void:
 
 
 func _physics_process(dt: float) -> void:
+	if SimHold.paused():  # the suction lag holds while paused
+		return
 	var h := _tick.step(dt)
 	if h > 0.0:
 		update(h)

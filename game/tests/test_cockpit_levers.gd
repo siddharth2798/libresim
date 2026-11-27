@@ -190,3 +190,26 @@ func test_levers_c172_has_none() -> String:
 	c.free()
 	empty.free()
 	return "" if n == 0 else "built %d" % n
+
+
+## The 3D panel refreshes at 30 Hz whatever the frame rate: the timer keeps its remainder (at 40 fps it used to reset to 0
+## and refresh every 2nd frame, 20 Hz), and a long hitch gives one refresh, not a burst.
+func test_cockpit_panel_refresh_keeps_30_hz() -> String:
+	var snap: Dictionary = Props._p.duplicate(true)
+	Props.set_v("view/mode", "Outside")  # the refresh timer runs; the panel itself is not touched
+	var c := Cockpit.new()
+	var runs := 0
+	for i in 80:  # 2 s at 40 fps
+		var before: float = c._acc
+		c._process(1.0 / 40.0)
+		if c._acc < before + 1.0 / 40.0 - 1e-9:
+			runs += 1
+	c._process(0.5)  # a hitch
+	var after_hitch: float = c._acc
+	c.free()
+	Props._p = snap
+	if absi(runs - 60) > 1:
+		return "%d panel refreshes in 2 s at 40 fps, want 60 (30 Hz)" % runs
+	if after_hitch >= Cockpit.REFRESH:
+		return "after a 0.5 s hitch the timer holds %.3f s: refreshes would burst" % after_hitch
+	return ""

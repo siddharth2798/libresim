@@ -9,6 +9,25 @@ func _src(path: String) -> String:
 	return FileAccess.get_file_as_string(path)
 
 
+func test_terminal_night_written_only_on_change() -> String:
+	# Terminals._process runs every frame; `night` goes to every terminal material only when it moved (PERFORMANCE-RULES 10).
+	var t := Terminals.new()
+	for i in 3:
+		var m := ShaderMaterial.new()
+		m.shader = preload("res://world/terminal.gdshader")
+		t._mats.append(m)
+	t.set_night(0.0)
+	var first := t.night_writes
+	for i in 30:
+		t.set_night(0.0)
+	var still := t.night_writes - first
+	t.set_night(0.7)
+	var got: float = t._mats[2].get_shader_parameter("night")
+	t.free()
+	if first != 3 or still != 0:
+		return "first frame writes each material once (%d), unchanged frames none (%d)" % [first, still]
+	return "" if is_equal_approx(got, 0.7) else "a new night level reaches the materials (%f)" % got
+
 ## The cone is 1 on the axis, 0 at the edge, never rises with the angle and has no step between neighbouring angles.
 func test_pool_cone_falls_smoothly() -> String:
 	var cone_cos := cos(deg_to_rad(ApronLamps.cone_deg(52.0)))

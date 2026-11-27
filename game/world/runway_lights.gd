@@ -38,6 +38,8 @@ var _mask_icao := ""
 var _mask: Array = []
 var _debug := false
 var _dbg_t := 0.0
+var _levels_sent := {}  # group -> level last written to its material
+var level_writes := 0  # material writes (tests)
 
 
 func build(data: Dictionary, t: TerrainQuadtree) -> void:
@@ -122,6 +124,7 @@ func _beacon_sites() -> Array:
 
 
 func _make_materials() -> void:
+	_levels_sent.clear()
 	var add := preload("res://world/light_point.gdshader")
 	var mix := preload("res://world/light_point_mix.gdshader")
 	for g in GROUPS:
@@ -156,13 +159,22 @@ static func levels(sun_deg: float, vis_m: float) -> Dictionary:
 		"flood": NightSky.night_level(sun_deg), "pool": NightSky.night_level(sun_deg)}  # apron floods: night only
 
 
+## Writes each group's `level` only when it moved (PERFORMANCE-RULES 10; SkyParams.changed: 0.002, exact 0 / 1).
+func apply_levels(lv: Dictionary) -> void:
+	for g in lv:
+		if _levels_sent.has(g) and not SkyParams.changed(_levels_sent[g], lv[g]):
+			continue
+		_levels_sent[g] = lv[g]
+		mats[g].set_shader_parameter("level", lv[g])
+		level_writes += 1
+
+
 func _process(dt: float) -> void:
 	var cam := get_viewport().get_camera_3d()
 	if cam == null or terrain == null:
 		return
 	var lv := levels(Props.get_f("environment/sun_elev_deg", 30.0), Props.get_f("environment/visibility_m", Props.get_f("weather/visibility_m", 20000.0)))
-	for g in lv:
-		mats[g].set_shader_parameter("level", lv[g])
+	apply_levels(lv)
 	var w := FloatingOrigin.to_world(cam.global_position)
 	var c := Vector2(w.x, w.y)
 	_timer -= dt

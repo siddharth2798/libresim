@@ -58,10 +58,14 @@ func test_post_fx_gating_by_preset_and_renderer() -> String:
 	if not f.motion_blur or f.sharpen or f.lens_effects or f.depth_of_field or not f.bloom or not f.sun_shafts:
 		return "ultra defaults without TAA: %s" % f
 	var m := R.flags_for("medium", "mobile", FX_DEFAULTS, false, 0.85)
-	if m.motion_blur or m.heat_shimmer or m.sun_shafts or not m.lens_rain or m.sharpen:
-		return "medium on Mobile: %s" % m
+	if m.motion_blur or m.heat_shimmer or m.sun_shafts or not m.lens_rain or not m.sharpen:
+		return "medium on Mobile (sharpened: 0.85 bilinear upscale): %s" % m
+	if R.flags_for("medium", "mobile", FX_DEFAULTS, false, 1.0).sharpen:
+		return "medium at a full render scale has nothing to sharpen"
+	if not R.flags_for("medium", "gl_compatibility", FX_DEFAULTS, false, 0.85).sharpen:
+		return "medium on Compatibility is bilinear too and should be sharpened"
 	var low := R.flags_for("low", "mobile", FX_DEFAULTS, false, 0.7)
-	return "" if not low.bloom and not low.sun_shafts and low.color_grading else "low: %s" % low
+	return "" if not low.bloom and not low.sun_shafts and low.color_grading and not low.sharpen else "low: %s" % low
 
 
 func test_post_fx_view_rules() -> String:

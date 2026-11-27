@@ -24,10 +24,32 @@ func _apply(p: String, scale: float, renderer: String, choice := "Auto") -> Arra
 	ScreenAA._cli = ""
 	var vp := SubViewport.new()
 	add_child(vp)
-	Graphics._apply_viewport(vp, RenderScaler.at_scale(Graphics.PRESETS[p], scale), renderer == "forward_plus")
-	var out := [vp.screen_space_aa, vp.use_taa, vp.scaling_3d_mode == Viewport.SCALING_3D_MODE_FSR2]
+	Graphics._apply_viewport(vp, RenderScaler.at_scale(Graphics.PRESETS[p], scale), renderer)
+	var out := [vp.screen_space_aa, vp.use_taa, vp.scaling_3d_mode == Viewport.SCALING_3D_MODE_FSR2, vp.scaling_3d_mode]
 	vp.free()
 	return out
+
+
+func test_upscale_mode_per_renderer_same_for_auto_and_fixed_sizes() -> String:
+	# Godot 4.7.2 has FSR (1 and 2) on Forward+ only: Medium on Mobile at 0.85 is bilinear with SMAA (asking for FSR1 there
+	# is refused by viewport_set_scaling_3d_mode); Compatibility bilinear; Forward+ FSR2 with no filter on top.
+	var mob: Array = _apply("medium", 0.85, "mobile")
+	if mob[3] != Viewport.SCALING_3D_MODE_BILINEAR or mob[0] != Viewport.SCREEN_SPACE_AA_SMAA or mob[1]:
+		return "Medium on Mobile below 1 should be bilinear + SMAA, got mode %d filter %d TAA %s" % [mob[3], mob[0], mob[1]]
+	if _apply("medium", 0.85, "gl_compatibility")[3] != Viewport.SCALING_3D_MODE_BILINEAR:
+		return "Compatibility has no FSR: bilinear"
+	if _apply("medium", 0.85, "forward_plus")[3] != Viewport.SCALING_3D_MODE_FSR2:
+		return "Forward+ below 1 stays FSR2"
+	for rend in ["mobile", "forward_plus", "gl_compatibility"]:
+		if _apply("medium", 1.0, rend)[3] != Viewport.SCALING_3D_MODE_BILINEAR:
+			return "%s at scale 1 should not upscale" % rend
+	# the Auto path (RenderScaler.at_scale) and a fixed size (RenderResolution.apply) give the same mode
+	var fixed := RenderResolution.apply(Graphics.PRESETS.high, 0.8)
+	var auto := RenderScaler.at_scale(Graphics.PRESETS.high, 0.8)
+	for rend in ["mobile", "forward_plus", "gl_compatibility"]:
+		if RenderScaler.upscale_mode(fixed, rend) != RenderScaler.upscale_mode(auto, rend):
+			return "Auto and a fixed render resolution should upscale the same way on %s" % rend
+	return ""
 
 
 func test_each_preset_smooths_edges_with_smaa_unless_taa_runs() -> String:

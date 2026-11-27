@@ -11,6 +11,70 @@ func _runway(airport: String) -> Dictionary:
 	return best
 
 
+## Paused or crashed, the FDM holds, and the rendered pose must hold too: render_transform() lerps from the previous tick's
+## pose by the physics interpolation fraction, so the held ticks must bring the previous pose up to the current one
+## (before, the last two live poses stayed apart and the aircraft and camera wobbled with the frame fraction).
+func test_held_fdm_render_pose_is_still() -> String:
+	var snap: Dictionary = Props._p.duplicate(true)
+	var node := FdmNode.new()
+	node.fdm = FDM.new()
+	var f := node.fdm
+	f.set_airborne(100.0, 200.0, 900.0, 0.3, 50.0)
+	var err := ""
+	# "zero step": Engine.time_scale 0 (the --freeze of debug_flicker / debug_perf) calls with delta 0; a zero FDM step
+	# turned the attitude into NaN, so it holds like a pause
+	for why in ["paused", "crashed", "zero step"]:
+		node._prev_pos = PackedFloat64Array([f.pos_e - 0.4, f.pos_n - 0.4, -f.pos_d + 0.1])  # the tick before: 0.4 m back
+		node._prev_q = f.q * Quaternion(Vector3.UP, 0.01)
+		node.paused = why == "paused"
+		f.damage.crashed = why == "crashed"
+		node._physics_process(0.0 if why == "zero step" else 1.0 / 120.0)
+		var cur := PackedFloat64Array([f.pos_e, f.pos_n, -f.pos_d])
+		if not f.q.is_finite() or is_nan(f.pos_e + f.pos_n + f.pos_d):
+			err = "%s: the FDM state is no longer finite (q %s)" % [why, f.q]
+			break
+		if node._prev_pos != cur or not node._prev_q.is_equal_approx(f.q):
+			err = "%s: previous pose %s / %s, current %s / %s: the render pose keeps lerping between them" % [
+				why, node._prev_pos, node._prev_q, cur, f.q]
+			break
+	f.damage.crashed = false
+	node.free()
+	Props._p = snap
+	return err
+
+
+## Parking brake set on a 3 % slope, engine at a fast idle, a 6 m/s quartering wind: a stopped braked tyre is held by static
+## friction (GearGround._hold), so over a minute the aircraft does not move. The old zero-at-zero-speed friction crept.
+func test_parking_brake_holds_on_a_slope() -> String:
+	var h := FdmHarness.new()
+	var f := h.f
+	f.ground_height = func(n: float, e: float) -> float: return -0.03 * n + 0.01 * e  # downhill to the north and west
+	f.set_on_ground(0.0, 0.0, 0.0)
+	h.mode = "none"
+	f.gear.brake_left = 1.0
+	f.gear.brake_right = 1.0
+	f.prop.rpm = 1000.0
+	f.engine.throttle = 0.15
+	f.wind_ned = Vector3(-4.0, -4.5, 0.0)  # from the south-east (tail-quartering)
+	h.run(3.0)  # settle on the gear
+	var p0 := Vector2(f.pos_n, f.pos_e)
+	var peak := [0.0]
+	h.run(60.0, func():
+		peak[0] = maxf(peak[0], Vector2(f.pos_n, f.pos_e).distance_to(p0))
+		return false)
+	var moved := Vector2(f.pos_n, f.pos_e).distance_to(p0)
+	print("    parking brake on a 3 %% slope, %.0f RPM, 6 m/s wind: moved %.4f m in 60 s (peak %.4f m)" % [f.prop.rpm, moved, peak[0]])
+	if moved > 0.02 or peak[0] > 0.03:
+		return "crept %.3f m in 60 s with the parking brake set (peak %.3f m)" % [moved, peak[0]]
+	f.gear.brake_left = 0.0  # brake off: it rolls downhill again
+	f.gear.brake_right = 0.0
+	h.run(10.0)
+	var rolled := Vector2(f.pos_n, f.pos_e).distance_to(p0)
+	if rolled < 0.5:
+		return "brake off on the slope: rolled only %.3f m in 10 s (the hold must release)" % rolled
+	return ""
+
+
 func test_m4_takeoff_juhu() -> String:
 	var cache := TerrainTileCache.new()
 	var r := _runway("VAJJ")

@@ -20,6 +20,8 @@ var _rate := 0.0
 
 
 func _physics_process(dt: float) -> void:
+	if SimHold.paused():  # the card holds while paused
+		return
 	var h := _tick.step(dt)
 	if h > 0.0:
 		update(h)

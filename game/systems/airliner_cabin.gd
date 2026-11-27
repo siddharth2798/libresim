@@ -58,6 +58,8 @@ static func isa_alt(pa: float) -> float:
 
 
 func _physics_process(dt: float) -> void:
+	if SimHold.paused():  # the cabin altitude holds while paused
+		return
 	var h := _tick.step(dt)
 	if h > 0.0:
 		update(h)

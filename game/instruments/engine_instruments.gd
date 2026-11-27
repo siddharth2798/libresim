@@ -20,6 +20,8 @@ func _lag(key: String, target: float, rate: float, dt: float) -> float:
 
 
 func _physics_process(dt: float) -> void:
+	if SimHold.paused():  # the needles hold while paused
+		return
 	var h := _tick.step(dt)
 	if h > 0.0:
 		update(h)

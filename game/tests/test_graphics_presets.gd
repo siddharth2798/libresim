@@ -138,10 +138,10 @@ func test_fsr2_upscale_is_not_softened_again_by_a_screen_filter() -> String:
 	var keep: Variant = UserOptions.get_v("edge_smoothing")
 	UserOptions._v["edge_smoothing"] = "Auto"  # in memory only
 	var s := RenderScaler.at_scale(Graphics.PRESETS.medium, 0.8)  # medium asks for SMAA
-	Graphics._apply_viewport(vp, s, true)
+	Graphics._apply_viewport(vp, s, "forward_plus")
 	var fsr_aa := vp.screen_space_aa
 	var mode := vp.scaling_3d_mode
-	Graphics._apply_viewport(vp, s, false)  # Mobile: bilinear, SMAA as asked
+	Graphics._apply_viewport(vp, s, "mobile")  # Mobile: bilinear, SMAA as asked
 	var mobile_aa := vp.screen_space_aa
 	UserOptions._v["edge_smoothing"] = keep
 	vp.free()

@@ -12,7 +12,7 @@ const DT := 1.0 / 120.0
 const RATES := {
 	"res://fdm/fdm_node.gd": 120.0, "res://systems/autoflight.gd": 120.0, "res://world/weather.gd": 120.0,
 	"res://world/ground_ops.gd": 120.0, "res://world/touchdown_fx.gd": 120.0, "res://world/tyre_smoke.gd": 120.0,
-	"res://avionics/gps.gd": 30.0, "res://avionics/nav_radios.gd": 30.0, "res://instruments/adirs.gd": 30.0,
+	"res://avionics/gps.gd": 30.0, "res://avionics/ils_autotune.gd": 4.0,"res://avionics/nav_radios.gd": 30.0, "res://instruments/adirs.gd": 30.0,
 	"res://instruments/air_data_instruments.gd": 30.0, "res://instruments/airliner_air_data.gd": 30.0,
 	"res://instruments/airliner_engines.gd": 30.0, "res://instruments/engine_instruments.gd": 30.0,
 	"res://instruments/gyro_instruments.gd": 30.0, "res://instruments/magnetic_compass.gd": 30.0,
