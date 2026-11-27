@@ -18,7 +18,7 @@ check() { local what=$1; shift; if "$@"; then ok "$what"; else bad "$what"; fi; 
 has() { grep -q -- "$1" "$2"; }
 
 echo "== (i) syntax"
-for f in run.sh tools/run_stale.sh tools/run_progress.sh tools/run_raw.sh tools/test_run_sh.sh; do
+for f in run.sh tools/run_stale.sh tools/run_progress.sh tools/run_raw.sh tools/test_run_sh.sh tools/e2e.sh; do
   check "bash -n $f" bash -n "$f"
 done
 
@@ -174,6 +174,17 @@ E=$T/deadvenv; mkdir -p "$E"; ENS=$(sed -n '/^ensure_venv() {/,/^}/p' run.sh)
    missing_reqs() { :; }; pkg_for() { :; }; $ENS; ensure_venv" >"$T/deadvenv.txt" 2>&1)
 check "ensure_venv rebuilt the venv ($(tail -n 1 "$T/deadvenv.txt"))" test -x "$E/tools/.venv/bin/python"
 check "and the pipeline checks the venv again before step 1 of it" has 'lost its python since step 3' run.sh
+
+echo "== (viii) tools/e2e.sh on macOS: no GNU timeout (every job failed with 127), the user folder per OS"
+E2E_FN=$(sed -n '/^portable_timeout() {/p; /^e2e_user_dir() {/,/^}/p' tools/e2e.sh)
+rc=0; t0=$(date +%s); bash -c "$E2E_FN; portable_timeout 1 sleep 5" || rc=$?; dt=$(( $(date +%s) - t0 ))
+check "portable_timeout stops a command after its time (rc $rc, ${dt} s)" test "$rc" -ne 0 -a "$dt" -le 3
+check "portable_timeout passes a quick command's exit code" bash -c "$E2E_FN; portable_timeout 5 sh -c 'exit 3'; test \$? = 3"
+check "e2e.sh uses it when there is no timeout command" has 'timeout() { portable_timeout "$@"; }' tools/e2e.sh
+got=$(HOME=/h XDG_DATA_HOME= bash -c "$E2E_FN; e2e_user_dir Darwin; e2e_user_dir Linux")
+check "user folder: macOS Library, Linux XDG ('${got//$'\n'/ | }')" test "$got" = "/h/Library/Application Support/Godot/app_userdata/libresim
+/h/.local/share/godot/app_userdata/libresim"
+check "e2e.sh backs up that folder" has 'USERDIR="${E2E_USERDIR:-$(e2e_user_dir "$(uname -s)")}"' tools/e2e.sh
 
 echo
 if ((FAILS)); then echo "$FAILS check(s) FAILED"; exit 1; fi

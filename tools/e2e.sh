@@ -5,8 +5,27 @@
 #   tools/e2e.sh [run-name] [filter]     e.g. tools/e2e.sh run1 ; tools/e2e.sh dbg rwy_VABB
 # Output: /tmp/e2e/<run>/ (logs, results, shots), report /tmp/e2e/report.md
 # (also /tmp/e2e/<run>/report.md). Reference screenshots: /tmp/e2e/ref (made on first run).
-# Env: E2E_JOBS=3 parallel game instances; GODOT=~/.local/bin/godot; TEST_JOBS=N workers for the unit tests.
+# Env: E2E_JOBS=3 parallel game instances; GODOT=~/.local/bin/godot; TEST_JOBS=N workers for the unit tests;
+#   E2E_PY = python for the job list and the report (default tools/.venv; needs numpy and Pillow);
+#   E2E_USERDIR = the game's user folder whose setup is backed up and put back (default: Godot's, per OS).
+# Linux and macOS: bash 4 (re-exec'd from Homebrew's when /bin/bash is 3.2), GNU timeout or else gtimeout or a perl alarm.
 set -u
+if ((BASH_VERSINFO[0] < 4)); then
+	for b in /opt/homebrew/bin/bash /usr/local/bin/bash; do [[ -x $b ]] && exec "$b" "$0" "$@"; done
+	echo "e2e.sh needs bash 4 or newer (wait -n): brew install bash"; exit 1
+fi
+# timeout SECS CMD...: GNU coreutils on Linux; macOS has none (every job failed with 127), so gtimeout or a perl alarm
+portable_timeout() { local s=$1; shift; perl -e 'alarm shift; exec @ARGV or die "exec: $!"' "$s" "$@"; }
+if ! command -v timeout >/dev/null; then
+	if command -v gtimeout >/dev/null; then timeout() { gtimeout "$@"; }; else timeout() { portable_timeout "$@"; }; fi
+fi
+# Godot's user folder of the game (app_userdata/libresim) on this OS
+e2e_user_dir() {
+	case "$1" in
+		Darwin) echo "$HOME/Library/Application Support/Godot/app_userdata/libresim" ;;
+		*) echo "${XDG_DATA_HOME:-$HOME/.local/share}/godot/app_userdata/libresim" ;;
+	esac
+}
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 RUN="${1:-run$(date +%H%M)}"
 FILTER="${2:-}"
@@ -14,9 +33,9 @@ GODOT="${GODOT:-$HOME/.local/bin/godot}"
 PAR="${E2E_JOBS:-3}"
 BASE=/tmp/e2e
 OUT="$BASE/$RUN"
-PY="$ROOT/tools/.venv/bin/python"
+PY="${E2E_PY:-$ROOT/tools/.venv/bin/python}"
 [ -x "$PY" ] || PY=python3
-USERDIR="$HOME/.local/share/godot/app_userdata/libresim"
+USERDIR="${E2E_USERDIR:-$(e2e_user_dir "$(uname -s)")}"
 rm -rf "$OUT"; mkdir -p "$OUT/logs" "$OUT/results" "$OUT/shots" "$OUT/rec" "$BASE/ref" "$OUT/backup"
 echo "e2e: run $RUN -> $OUT ($(cd "$ROOT" && git log -1 --format='%h %s' | cut -c1-80))"
 git -C "$ROOT" log -1 --format='%H %ci %s' > "$OUT/git.txt"
@@ -71,6 +90,10 @@ while IFS=$'\t' read -r grp tag exp args; do  # performance: alone, nothing else
 	[ "$grp" = perf ] && run_job "$tag" "$exp" "$args"
 done < "$OUT/jobs.tsv"
 
+if ! "$PY" -c 'import numpy, PIL' 2>/dev/null; then
+	echo "e2e: $PY has no numpy / Pillow, so no report (logs in $OUT/logs). Run ./run.sh --setup-only for tools/.venv, or set E2E_PY."
+	exit 1
+fi
 "$PY" "$ROOT/tools/e2e_report.py" "$OUT"
 cp "$OUT/report.md" "$BASE/report.md"
 echo "e2e: report $BASE/report.md"
