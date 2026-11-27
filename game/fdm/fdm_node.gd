@@ -118,7 +118,9 @@ func _snap() -> void:
 
 func _physics_process(delta: float) -> void:
 	SimHold.publish(paused, replaying)  # weather, cloud drift and icing hold with the FDM
-	if paused or replaying or fdm.damage.crashed:
+	# delta 0 (Engine.time_scale 0: debug_flicker / debug_perf --freeze) holds too: a zero step divided by dt and
+	# turned the attitude into NaN (thousands of "cannot be normalized" warnings from the gear)
+	if paused or replaying or fdm.damage.crashed or delta <= 0.0:
 		_prev_pos[0] = fdm.pos_e  # held: render_transform() is the pose itself, not a lerp between
 		_prev_pos[1] = fdm.pos_n  # the last two ticks that wobbles with the frame's interpolation fraction
 		_prev_pos[2] = -fdm.pos_d

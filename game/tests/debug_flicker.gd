@@ -159,6 +159,10 @@ func _process(dt: float) -> void:
 				for k in ["controls/brake_left", "controls/brake_right"]:
 					Props.set_v(k, 0.0)
 				Props.set_v("controls/parking_brake", false)
+			# --freeze was parsed but never applied, so the sim (propeller, beacons, sky) ran on through the burst. It
+			# starts 0.1 s (6 frames at the frozen 1/60 s step) before the burst: the first frozen frames still settle.
+			if _freeze and _t >= _wait - 0.1:
+				Engine.time_scale = 0.0
 			if _t >= _wait:
 				print("FLICKER burst at %.0f kt" % (Props.get_f("fdm/cas_mps") / 0.514444))
 				_phase = 1

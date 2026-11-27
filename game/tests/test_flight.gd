@@ -21,13 +21,18 @@ func test_held_fdm_render_pose_is_still() -> String:
 	var f := node.fdm
 	f.set_airborne(100.0, 200.0, 900.0, 0.3, 50.0)
 	var err := ""
-	for why in ["paused", "crashed"]:
+	# "zero step": Engine.time_scale 0 (the --freeze of debug_flicker / debug_perf) calls with delta 0; a zero FDM step
+	# turned the attitude into NaN, so it holds like a pause
+	for why in ["paused", "crashed", "zero step"]:
 		node._prev_pos = PackedFloat64Array([f.pos_e - 0.4, f.pos_n - 0.4, -f.pos_d + 0.1])  # the tick before: 0.4 m back
 		node._prev_q = f.q * Quaternion(Vector3.UP, 0.01)
 		node.paused = why == "paused"
 		f.damage.crashed = why == "crashed"
-		node._physics_process(1.0 / 120.0)
+		node._physics_process(0.0 if why == "zero step" else 1.0 / 120.0)
 		var cur := PackedFloat64Array([f.pos_e, f.pos_n, -f.pos_d])
+		if not f.q.is_finite() or is_nan(f.pos_e + f.pos_n + f.pos_d):
+			err = "%s: the FDM state is no longer finite (q %s)" % [why, f.q]
+			break
 		if node._prev_pos != cur or not node._prev_q.is_equal_approx(f.q):
 			err = "%s: previous pose %s / %s, current %s / %s: the render pose keeps lerping between them" % [
 				why, node._prev_pos, node._prev_q, cur, f.q]
