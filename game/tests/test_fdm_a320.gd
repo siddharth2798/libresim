@@ -165,18 +165,21 @@ func test_a320_trimmed_level_flight_hands_off() -> String:
 func test_a320_flaps_slats_spoilers_stabilizer() -> String:
 	var f := _fdm()
 	f.set_airborne(0.0, 0.0, 3000.0, 0.0, 120.0)
-	f.fcs.flap_cmd = 5  # FULL: slats 27, flaps 35
-	f.fcs.speedbrake_cmd = 1.0
-	f.fcs.pitch_trim = 1.0  # full nose-up trim
+	f.fcs.speedbrake_cmd = 1.0  # CONF 0: the speedbrake is not inhibited
 	_run(f, 3.0, 1.0 / 60.0)
 	var c: AirlinerControls = f.fcs
+	var sp: float = c.spoiler[1]
+	if sp < 45.0 or c.spoiler[0] > 0.1 or c.spoiler[4] > 0.1 or absf(c.spoiler[6] - sp) > 0.5:
+		return "speedbrake: panels 2-4 of both wings at 50 deg, 1 and 5 retracted: %s" % [c.spoiler]
+	f.fcs.flap_cmd = 5  # FULL: slats 27, flaps 35; inhibits the speedbrake
+	f.fcs.pitch_trim = 1.0  # full nose-up trim
+	_run(f, 3.0, 1.0 / 60.0)
 	if absf(c.slat_deg - 27.0 * 0.0) > 5.0 * 1.35 + 0.1 or c.slat_deg <= 0.0:
 		return "slats should be moving at 1.35 deg/s: %.2f" % c.slat_deg
 	if absf(c.stabilizer_deg + 3.0 * 0.25) > 0.1:
 		return "THS rate 0.25 deg/s toward -13.5: %.3f after 3 s" % c.stabilizer_deg
-	var sp: float = c.spoiler[1]
-	if sp < 45.0 or c.spoiler[0] > 0.1 or c.spoiler[4] > 0.1 or absf(c.spoiler[6] - sp) > 0.5:
-		return "speedbrake: panels 2-4 of both wings at 50 deg, 1 and 5 retracted: %s" % [c.spoiler]
+	if c.spoiler.max() > 0.1:
+		return "CONF FULL must pull the speedbrake in: %s" % [c.spoiler]
 	f.damage.lim = f.damage.lim.duplicate(true)
 	f.damage.lim.vfe_kias = [[1000.0, 500.0]]  # slats lead, so the flaps extend while the jet is still fast
 	_run(f, 60.0, 1.0 / 30.0)

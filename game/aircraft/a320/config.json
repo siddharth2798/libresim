@@ -1308,6 +1308,13 @@
     "rows": [],
     "data": []
    },
+   "inhibit": {
+    "flap_lever_min": 5,
+    "thrust_lever_above": 0.8,
+    "reset_lever_below": 0.1,
+    "alpha_prot": true,
+    "note": "FCOM F/CTL speedbrake inhibition: CONF FULL (flap detent 5), a thrust lever above MCT (detent 0.778), alpha protection or alpha floor. The panels retract and stay in until the condition has gone and the lever is back at RET. Ground and roll spoilers are not affected."
+   },
    "max_deg": 50.0,
    "panels_per_wing": 5,
    "rate_deg_s": 35.0,
