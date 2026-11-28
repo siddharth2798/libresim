@@ -63,6 +63,7 @@ func update(dt: float, f: FDM) -> void:
 	Props.set_v("ap/cmd/takeover", grabbed)
 	ap_on = ap_on and not grabbed
 	wg = move_toward(wg, 1.0 if s.wow else 0.0, dt / maxf(par.f("ground_blend_s"), 1e-3))
+	c.alpha_prot = law == FbwReversion.NORMAL and (prot.alpha_active or prot.floor_latch)  # last step's flags
 	c._direct()
 	if law == FbwReversion.DIRECT:
 		c.cmd["stabilizer"] = trim.manual(c)

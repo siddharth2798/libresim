@@ -9,10 +9,12 @@ extends FlightControls
 ##   spoilers by the speedbrake lever (config lever_input_table) and the ground spoilers (on the ground, above
 ##   GROUND_SPOILER_MPS, every thrust lever at idle or reverse). Once out, the ground spoilers stay out through a
 ##   bounce and retract only when a thrust lever leaves idle.
+##   Speedbrake inhibition (config spoilers.inhibit, see speedbrake_inhibit_cause): the speedbrake panels pull in and
+##   stay in (speedbrake_inhibited) until the cause has gone and the lever is back below reset_lever_below.
 ## The Airbus law calls _direct() itself, then overwrites pitch, roll and yaw. Actuators, flaps and slats stay here.
 ## Slats lead an extension and flaps lead a retraction, by LEAD_DEG, on a detent that moves both.
 ## Fields saved / replayed: slat_deg slat_cmd spoiler spoiler_cmd speedbrake speedbrake_cmd gear_pos gear_cmd thrust_lever
-## ground_spoilers (and the base flap_deg / flap_cmd = lever index). elevator / aileron / rudder (rad): rudder + = nose LEFT.
+## ground_spoilers speedbrake_inhibited (and the base flap_deg / flap_cmd = lever index). elevator / aileron / rudder (rad): rudder + = nose LEFT.
 
 const GROUND_SPOILER_MPS := 15.0  # the ground spoilers need this ground speed (about 30 kt)
 const LEAD_DEG := 2.0  # the trailing surface waits until the leading one is this close to the detent
@@ -31,6 +33,8 @@ var cmd := {}  # surface name -> commanded deg
 var ground_speed := 0.0  # set by FDM
 var thrust_idle := true  # set by FDM: every thrust lever at idle or reverse
 var ground_spoilers := false  # latched full deployment; cleared only by a thrust lever off idle
+var speedbrake_inhibited := false  # latched: speedbrake panels held in until the cause has gone and the lever is reset
+var alpha_prot := false  # set by the control law: alpha protection or alpha floor active (last step)
 var landing_light_l := 0.0  # 0..1 extension (drag input), set by FdmNode
 var landing_light_r := 0.0
 
@@ -135,6 +139,11 @@ func _direct() -> void:
 	var lever: Dictionary = _sp.get("lever_input_table", {})
 	if not lever.is_empty():
 		sb = clampf(Table.eval2(lever, speedbrake_cmd), 0.0, 1.0)
+	var rule: Dictionary = _sp.get("inhibit", {})
+	var cause := speedbrake_inhibit_cause(rule, flap_cmd, thrust_lever, alpha_prot)
+	speedbrake_inhibited = cause != "" or (speedbrake_inhibited and speedbrake_cmd >= float(rule.get("reset_lever_below", 0.1)))
+	if speedbrake_inhibited:
+		sb = 0.0
 	if not thrust_idle:
 		ground_spoilers = false
 	elif not airborne and ground_speed > GROUND_SPOILER_MPS:
@@ -144,6 +153,21 @@ func _direct() -> void:
 		var local := i % _n_panels
 		var v := 1.0 if ground_spoilers else (sb if local in _sb_panels else 0.0)
 		spoiler_cmd[i] = v * max_deg
+
+
+## Why the speedbrake is inhibited now ("" = it is not), from config spoilers.inhibit {flap_lever_min (flap detent
+## index), thrust_lever_above (any lever, -1..1), alpha_prot (bool)}. A missing key inhibits nothing.
+static func speedbrake_inhibit_cause(rule: Dictionary, flap: int, levers: Array, alpha: bool) -> String:
+	if rule.is_empty():
+		return ""
+	if flap >= int(rule.get("flap_lever_min", 1 << 30)):
+		return "flaps"
+	for x in levers:
+		if float(x) > float(rule.get("thrust_lever_above", INF)):
+			return "thrust"
+	if alpha and bool(rule.get("alpha_prot", false)):
+		return "alpha"
+	return ""
 
 
 func _max(n: String) -> float:
