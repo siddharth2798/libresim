@@ -17,10 +17,19 @@ var _size := Vector2i.ZERO
 
 func _init() -> void:
 	super._init()
-	effect_callback_type = EFFECT_CALLBACK_TYPE_POST_OPAQUE
+	effect_callback_type = callback_for(RenderingServer.get_current_rendering_method())
 	access_resolved_color = false
 	access_resolved_depth = true
 	published = Texture2DRD.new()
+
+
+## The compositor callback that copies depth on `method`. Godot 4.7.2's Mobile renderer rejects POST_OPAQUE
+## ("Post opaque rendering effect callback is not supported in the mobile renderer"), so Mobile copies after the
+## transparent pass instead. The march (a SubViewport) draws before the main view and reads last frame's copy
+## either way, and no transparent material in the game writes depth except the door portal (which is meant to),
+## so the end-of-frame depth is the opaque depth. Forward+ keeps POST_OPAQUE.
+static func callback_for(method: String) -> int:
+	return EFFECT_CALLBACK_TYPE_POST_TRANSPARENT if method == "mobile" else EFFECT_CALLBACK_TYPE_POST_OPAQUE
 
 
 ## The copied depth, or null until the first successful copy (and whenever the device has no depth).
@@ -31,7 +40,7 @@ func texture() -> Texture2DRD:
 
 
 func _render_callback(callback_type: int, render_data: RenderData) -> void:
-	if callback_type != EFFECT_CALLBACK_TYPE_POST_OPAQUE or device() == null:
+	if callback_type != effect_callback_type or device() == null:
 		return
 	var buffers := render_data.get_render_scene_buffers() as RenderSceneBuffersRD
 	if buffers == null:
